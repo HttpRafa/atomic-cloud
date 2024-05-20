@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+import "entities/user.proto";
+package control;
+
+service Controller {
+}
+
+message Empty {}

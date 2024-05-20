@@ -1,0 +1,12 @@
+[package]
+name = "controller"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
+prost = "0.12.6"
+tonic = "0.11.0"
+
+[build-dependencies]
+tonic-build = "0.11.0"

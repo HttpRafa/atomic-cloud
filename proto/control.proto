@@ -3,7 +3,8 @@ syntax = "proto3";
 import "entities/user.proto";
 package control;
 
-service Controller {
+service ControllerService {
+    
 }
 
 message Empty {}

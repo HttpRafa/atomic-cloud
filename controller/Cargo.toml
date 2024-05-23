@@ -1,12 +1,26 @@
 [package]
-name = "controller"
+name = "runner"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Logging
+log = "0.4.21"
+simplelog = "0.12.2"
+inquire = "0.7.5"
+time = "0.3.36"
+
+# Configuration
+serde = { version = "1.0.202", features = ["derive"] }
+toml = "0.8.13"
+
+# Async runtime
 tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
 prost = "0.12.6"
 tonic = "0.11.0"
+
+# Drivers
+mlua = { version = "0.9.8", features = ["lua54", "vendored", "async"] }
 
 [build-dependencies]
 tonic-build = "0.11.0"

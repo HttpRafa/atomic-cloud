@@ -1,7 +1,7 @@
 {pkgs ? import <nixpkgs> {config.allowUnfree = true;}}:
 pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
-    # Install
+    # Install jetbrains ides
     jetbrains.idea-ultimate
     jetbrains.rust-rover
 

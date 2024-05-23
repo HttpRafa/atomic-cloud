@@ -5,6 +5,7 @@ use std::fs;
 use std::fs::read_dir;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use inquire::{required, Select, Text};
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -42,6 +43,7 @@ impl Config {
             let path = Path::new(DRIVER_DIRECTORY);
             if !path.exists() {
                 error!("No drivers are installed please install some");
+                exit(1);
             }
 
             let drivers = read_dir(path)
@@ -58,6 +60,7 @@ impl Config {
                 .collect::<Vec<_>>();
             if drivers.is_empty() {
                 error!("No drivers are installed please install some");
+                exit(1);
             }
 
             let driver = Select::new("What backend driver do you want to use?", drivers)

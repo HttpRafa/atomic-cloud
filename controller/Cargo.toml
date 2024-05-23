@@ -1,5 +1,5 @@
 [package]
-name = "runner"
+name = "controller"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,7 +8,7 @@ edition = "2021"
 log = "0.4.21"
 simplelog = "0.12.2"
 inquire = "0.7.5"
-time = "0.3.36"
+colored = "2.1.0"
 
 # Configuration
 serde = { version = "1.0.202", features = ["derive"] }
@@ -20,7 +20,9 @@ prost = "0.12.6"
 tonic = "0.11.0"
 
 # Drivers
-mlua = { version = "0.9.8", features = ["lua54", "vendored", "async"] }
+mlua = { version = "0.9.8", features = ["lua54", "vendored", "serialize", "async"] }
+minreq = { version = "2.11.2", features = ["https-rustls"] }
+serde_json = "1.0.117"
 
 [build-dependencies]
 tonic-build = "0.11.0"

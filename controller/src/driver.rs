@@ -1,78 +1,56 @@
+pub mod lua;
+mod http;
+
 use std::fs;
-use std::path::Path;
-use log::{info, Level, log};
-use mlua::{Function, Lua};
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use log::{error, info};
 use crate::config::Config;
-use crate::VERSION;
+use crate::driver::lua::LuaDriver;
 
 pub const DRIVER_DIRECTORY: &str = "drivers";
+const DRIVER_MAIN_FILE: &str = "driver.lua";
 
-pub struct Driver {
-    lua_runtime: Lua,
-}
-
-impl Driver {
-    fn new(code: Vec<Source>) -> Self {
-        let lua = Lua::new();
-
-        Self::set_log_function(&lua, "print", Level::Info);
-        Self::set_log_function(&lua, "warn", Level::Warn);
-        Self::set_log_function(&lua, "error", Level::Error);
-        Self::set_log_function(&lua, "debug", Level::Debug);
-
-        lua.globals().set("controller_version", VERSION).unwrap();
-
-        for file in code {
-            let chunk = lua.load(&file.code);
-            if chunk.exec().is_err() {
-                panic!("Failed to compile driver source code. File: {}", file.file_name);
-            }
-        }
-
-        Driver {
-            lua_runtime: lua
-        }
-    }
-
-    pub fn init(&self) -> Result<(), mlua::Error> {
-        let init: Function = self.lua_runtime.globals().get("init")?;
-        init.call(())?;
-        Ok(())
-    }
-
-    pub async fn start_server(&self, server: &str) -> Result<(), mlua::Error> {
-        let init: Function = self.lua_runtime.globals().get("start_server")?;
-        init.call_async::<_, ()>(server).await?;
-        Ok(())
-    }
-
-    fn set_log_function(lua: &Lua, name: &str, level: Level) {
-        lua.globals().set(name, lua.create_function(move |_, message: String| {
-            log!(level, "{}", message);
-            Ok(())
-        }).expect("Failed to set log function")).expect("Failed to set log function");
-    }
-}
-
-struct Source {
-    file_name: String,
+pub struct Source {
+    path: PathBuf,
     code: String
 }
 
-pub fn load_server_driver(config: &Config) -> Driver {
+impl Source {
+    fn from_file(path: PathBuf) -> Self {
+        let code = fs::read_to_string(&path).unwrap_or_else(|error| {
+            error!("Failed to read source code from file({:?}): {}", path, error);
+            exit(1);
+        });
+        Source {
+            path,
+            code
+        }
+    }
+}
+
+pub async fn load_server_driver(config: &Config) -> LuaDriver {
     info!("Loading driver system...");
 
-    let code = fs::read_dir(Path::new(DRIVER_DIRECTORY)
-        .join(config.driver.as_ref().unwrap()))
-        .expect("Failed to read code of driver")
-        .filter_map(Result::ok)
-        .map(|entry| Source {
-            file_name: entry.file_name().to_string_lossy().to_string(),
-            code: fs::read_to_string(entry.path()).unwrap()
-        })
-        .collect::<Vec<_>>();
+    let code_path = Path::new(DRIVER_DIRECTORY).join(config.driver.as_ref().unwrap()).join(DRIVER_MAIN_FILE);
+    if !code_path.exists() {
+        error!("Failed to locate driver source code in location {:?}", code_path);
+        exit(1);
+    }
 
-    let driver = Driver::new(code);
-    driver.init().expect("Failed to initialize driver");
+    // For now, we only support drivers written in Lua
+    let driver = LuaDriver::new(Source::from_file(code_path));
+    driver.init().unwrap_or_else(|error| {
+        error!("Failed to call init of driver {}: {}", &config.driver.as_ref().unwrap(), error);
+        exit(1);
+    });
+    driver.stop_server("stopServer").await.unwrap_or_else(|error| {
+        error!("Failed to call stopServer of driver {}: {}", &config.driver.as_ref().unwrap(), error);
+        exit(1);
+    });
+    driver.start_server("startServer").await.unwrap_or_else(|error| {
+        error!("Failed to call startServer of driver {}: {}", &config.driver.as_ref().unwrap(), error);
+        exit(1);
+    });
     driver
 }

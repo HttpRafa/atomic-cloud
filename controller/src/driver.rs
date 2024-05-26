@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use colored::Colorize;
 use log::{error, info, warn};
@@ -22,8 +22,13 @@ impl Drivers {
     pub fn load_all() -> Self {
         info!("Loading drivers...");
 
+        let drivers_directory = Path::new(DRIVERS_DIRECTORY);
+        if !drivers_directory.exists() {
+            fs::create_dir_all(drivers_directory).unwrap_or_else(|error| warn!("{} to create drivers directory: {}", "Failed".red(), error));
+        }
+
         let mut drivers = Vec::new();
-        let entries = match fs::read_dir(DRIVERS_DIRECTORY) {
+        let entries = match fs::read_dir(drivers_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read driver directory: {}", "Failed".red(), &error);

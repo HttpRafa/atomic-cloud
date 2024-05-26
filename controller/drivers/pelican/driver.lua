@@ -5,6 +5,7 @@
 local api = require("drivers.pelican.api")
 
 function Init()
+    http.get_json("http://sdasdasdasdasdasdas")
     return {
         ["author"] = "HttpRafa",
         ["version"] = "0.1.0",

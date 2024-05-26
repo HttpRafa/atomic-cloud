@@ -1,17 +1,15 @@
-extern crate alloc;
-
-mod driver;
-mod network;
-mod config;
-mod node;
-mod controller;
-
 use std::fmt::{Display, Formatter};
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
 use crate::controller::Controller;
+
+mod driver;
+mod network;
+mod config;
+mod node;
+mod controller;
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {

@@ -1,3 +1,5 @@
+use std::error::Error;
+use log::error;
 use mlua::{Lua, Table, LuaSerdeExt};
 
 enum Parser {
@@ -8,61 +10,68 @@ enum Parser {
 pub fn set_http_functions(lua: &Lua) {
     let globals = lua.globals();
 
-    let table = lua.create_table().unwrap();
-    {
-        table.set("get", lua.create_async_function(get).unwrap()).unwrap();
-        table.set("get_json", lua.create_async_function(get_json).unwrap()).unwrap();
-    }
+    let table = lua.create_table().expect("Failed to create table");
+    table.set("get", lua.create_async_function(get).expect("Failed to create async function"))
+        .expect("Failed to set 'get' function");
+    table.set("get_json", lua.create_async_function(get_json).expect("Failed to create async function"))
+        .expect("Failed to set 'get_json' function");
 
-    globals.set("http", table).unwrap();
+    globals.set("http", table).expect("Failed to set globals");
 }
 
 async fn get(lua: &Lua, uri: String) -> Result<Table, mlua::Error> {
-    let table = lua.create_table().unwrap();
-    let response = minreq::get(uri).send();
+    let response = minreq::get(&uri).send();
 
-    build_table(response, lua, &table, Parser::None);
-    Ok(table)
+    handle_table_build(response, &lua, &uri)
 }
 
 async fn get_json(lua: &Lua, uri: String) -> Result<Table, mlua::Error> {
-    let table = lua.create_table().unwrap();
-    let response = minreq::get(uri).send();
+    let response = minreq::get(&uri).send();
 
-    build_table(response, lua, &table, Parser::Json);
+    handle_table_build(response, &lua, &uri)
+}
+
+fn handle_table_build<'a>(response: Result<minreq::Response, minreq::Error>, lua: &'a Lua, uri: &String) -> Result<Table<'a>, mlua::Error> {
+    match response {
+        Ok(response) => match build_table(response, lua, Parser::None) {
+            Ok(table) => Ok(table),
+            Err(error) => {
+                error!("Failed to convert http response from server({}) to lua table: {}", uri, error);
+                Ok(build_simple_table(&lua, false).unwrap())
+            }
+        }
+        Err(error) => {
+            error!("Failed to read content from http server({}): {}", uri, error);
+            return Ok(build_simple_table(&lua, false).unwrap());
+        }
+    }
+}
+
+fn build_simple_table(lua: &Lua, success: bool) -> Result<Table, Box<dyn Error>> {
+    let table = lua.create_table()?;
+    table.set("success", success)?;
     Ok(table)
 }
 
-fn build_table(response: Result<minreq::Response, minreq::Error>, lua: &Lua, table: &Table, parser: Parser) {
-    match response {
-        Ok(response) => {
-            table.set("success", true).unwrap();
-            table.set("code", response.status_code).unwrap();
+fn build_table(response: minreq::Response, lua: &Lua, parser: Parser) -> Result<Table, Box<dyn Error>> {
+    let table = build_simple_table(&lua, true)?;
 
-            match response.as_str() {
-                Ok(body) => match parser {
-                    Parser::Json => {
-                        match serde_json::from_str::<serde_json::Value>(body) {
-                            Ok(json_body) => {
-                                let lua_value = lua.to_value(&json_body).unwrap();
-                                table.set("body", lua_value.as_table().unwrap()).unwrap();
-                            },
-                            Err(err) => {
-                                eprintln!("Failed to parse body of http request as json: {}", err);
-                            }
-                        }
-                    }
-                    _ => {
-                        table.set("body", body).unwrap();
-                    }
-                },
-                Err(err) => {
-                    eprintln!("Failed to read body of http response: {}", err);
-                }
-            }
+    table.set("code", response.status_code)?;
+
+    let body = response.as_str()?;
+
+    if let Parser::Json = parser {
+        let json_body: serde_json::Value = serde_json::from_str(body)?;
+        let lua_value = lua.to_value(&json_body)?;
+        if let Some(lua_table) = lua_value.as_table() {
+            table.set("body", lua_table)?;
+        } else {
+            error!("Failed to convert lua value to table");
+            table.set("body", lua.create_table()?)?;
         }
-        Err(_) => {
-            table.set("success", false).unwrap();
-        }
+    } else {
+        table.set("body", body)?;
     }
+
+    Ok(table)
 }

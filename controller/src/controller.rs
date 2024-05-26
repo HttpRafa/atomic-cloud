@@ -13,7 +13,7 @@ const TICK_RATE: u64 = 1;
 pub struct Controller {
     configuration: Config,
     drivers: Drivers,
-    tick_queue: Arc<Mutex<TaskQueue>>
+    tick_queue: Arc<Mutex<TaskQueue>>,
 }
 
 impl Controller {
@@ -21,9 +21,10 @@ impl Controller {
         Controller {
             configuration,
             drivers: Drivers::new(),
-            tick_queue: TaskQueue::new_mutex()
+            tick_queue: TaskQueue::new_mutex(),
         }
     }
+
     pub async fn start(&mut self) {
         info!("Starting networking stack...");
         start_controller_server(&self.configuration);
@@ -40,13 +41,17 @@ impl Controller {
             }
         }
     }
+
     fn tick(&mut self) {
-        let mut tasks = self.tick_queue.lock()
-            .unwrap_or_else(|error| { error!("Failed to acquire lock of tick queue: {}", error);exit(1); });
-        while !tasks.queue.is_empty() {
-            let task = &tasks.queue.pop_back().unwrap_or_else(|| { warn!("Failed to get task that should exist"); Task::None });
+        let mut tasks = self.tick_queue.lock().unwrap_or_else(|error| {
+            error!("Failed to acquire lock of tick queue: {}", error);
+            exit(1);
+        });
+
+        while let Some(task) = tasks.queue.pop_back() {
             match task {
-                Task::None => {}
+                // Add task handling logic here
+                _ => warn!("No task handling implemented"),
             }
         }
     }
@@ -55,17 +60,16 @@ impl Controller {
 pub type AsyncTaskQueue = Arc<Mutex<TaskQueue>>;
 
 pub struct TaskQueue {
-    pub(self) queue: VecDeque<Task>
+    pub(self) queue: VecDeque<Task>,
 }
 
 impl TaskQueue {
     pub(self) fn new_mutex() -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(TaskQueue {
-            queue: VecDeque::new()
+            queue: VecDeque::new(),
         }))
     }
 }
 
 pub enum Task {
-    None
 }

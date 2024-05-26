@@ -1,9 +1,9 @@
-use std::fmt::{Display, Formatter};
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
 use crate::controller::Controller;
+use crate::version::Version;
 
 mod driver;
 mod network;
@@ -26,8 +26,8 @@ async fn main() {
             .build(), TerminalMode::Mixed, ColorChoice::Auto
     ).expect("Failed to init logging crate");
     print_ascii_art();
-    info!("Starting cluster system version v{}...", VERSION);
-    info!("Loading configuration...");
+    info!("Starting cluster system version {}...", format!("{}{}", "v", VERSION).blue());
+    info!("Loading configurations...");
     let configuration = Config::new_filled();
     let mut controller = Controller::new(configuration).await;
     controller.start().await;
@@ -44,14 +44,18 @@ fn print_ascii_art() {
     println!();
 }
 
-pub struct Version {
-    pub major: u16,
-    pub minor: u16,
-    pub patch: u16
-}
+mod version {
+    use std::fmt::{Display, Formatter};
 
-impl Display for Version {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}.{}.{}", self.major, self.minor, self.patch)
+    pub struct Version {
+        pub major: u16,
+        pub minor: u16,
+        pub patch: u16
+    }
+
+    impl Display for Version {
+        fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(formatter, "{}.{}.{}", self.major, self.minor, self.patch)
+        }
     }
 }

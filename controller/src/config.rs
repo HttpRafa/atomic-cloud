@@ -1,8 +1,11 @@
+use std::error::Error;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 
 use inquire::{required, Text};
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 
@@ -28,7 +31,7 @@ impl Config {
     }
 
     fn new() -> Self {
-        Self::load_from_file(Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE))
+        Self::load_from_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE))
             .unwrap_or_else(|_| Self::new_empty())
     }
 
@@ -54,23 +57,27 @@ impl Config {
         }
 
 
-        config.save_toml(Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE));
+        config.save_toml(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)).unwrap_or_else(|error| {
+            error!("Failed to save generated configuration to file: {}", error);
+            exit(1);
+        });
         config
     }
 }
 
-impl SaveToml for Config {}
+impl SaveToFile for Config {}
 impl LoadFromFile for Config {}
 
-pub trait SaveToml: Serialize {
-    fn save_toml(&self, path: PathBuf) {
-        fs::create_dir_all(path.parent().unwrap()).expect("Failed to create all directories required");
-        fs::write(path, toml::to_string(self).expect("Failed to convert configuration to toml")).expect("Failed to write configuration to file");
+pub trait SaveToFile: Serialize {
+    fn save_toml(&self, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+        fs::create_dir_all(path.parent().unwrap())?;
+        fs::write(path, toml::to_string(self)?)?;
+        Ok(())
     }
 }
 
 pub trait LoadFromFile: DeserializeOwned {
-    fn load_from_file(path: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+    fn load_from_file(path: &PathBuf) -> Result<Self, Box<dyn Error>> {
         let data = fs::read_to_string(&path)?;
         let config = toml::from_str(&data)?;
         Ok(config)

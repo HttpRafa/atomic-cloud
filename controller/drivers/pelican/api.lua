@@ -6,7 +6,7 @@ local module = {}
 module.endpoint = "https://api.papermc.io/v2/projects/folia/versions/1.20.4/builds"
 
 function module.get_servers()
-    -- print(http.get_json(module.endpoint).body.project_id)
+    print(http.get_json(module.endpoint).body.project_id)
 end
 
 return module

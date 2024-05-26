@@ -2,31 +2,35 @@ use std::collections::VecDeque;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use log::{error, info, warn};
+use log::{error, warn};
 use tokio::time;
 use crate::config::Config;
 use crate::driver::Drivers;
 use crate::network::start_controller_server;
+use crate::node::Nodes;
 
 const TICK_RATE: u64 = 1;
 
 pub struct Controller {
     configuration: Config,
     drivers: Drivers,
+    nodes: Nodes,
     tick_queue: Arc<Mutex<TaskQueue>>,
 }
 
 impl Controller {
     pub async fn new(configuration: Config) -> Self {
+        let drivers = Drivers::load_all();
+        let nodes = Nodes::load_all(&drivers);
         Controller {
             configuration,
-            drivers: Drivers::new(),
+            drivers,
+            nodes,
             tick_queue: TaskQueue::new_mutex(),
         }
     }
 
     pub async fn start(&mut self) {
-        info!("Starting networking stack...");
         start_controller_server(&self.configuration);
 
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);

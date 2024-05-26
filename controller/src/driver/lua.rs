@@ -1,19 +1,21 @@
 use std::process::exit;
 
 use ::log::{error, Level};
-use mlua::{Function, Lua};
+use mlua::{Function, Lua, LuaSerdeExt};
 use crate::driver::http::set_http_functions;
 
 use crate::driver::lua::log::set_log_function;
 use crate::driver::{Information, Source};
+use crate::node::Node;
 use crate::VERSION;
 
 pub struct LuaDriver {
+    pub name: String,
     lua_runtime: Lua,
 }
 
 impl LuaDriver {
-    pub fn new(source: Source) -> Self {
+    pub fn new(name: &String, source: &Source) -> Self {
         let lua = Lua::new();
 
         set_global_data(&lua);
@@ -32,6 +34,7 @@ impl LuaDriver {
         });
 
         LuaDriver {
+            name: name.to_owned(),
             lua_runtime: lua
         }
     }
@@ -39,6 +42,12 @@ impl LuaDriver {
     pub fn init(&self) -> Result<Information, mlua::Error> {
         let init: Function = self.lua_runtime.globals().get("Init")?;
         let result = init.call(())?;
+        Ok(result)
+    }
+
+    pub fn init_node(&self, node: &Node) -> Result<bool, mlua::Error> {
+        let init: Function = self.lua_runtime.globals().get("InitNode")?;
+        let result = init.call(self.lua_runtime.to_value(&node).unwrap())?;
         Ok(result)
     }
 

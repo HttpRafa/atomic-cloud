@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use colored::Colorize;
 use log::info;
 use tonic::transport::Server;
 use crate::network::controller_service_server::ControllerServiceServer;
@@ -11,6 +12,7 @@ mod server;
 tonic::include_proto!("control");
 
 pub fn start_controller_server(config: &Config) {
+    info!("Starting networking stack...");
     // This should never return None
     let address = config.listener.to_owned().expect("No listener address found in the config");
     task::spawn(async move {
@@ -23,7 +25,7 @@ pub fn start_controller_server(config: &Config) {
 async fn run_controller_server(address: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
     let controller = ControllerImpl {};
 
-    info!("Controller listening on {}", address);
+    info!("Controller {} on {}", "listening".blue(), format!("{}", address).blue());
 
     Server::builder()
         .add_service(ControllerServiceServer::new(controller))

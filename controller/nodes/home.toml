@@ -1,0 +1,8 @@
+name = "example"
+driver = "pelican"
+
+[[capabilities]]
+limited_memory = 1024
+
+[[capabilities]]
+max_servers = 25

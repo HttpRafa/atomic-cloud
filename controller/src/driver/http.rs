@@ -22,18 +22,18 @@ pub fn set_http_functions(lua: &Lua) {
 async fn get(lua: &Lua, uri: String) -> Result<Table, mlua::Error> {
     let response = minreq::get(&uri).send();
 
-    handle_table_build(response, &lua, &uri)
+    handle_table_build(response, &lua, &uri, Parser::None)
 }
 
 async fn get_json(lua: &Lua, uri: String) -> Result<Table, mlua::Error> {
     let response = minreq::get(&uri).send();
 
-    handle_table_build(response, &lua, &uri)
+    handle_table_build(response, &lua, &uri, Parser::Json)
 }
 
-fn handle_table_build<'a>(response: Result<minreq::Response, minreq::Error>, lua: &'a Lua, uri: &String) -> Result<Table<'a>, mlua::Error> {
+fn handle_table_build<'a>(response: Result<minreq::Response, minreq::Error>, lua: &'a Lua, uri: &String, parser: Parser) -> Result<Table<'a>, mlua::Error> {
     match response {
-        Ok(response) => match build_table(response, lua, Parser::None) {
+        Ok(response) => match build_table(response, lua, parser) {
             Ok(table) => Ok(table),
             Err(error) => {
                 error!("Failed to convert http response from server({}) to lua table: {}", uri, error);

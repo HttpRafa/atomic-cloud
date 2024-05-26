@@ -1,7 +1,8 @@
+use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use std::process::exit;
 use std::sync::Arc;
+use colored::Colorize;
 use log::{error, info, warn};
 use mlua::{FromLua, Lua, LuaSerdeExt, Value};
 use serde::Deserialize;
@@ -10,7 +11,7 @@ use crate::driver::lua::LuaDriver;
 pub mod lua;
 mod http;
 
-pub const DRIVER_DIRECTORY: &str = "drivers";
+pub(crate) const DRIVERS_DIRECTORY: &str = "drivers";
 const DRIVER_MAIN_FILE: &str = "driver.lua";
 
 pub struct Drivers {
@@ -18,14 +19,14 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    pub fn new() -> Self {
+    pub fn load_all() -> Self {
         info!("Loading drivers...");
 
         let mut drivers = Vec::new();
-        let entries = match fs::read_dir(DRIVER_DIRECTORY) {
+        let entries = match fs::read_dir(DRIVERS_DIRECTORY) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("Failed to read driver directory: {}", error);
+                error!("{} to read driver directory: {}", "Failed".red(), &error);
                 return Drivers { drivers };
             }
         };
@@ -34,14 +35,14 @@ impl Drivers {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("Failed to read driver entry: {}", error);
+                    error!("{} to read driver entry: {}", "Failed".red(), &error);
                     continue;
                 }
             };
 
             let path = entry.path();
             if !path.is_dir() {
-                warn!("The driver directory should only contain folders, please remove {:?}", entry.file_name());
+                warn!("The driver directory should only contain folders, please remove {:?}", &entry.file_name());
                 continue;
             }
 
@@ -51,20 +52,34 @@ impl Drivers {
             }
 
             let name = entry.file_name().to_string_lossy().to_string();
-            info!("Loading driver {}...", name);
+            let source = match Source::from_file(&driver_entry) {
+                Ok(source) => source,
+                Err(error) => {
+                    error!("{} to read source code for driver {} from file({:?}): {}", "Failed".red(), &name, &driver_entry, &error);
+                    continue;
+                }
+            };
 
-            let driver = LuaDriver::new(Source::from_file(driver_entry));
+            let driver = LuaDriver::new(&name, &source);
             match driver.init() {
                 Ok(info) => {
-                    info!("Loaded driver {} v{} by {}", name, info.version, info.author);
+                    info!("Loaded driver {} by {}", format!("{} v{}", &driver.name, &info.version).blue(), &info.author.blue());
                     drivers.push(Arc::new(driver));
                 }
-                Err(error) => error!("Failed to load driver {}: {}", name, error),
+                Err(error) => error!("{} to load driver {}: {}", "Failed".red(), &name, &error),
             }
         }
 
-        info!("Loaded {} driver(s)", drivers.len());
+        info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Drivers { drivers }
+    }
+    pub fn find_by_name(&self, name: &String) -> Option<Arc<LuaDriver>> {
+        for driver in &self.drivers {
+            if driver.name.eq_ignore_ascii_case(&name) {
+                return Some(Arc::clone(driver));
+            }
+        }
+        None
     }
 }
 
@@ -86,11 +101,9 @@ pub(crate) struct Source {
 }
 
 impl Source {
-    fn from_file(path: PathBuf) -> Self {
-        let code = fs::read_to_string(&path).unwrap_or_else(|error| {
-            error!("Failed to read source code from file({:?}): {}", path, error);
-            exit(1);
-        });
-        Source { path, code }
+    fn from_file(path: &PathBuf) -> Result<Self, Box<dyn Error>> {
+        let path = path.to_owned();
+        let code = fs::read_to_string(&path)?;
+        Ok(Source { path, code })
     }
 }

@@ -5,7 +5,7 @@ use mlua::{Function, Lua};
 use crate::driver::http::set_http_functions;
 
 use crate::driver::lua::log::set_log_function;
-use crate::driver::Source;
+use crate::driver::{Information, Source};
 use crate::VERSION;
 
 pub struct LuaDriver {
@@ -13,7 +13,7 @@ pub struct LuaDriver {
 }
 
 impl LuaDriver {
-    pub(crate) fn new(source: Source) -> Self {
+    pub fn new(source: Source) -> Self {
         let lua = Lua::new();
 
         set_global_data(&lua);
@@ -36,10 +36,10 @@ impl LuaDriver {
         }
     }
 
-    pub fn init(&self) -> Result<(), mlua::Error> {
+    pub fn init(&self) -> Result<Information, mlua::Error> {
         let init: Function = self.lua_runtime.globals().get("Init")?;
-        init.call(())?;
-        Ok(())
+        let result = init.call(())?;
+        Ok(result)
     }
 
     pub async fn stop_server(&self, server: &str) -> Result<(), mlua::Error> {
@@ -63,7 +63,7 @@ fn set_global_data(lua: &Lua) {
         table.set("version", format!("{}", VERSION)).unwrap();
     }
 
-    globals.set("controller", table).unwrap();
+    globals.set("mod", table).unwrap();
 }
 
 mod log {

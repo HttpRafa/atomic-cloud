@@ -5,8 +5,10 @@
 local api = require("drivers.pelican.api")
 
 function Init()
-    print("Starting pelican driver for controller v" .. controller.version)
-    api.get_servers()
+    return {
+        ["author"] = "HttpRafa",
+        ["version"] = "0.1.0",
+    }
 end
 
 function StopServer(server)

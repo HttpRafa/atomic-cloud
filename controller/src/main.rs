@@ -1,18 +1,17 @@
+extern crate alloc;
+
 mod driver;
 mod network;
 mod config;
-mod version;
+mod node;
+mod controller;
 
-use std::thread;
-use std::time::Duration;
+use std::fmt::{Display, Formatter};
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
-use crate::driver::load_server_driver;
-use crate::driver::lua::LuaDriver;
-use crate::network::start_controller_server;
-use crate::version::Version;
+use crate::controller::Controller;
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
@@ -20,29 +19,6 @@ pub const VERSION: Version = Version {
     minor: 0,
     patch: 0
 };
-
-struct Controller {
-    configuration: Config,
-    driver: LuaDriver
-}
-
-impl Controller {
-    async fn new(configuration: Config) -> Self {
-        let driver = load_server_driver(&configuration).await;
-        Controller {
-            configuration,
-            driver,
-        }
-    }
-    fn start(&self) {
-        info!("Starting networking stack...");
-        start_controller_server(&self.configuration);
-
-        loop {
-            thread::sleep(Duration::new(5, 0));
-        }
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -53,11 +29,10 @@ async fn main() {
     ).expect("Failed to init logging crate");
     print_ascii_art();
     info!("Starting cluster system version v{}...", VERSION);
-
     info!("Loading configuration...");
     let configuration = Config::new_filled();
-    let controller = Controller::new(configuration).await;
-    controller.start();
+    let mut controller = Controller::new(configuration).await;
+    controller.start().await;
 }
 
 fn print_ascii_art() {
@@ -69,4 +44,16 @@ fn print_ascii_art() {
     println!();
     println!("«{}» {} | {} by {}", "*".blue(), "Atomic Cloud".blue(), format!("v{}", VERSION.major).blue(), AUTHORS.join(", ").blue());
     println!();
+}
+
+pub struct Version {
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16
+}
+
+impl Display for Version {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
 }

@@ -2,9 +2,9 @@
 --- Created by rafael.
 --- DateTime: 23.05.24 00:43
 ---
-local config = require("configs.lua.testing")
+local config = require("drivers.lua.configs.testing")
 
-local inspect = require("drivers.libs.inspect")
+local inspect = require("drivers.lua.libs.inspect")
 
 function Init()
     return {

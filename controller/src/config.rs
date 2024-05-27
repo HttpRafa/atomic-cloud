@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs;
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::exit;
 
 use inquire::{required, Text};
@@ -69,7 +69,7 @@ impl SaveToFile for Config {}
 impl LoadFromFile for Config {}
 
 pub trait SaveToFile: Serialize {
-    fn save_toml(&self, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    fn save_toml(&self, path: &Path) -> Result<(), Box<dyn Error>> {
         fs::create_dir_all(path.parent().unwrap())?;
         fs::write(path, toml::to_string(self)?)?;
         Ok(())
@@ -77,7 +77,7 @@ pub trait SaveToFile: Serialize {
 }
 
 pub trait LoadFromFile: DeserializeOwned {
-    fn load_from_file(path: &PathBuf) -> Result<Self, Box<dyn Error>> {
+    fn load_from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
         let data = fs::read_to_string(&path)?;
         let config = toml::from_str(&data)?;
         Ok(config)

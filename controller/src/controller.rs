@@ -1,8 +1,5 @@
-use std::collections::VecDeque;
-use std::process::exit;
-use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use log::{error, info, warn};
+use log::warn;
 use tokio::sync::mpsc::Receiver;
 use tokio::time;
 use crate::config::Config;
@@ -46,6 +43,7 @@ impl Controller {
     }
 
     async fn tick(&mut self, network_tasks: &mut Receiver<NetworkTask>) {
+        // Process network requests
         while let Ok(task) = network_tasks.try_recv() {
             match task {
                 // Add task handling logic here
@@ -53,7 +51,4 @@ impl Controller {
             }
         }
     }
-}
-
-pub enum Task {
 }

@@ -19,8 +19,8 @@ pub fn start_controller_server(config: &Config) -> Receiver<NetworkTask> {
     let address = config.listener.to_owned().expect("No listener address found in the config");
     let (sender, receiver) = channel(10);
     task::spawn(async move {
-        if let Err(e) = run_controller_server(address, sender).await {
-            log::error!("Failed to start gRPC server: {}", e);
+        if let Err(error) = run_controller_server(address, sender).await {
+            log::error!("Failed to start gRPC server: {}", error);
         }
     });
     return receiver;

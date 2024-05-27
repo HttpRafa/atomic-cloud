@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -7,8 +8,7 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::config::{LoadFromFile, SaveToFile};
-use crate::driver::Drivers;
-use crate::driver::lua::LuaDriver;
+use crate::driver::{Driver, Drivers};
 use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
 
@@ -29,7 +29,7 @@ impl Nodes {
         if !node_directory.exists() {
             StoredNode {
                 name: "example".to_string(),
-                driver: "pelican".to_string(),
+                driver: "testing".to_string(),
                 capabilities: vec![Capability::LimitedMemory(1024), UnlimitedMemory(true), Capability::MaxServers(25)],
             }.save_toml(&node_directory.join(DISABLED_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
         }
@@ -89,7 +89,7 @@ pub struct Node {
     name: String,
     capabilities: Vec<Capability>,
     #[serde(skip_serializing)]
-    driver: Arc<LuaDriver>
+    driver: Arc<dyn Driver>,
 }
 
 impl Node {
@@ -103,12 +103,12 @@ impl Node {
                 })
             }
             None => {
-                error!("There is no loaded driver with name {}", &stored_node.name);
+                error!("{} to load node {} because there is no loaded driver with the name {}", "Failed".red(), &stored_node.name.red(), &stored_node.driver.red());
                 None
             }
         }
     }
-    pub fn init(&self) -> Result<bool, mlua::Error> {
+    pub fn init(&self) -> Result<bool, Box<dyn Error>> {
         self.driver.init_node(self)
     }
 }

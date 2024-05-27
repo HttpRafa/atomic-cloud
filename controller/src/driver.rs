@@ -1,86 +1,53 @@
 use std::error::Error;
-use std::fs;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use colored::Colorize;
-use log::{error, info, warn};
-use mlua::{FromLua, Lua, LuaSerdeExt, Value};
+use log::info;
 use serde::Deserialize;
+use crate::node::Node;
+
+#[cfg(feature = "pelican-drivers")]
+use crate::driver::pelican::PelicanDriver;
+#[cfg(feature = "lua-drivers")]
 use crate::driver::lua::LuaDriver;
 
-pub mod lua;
-mod http;
+#[cfg(feature = "pelican-drivers")]
+mod pelican;
+#[cfg(feature = "lua-drivers")]
+mod lua;
 
-pub(crate) const DRIVERS_DIRECTORY: &str = "drivers";
-const DRIVER_MAIN_FILE: &str = "driver.lua";
+const DRIVERS_DIRECTORY: &str = "drivers";
+
+pub trait Driver {
+    fn name(&self) -> String;
+    fn init(&self) -> Result<Information, Box<dyn Error>>;
+    fn init_node(&self, node: &Node) -> Result<bool, Box<dyn Error>>;
+
+    fn stop_server(&self, server: &str) -> Result<(), Box<dyn Error>>;
+    fn start_server(&self, server: &str) -> Result<(), Box<dyn Error>>;
+}
 
 pub struct Drivers {
-    drivers: Vec<Arc<LuaDriver>>,
+    drivers: Vec<Arc<dyn Driver>>,
 }
 
 impl Drivers {
     pub fn load_all() -> Self {
         info!("Loading drivers...");
 
-        let drivers_directory = Path::new(DRIVERS_DIRECTORY);
-        if !drivers_directory.exists() {
-            fs::create_dir_all(drivers_directory).unwrap_or_else(|error| warn!("{} to create drivers directory: {}", "Failed".red(), error));
-        }
-
         let mut drivers = Vec::new();
-        let entries = match fs::read_dir(drivers_directory) {
-            Ok(entries) => entries,
-            Err(error) => {
-                error!("{} to read driver directory: {}", "Failed".red(), &error);
-                return Drivers { drivers };
-            }
-        };
 
-        for entry in entries {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    error!("{} to read driver entry: {}", "Failed".red(), &error);
-                    continue;
-                }
-            };
+        #[cfg(feature = "pelican-drivers")]
+        PelicanDriver::load_drivers(&mut drivers);
 
-            let path = entry.path();
-            if !path.is_dir() {
-                warn!("The driver directory should only contain folders, please remove {:?}", &entry.file_name());
-                continue;
-            }
-
-            let driver_entry = path.join(DRIVER_MAIN_FILE);
-            if !driver_entry.exists() {
-                continue;
-            }
-
-            let name = entry.file_name().to_string_lossy().to_string();
-            let source = match Source::from_file(&driver_entry) {
-                Ok(source) => source,
-                Err(error) => {
-                    error!("{} to read source code for driver {} from file({:?}): {}", "Failed".red(), &name, &driver_entry, &error);
-                    continue;
-                }
-            };
-
-            let driver = LuaDriver::new(&name, &source);
-            match driver.init() {
-                Ok(info) => {
-                    info!("Loaded driver {} by {}", format!("{} v{}", &driver.name, &info.version).blue(), &info.author.blue());
-                    drivers.push(Arc::new(driver));
-                }
-                Err(error) => error!("{} to load driver {}: {}", "Failed".red(), &name, &error),
-            }
-        }
+        #[cfg(feature = "lua-drivers")]
+        LuaDriver::load_drivers(&mut drivers);
 
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Drivers { drivers }
     }
-    pub fn find_by_name(&self, name: &String) -> Option<Arc<LuaDriver>> {
+    pub fn find_by_name(&self, name: &String) -> Option<Arc<dyn Driver>> {
         for driver in &self.drivers {
-            if driver.name.eq_ignore_ascii_case(&name) {
+            if driver.name().eq_ignore_ascii_case(&name) {
                 return Some(Arc::clone(driver));
             }
         }
@@ -94,21 +61,22 @@ pub struct Information {
     version: String,
 }
 
-impl FromLua<'_> for Information {
-    fn from_lua(value: Value, lua: &Lua) -> mlua::Result<Self> {
-        lua.from_value(value)
+#[cfg(feature = "lua-drivers")]
+mod source {
+    use std::error::Error;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    pub struct Source {
+        pub path: PathBuf,
+        pub code: String,
     }
-}
 
-pub(crate) struct Source {
-    path: PathBuf,
-    code: String,
-}
-
-impl Source {
-    fn from_file(path: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        let path = path.to_owned();
-        let code = fs::read_to_string(&path)?;
-        Ok(Source { path, code })
+    impl Source {
+        pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
+            let path = path.to_owned();
+            let code = fs::read_to_string(&path)?;
+            Ok(Source { path, code })
+        }
     }
 }

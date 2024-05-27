@@ -1,5 +1,5 @@
-name = "example"
-driver = "pelican"
+name = "home"
+driver = "testing"
 
 [[capabilities]]
 limited_memory = 1024

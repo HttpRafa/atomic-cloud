@@ -19,7 +19,7 @@ const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct Config {
+pub struct Config {
     pub listener: Option<SocketAddr>,
 }
 
@@ -65,10 +65,10 @@ impl Config {
     }
 }
 
-impl SaveToFile for Config {}
-impl LoadFromFile for Config {}
+impl SaveToTomlFile for Config {}
+impl LoadFromTomlFile for Config {}
 
-pub trait SaveToFile: Serialize {
+pub trait SaveToTomlFile: Serialize {
     fn save_toml(&self, path: &Path) -> Result<(), Box<dyn Error>> {
         fs::create_dir_all(path.parent().unwrap())?;
         fs::write(path, toml::to_string(self)?)?;
@@ -76,7 +76,7 @@ pub trait SaveToFile: Serialize {
     }
 }
 
-pub trait LoadFromFile: DeserializeOwned {
+pub trait LoadFromTomlFile: DeserializeOwned {
     fn load_from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
         let data = fs::read_to_string(&path)?;
         let config = toml::from_str(&data)?;

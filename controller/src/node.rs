@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -7,7 +8,7 @@ use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::config::{LoadFromFile, SaveToFile};
+use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 use crate::driver::{Driver, Drivers};
 use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
@@ -28,7 +29,6 @@ impl Nodes {
         // Create example node file
         if !node_directory.exists() {
             StoredNode {
-                name: "example".to_string(),
                 driver: "testing".to_string(),
                 capabilities: vec![Capability::LimitedMemory(1024), UnlimitedMemory(true), Capability::MaxServers(25)],
             }.save_toml(&node_directory.join(DISABLED_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
@@ -55,15 +55,16 @@ impl Nodes {
             let path = entry.path();
             if path.is_dir() { continue; }
 
+            let name = path.file_stem().unwrap().to_string_lossy().to_string();
             let node = match StoredNode::load_from_file(&path) {
                 Ok(node) => node,
                 Err(error) => {
-                    error!("{} to read node from file({:?}): {}", "Failed".red(), &path, &error);
+                    error!("{} to read node {} from file({:?}): {}", "Failed".red(), &name, &path, &error);
                     continue;
                 }
             };
 
-            let node = Node::from(node, drivers);
+            let node = Node::from(name, node, drivers);
             if node.is_none() { continue; }
             let node = node.unwrap();
             match node.init() {
@@ -93,17 +94,17 @@ pub struct Node {
 }
 
 impl Node {
-    fn from(stored_node: StoredNode, drivers: &Drivers) -> Option<Node> {
+    fn from(name: String, stored_node: StoredNode, drivers: &Drivers) -> Option<Node> {
         match drivers.find_by_name(&stored_node.driver) {
             Some(driver) => {
                 Some(Node {
-                    name: stored_node.name,
+                    name,
                     capabilities: stored_node.capabilities,
                     driver,
                 })
             }
             None => {
-                error!("{} to load node {} because there is no loaded driver with the name {}", "Failed".red(), &stored_node.name.red(), &stored_node.driver.red());
+                error!("{} to load node {} because there is no loaded driver with the name {}", "Failed".red(), &name.red(), &stored_node.driver.red());
                 None
             }
         }
@@ -126,16 +127,15 @@ pub enum Capability {
 mod stored {
     use serde::{Deserialize, Serialize};
 
-    use crate::config::{LoadFromFile, SaveToFile};
+    use crate::config::{LoadFromTomlFile, SaveToTomlFile};
     use crate::node::Capability;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {
-        pub name: String,
         pub driver: String,
         pub capabilities: Vec<Capability>,
     }
 
-    impl LoadFromFile for StoredNode {}
-    impl SaveToFile for StoredNode {}
+    impl LoadFromTomlFile for StoredNode {}
+    impl SaveToTomlFile for StoredNode {}
 }

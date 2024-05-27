@@ -53,6 +53,27 @@ impl Driver for LuaDriver {
 }
 
 impl LuaDriver {
+    fn new(name: &String, source: &Source) -> Self {
+        let lua = Lua::new();
+
+        set_builtin(&lua);
+
+        set_log_function(&lua, "print", Level::Info);
+        set_log_function(&lua, "warn", Level::Warn);
+        set_log_function(&lua, "error", Level::Error);
+        set_log_function(&lua, "debug", Level::Debug);
+
+        let chunk = lua.load(&source.code);
+        chunk.exec().unwrap_or_else(|error| {
+            error!("Failed to compile lua source code({:?}): {}", &source.path.file_name().as_ref().unwrap(), error);
+            exit(1);
+        });
+
+        LuaDriver {
+            name: name.to_owned(),
+            lua_runtime: lua
+        }
+    }
     pub fn load_drivers(drivers: &mut Vec<Arc<dyn Driver>>) {
         let old_loaded = drivers.len();
 
@@ -110,27 +131,6 @@ impl LuaDriver {
 
         if old_loaded == drivers.len() {
             warn!("The Lua driver feature is enabled, but no Lua drivers were loaded.");
-        }
-    }
-    pub fn new(name: &String, source: &Source) -> Self {
-        let lua = Lua::new();
-
-        set_builtin(&lua);
-
-        set_log_function(&lua, "print", Level::Info);
-        set_log_function(&lua, "warn", Level::Warn);
-        set_log_function(&lua, "error", Level::Error);
-        set_log_function(&lua, "debug", Level::Debug);
-
-        let chunk = lua.load(&source.code);
-        chunk.exec().unwrap_or_else(|error| {
-            error!("Failed to compile lua source code({:?}): {}", &source.path.file_name().as_ref().unwrap(), error);
-            exit(1);
-        });
-
-        LuaDriver {
-            name: name.to_owned(),
-            lua_runtime: lua
         }
     }
 }

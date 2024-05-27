@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::{LoadFromFile, SaveToFile};
 use crate::driver::Drivers;
 use crate::driver::lua::LuaDriver;
-use crate::node::Capabilities::UnlimitedMemory;
+use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
 
 const NODES_DIRECTORY: &str = "nodes";
@@ -30,7 +30,7 @@ impl Nodes {
             StoredNode {
                 name: "example".to_string(),
                 driver: "pelican".to_string(),
-                capabilities: vec![Capabilities::LimitedMemory(1024), UnlimitedMemory(true), Capabilities::MaxServers(25)],
+                capabilities: vec![Capability::LimitedMemory(1024), UnlimitedMemory(true), Capability::MaxServers(25)],
             }.save_toml(&node_directory.join(DISABLED_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
         }
 
@@ -87,7 +87,7 @@ impl Nodes {
 #[derive(Serialize)]
 pub struct Node {
     name: String,
-    capabilities: Vec<Capabilities>,
+    capabilities: Vec<Capability>,
     #[serde(skip_serializing)]
     driver: Arc<LuaDriver>
 }
@@ -114,7 +114,7 @@ impl Node {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub enum Capabilities {
+pub enum Capability {
     #[serde(rename = "limited_memory")]
     LimitedMemory(u32),
     #[serde(rename = "unlimited_memory")]
@@ -127,13 +127,13 @@ mod stored {
     use serde::{Deserialize, Serialize};
 
     use crate::config::{LoadFromFile, SaveToFile};
-    use crate::node::Capabilities;
+    use crate::node::Capability;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {
         pub name: String,
         pub driver: String,
-        pub capabilities: Vec<Capabilities>,
+        pub capabilities: Vec<Capability>,
     }
 
     impl LoadFromFile for StoredNode {}

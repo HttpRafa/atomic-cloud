@@ -1,12 +1,16 @@
-mod wasm;
-
 use std::error::Error;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use colored::Colorize;
 use log::info;
 use serde::Deserialize;
 
 use crate::node::Node;
+
+#[cfg(feature = "wasm-drivers")]
+use crate::driver::wasm::WasmDriver;
+
+#[cfg(feature = "wasm-drivers")]
+mod wasm;
 
 const DRIVERS_DIRECTORY: &str = "drivers";
 
@@ -28,6 +32,9 @@ impl Drivers {
 
         let mut drivers = Vec::new();
 
+        #[cfg(feature = "wasm-drivers")]
+        WasmDriver::load_all(&mut drivers);
+
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Self { drivers }
     }
@@ -39,12 +46,12 @@ impl Drivers {
     }
 }
 
-#[derive(Deserialize)]
 pub struct Information {
     author: String,
     version: String,
 }
 
+#[cfg(feature = "wasm-drivers")]
 mod source {
     use std::error::Error;
     use std::fs;
@@ -52,13 +59,13 @@ mod source {
 
     pub struct Source {
         pub path: PathBuf,
-        pub code: String,
+        pub code: Vec<u8>,
     }
 
     impl Source {
         pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
             let path = path.to_owned();
-            let code = fs::read_to_string(&path)?;
+            let code = fs::read(&path)?;
             Ok(Source { path, code })
         }
     }

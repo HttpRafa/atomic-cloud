@@ -1,1 +1,1 @@
-cargo run --manifest-path ../Cargo.toml
+cargo run --all-features --manifest-path ../Cargo.toml

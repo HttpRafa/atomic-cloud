@@ -20,10 +20,13 @@ prost = "0.12.6"
 tonic = "0.11.0"
 
 # Drivers
-wasmtime = "21.0.1"
+wasmtime = { version = "21.0.1", optional = true }
 
 [build-dependencies]
 tonic-build = "0.11.0"
+
+[features]
+wasm-drivers = ["dep:wasmtime"]
 
 [profile.release]
 strip = true

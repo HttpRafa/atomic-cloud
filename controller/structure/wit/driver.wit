@@ -1,0 +1,8 @@
+package my:driver;
+
+world driver {
+    import info: func(message: string);
+    import name: func() -> string;
+
+    export init: func();
+}

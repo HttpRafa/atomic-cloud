@@ -4,4 +4,7 @@ driver = "testing"
 limited_memory = 1024
 
 [[capabilities]]
+unlimited_memory = true
+
+[[capabilities]]
 max_servers = 25

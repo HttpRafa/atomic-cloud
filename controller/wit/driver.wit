@@ -1,0 +1,8 @@
+package example:driver;
+
+world driver {
+    import print: func(message: string);
+    import name: func() -> string;
+
+    export run: func();
+}

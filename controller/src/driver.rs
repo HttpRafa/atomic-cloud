@@ -1,3 +1,5 @@
+mod wasm;
+
 use std::error::Error;
 use std::sync::Arc;
 use colored::Colorize;
@@ -6,19 +8,9 @@ use serde::Deserialize;
 
 use crate::node::Node;
 
-#[cfg(feature = "pelican-drivers")]
-use crate::driver::pelican::PelicanDriver;
-#[cfg(feature = "lua-drivers")]
-use crate::driver::lua::LuaDriver;
-
-#[cfg(feature = "pelican-drivers")]
-mod pelican;
-#[cfg(feature = "lua-drivers")]
-mod lua;
-
 const DRIVERS_DIRECTORY: &str = "drivers";
 
-pub trait Driver {
+pub trait GenericDriver {
     fn name(&self) -> String;
     fn init(&self) -> Result<Information, Box<dyn Error>>;
     fn init_node(&self, node: &Node) -> Result<bool, Box<dyn Error>>;
@@ -27,7 +19,7 @@ pub trait Driver {
 }
 
 pub struct Drivers {
-    drivers: Vec<Arc<dyn Driver>>,
+    drivers: Vec<Arc<dyn GenericDriver>>,
 }
 
 impl Drivers {
@@ -36,17 +28,11 @@ impl Drivers {
 
         let mut drivers = Vec::new();
 
-        #[cfg(feature = "pelican-drivers")]
-        PelicanDriver::load_drivers(&mut drivers);
-
-        #[cfg(feature = "lua-drivers")]
-        LuaDriver::load_drivers(&mut drivers);
-
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Self { drivers }
     }
 
-    pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn Driver>> {
+    pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {
         self.drivers.iter()
             .find(|driver| driver.name().eq_ignore_ascii_case(name))
             .map(Arc::clone)
@@ -59,7 +45,6 @@ pub struct Information {
     version: String,
 }
 
-#[cfg(feature = "lua-drivers")]
 mod source {
     use std::error::Error;
     use std::fs;

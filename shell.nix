@@ -15,6 +15,9 @@ pkgs.mkShell {
     # Protobuf
     protobuf_26
 
+    # Wasm tooling
+    wasm-tools
+
     # Github
     act
   ];

@@ -8,7 +8,7 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use crate::driver::{Driver, Drivers};
+use crate::driver::{GenericDriver, Drivers};
 use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
 
@@ -101,7 +101,7 @@ pub struct Node {
     name: String,
     capabilities: Vec<Capability>,
     #[serde(skip_serializing)]
-    driver: Arc<dyn Driver>,
+    driver: Arc<dyn GenericDriver>,
 }
 
 impl Node {

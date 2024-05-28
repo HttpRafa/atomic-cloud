@@ -25,7 +25,7 @@ pub struct Config {
 
 impl Config {
     fn new_empty() -> Self {
-        Config {
+        Self {
             listener: None,
         }
     }
@@ -35,7 +35,7 @@ impl Config {
             .unwrap_or_else(|_| Self::new_empty())
     }
 
-    pub(crate) fn new_filled() -> Config {
+    pub fn new_filled() -> Self {
         let mut config = Self::new();
 
         while config.listener.is_none() {
@@ -56,7 +56,6 @@ impl Config {
             }
         }
 
-
         config.save_toml(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)).unwrap_or_else(|error| {
             error!("Failed to save generated configuration to file: {}", error);
             exit(1);
@@ -70,7 +69,9 @@ impl LoadFromTomlFile for Config {}
 
 pub trait SaveToTomlFile: Serialize {
     fn save_toml(&self, path: &Path) -> Result<(), Box<dyn Error>> {
-        fs::create_dir_all(path.parent().unwrap())?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(path, toml::to_string(self)?)?;
         Ok(())
     }
@@ -78,7 +79,7 @@ pub trait SaveToTomlFile: Serialize {
 
 pub trait LoadFromTomlFile: DeserializeOwned {
     fn load_from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
-        let data = fs::read_to_string(&path)?;
+        let data = fs::read_to_string(path)?;
         let config = toml::from_str(&data)?;
         Ok(config)
     }

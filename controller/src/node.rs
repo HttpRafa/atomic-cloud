@@ -1,10 +1,9 @@
 use std::error::Error;
-use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use colored::Colorize;
 
+use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
@@ -14,24 +13,24 @@ use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
 
 const NODES_DIRECTORY: &str = "nodes";
-const DISABLED_DIRECTORY: &str = "disabled";
+const EXAMPLES_DIRECTORY: &str = "examples";
 const EXAMPLE_FILE: &str = "example.toml";
 
 pub struct Nodes {
-    nodes: Vec<Arc<Node>>
+    nodes: Vec<Arc<Node>>,
 }
 
 impl Nodes {
-    pub fn load_all(drivers: &Drivers) -> Nodes {
+    pub fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
         let node_directory = Path::new(NODES_DIRECTORY);
-        // Create example node file
+        // Create example node file if the directory doesn't exist
         if !node_directory.exists() {
             StoredNode {
                 driver: "testing".to_string(),
                 capabilities: vec![Capability::LimitedMemory(1024), UnlimitedMemory(true), Capability::MaxServers(25)],
-            }.save_toml(&node_directory.join(DISABLED_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
+            }.save_toml(&node_directory.join(EXAMPLES_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
         }
 
         let mut nodes = Vec::new();
@@ -39,7 +38,7 @@ impl Nodes {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);
-                return Nodes { nodes };
+                return Self { nodes };
             }
         };
 
@@ -53,20 +52,30 @@ impl Nodes {
             };
 
             let path = entry.path();
-            if path.is_dir() { continue; }
+            if path.is_dir() {
+                continue;
+            }
 
             let name = path.file_stem().unwrap().to_string_lossy().to_string();
             let node = match StoredNode::load_from_file(&path) {
                 Ok(node) => node,
                 Err(error) => {
-                    error!("{} to read node {} from file({:?}): {}", "Failed".red(), &name, &path, &error);
+                    error!(
+                        "{} to read node {} from file({:?}): {}",
+                        "Failed".red(),
+                        &name,
+                        &path,
+                        &error
+                    );
                     continue;
                 }
             };
 
-            let node = Node::from(name, node, drivers);
-            if node.is_none() { continue; }
-            let node = node.unwrap();
+            let node = match Node::from(&name, node, drivers) {
+                Some(node) => node,
+                None => continue,
+            };
+
             match node.init() {
                 Ok(success) => {
                     if success {
@@ -76,12 +85,14 @@ impl Nodes {
                         error!("Something went wrong while loading the node {}. Please view the logs", &node.name.blue());
                     }
                 }
-                Err(error) => error!("{} to load node {}: {}", "Failed".red(), &node.name, &error),
+                Err(error) => {
+                    error!("{} to load node {}: {}", "Failed".red(), &node.name, &error);
+                }
             }
         }
 
         info!("Loaded {}", format!("{} node(s)", nodes.len()).blue());
-        Nodes { nodes }
+        Self { nodes }
     }
 }
 
@@ -94,21 +105,22 @@ pub struct Node {
 }
 
 impl Node {
-    fn from(name: String, stored_node: StoredNode, drivers: &Drivers) -> Option<Node> {
-        match drivers.find_by_name(&stored_node.driver) {
-            Some(driver) => {
-                Some(Node {
-                    name,
-                    capabilities: stored_node.capabilities,
-                    driver,
-                })
-            }
-            None => {
-                error!("{} to load node {} because there is no loaded driver with the name {}", "Failed".red(), &name.red(), &stored_node.driver.red());
-                None
-            }
-        }
+    fn from(name: &str, stored_node: StoredNode, drivers: &Drivers) -> Option<Self> {
+        drivers.find_by_name(&stored_node.driver).map(|driver| Self {
+            name: name.to_string(),
+            capabilities: stored_node.capabilities,
+            driver,
+        }).or_else(|| {
+            error!(
+                "{} to load node {} because there is no loaded driver with the name {}",
+                "Failed".red(),
+                &name.red(),
+                &stored_node.driver.red()
+            );
+            None
+        })
     }
+
     pub fn init(&self) -> Result<bool, Box<dyn Error>> {
         self.driver.init_node(self)
     }

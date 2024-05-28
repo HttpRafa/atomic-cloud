@@ -1,6 +1,7 @@
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
+
 use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
@@ -15,19 +16,24 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
     major: 1,
     minor: 0,
-    patch: 0
+    patch: 0,
 };
 
 #[tokio::main]
 async fn main() {
     TermLogger::init(
-        LevelFilter::Debug, ConfigBuilder::new()
+        LevelFilter::Debug,
+        ConfigBuilder::new()
             .set_location_level(LevelFilter::Error)
-            .build(), TerminalMode::Mixed, ColorChoice::Auto
+            .build(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto
     ).expect("Failed to init logging crate");
+
     print_ascii_art();
-    info!("Starting cluster system version {}...", format!("{}{}", "v", VERSION).blue());
+    info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());
     info!("Loading configurations...");
+
     let configuration = Config::new_filled();
     let mut controller = Controller::new(configuration).await;
     controller.start().await;
@@ -40,7 +46,7 @@ fn print_ascii_art() {
     println!("{}{}", r"/  _  \ || (_) | | | | | | | (__".blue(), r"  / /___| | (_) | |_| | (_| |".cyan());
     println!("{}{}", r"\_/ \_/\__\___/|_| |_| |_|_|\___|".blue(), r" \____/|_|\___/ \__,_|\__,_|".cyan());
     println!();
-    println!("«{}» {} | {} by {}", "*".blue(), "Atomic Cloud".blue(), format!("v{}", VERSION.major).blue(), AUTHORS.join(", ").blue());
+    println!("«{}» {} | {} by {}", "*".blue(), "Atomic Cloud".blue(), format!("v{}", VERSION).blue(), AUTHORS.join(", ").blue());
     println!();
 }
 
@@ -50,7 +56,7 @@ mod version {
     pub struct Version {
         pub major: u16,
         pub minor: u16,
-        pub patch: u16
+        pub patch: u16,
     }
 
     impl Display for Version {

@@ -3,8 +3,8 @@ use std::fs;
 use std::path::Path;
 use std::process::exit;
 use std::sync::Arc;
-
 use ::log::{error, info, Level, warn};
+
 use colored::Colorize;
 use mlua::{Function, Lua, LuaSerdeExt, Table};
 
@@ -24,7 +24,7 @@ pub struct LuaDriver {
 
 impl Driver for LuaDriver {
     fn name(&self) -> String {
-        self.name.to_owned()
+        self.name.clone()
     }
 
     fn init(&self) -> Result<Information, Box<dyn Error>> {
@@ -35,25 +35,25 @@ impl Driver for LuaDriver {
 
     fn init_node(&self, node: &Node) -> Result<bool, Box<dyn Error>> {
         let init: Function = self.lua_runtime.globals().get("InitNode")?;
-        let result = init.call(self.lua_runtime.to_value(&node).unwrap())?;
+        let result = init.call(self.lua_runtime.to_value(node)?)?;
         Ok(result)
     }
 
     fn stop_server(&self, server: &str) -> Result<(), Box<dyn Error>> {
-        let init: Function = self.lua_runtime.globals().get("StopServer")?;
-        init.call::<_, ()>(server)?;
+        let stop: Function = self.lua_runtime.globals().get("StopServer")?;
+        stop.call::<_, ()>(server)?;
         Ok(())
     }
 
     fn start_server(&self, server: &str) -> Result<(), Box<dyn Error>> {
-        let init: Function = self.lua_runtime.globals().get("StartServer")?;
-        init.call::<_, ()>(server)?;
+        let start: Function = self.lua_runtime.globals().get("StartServer")?;
+        start.call::<_, ()>(server)?;
         Ok(())
     }
 }
 
 impl LuaDriver {
-    fn new(name: &String, source: &Source) -> Self {
+    fn new(name: &str, source: &Source) -> Self {
         let lua = Lua::new();
 
         set_builtin(&lua);
@@ -65,27 +65,34 @@ impl LuaDriver {
 
         let chunk = lua.load(&source.code);
         chunk.exec().unwrap_or_else(|error| {
-            error!("Failed to compile lua source code({:?}): {}", &source.path.file_name().as_ref().unwrap(), error);
+            error!(
+                "Failed to compile Lua source code({:?}): {}",
+                &source.path.file_name().unwrap(),
+                &error
+            );
             exit(1);
         });
 
-        LuaDriver {
+        Self {
             name: name.to_owned(),
-            lua_runtime: lua
+            lua_runtime: lua,
         }
     }
+
     pub fn load_drivers(drivers: &mut Vec<Arc<dyn Driver>>) {
         let old_loaded = drivers.len();
 
         let drivers_directory = Path::new(DRIVERS_DIRECTORY).join(LUA_DIRECTORY);
         if !drivers_directory.exists() {
-            fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| warn!("{} to create lua drivers directory: {}", "Failed".red(), error));
+            fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
+                warn!("{} to create Lua drivers directory: {}", "Failed".red(), &error)
+            });
         }
 
         let entries = match fs::read_dir(&drivers_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("{} to read lua driver directory: {}", "Failed".red(), &error);
+                error!("{} to read Lua driver directory: {}", "Failed".red(), &error);
                 return;
             }
         };
@@ -94,14 +101,17 @@ impl LuaDriver {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("{} to read lua driver entry: {}", "Failed".red(), &error);
+                    error!("{} to read Lua driver entry: {}", "Failed".red(), &error);
                     continue;
                 }
             };
 
             let path = entry.path();
             if !path.is_dir() {
-                warn!("The driver directory should only contain folders, please remove {:?}", &entry.file_name());
+                warn!(
+                    "The driver directory should only contain folders, please remove {:?}",
+                    &entry.file_name()
+                );
                 continue;
             }
 
@@ -114,7 +124,13 @@ impl LuaDriver {
             let source = match Source::from_file(&driver_entry) {
                 Ok(source) => source,
                 Err(error) => {
-                    error!("{} to read source code for lua driver {} from file({:?}): {}", "Failed".red(), &name, &driver_entry, &error);
+                    error!(
+                        "{} to read source code for Lua driver {} from file({:?}): {}",
+                        "Failed".red(),
+                        &name,
+                        &driver_entry,
+                        &error
+                    );
                     continue;
                 }
             };
@@ -122,10 +138,19 @@ impl LuaDriver {
             let driver = LuaDriver::new(&name, &source);
             match driver.init() {
                 Ok(info) => {
-                    info!("Loaded lua driver {} by {}", format!("{} v{}", &driver.name, &info.version).blue(), &info.author.blue());
+                    info!(
+                        "Loaded Lua driver {} by {}",
+                        format!("{} v{}", &driver.name, &info.version).blue(),
+                        &info.author.blue()
+                    );
                     drivers.push(Arc::new(driver));
                 }
-                Err(error) => error!("{} to load lua driver {}: {}", "Failed".red(), &name, &error),
+                Err(error) => error!(
+                    "{} to load Lua driver {}: {}",
+                    "Failed".red(),
+                    &name,
+                    &error
+                ),
             }
         }
 
@@ -136,7 +161,7 @@ impl LuaDriver {
 }
 
 fn set_builtin(lua: &Lua) {
-    let globals = &lua.globals();
+    let globals = lua.globals();
 
     let table = lua.create_table().expect("Failed to create table");
     set_builtin_data(lua, &table);
@@ -146,22 +171,28 @@ fn set_builtin(lua: &Lua) {
 }
 
 fn set_builtin_data(_lua: &Lua, table: &Table) {
-    table.set("version", format!("{}", VERSION)).unwrap();
+    table.set("version", VERSION.to_string()).unwrap();
 }
 
 fn set_builtin_functions(_lua: &Lua, _table: &Table) {
-
+    // Add any required functions here
 }
 
 mod log {
-    use log::{Level, log};
+    use log::{log, Level};
     use mlua::Lua;
 
     pub fn set_log_function(lua: &Lua, name: &str, level: Level) {
-        lua.globals().set(name, lua.create_function(move |_, message: String| {
-            log!(level, "{}", message);
-            Ok(())
-        }).unwrap()).unwrap();
+        lua.globals()
+            .set(
+                name,
+                lua.create_function(move |_, message: String| {
+                    log!(level, "{}", &message);
+                    Ok(())
+                })
+                    .unwrap(),
+            )
+            .unwrap();
     }
 }
 

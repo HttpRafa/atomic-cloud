@@ -1,12 +1,13 @@
-use std::cell::UnsafeCell;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
+
 use colored::Colorize;
 use log::{error, info, warn};
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
+
 use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, Information};
 use crate::driver::source::Source;
 use crate::node::Node;
@@ -19,12 +20,12 @@ bindgen!({
 const WASM_DIRECTORY: &str = "wasm";
 
 struct WasmDriverState {
-    handle: Weak<WasmDriver>
+    handle: Weak<WasmDriver>,
 }
 
 impl DriverImports for WasmDriverState {
-    fn info(&mut self, message: String) -> () {
-        info!("{}", message);
+    fn info(&mut self, message: String) {
+        info!("{}", &message);
     }
 
     fn name(&mut self) -> String {
@@ -50,15 +51,15 @@ impl GenericDriver for WasmDriver {
         })
     }
 
-    fn init_node(&self, node: &Node) -> Result<bool, Box<dyn Error>> {
+    fn init_node(&self, _node: &Node) -> Result<bool, Box<dyn Error>> {
         todo!()
     }
 
-    fn stop_server(&self, server: &str) -> Result<(), Box<dyn Error>> {
+    fn stop_server(&self, _server: &str) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 
-    fn start_server(&self, server: &str) -> Result<(), Box<dyn Error>> {
+    fn start_server(&self, _server: &str) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 }
@@ -82,7 +83,7 @@ impl WasmDriver {
             WasmDriver {
                 name: name.to_string(),
                 bindings,
-                store
+                store,
             }
         }))
     }
@@ -140,7 +141,7 @@ impl WasmDriver {
 
             let driver = WasmDriver::new(&name, &source);
             match driver {
-                Ok(mut driver) => match driver.init() {
+                Ok(driver) => match driver.init() {
                     Ok(info) => {
                         info!(
                             "Loaded driver {} by {}",
@@ -155,13 +156,13 @@ impl WasmDriver {
                         &name,
                         &error
                     ),
-                }
+                },
                 Err(error) => error!(
-                        "{} to compile driver {}: {}",
-                        "Failed".red(),
-                        &name,
-                        &error
-                    )
+                    "{} to compile driver {}: {}",
+                    "Failed".red(),
+                    &name,
+                    &error
+                ),
             }
         }
 

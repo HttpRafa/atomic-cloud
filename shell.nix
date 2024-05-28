@@ -15,7 +15,7 @@ pkgs.mkShell {
     # Protobuf
     protobuf_26
 
-    # Lua
-    lua
+    # Github
+    act
   ];
 }

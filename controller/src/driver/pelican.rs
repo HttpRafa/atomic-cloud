@@ -16,7 +16,7 @@ use crate::node::Node;
 const PELICAN_DIRECTORY: &str = "pelican";
 
 #[derive(Serialize, Deserialize)]
-struct PelicanConfig {
+pub(self) struct PelicanConfig {
     pub endpoint: URL,
 }
 

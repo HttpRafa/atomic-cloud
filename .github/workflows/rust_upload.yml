@@ -1,0 +1,64 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - controller/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - name: Linux
+            platform: x86_64-unknown-linux-gnu
+            extension: ""
+          - name: Windows
+            platform: x86_64-pc-windows-gnu
+            extension: ".exe"
+        feature:
+          - name: lua-drivers
+            file-name: lua
+          - name: pelican-drivers
+            file-name: pelican
+          - name: lua-drivers,pelican-drivers
+            file-name: all
+
+    steps:
+      - uses: josStorer/get-current-time@v2
+        id: current-time
+        with:
+          format: DD-MM-YYYY-hh-mm-ss
+          utcOffset: "+02:00"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protobuf and MinGW (for Windows build)
+        run: |
+          sudo apt update
+          sudo apt install protobuf-compiler gcc-mingw-w64 mingw-w64 -y
+
+      - name: Build Project
+        working-directory: controller/
+        run: |
+          rustup target add ${{ matrix.target.platform }}
+          cargo build --release --target ${{ matrix.target.platform }} --features ${{ matrix.feature.name }}
+
+      - name: Copy Executable
+        if: success()
+        run: |
+          mv controller/target/${{ matrix.target.platform }}/release/controller${{ matrix.target.extension }} controller-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
+
+      - name: Upload file
+        if: success()
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          message: Build finished for ${{ matrix.target.name }} [${{ steps.current-time.outputs.readableTime }}]
+          file: ./controller-${{ matrix.feature.file-name }}${{ matrix.target.extension }}

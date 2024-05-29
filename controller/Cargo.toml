@@ -1,32 +1,9 @@
-[package]
-name = "controller"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-# Logging
-log = "0.4.21"
-simplelog = "0.12.2"
-inquire = "0.7.5"
-colored = "2.1.0"
-
-# Configuration
-serde = { version = "1.0.202", features = ["derive"] }
-toml = "0.8.13"
-
-# Async runtime
-tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros", "time"] }
-prost = "0.12.6"
-tonic = "0.11.0"
-
-# Drivers
-wasmtime = { version = "21.0.1", optional = true }
-
-[build-dependencies]
-tonic-build = "0.11.0"
-
-[features]
-wasm-drivers = ["dep:wasmtime"]
+[workspace]
+resolver = "2"
+members = [
+    "application",
+    "drivers/pelican"
+]
 
 [profile.release]
 strip = true

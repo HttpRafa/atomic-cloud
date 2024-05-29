@@ -14,7 +14,7 @@ use crate::node::Node;
 
 bindgen!({
     world: "driver",
-    path: "./structure/wit/"
+    path: "../structure/wit/"
 });
 
 const WASM_DIRECTORY: &str = "wasm";

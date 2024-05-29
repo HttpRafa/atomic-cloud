@@ -1,8 +1,7 @@
 use std::error::Error;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use colored::Colorize;
 use log::info;
-use serde::Deserialize;
 
 use crate::node::Node;
 

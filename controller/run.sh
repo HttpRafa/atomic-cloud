@@ -1,6 +1,6 @@
 #/usr/bin/env bash
 pushd scripts
-./build_drivers.sh
+./build-pelican.sh
 popd
 
 pushd run

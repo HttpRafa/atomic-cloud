@@ -1,0 +1,49 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - controller/drivers/pelican/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: josStorer/get-current-time@v2
+        id: current-time
+        with:
+          format: DD-MM-YYYY-hh-mm-ss
+          utcOffset: "+02:00"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-tools
+        working-directory: controller/
+        run: |
+          mkdir tools/
+          cd tools/
+          wget https://github.com/bytecodealliance/wasm-tools/releases/download/v1.209.0/wasm-tools-1.209.0-x86_64-linux.tar.gz
+          tar -xvf wasm-tools-1.209.0-x86_64-linux.tar.gz
+          mv wasm-tools-1.209.0-x86_64-linux/* .
+
+      - name: Build Driver
+        working-directory: controller/
+        run: |
+          rustup target add wasm32-wasi
+          cargo build -p pelican --release --target wasm32-wasi
+          ./tools/wasm-tools component new ./target/wasm32-wasi/release/pelican.wasm \
+              -o ../pelican.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
+
+      - name: Upload file
+        if: success()
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          message: Build of pelican driver finished [${{ steps.current-time.outputs.readableTime }}]
+          file: ./pelican.wasm

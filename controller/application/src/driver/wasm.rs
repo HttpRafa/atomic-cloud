@@ -49,16 +49,16 @@ impl driver::api::Host for WasmDriverState {
 
 #[async_trait]
 impl driver::log::Host for WasmDriverState {
-    async fn info(&mut self, message: String) {
+    async fn linfo(&mut self, message: String) {
         info!("{}", &message);
     }
-    async fn warn(&mut self, message: String) {
+    async fn lwarn(&mut self, message: String) {
         warn!("{}", &message);
     }
-    async fn error(&mut self, message: String) {
+    async fn lerror(&mut self, message: String) {
         error!("{}", &message);
     }
-    async fn debug(&mut self, message: String) {
+    async fn ldebug(&mut self, message: String) {
         debug!("{}", &message);
     }
 }
@@ -201,6 +201,7 @@ impl WasmDriver {
                 }
             };
 
+            info!("Compiling driver {}...", &name.blue());
             let driver = WasmDriver::new(&name, &source).await;
             match driver {
                 Ok(driver) => match driver.init().await {

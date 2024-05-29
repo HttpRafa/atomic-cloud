@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
@@ -22,7 +24,7 @@ pub const VERSION: Version = Version {
 #[tokio::main]
 async fn main() {
     TermLogger::init(
-        LevelFilter::Debug,
+        LevelFilter::Info,
         ConfigBuilder::new()
             .set_location_level(LevelFilter::Error)
             .build(),
@@ -31,11 +33,14 @@ async fn main() {
     ).expect("Failed to init logging crate");
 
     print_ascii_art();
+
+    let start_time = Instant::now();
     info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());
     info!("Loading configurations...");
 
     let configuration = Config::new_filled();
     let mut controller = Controller::new(configuration).await;
+    info!("Loaded cluster system in {:.2?}", start_time.elapsed());
     controller.start().await;
 }
 

@@ -1,10 +1,10 @@
 package node:driver;
 
 interface log {
-    info: func(message: string);
-    warn: func(message: string);
-    error: func(message: string);
-    debug: func(message: string);
+    linfo: func(message: string);
+    lwarn: func(message: string);
+    lerror: func(message: string);
+    ldebug: func(message: string);
 }
 
 interface api {

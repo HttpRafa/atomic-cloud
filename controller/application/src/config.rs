@@ -1,9 +1,9 @@
-use std::error::Error;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::process::exit;
 
+use anyhow::Result;
 use inquire::{required, Text};
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -68,7 +68,7 @@ impl SaveToTomlFile for Config {}
 impl LoadFromTomlFile for Config {}
 
 pub trait SaveToTomlFile: Serialize {
-    fn save_toml(&self, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn save_toml(&self, path: &Path) -> Result<()> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -78,7 +78,7 @@ pub trait SaveToTomlFile: Serialize {
 }
 
 pub trait LoadFromTomlFile: DeserializeOwned {
-    fn load_from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
+    fn load_from_file(path: &Path) -> Result<Self> {
         let data = fs::read_to_string(path)?;
         let config = toml::from_str(&data)?;
         Ok(config)

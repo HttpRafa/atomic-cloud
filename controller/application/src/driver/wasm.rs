@@ -1,8 +1,8 @@
-use std::error::Error;
 use std::fs;
 use std::path::Path;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, Mutex, Weak};
 
+use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
 use wasmtime::component::{bindgen, Component, Linker};
@@ -33,10 +33,24 @@ impl DriverImports for WasmDriverState {
     }
 }
 
+struct WasmDriverHandle {
+    store: Store<WasmDriverState>
+}
+
+impl WasmDriverHandle {
+    fn new(store: Store<WasmDriverState>) -> Self {
+        WasmDriverHandle { store }
+    }
+
+    fn exec<T>(&mut self, function: impl FnOnce(&mut Store<WasmDriverState>) -> wasmtime::Result<T>) -> wasmtime::Result<T> {
+        function(&mut self.store)
+    }
+}
+
 pub struct WasmDriver {
     pub name: String,
     bindings: Driver,
-    store: Store<WasmDriverState>,
+    handle: Mutex<WasmDriverHandle>,
 }
 
 impl GenericDriver for WasmDriver {
@@ -44,28 +58,32 @@ impl GenericDriver for WasmDriver {
         self.name.clone()
     }
 
-    fn init(&self) -> Result<Information, Box<dyn Error>> {
-        Ok(Information {
-            author: "".to_string(),
-            version: "".to_string(),
-        })
+    fn init(&self) -> Result<Information> {
+        let mut handle = self.handle.lock().expect("Failed to acquire store lock");
+        match handle.exec(|store| self.bindings.call_init(store)) {
+            Ok(_) => Ok(Information {
+                authors: vec!["Wasm".to_string()],
+                version: "0.1".to_string(),
+            }),
+            Err(error) => Err(error),
+        }
     }
 
-    fn init_node(&self, _node: &Node) -> Result<bool, Box<dyn Error>> {
+    fn init_node(&self, _node: &Node) -> Result<bool> {
         todo!()
     }
 
-    fn stop_server(&self, _server: &str) -> Result<(), Box<dyn Error>> {
+    fn stop_server(&self, _server: &str) -> Result<()> {
         todo!()
     }
 
-    fn start_server(&self, _server: &str) -> Result<(), Box<dyn Error>> {
+    fn start_server(&self, _server: &str) -> Result<()> {
         todo!()
     }
 }
 
 impl WasmDriver {
-    fn new(name: &str, source: &Source) -> Result<Arc<Self>, Box<dyn Error>> {
+    fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
         let mut config = Config::new();
         config.wasm_component_model(true);
         let engine = Engine::new(&config)?;
@@ -83,7 +101,7 @@ impl WasmDriver {
             WasmDriver {
                 name: name.to_string(),
                 bindings,
-                store,
+                handle: Mutex::new(WasmDriverHandle::new(store)),
             }
         }))
     }
@@ -146,7 +164,7 @@ impl WasmDriver {
                         info!(
                             "Loaded driver {} by {}",
                             format!("{} v{}", &driver.name, &info.version).blue(),
-                            &info.author.blue()
+                            &info.authors.join(", ").blue()
                         );
                         drivers.push(driver);
                     }

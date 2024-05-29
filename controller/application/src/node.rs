@@ -1,8 +1,8 @@
-use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
+use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -121,7 +121,7 @@ impl Node {
         })
     }
 
-    pub fn init(&self) -> Result<bool, Box<dyn Error>> {
+    pub fn init(&self) -> Result<bool> {
         self.driver.init_node(self)
     }
 }

@@ -1,5 +1,5 @@
-use std::error::Error;
 use std::net::SocketAddr;
+use anyhow::Result;
 use colored::Colorize;
 use log::info;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -29,7 +29,7 @@ pub fn start_controller_server(config: &Config) -> Receiver<NetworkTask> {
     receiver
 }
 
-async fn run_controller_server(address: SocketAddr, sender: Sender<NetworkTask>) -> Result<(), Box<dyn Error>> {
+async fn run_controller_server(address: SocketAddr, sender: Sender<NetworkTask>) -> Result<()> {
     let controller = ControllerImpl { sender };
 
     info!("Controller {} on {}", "listening".blue(), format!("{}", address).blue());

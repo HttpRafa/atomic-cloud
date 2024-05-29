@@ -1,5 +1,5 @@
-use std::error::Error;
 use std::sync::Arc;
+use anyhow::Result;
 use colored::Colorize;
 use log::info;
 
@@ -15,10 +15,10 @@ const DRIVERS_DIRECTORY: &str = "drivers";
 
 pub trait GenericDriver {
     fn name(&self) -> String;
-    fn init(&self) -> Result<Information, Box<dyn Error>>;
-    fn init_node(&self, node: &Node) -> Result<bool, Box<dyn Error>>;
-    fn stop_server(&self, server: &str) -> Result<(), Box<dyn Error>>;
-    fn start_server(&self, server: &str) -> Result<(), Box<dyn Error>>;
+    fn init(&self) -> Result<Information>;
+    fn init_node(&self, node: &Node) -> Result<bool>;
+    fn stop_server(&self, server: &str) -> Result<()>;
+    fn start_server(&self, server: &str) -> Result<()>;
 }
 
 pub struct Drivers {
@@ -46,15 +46,16 @@ impl Drivers {
 }
 
 pub struct Information {
-    author: String,
+    authors: Vec<String>,
     version: String,
 }
 
 #[cfg(feature = "wasm-drivers")]
 mod source {
-    use std::error::Error;
     use std::fs;
     use std::path::{Path, PathBuf};
+
+    use anyhow::Result;
 
     pub struct Source {
         pub path: PathBuf,
@@ -62,7 +63,7 @@ mod source {
     }
 
     impl Source {
-        pub fn from_file(path: &Path) -> Result<Self, Box<dyn Error>> {
+        pub fn from_file(path: &Path) -> Result<Self> {
             let path = path.to_owned();
             let code = fs::read(&path)?;
             Ok(Source { path, code })

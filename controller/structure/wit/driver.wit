@@ -1,8 +1,27 @@
-package my:driver;
+package node:driver;
+
+interface log {
+    info: func(message: string);
+    warn: func(message: string);
+    error: func(message: string);
+    debug: func(message: string);
+}
+
+interface api {
+    get-name: func() -> string;
+}
+
+interface bridge {
+    record information {
+        authors: list<string>,
+        version: string,
+    }
+
+    init: func() -> information;
+}
 
 world driver {
-    import info: func(message: string);
-    import name: func() -> string;
-
-    export init: func();
+    export bridge;
+    import api;
+    import log;
 }

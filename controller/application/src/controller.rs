@@ -18,8 +18,8 @@ pub struct Controller {
 
 impl Controller {
     pub async fn new(configuration: Config) -> Self {
-        let drivers = Drivers::load_all();
-        let nodes = Nodes::load_all(&drivers);
+        let drivers = Drivers::load_all().await;
+        let nodes = Nodes::load_all(&drivers).await;
         Self {
             configuration,
             drivers,

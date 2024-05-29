@@ -1,35 +1,65 @@
 use std::fs;
 use std::path::Path;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 
 use anyhow::Result;
 use colored::Colorize;
-use log::{error, info, warn};
+use exports::node::driver::bridge::Information;
+use log::{debug, error, info, warn};
+use node::driver;
+use tokio::sync::Mutex;
+use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
-use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, Information};
+use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, DriverInformation};
 use crate::driver::source::Source;
 use crate::node::Node;
 
 bindgen!({
     world: "driver",
-    path: "../structure/wit/"
+    path: "../structure/wit/",
+    async: true,
 });
 
 const WASM_DIRECTORY: &str = "wasm";
 
 struct WasmDriverState {
     handle: Weak<WasmDriver>,
+    wasi: WasiCtx,
+    table: ResourceTable,
 }
 
-impl DriverImports for WasmDriverState {
-    fn info(&mut self, message: String) {
+impl WasiView for WasmDriverState {
+    fn ctx(&mut self) -> &mut WasiCtx {
+        &mut self.wasi
+    }
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
+}
+
+#[async_trait]
+impl driver::api::Host for WasmDriverState {
+    async fn get_name(&mut self) -> String {
+        self.handle.upgrade().unwrap().name.clone()
+    }
+}
+
+#[async_trait]
+impl driver::log::Host for WasmDriverState {
+    async fn info(&mut self, message: String) {
         info!("{}", &message);
     }
-
-    fn name(&mut self) -> String {
-        self.handle.upgrade().unwrap().name.clone()
+    async fn warn(&mut self, message: String) {
+        warn!("{}", &message);
+    }
+    async fn error(&mut self, message: String) {
+        error!("{}", &message);
+    }
+    async fn debug(&mut self, message: String) {
+        debug!("{}", &message);
     }
 }
 
@@ -42,8 +72,17 @@ impl WasmDriverHandle {
         WasmDriverHandle { store }
     }
 
-    fn exec<T>(&mut self, function: impl FnOnce(&mut Store<WasmDriverState>) -> wasmtime::Result<T>) -> wasmtime::Result<T> {
-        function(&mut self.store)
+    fn store(&mut self) -> &mut Store<WasmDriverState> {
+        &mut self.store
+    }
+}
+
+impl Information {
+    fn to_generic(self) -> DriverInformation {
+        DriverInformation {
+            authors: self.authors,
+            version: self.version,
+        }
     }
 }
 
@@ -53,49 +92,54 @@ pub struct WasmDriver {
     handle: Mutex<WasmDriverHandle>,
 }
 
+#[async_trait]
 impl GenericDriver for WasmDriver {
     fn name(&self) -> String {
         self.name.clone()
     }
 
-    fn init(&self) -> Result<Information> {
-        let mut handle = self.handle.lock().expect("Failed to acquire store lock");
-        match handle.exec(|store| self.bindings.call_init(store)) {
-            Ok(_) => Ok(Information {
-                authors: vec!["Wasm".to_string()],
-                version: "0.1".to_string(),
-            }),
+    async fn init(&self) -> Result<DriverInformation> {
+        let mut handle = self.handle.lock().await;
+        match self.bindings.node_driver_bridge().call_init(handle.store()).await {
+            Ok(information) => Ok(information.to_generic()),
             Err(error) => Err(error),
         }
     }
 
-    fn init_node(&self, _node: &Node) -> Result<bool> {
+    async fn init_node(&self, _node: &Node) -> Result<bool> {
         todo!()
     }
 
-    fn stop_server(&self, _server: &str) -> Result<()> {
+    async fn stop_server(&self, _server: &str) -> Result<()> {
         todo!()
     }
 
-    fn start_server(&self, _server: &str) -> Result<()> {
+    async fn start_server(&self, _server: &str) -> Result<()> {
         todo!()
     }
 }
 
 impl WasmDriver {
-    fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
+    async fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
         let mut config = Config::new();
+        config.async_support(true);
         config.wasm_component_model(true);
         let engine = Engine::new(&config)?;
         let component = Component::from_binary(&engine, &source.code)?;
 
         let mut linker = Linker::new(&engine);
+        wasmtime_wasi::add_to_linker_async(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
+
+        let wasi = WasiCtxBuilder::new().build();
+        let table = ResourceTable::new();
 
         let mut store = Store::new(&engine, WasmDriverState {
             handle: Weak::new(),
+            wasi,
+            table,
         });
-        let (bindings, _) = Driver::instantiate(&mut store, &component, &linker)?;
+        let (bindings, _) = Driver::instantiate_async(&mut store, &component, &linker).await?;
         Ok(Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {
@@ -106,7 +150,7 @@ impl WasmDriver {
         }))
     }
 
-    pub fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
+    pub async fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
         let old_loaded = drivers.len();
 
         let drivers_directory = Path::new(DRIVERS_DIRECTORY).join(WASM_DIRECTORY);
@@ -157,9 +201,9 @@ impl WasmDriver {
                 }
             };
 
-            let driver = WasmDriver::new(&name, &source);
+            let driver = WasmDriver::new(&name, &source).await;
             match driver {
-                Ok(driver) => match driver.init() {
+                Ok(driver) => match driver.init().await {
                     Ok(info) => {
                         info!(
                             "Loaded driver {} by {}",

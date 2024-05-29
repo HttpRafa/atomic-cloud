@@ -2,6 +2,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use colored::Colorize;
 use log::info;
+use tonic::async_trait;
 
 use crate::node::Node;
 
@@ -13,12 +14,18 @@ mod wasm;
 
 const DRIVERS_DIRECTORY: &str = "drivers";
 
+pub struct DriverInformation {
+    authors: Vec<String>,
+    version: String,
+}
+
+#[async_trait]
 pub trait GenericDriver {
     fn name(&self) -> String;
-    fn init(&self) -> Result<Information>;
-    fn init_node(&self, node: &Node) -> Result<bool>;
-    fn stop_server(&self, server: &str) -> Result<()>;
-    fn start_server(&self, server: &str) -> Result<()>;
+    async fn init(&self) -> Result<DriverInformation>;
+    async fn init_node(&self, node: &Node) -> Result<bool>;
+    async fn stop_server(&self, server: &str) -> Result<()>;
+    async fn start_server(&self, server: &str) -> Result<()>;
 }
 
 pub struct Drivers {
@@ -26,13 +33,13 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    pub fn load_all() -> Self {
+    pub async fn load_all() -> Self {
         info!("Loading drivers...");
 
         let mut drivers = Vec::new();
 
         #[cfg(feature = "wasm-drivers")]
-        WasmDriver::load_all(&mut drivers);
+        WasmDriver::load_all(&mut drivers).await;
 
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Self { drivers }
@@ -43,11 +50,6 @@ impl Drivers {
             .find(|driver| driver.name().eq_ignore_ascii_case(name))
             .map(Arc::clone)
     }
-}
-
-pub struct Information {
-    authors: Vec<String>,
-    version: String,
 }
 
 #[cfg(feature = "wasm-drivers")]

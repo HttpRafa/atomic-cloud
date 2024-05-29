@@ -21,7 +21,7 @@ pub struct Nodes {
 }
 
 impl Nodes {
-    pub fn load_all(drivers: &Drivers) -> Self {
+    pub async fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
         let node_directory = Path::new(NODES_DIRECTORY);
@@ -76,7 +76,7 @@ impl Nodes {
                 None => continue,
             };
 
-            match node.init() {
+            match node.init().await {
                 Ok(success) => {
                     if success {
                         info!("Loaded node {}", &node.name.blue());
@@ -121,8 +121,8 @@ impl Node {
         })
     }
 
-    pub fn init(&self) -> Result<bool> {
-        self.driver.init_node(self)
+    pub async fn init(&self) -> Result<bool> {
+        self.driver.init_node(self).await
     }
 }
 

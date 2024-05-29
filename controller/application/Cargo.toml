@@ -24,9 +24,10 @@ tonic = "0.11.0"
 
 # Drivers
 wasmtime = { version = "21.0.1", optional = true }
+wasmtime-wasi = { version = "21.0.1", optional = true }
 
 [build-dependencies]
 tonic-build = "0.11.0"
 
 [features]
-wasm-drivers = ["dep:wasmtime"]
+wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi"]

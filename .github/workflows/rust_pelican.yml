@@ -34,9 +34,9 @@ jobs:
       - name: Build Driver
         working-directory: controller/
         run: |
-          rustup target add wasm32-wasi
-          cargo build -p pelican --release --target wasm32-wasi
-          ./tools/wasm-tools component new ./target/wasm32-wasi/release/pelican.wasm \
+          rustup target add wasm32-wasip1
+          cargo build -p pelican --release --target wasm32-wasip1
+          ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pelican.wasm \
               -o ../pelican.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
 
       - name: Upload file

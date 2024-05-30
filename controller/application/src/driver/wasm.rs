@@ -121,7 +121,7 @@ impl GenericDriver for WasmDriver {
 impl WasmDriver {
     async fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
         let config_directory = Path::new(CONFIG_DIRECTORY).join(&name);
-        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY);
+        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(&name);
         if !config_directory.exists() {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!("{} to create configs directory for driver {}: {}", "Failed".red(), &name, &error)
@@ -143,11 +143,7 @@ impl WasmDriver {
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
 
-        let wasi = WasiCtxBuilder::new()
-                                            .inherit_stdio()
-                                            .preopened_dir(&config_directory, ".", DirPerms::all(), FilePerms::all())?
-                                            .preopened_dir(&data_directory, "./data/", DirPerms::all(), FilePerms::all())?
-                                            .build();
+        let wasi = WasiCtxBuilder::new().inherit_stdio().preopened_dir(&config_directory, "/configs/", DirPerms::all(), FilePerms::all())?.preopened_dir(&data_directory, "/data/", DirPerms::all(), FilePerms::all())?.build();
         let table = ResourceTable::new();
 
         let mut store = Store::new(&engine, WasmDriverState {

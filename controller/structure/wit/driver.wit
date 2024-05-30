@@ -12,12 +12,24 @@ interface api {
 }
 
 interface bridge {
+    // Init
     record information {
         authors: list<string>,
         version: string,
     }
-
     init: func() -> information;
+
+    // Nodes
+    variant capability {
+        limited-memory(u32),
+        unlimited-memory(bool),
+        max-servers(u16),
+    }
+    record node {
+        name: string,
+        capabilities: list<capability>,
+    }
+    init-node: func(node: node) -> bool;
 }
 
 world driver {

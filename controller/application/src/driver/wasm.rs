@@ -4,18 +4,21 @@ use std::sync::{Arc, Weak};
 
 use anyhow::Result;
 use colored::Colorize;
-use exports::node::driver::bridge::Information;
+use exports::node::driver::bridge;
 use log::{debug, error, info, warn};
 use node::driver;
 use tokio::sync::Mutex;
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
-use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, DriverInformation};
+use crate::config::CONFIG_DIRECTORY;
+use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, Information};
 use crate::driver::source::Source;
-use crate::node::Node;
+use crate::node::{Capability, Node};
+
+use super::DATA_DIRECTORY;
 
 bindgen!({
     world: "driver",
@@ -77,15 +80,6 @@ impl WasmDriverHandle {
     }
 }
 
-impl Information {
-    fn to_generic(self) -> DriverInformation {
-        DriverInformation {
-            authors: self.authors,
-            version: self.version,
-        }
-    }
-}
-
 pub struct WasmDriver {
     pub name: String,
     bindings: Driver,
@@ -98,16 +92,21 @@ impl GenericDriver for WasmDriver {
         self.name.clone()
     }
 
-    async fn init(&self) -> Result<DriverInformation> {
+    async fn init(&self) -> Result<Information> {
         let mut handle = self.handle.lock().await;
         match self.bindings.node_driver_bridge().call_init(handle.store()).await {
-            Ok(information) => Ok(information.to_generic()),
+            Ok(information) => Ok(information.into()),
             Err(error) => Err(error),
         }
     }
 
-    async fn init_node(&self, _node: &Node) -> Result<bool> {
-        todo!()
+    async fn init_node(&self, node: &Node) -> Result<bool> {
+        let node = node.into();
+        let mut handle = self.handle.lock().await;
+        match self.bindings.node_driver_bridge().call_init_node(handle.store(), &node).await {
+            Ok(success) => Ok(success),
+            Err(error) => Err(error),
+        }
     }
 
     async fn stop_server(&self, _server: &str) -> Result<()> {
@@ -121,6 +120,19 @@ impl GenericDriver for WasmDriver {
 
 impl WasmDriver {
     async fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
+        let config_directory = Path::new(CONFIG_DIRECTORY).join(&name);
+        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY);
+        if !config_directory.exists() {
+            fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
+                warn!("{} to create configs directory for driver {}: {}", "Failed".red(), &name, &error)
+            });
+        }
+        if !data_directory.exists() {
+            fs::create_dir_all(&data_directory).unwrap_or_else(|error| {
+                warn!("{} to create data directory for driver {}: {}", "Failed".red(), &name, &error)
+            });
+        }
+
         let mut config = Config::new();
         config.async_support(true);
         config.wasm_component_model(true);
@@ -131,7 +143,11 @@ impl WasmDriver {
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
 
-        let wasi = WasiCtxBuilder::new().build();
+        let wasi = WasiCtxBuilder::new()
+                                            .inherit_stdio()
+                                            .preopened_dir(&config_directory, ".", DirPerms::all(), FilePerms::all())?
+                                            .preopened_dir(&data_directory, "./data/", DirPerms::all(), FilePerms::all())?
+                                            .build();
         let table = ResourceTable::new();
 
         let mut store = Store::new(&engine, WasmDriverState {
@@ -231,6 +247,34 @@ impl WasmDriver {
 
         if old_loaded == drivers.len() {
             warn!("The Wasm driver feature is enabled, but no Wasm drivers were loaded.");
+        }
+    }
+}
+
+impl Into<Information> for bridge::Information {
+    fn into(self) -> Information {
+        Information {
+            authors: self.authors,
+            version: self.version,
+        }
+    }
+}
+
+impl From<&Node> for bridge::Node {
+    fn from(node: &Node) -> Self {
+        bridge::Node {
+            name: node.name.to_owned(),
+            capabilities: node.capabilities.clone().into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<Capability> for bridge::Capability {
+    fn from(capability: Capability) -> Self {
+        match capability {
+            Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(memory),
+            Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(enabled),
+            Capability::MaxServers(servers) => bridge::Capability::MaxServers(servers),
         }
     }
 }

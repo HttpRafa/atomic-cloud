@@ -21,6 +21,8 @@ jobs:
 
       - name: Set Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
 
       - name: Install wasm-tools
         working-directory: controller/
@@ -35,7 +37,8 @@ jobs:
         working-directory: controller/
         run: |
           rustup target add wasm32-wasip1
-          cargo build -p pelican --release --target wasm32-wasip1
+          export RUSTFLAGS="-Z wasi-exec-model=reactor"
+          cargo +nightly build -p pelican --target wasm32-wasip1 --release
           ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pelican.wasm \
               -o ../pelican.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
 

@@ -15,7 +15,7 @@ use crate::config::validators::{AddressValidator, PortValidator};
 mod auto_complete;
 mod validators;
 
-const CONFIG_DIRECTORY: &str = "configs";
+pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize, Serialize)]

@@ -98,8 +98,8 @@ impl Nodes {
 
 #[derive(Serialize)]
 pub struct Node {
-    name: String,
-    capabilities: Vec<Capability>,
+    pub name: String,
+    pub capabilities: Vec<Capability>,
     #[serde(skip_serializing)]
     driver: Arc<dyn GenericDriver>,
 }

@@ -17,6 +17,7 @@ pkgs.mkShell {
 
     # Wasm tooling
     wasm-tools
+    wabt
 
     # Github
     act

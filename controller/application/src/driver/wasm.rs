@@ -5,7 +5,7 @@ use std::sync::{Arc, Weak};
 use anyhow::Result;
 use colored::Colorize;
 use exports::node::driver::bridge;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use node::driver;
 use tokio::sync::Mutex;
 use tonic::async_trait;
@@ -50,22 +50,6 @@ impl driver::api::Host for WasmDriverState {
     }
 }
 
-#[async_trait]
-impl driver::log::Host for WasmDriverState {
-    async fn linfo(&mut self, message: String) {
-        info!("{}", &message);
-    }
-    async fn lwarn(&mut self, message: String) {
-        warn!("{}", &message);
-    }
-    async fn lerror(&mut self, message: String) {
-        error!("{}", &message);
-    }
-    async fn ldebug(&mut self, message: String) {
-        debug!("{}", &message);
-    }
-}
-
 struct WasmDriverHandle {
     store: Store<WasmDriverState>
 }
@@ -101,9 +85,8 @@ impl GenericDriver for WasmDriver {
     }
 
     async fn init_node(&self, node: &Node) -> Result<bool> {
-        let node = node.into();
         let mut handle = self.handle.lock().await;
-        match self.bindings.node_driver_bridge().call_init_node(handle.store(), &node).await {
+        match self.bindings.node_driver_bridge().call_init_node(handle.store(), &node.into()).await {
             Ok(success) => Ok(success),
             Err(error) => Err(error),
         }

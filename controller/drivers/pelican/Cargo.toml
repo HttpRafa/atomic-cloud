@@ -4,4 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wit-bindgen = "0.25.0"
+# Wasm plugin
+wit-bindgen = "0.26.0"
+
+# Logging
+log = "0.4.21"
+simplelog = "0.12.2"
+colored = "2.1.0"

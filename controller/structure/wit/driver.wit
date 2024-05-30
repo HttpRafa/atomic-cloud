@@ -1,12 +1,5 @@
 package node:driver;
 
-interface log {
-    linfo: func(message: string);
-    lwarn: func(message: string);
-    lerror: func(message: string);
-    ldebug: func(message: string);
-}
-
 interface api {
     get-name: func() -> string;
 }
@@ -35,5 +28,4 @@ interface bridge {
 world driver {
     export bridge;
     import api;
-    import log;
 }

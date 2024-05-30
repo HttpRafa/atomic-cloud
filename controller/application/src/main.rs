@@ -29,7 +29,7 @@ async fn main() {
             .set_location_level(LevelFilter::Error)
             .build(),
         TerminalMode::Mixed,
-        ColorChoice::Auto
+        ColorChoice::Always
     ).expect("Failed to init logging crate");
 
     print_ascii_art();

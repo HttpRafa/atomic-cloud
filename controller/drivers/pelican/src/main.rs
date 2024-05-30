@@ -1,8 +1,9 @@
 #![no_main]
 
-use std::fs;
-
+use colored::Colorize;
 use exports::node::driver::bridge::{Guest, Information, Node};
+use log::{info, warn, LevelFilter};
+use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 use wit_bindgen::generate;
 
 generate!({
@@ -17,8 +18,14 @@ struct Pelican {}
 
 impl Guest for Pelican {
     fn init() -> Information {
-        fs::write("/configs/config.toml", "Test Config").expect("Failed to write config file");
-        fs::write("/data/images.txt", "image1,image2").expect("Failed to write test file");
+        TermLogger::init(
+            LevelFilter::Info,
+            ConfigBuilder::new()
+                .set_location_level(LevelFilter::Error)
+                .build(),
+            TerminalMode::Mixed,
+            ColorChoice::Always
+        ).expect("Failed to init logging crate");
         Information {
             authors: AUTHORS.map(|author|author.to_string()).to_vec(),
             version: VERSION.to_string(),

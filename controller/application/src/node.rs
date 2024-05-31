@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use colored::Colorize;
-use log::{error, info};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
@@ -21,8 +21,15 @@ impl Nodes {
     pub async fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
+        let node_directory = Path::new(NODES_DIRECTORY);
+        if !node_directory.exists() {
+            fs::create_dir_all(&node_directory).unwrap_or_else(|error| {
+                warn!("{} to create nodes directory: {}", "Failed".red(), &error)
+            });
+        }
+
         let mut nodes = Vec::new();
-        let entries = match fs::read_dir(Path::new(NODES_DIRECTORY)) {
+        let entries = match fs::read_dir(&node_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);

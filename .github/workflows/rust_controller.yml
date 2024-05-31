@@ -19,7 +19,7 @@ jobs:
             platform: x86_64-pc-windows-gnu
             extension: ".exe"
         feature:
-          - name: wasm-drivers
+          - name: wasm-drivers,cli
             file-name: wasm
 
     steps:

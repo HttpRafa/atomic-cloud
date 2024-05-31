@@ -7,10 +7,10 @@ use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
 
-#[cfg(feature = "generate-cli")]
+#[cfg(feature = "cli")]
 use cli::Cli;
 
-#[cfg(feature = "generate-cli")]
+#[cfg(feature = "cli")]
 mod cli;
 
 mod driver;
@@ -37,7 +37,7 @@ async fn main() {
         ColorChoice::Auto,
     ).expect("Failed to init logging crate");
 
-    #[cfg(feature = "generate-cli")]
+    #[cfg(feature = "cli")]
     if Cli::run() { return; }
 
     print_ascii_art();

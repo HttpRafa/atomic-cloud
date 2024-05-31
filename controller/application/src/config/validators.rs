@@ -23,6 +23,26 @@ impl StringValidator for PortValidator {
 }
 
 #[derive(Clone)]
+pub struct UnsignedValidator;
+
+impl UnsignedValidator {
+    pub fn new() -> Self {
+        UnsignedValidator {}
+    }
+}
+
+impl StringValidator for UnsignedValidator {
+    fn validate(&self, input: &str) -> Result<Validation, CustomUserError> {
+        let result = input.parse::<u32>();
+        if result.is_ok() {
+            Ok(Validation::Valid)
+        } else {
+            Ok(Validation::Invalid(result.unwrap_err().into()))
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct AddressValidator;
 
 impl AddressValidator {

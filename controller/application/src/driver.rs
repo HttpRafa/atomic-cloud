@@ -18,13 +18,14 @@ const DATA_DIRECTORY: &str = "data";
 pub struct Information {
     authors: Vec<String>,
     version: String,
+    ready: bool,
 }
 
 // Drivers should be save the use from all threads beacuse they exist in a Arc thats stops them from being mutable
 // And if something is mutable inside of the driver it is wrapped in a Mutex like the Wasm Store
 #[async_trait]
 pub trait GenericDriver: Send + Sync {
-    fn name(&self) -> String;
+    fn name(&self) -> &String;
     async fn init(&self) -> Result<Information>;
     async fn init_node(&self, node: &Node) -> Result<bool>;
     async fn stop_server(&self, server: &str) -> Result<()>;

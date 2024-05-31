@@ -1,5 +1,5 @@
 use std::time::Instant;
-
+use cli::Cli;
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
@@ -7,6 +7,9 @@ use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
+
+#[cfg(feature = "generate-cli")]
+mod cli;
 
 mod driver;
 mod network;
@@ -29,8 +32,11 @@ async fn main() {
             .set_location_level(LevelFilter::Error)
             .build(),
         TerminalMode::Mixed,
-        ColorChoice::Always
+        ColorChoice::Auto,
     ).expect("Failed to init logging crate");
+
+    #[cfg(feature = "generate-cli")]
+    if Cli::run() { return; }
 
     print_ascii_art();
 

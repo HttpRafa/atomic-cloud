@@ -7,7 +7,12 @@ edition = "2021"
 # Wasm plugin
 wit-bindgen = "0.26.0"
 
+# Error handling
+anyhow = "1.0.86"
+
 # Logging
-log = "0.4.21"
-simplelog = "0.12.2"
 colored = "2.1.0"
+
+# Configuration
+serde = { version = "1.0.203", features = ["derive"] }
+toml = "0.8.13"

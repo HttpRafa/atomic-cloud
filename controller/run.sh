@@ -4,5 +4,5 @@ pushd scripts
 popd
 
 pushd run
-cargo run -p controller --all-features
+cargo run -p controller --all-features -- "$@"
 popd

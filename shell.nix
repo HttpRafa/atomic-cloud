@@ -3,7 +3,6 @@ pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
     # Install jetbrains ides
     jetbrains.idea-ultimate
-    jetbrains.rust-rover
 
     # Rust
     rustup

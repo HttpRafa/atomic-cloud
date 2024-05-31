@@ -47,7 +47,7 @@ impl Controller {
         while let Ok(task) = network_tasks.try_recv() {
             match task {
                 // Add task handling logic here
-                _ => warn!("No task handling implemented"),
+                //_ => warn!("No task handling implemented"),
             }
         }
     }

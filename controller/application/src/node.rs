@@ -4,17 +4,14 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 use crate::driver::{GenericDriver, Drivers};
-use crate::node::Capability::UnlimitedMemory;
 use crate::node::stored::StoredNode;
 
 const NODES_DIRECTORY: &str = "nodes";
-const EXAMPLES_DIRECTORY: &str = "examples";
-const EXAMPLE_FILE: &str = "example.toml";
 
 pub struct Nodes {
     nodes: Vec<Arc<Node>>,
@@ -24,17 +21,8 @@ impl Nodes {
     pub async fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
-        let node_directory = Path::new(NODES_DIRECTORY);
-        // Create example node file if the directory doesn't exist
-        if !node_directory.exists() {
-            StoredNode {
-                driver: "testing".to_string(),
-                capabilities: vec![Capability::LimitedMemory(1024), UnlimitedMemory(true), Capability::MaxServers(25)],
-            }.save_toml(&node_directory.join(EXAMPLES_DIRECTORY).join(EXAMPLE_FILE)).unwrap_or_else(|error| warn!("{} to create example node: {}", "Failed".red(), error));
-        }
-
         let mut nodes = Vec::new();
-        let entries = match fs::read_dir(node_directory) {
+        let entries = match fs::read_dir(Path::new(NODES_DIRECTORY)) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);
@@ -77,14 +65,11 @@ impl Nodes {
             };
 
             match node.init().await {
-                Ok(success) => {
-                    if success {
-                        info!("Loaded node {}", &node.name.blue());
-                        nodes.push(Arc::new(node));
-                    } else {
-                        error!("Something went wrong while loading the node {}. Please view the logs", &node.name.blue());
-                    }
+                Ok(true) => {
+                    info!("Loaded node {}", &node.name.blue());
+                    nodes.push(Arc::new(node));
                 }
+                Ok(false) => {}
                 Err(error) => {
                     error!("{} to load node {}: {}", "Failed".red(), &node.name, &error);
                 }
@@ -93,6 +78,10 @@ impl Nodes {
 
         info!("Loaded {}", format!("{} node(s)", nodes.len()).blue());
         Self { nodes }
+    }
+
+    pub fn create_node(name: String, driver: String, capabilities: Vec<Capability>) -> Result<()> {
+        StoredNode { driver, capabilities }.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))
     }
 }
 
@@ -134,6 +123,8 @@ pub enum Capability {
     UnlimitedMemory(bool),
     #[serde(rename = "max_servers")]
     MaxServers(u16),
+    #[serde(rename = "sub_node")]
+    SubNode(String),
 }
 
 mod stored {

@@ -2,14 +2,15 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Weak};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use exports::node::driver::bridge;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use node::driver;
+use node::driver::log::Level;
 use tokio::sync::Mutex;
 use tonic::async_trait;
-use wasmtime::component::{bindgen, Component, Linker};
+use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
@@ -50,17 +51,30 @@ impl driver::api::Host for WasmDriverState {
     }
 }
 
+#[async_trait]
+impl driver::log::Host for WasmDriverState {
+    async fn log_string(&mut self, level: Level, message: String) {
+        match level {
+            Level::Info => info!("{}", message),
+            Level::Warn => warn!("{}", message),
+            Level::Error => error!("{}", message),
+            Level::Debug => debug!("{}", message),
+        }
+    }
+}
+
 struct WasmDriverHandle {
-    store: Store<WasmDriverState>
+    store: Store<WasmDriverState>,
+    resource: ResourceAny, // This is delete when the store is dropped
 }
 
 impl WasmDriverHandle {
-    fn new(store: Store<WasmDriverState>) -> Self {
-        WasmDriverHandle { store }
+    fn new(store: Store<WasmDriverState>, resource: ResourceAny) -> Self {
+        WasmDriverHandle { store, resource }
     }
 
-    fn store(&mut self) -> &mut Store<WasmDriverState> {
-        &mut self.store
+    fn get(&mut self) -> (ResourceAny, &mut Store<WasmDriverState>) {
+        (self.resource, &mut self.store)
     }
 }
 
@@ -72,13 +86,14 @@ pub struct WasmDriver {
 
 #[async_trait]
 impl GenericDriver for WasmDriver {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &String {
+        &self.name
     }
 
     async fn init(&self) -> Result<Information> {
         let mut handle = self.handle.lock().await;
-        match self.bindings.node_driver_bridge().call_init(handle.store()).await {
+        let (resource, store) = handle.get();
+        match self.bindings.node_driver_bridge().generic_driver().call_init(store, resource).await {
             Ok(information) => Ok(information.into()),
             Err(error) => Err(error),
         }
@@ -86,7 +101,8 @@ impl GenericDriver for WasmDriver {
 
     async fn init_node(&self, node: &Node) -> Result<bool> {
         let mut handle = self.handle.lock().await;
-        match self.bindings.node_driver_bridge().call_init_node(handle.store(), &node.into()).await {
+        let (resource, store) = handle.get();
+        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await {
             Ok(success) => Ok(success),
             Err(error) => Err(error),
         }
@@ -135,12 +151,13 @@ impl WasmDriver {
             table,
         });
         let (bindings, _) = Driver::instantiate_async(&mut store, &component, &linker).await?;
+        let driver_resource = bindings.node_driver_bridge().generic_driver().call_constructor(&mut store).await?;
         Ok(Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {
                 name: name.to_string(),
                 bindings,
-                handle: Mutex::new(WasmDriverHandle::new(store)),
+                handle: Mutex::new(WasmDriverHandle::new(store, driver_resource)),
             }
         }))
     }
@@ -201,12 +218,16 @@ impl WasmDriver {
             match driver {
                 Ok(driver) => match driver.init().await {
                     Ok(info) => {
-                        info!(
-                            "Loaded driver {} by {}",
-                            format!("{} v{}", &driver.name, &info.version).blue(),
-                            &info.authors.join(", ").blue()
-                        );
-                        drivers.push(driver);
+                        if info.ready {
+                            info!(
+                                "Loaded driver {} by {}",
+                                format!("{} v{}", &driver.name, &info.version).blue(),
+                                &info.authors.join(", ").blue()
+                            );
+                            drivers.push(driver);
+                        } else {
+                            warn!("Driver {} marked itself as {}, skipping...", &driver.name.blue(), "not ready".yellow());
+                        }
                     }
                     Err(error) => error!(
                         "{} to load driver {}: {}",
@@ -235,25 +256,18 @@ impl Into<Information> for bridge::Information {
         Information {
             authors: self.authors,
             version: self.version,
+            ready: self.ready,
         }
     }
 }
 
-impl From<&Node> for bridge::Node {
-    fn from(node: &Node) -> Self {
-        bridge::Node {
-            name: node.name.to_owned(),
-            capabilities: node.capabilities.clone().into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<Capability> for bridge::Capability {
-    fn from(capability: Capability) -> Self {
-        match capability {
-            Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(memory),
-            Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(enabled),
-            Capability::MaxServers(servers) => bridge::Capability::MaxServers(servers),
+impl Into<bridge::Capability> for &Capability {
+    fn into(self) -> bridge::Capability {
+        match self {
+            Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(*memory),
+            Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(*enabled),
+            Capability::MaxServers(servers) => bridge::Capability::MaxServers(*servers),
+            Capability::SubNode(node) => bridge::Capability::SubNode(node.to_owned()),
         }
     }
 }

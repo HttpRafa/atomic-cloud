@@ -1,5 +1,15 @@
 package node:driver;
 
+interface log {
+    variant level {
+        debug,
+        info,
+        warn,
+        error,
+    }
+    log-string: func(level: level, message: string);
+}
+
 interface api {
     get-name: func() -> string;
 }
@@ -9,23 +19,26 @@ interface bridge {
     record information {
         authors: list<string>,
         version: string,
+        ready: bool,
     }
-    init: func() -> information;
 
     // Nodes
     variant capability {
         limited-memory(u32),
         unlimited-memory(bool),
         max-servers(u16),
+        sub-node(string)
     }
-    record node {
-        name: string,
-        capabilities: list<capability>,
+
+    resource generic-driver {
+        constructor();
+        init: func() -> information;
+        init-node: func(name: string, capabilities: list<capability>) -> bool;
     }
-    init-node: func(node: node) -> bool;
 }
 
 world driver {
     export bridge;
+    import log;
     import api;
 }

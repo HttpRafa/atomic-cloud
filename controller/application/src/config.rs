@@ -8,7 +8,7 @@ use inquire::{required, Text};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use validators::{PortValidator, UnsignedValidator};
+use validators::PortValidator;
 
 use crate::config::auto_complete::SimpleAutoComplete;
 use crate::config::validators::AddressValidator;
@@ -17,7 +17,6 @@ pub mod auto_complete;
 pub mod validators;
 
 pub const CONFIG_DIRECTORY: &str = "configs";
-pub const EXAMPLES_DIRECTORY: &str = "examples";
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize, Serialize)]
@@ -35,7 +34,7 @@ impl Config {
     fn new() -> Self {
         let path = &Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
         if !path.exists() { return Self::new_empty() }
-        Self::load_from_file(&path)
+        Self::load_from_file(path)
             .unwrap_or_else(|error| {
                 warn!("Failed to read configuration from file: {}", error);
                 Self::new_empty()

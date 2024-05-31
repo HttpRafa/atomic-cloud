@@ -1,4 +1,3 @@
-use std::fs::read;
 
 use anyhow::Result;
 use clap::Parser;

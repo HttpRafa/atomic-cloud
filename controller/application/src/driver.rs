@@ -51,8 +51,7 @@ impl Drivers {
 
     pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {
         self.drivers.iter()
-            .find(|driver| driver.name().eq_ignore_ascii_case(name))
-            .map(Arc::clone)
+            .find(|driver| driver.name().eq_ignore_ascii_case(name)).cloned()
     }
 }
 

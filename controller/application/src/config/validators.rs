@@ -14,10 +14,10 @@ impl PortValidator {
 impl StringValidator for PortValidator {
     fn validate(&self, input: &str) -> Result<Validation, CustomUserError> {
         let result = input.parse::<u16>();
-        if result.is_ok() {
-            Ok(Validation::Valid)
+        if let Err(error) = result {
+            Ok(Validation::Invalid(error.into()))
         } else {
-            Ok(Validation::Invalid(result.unwrap_err().into()))
+            Ok(Validation::Valid)
         }
     }
 }
@@ -34,10 +34,10 @@ impl UnsignedValidator {
 impl StringValidator for UnsignedValidator {
     fn validate(&self, input: &str) -> Result<Validation, CustomUserError> {
         let result = input.parse::<u32>();
-        if result.is_ok() {
-            Ok(Validation::Valid)
+        if let Err(error) = result {
+            Ok(Validation::Invalid(error.into()))
         } else {
-            Ok(Validation::Invalid(result.unwrap_err().into()))
+            Ok(Validation::Valid)
         }
     }
 }
@@ -54,10 +54,10 @@ impl AddressValidator {
 impl StringValidator for AddressValidator {
     fn validate(&self, input: &str) -> Result<Validation, CustomUserError> {
         let result = input.parse::<IpAddr>();
-        if result.is_ok() {
-            Ok(Validation::Valid)
+        if let Err(error) = result {
+            Ok(Validation::Invalid(error.into()))
         } else {
-            Ok(Validation::Invalid(result.unwrap_err().into()))
+            Ok(Validation::Valid)
         }
     }
 }

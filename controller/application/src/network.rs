@@ -2,17 +2,22 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use colored::Colorize;
 use log::info;
+use proto::controller_service_server::ControllerServiceServer;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tonic::transport::Server;
 use tokio::task;
 
-use crate::network::controller_service_server::ControllerServiceServer;
 use crate::network::server::ControllerImpl;
 use crate::config::Config;
 
 mod server;
 
-tonic::include_proto!("control");
+#[allow(clippy::all)]
+mod proto {
+    use tonic::include_proto;
+
+    include_proto!("control");
+}
 
 pub fn start_controller_server(config: &Config) -> Receiver<NetworkTask> {
     info!("Starting networking stack...");

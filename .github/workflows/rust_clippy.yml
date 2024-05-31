@@ -1,0 +1,26 @@
+on:
+  push:
+    paths:
+      - controller/**
+name: Clippy check
+
+jobs:
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install Protobuf
+        run: |
+          sudo apt update
+          sudo apt install protobuf-compiler -y
+
+      - name: Run Clippy
+        working-directory: controller/
+        run: cargo clippy --all-targets --all-features

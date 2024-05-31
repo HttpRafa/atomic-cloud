@@ -1,5 +1,4 @@
 use std::time::{Duration, Instant};
-use log::warn;
 use tokio::sync::mpsc::Receiver;
 use tokio::time;
 
@@ -42,13 +41,13 @@ impl Controller {
         }
     }
 
-    async fn tick(&mut self, network_tasks: &mut Receiver<NetworkTask>) {
+    async fn tick(&mut self, _network_tasks: &mut Receiver<NetworkTask>) {
         // Process network requests
-        while let Ok(task) = network_tasks.try_recv() {
+        /*while let Ok(task) = network_tasks.try_recv() {
             match task {
                 // Add task handling logic here
-                //_ => warn!("No task handling implemented"),
+                _ => warn!("No task handling implemented"),
             }
-        }
+        }*/
     }
 }

@@ -1,7 +1,8 @@
 use tokio::sync::mpsc::Sender;
 use tonic::async_trait;
-use crate::network::controller_service_server::ControllerService;
 use crate::network::NetworkTask;
+
+use super::proto::controller_service_server::ControllerService;
 
 pub struct ControllerImpl {
     pub sender: Sender<NetworkTask>

@@ -9,7 +9,7 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn node_exists(&self, name: &str) -> bool {
+    pub fn _node_exists(&self, _name: &str) -> bool {
         true
     }
 }

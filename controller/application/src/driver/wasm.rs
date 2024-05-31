@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Weak};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use colored::Colorize;
 use exports::node::driver::bridge;
 use log::{debug, error, info, warn};
@@ -102,10 +102,7 @@ impl GenericDriver for WasmDriver {
     async fn init_node(&self, node: &Node) -> Result<bool> {
         let mut handle = self.handle.lock().await;
         let (resource, store) = handle.get();
-        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await {
-            Ok(success) => Ok(success),
-            Err(error) => Err(error),
-        }
+        self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await
     }
 
     async fn stop_server(&self, _server: &str) -> Result<()> {
@@ -119,8 +116,8 @@ impl GenericDriver for WasmDriver {
 
 impl WasmDriver {
     async fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
-        let config_directory = Path::new(CONFIG_DIRECTORY).join(&name);
-        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(&name);
+        let config_directory = Path::new(CONFIG_DIRECTORY).join(name);
+        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(name);
         if !config_directory.exists() {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!("{} to create configs directory for driver {}: {}", "Failed".red(), &name, &error)
@@ -251,19 +248,19 @@ impl WasmDriver {
     }
 }
 
-impl Into<Information> for bridge::Information {
-    fn into(self) -> Information {
+impl From<bridge::Information> for Information {
+    fn from(val: bridge::Information) -> Self {
         Information {
-            authors: self.authors,
-            version: self.version,
-            ready: self.ready,
+            authors: val.authors,
+            version: val.version,
+            ready: val.ready,
         }
     }
 }
 
-impl Into<bridge::Capability> for &Capability {
-    fn into(self) -> bridge::Capability {
-        match self {
+impl From<&Capability> for bridge::Capability {
+    fn from(val: &Capability) -> Self {
+        match val {
             Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(*memory),
             Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(*enabled),
             Capability::MaxServers(servers) => bridge::Capability::MaxServers(*servers),

@@ -4,6 +4,7 @@ on:
       - main
     paths:
       - controller/application/**
+name: Publish controller
 
 jobs:
   build:
@@ -29,10 +30,12 @@ jobs:
           utcOffset: "+02:00"
 
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.platform }}
 
       - name: Install Protobuf and MinGW (for Windows build)
         run: |
@@ -41,9 +44,7 @@ jobs:
 
       - name: Build Controller
         working-directory: controller/
-        run: |
-          rustup target add ${{ matrix.target.platform }}
-          cargo build -p controller --release --target ${{ matrix.target.platform }} --features ${{ matrix.feature.name }}
+        run: cargo build -p controller --release --target ${{ matrix.target.platform }} --features ${{ matrix.feature.name }}
 
       - name: Copy Executable
         if: success()

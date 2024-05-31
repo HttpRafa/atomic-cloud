@@ -1,5 +1,4 @@
 use std::time::Instant;
-use cli::Cli;
 use colored::Colorize;
 use log::{info, LevelFilter};
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
@@ -7,6 +6,9 @@ use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
+
+#[cfg(feature = "generate-cli")]
+use cli::Cli;
 
 #[cfg(feature = "generate-cli")]
 mod cli;

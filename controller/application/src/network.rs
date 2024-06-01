@@ -1,14 +1,13 @@
-use std::net::SocketAddr;
+use std::sync::Arc;
 use anyhow::Result;
 use colored::Colorize;
 use log::info;
 use proto::controller_service_server::ControllerServiceServer;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::task::JoinHandle;
 use tonic::transport::Server;
-use tokio::task;
 
+use crate::controller::Controller;
 use crate::network::server::ControllerImpl;
-use crate::config::Config;
 
 mod server;
 
@@ -19,23 +18,19 @@ mod proto {
     include_proto!("control");
 }
 
-pub fn start_controller_server(config: &Config) -> Receiver<NetworkTask> {
+pub fn start_controller_server(controller: Arc<Controller>) -> JoinHandle<()> {
     info!("Starting networking stack...");
 
-    let address = config.listener.expect("No listener address found in the config");
-    let (sender, receiver) = channel(10);
-
-    task::spawn(async move {
-        if let Err(error) = run_controller_server(address, sender).await {
+    tokio::spawn(async move {
+        if let Err(error) = run_controller_server(controller).await {
             log::error!("Failed to start gRPC server: {}", error);
         }
-    });
-
-    receiver
+    })
 }
 
-async fn run_controller_server(address: SocketAddr, sender: Sender<NetworkTask>) -> Result<()> {
-    let controller = ControllerImpl { sender };
+async fn run_controller_server(controller: Arc<Controller>) -> Result<()> {
+    let address = controller.configuration.listener.expect("No listener address found in the config");
+    let controller = ControllerImpl { controller };
 
     info!("Controller {} on {}", "listening".blue(), format!("{}", address).blue());
 
@@ -45,8 +40,4 @@ async fn run_controller_server(address: SocketAddr, sender: Sender<NetworkTask>)
         .await?;
 
     Ok(())
-}
-
-pub enum NetworkTask {
-    // Add variants here
 }

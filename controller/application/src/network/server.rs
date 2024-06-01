@@ -1,11 +1,13 @@
-use tokio::sync::mpsc::Sender;
+use std::sync::Arc;
+
 use tonic::async_trait;
-use crate::network::NetworkTask;
+
+use crate::controller::Controller;
 
 use super::proto::controller_service_server::ControllerService;
 
 pub struct ControllerImpl {
-    pub sender: Sender<NetworkTask>
+    pub controller: Arc<Controller>
 }
 
 #[async_trait]

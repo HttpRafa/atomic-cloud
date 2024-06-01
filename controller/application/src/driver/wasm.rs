@@ -2,18 +2,21 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Weak};
 
-use anyhow::{Result};
+use anyhow::Result;
 use colored::Colorize;
 use exports::node::driver::bridge;
+use inquire::{required, Password, Text};
 use log::{debug, error, info, warn};
 use node::driver;
-use node::driver::log::Level;
+use node::driver::log::{Level, Question};
 use tokio::sync::Mutex;
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
+use crate::config::auto_complete::SimpleAutoComplete;
+use crate::config::validators::UnsignedValidator;
 use crate::config::CONFIG_DIRECTORY;
 use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, Information};
 use crate::driver::source::Source;
@@ -59,6 +62,34 @@ impl driver::log::Host for WasmDriverState {
             Level::Warn => warn!("{}", message),
             Level::Error => error!("{}", message),
             Level::Debug => debug!("{}", message),
+        }
+    }
+    async fn request_user_input(&mut self, question: Question, message: String, auto_complete: Vec<String>) -> Option<String> {
+        match question {
+            Question::Text => {
+                let result = Text::new(&message).with_validator(required!()).with_autocomplete(SimpleAutoComplete::from_strings(auto_complete)).prompt_skippable();
+                if result.is_ok() {
+                    return result.unwrap();
+                }
+                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                None
+            },
+            Question::Password => {
+                let result = Password::new(&message).with_validator(required!()).prompt_skippable();
+                if result.is_ok() {
+                    return result.unwrap();
+                }
+                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                None
+            },
+            Question::UnsignedNumber => {
+                let result = Text::new(&message).with_validator(required!()).with_validator(UnsignedValidator::new()).with_autocomplete(SimpleAutoComplete::from_strings(auto_complete)).prompt_skippable();
+                if result.is_ok() {
+                    return result.unwrap();
+                }
+                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                None
+            }
         }
     }
 }

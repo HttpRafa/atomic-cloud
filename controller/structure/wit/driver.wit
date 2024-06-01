@@ -7,7 +7,13 @@ interface log {
         warn,
         error,
     }
+    variant question {
+        text,
+        password,
+        unsigned-number
+    }
     log-string: func(level: level, message: string);
+    request-user-input: func(question: question, message: string, auto-complete: list<string>) -> option<string>;
 }
 
 interface api {

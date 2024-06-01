@@ -87,7 +87,7 @@ impl Nodes {
         Self { nodes }
     }
 
-    pub fn create_node(name: String, driver: String, capabilities: Vec<Capability>) -> Result<()> {
+    pub fn create_node(name: &String, driver: String, capabilities: Vec<Capability>) -> Result<()> {
         StoredNode { driver, capabilities }.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))
     }
 }

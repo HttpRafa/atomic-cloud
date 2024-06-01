@@ -32,9 +32,9 @@ impl Config {
     }
 
     fn new() -> Self {
-        let path = &Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
+        let path = Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
         if !path.exists() { return Self::new_empty() }
-        Self::load_from_file(path)
+        Self::load_from_file(&path)
             .unwrap_or_else(|error| {
                 warn!("Failed to read configuration from file: {}", error);
                 Self::new_empty()
@@ -44,22 +44,26 @@ impl Config {
     pub fn new_filled() -> Self {
         let mut config = Self::new();
 
-        while config.listener.is_none() {
+        if config.listener.is_none() {
             let address = Text::new("Which address should the TcpListener listen to?")
-                .with_autocomplete(SimpleAutoComplete::new(vec!["0.0.0.0"]))
+                .with_autocomplete(SimpleAutoComplete::from_slices(vec!["0.0.0.0", "127.0.0.1"]))
                 .with_validator(AddressValidator::new())
                 .with_validator(required!())
-                .prompt();
+                .prompt().unwrap_or_else(|error| {
+                    error!("Failed to read address from user input: {}", error);
+                    exit(1);
+                });
 
             let port = Text::new("On which port should the TcpListener listen?")
-                .with_autocomplete(SimpleAutoComplete::new(vec!["51067"]))
+                .with_autocomplete(SimpleAutoComplete::from_slices(vec!["51067"]))
                 .with_validator(PortValidator::new())
                 .with_validator(required!())
-                .prompt();
+                .prompt().unwrap_or_else(|error| {
+                    error!("Failed to read port from user input: {}", error);
+                    exit(1);
+                });
 
-            if let (Ok(address), Ok(port)) = (address, port) {
-                config.listener = Some(SocketAddr::new(address.parse().unwrap(), port.parse().unwrap()));
-            }
+            config.listener = Some(SocketAddr::new(address.parse().unwrap(), port.parse().unwrap()));
         }
 
         config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)).unwrap_or_else(|error| {

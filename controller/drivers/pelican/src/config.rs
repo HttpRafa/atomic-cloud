@@ -1,12 +1,15 @@
 use std::{fs, path::Path};
-
 use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
 
+pub const CONFIG_DIRECTORY: &str = "/configs";
+
 pub trait SaveToTomlFile: Serialize {
-    fn save_to_file(&self, path: &Path) -> Result<()> {
+    fn save_to_file(&self, path: &Path, create_parent: bool) -> Result<()> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            if create_parent {
+                fs::create_dir_all(parent)?;
+            }
         }
         fs::write(path, toml::to_string(self)?)?;
         Ok(())

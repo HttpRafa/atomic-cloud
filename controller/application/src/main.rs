@@ -37,10 +37,10 @@ async fn main() {
         ColorChoice::Auto,
     ).expect("Failed to init logging crate");
 
+    print_ascii_art();
+
     #[cfg(feature = "cli")]
     if Cli::run() { return; }
-
-    print_ascii_art();
 
     let start_time = Instant::now();
     info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());

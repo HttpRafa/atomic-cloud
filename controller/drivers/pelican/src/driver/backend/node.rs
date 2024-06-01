@@ -12,6 +12,5 @@ pub struct BNodeObject {
 
 #[derive(Deserialize)]
 pub struct BNode {
-    pub id: u32,
     pub name: String,
 }

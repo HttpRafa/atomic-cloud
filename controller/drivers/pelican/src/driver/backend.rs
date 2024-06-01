@@ -5,7 +5,7 @@ use node::BNodes;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, info, node::driver::{http::{send_http_request, Header, Method, Response}, log::{request_user_input, Question}}, warn
+    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, node::driver::{http::{send_http_request, Header, Method, Response}, log::{request_user_input, Question}}, warn
 };
 
 mod node;
@@ -72,7 +72,7 @@ impl Backend {
         debug!("Sending request to the pelican panel: {:?} {}", method, &url);
         let response = send_http_request(method, &url, &[Header {
             key: "Authorization".to_string(),
-            value: self.token.as_ref().unwrap().to_owned(),
+            value: format!("Bearer {}", self.token.as_ref().unwrap()),
         }]);
         if let Some(response) = Self::handle_response::<T>(response, 200) {
             return Some(response);

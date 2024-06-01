@@ -31,7 +31,7 @@ impl Config {
         }
     }
 
-    fn new() -> Self {
+    fn load_or_empty() -> Self {
         let path = Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
         if !path.exists() { return Self::new_empty() }
         Self::load_from_file(&path)
@@ -42,7 +42,7 @@ impl Config {
     }
 
     pub fn new_filled() -> Self {
-        let mut config = Self::new();
+        let mut config = Self::load_or_empty();
 
         if config.listener.is_none() {
             let address = Text::new("Which address should the TcpListener listen to?")

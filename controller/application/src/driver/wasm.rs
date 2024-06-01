@@ -8,6 +8,7 @@ use exports::node::driver::bridge;
 use inquire::{required, Password, Text};
 use log::{debug, error, info, warn};
 use node::driver;
+use node::driver::http::{Header, Method, Response};
 use node::driver::log::{Level, Question};
 use tokio::sync::Mutex;
 use tonic::async_trait;
@@ -65,13 +66,14 @@ impl driver::log::Host for WasmDriverState {
         }
     }
     async fn request_user_input(&mut self, question: Question, message: String, auto_complete: Vec<String>) -> Option<String> {
+        let driver = self.handle.upgrade().unwrap();
         match question {
             Question::Text => {
                 let result = Text::new(&message).with_validator(required!()).with_autocomplete(SimpleAutoComplete::from_strings(auto_complete)).prompt_skippable();
                 if result.is_ok() {
                     return result.unwrap();
                 }
-                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                warn!("{} to get user input for question asked by driver {}: {}", "Failed".red(), &driver.name.blue(), result.unwrap_err());
                 None
             },
             Question::Password => {
@@ -79,7 +81,7 @@ impl driver::log::Host for WasmDriverState {
                 if result.is_ok() {
                     return result.unwrap();
                 }
-                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                warn!("{} to get user input for question asked by driver {}: {}", "Failed".red(), &driver.name.blue(), result.unwrap_err());
                 None
             },
             Question::UnsignedNumber => {
@@ -87,10 +89,39 @@ impl driver::log::Host for WasmDriverState {
                 if result.is_ok() {
                     return result.unwrap();
                 }
-                warn!("{} to get user input for question asked by driver: {}", "Failed".red(), result.unwrap_err());
+                warn!("{} to get user input for question asked by driver {}: {}", "Failed".red(), &driver.name.blue(), result.unwrap_err());
                 None
             }
         }
+    }
+}
+
+#[async_trait]
+impl driver::http::Host for WasmDriverState {
+    async fn send_http_request(&mut self, method: Method, url: String, headers: Vec<Header>) -> Option<Response> {
+        let driver = self.handle.upgrade().unwrap();
+        let mut request = match method {
+            Method::Get => minreq::get(url),
+            Method::Post => minreq::post(url),
+            Method::Put => minreq::put(url),
+            Method::Delete => minreq::delete(url),
+        };
+        for header in headers {
+            request = request.with_header(&header.key, &header.value);
+        }
+        let response = match request.send() {
+            Ok(response) => response,
+            Err(error) => {
+                warn!("{} to send HTTP request for driver {}: {}", "Failed".red(), &driver.name.blue(), error);
+                return None;
+            }
+        };
+        Some(Response {
+            status_code: response.status_code as u32,
+            reason_phrase: response.reason_phrase.clone(),
+            headers: response.headers.iter().map(|header| Header { key: header.0.clone(), value: header.1.clone() }).collect(),
+            bytes: response.into_bytes(),
+        })
     }
 }
 

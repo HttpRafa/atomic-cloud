@@ -16,6 +16,26 @@ interface log {
     request-user-input: func(question: question, message: string, auto-complete: list<string>) -> option<string>;
 }
 
+interface http {
+    variant method {
+        get,
+        post,
+        put,
+        delete,
+    }
+    record header {
+        key: string,
+        value: string,
+    }
+    record response {
+        status-code: u32,
+        reason-phrase: string,
+        headers: list<header>,
+        bytes: list<u8>,
+    }
+    send-http-request: func(method: method, url: string, headers: list<header>) -> option<response>;
+}
+
 interface api {
     get-name: func() -> string;
 }
@@ -38,6 +58,7 @@ interface bridge {
 
     resource generic-driver {
         constructor();
+        // NOTE: Do not call any log or http functions in the constructor as they may not be available yet
         init: func() -> information;
         init-node: func(name: string, capabilities: list<capability>) -> bool;
     }
@@ -45,6 +66,7 @@ interface bridge {
 
 world driver {
     export bridge;
-    import log;
     import api;
+    import log;
+    import http;
 }

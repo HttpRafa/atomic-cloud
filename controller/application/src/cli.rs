@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use colored::Colorize;
 use inquire::{required, Confirm, Select, Text};
+use log::LevelFilter;
 
 use crate::{
     config::{auto_complete::SimpleAutoComplete, validators::UnsignedValidator},
@@ -13,13 +14,18 @@ use crate::{
 
 #[derive(Parser)]
 pub(super) struct Cli {
-    #[arg(long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
+    #[arg(short, long, default_value_t = false)]
     generate_node: bool,
 }
 
 impl Cli {
-    pub fn run() -> bool {
+    pub fn run(log_level: &mut LevelFilter) -> bool {
         let cli = Cli::parse();
+        if cli.debug {
+            *log_level = LevelFilter::Debug;
+        }
         if cli.generate_node {
             if let Err(err) = Self::generate_node() {
                 println!("{} {} failed to generate node: {}", ">".cyan(), "Failed".red(), &err);

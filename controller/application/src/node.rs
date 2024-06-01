@@ -23,13 +23,13 @@ impl Nodes {
 
         let node_directory = Path::new(NODES_DIRECTORY);
         if !node_directory.exists() {
-            fs::create_dir_all(&node_directory).unwrap_or_else(|error| {
+            fs::create_dir_all(node_directory).unwrap_or_else(|error| {
                 warn!("{} to create nodes directory: {}", "Failed".red(), &error)
             });
         }
 
         let mut nodes = Vec::new();
-        let entries = match fs::read_dir(&node_directory) {
+        let entries = match fs::read_dir(node_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);

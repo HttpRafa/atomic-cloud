@@ -28,19 +28,21 @@ pub const VERSION: Version = Version {
 
 #[tokio::main]
 async fn main() {
+    print_ascii_art();
+
+    let mut log_level = LevelFilter::Info;
+
+    #[cfg(feature = "cli")]
+    if Cli::run(&mut log_level) { return; }
+
     TermLogger::init(
-        LevelFilter::Info,
+        log_level,
         ConfigBuilder::new()
             .set_location_level(LevelFilter::Error)
             .build(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
     ).expect("Failed to init logging crate");
-
-    print_ascii_art();
-
-    #[cfg(feature = "cli")]
-    if Cli::run() { return; }
 
     let start_time = Instant::now();
     info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());

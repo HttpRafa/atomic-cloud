@@ -28,10 +28,11 @@ clap = { version = "4.5.4", features = ["derive"], optional = true }
 # Drivers
 wasmtime = { version = "21.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "async", "parallel-compilation"], optional = true }
 wasmtime-wasi = { version = "21.0.1", optional = true }
+minreq = { version = "2.11.2", features = ["https-rustls"], optional = true }
 
 [build-dependencies]
 tonic-build = "0.11.0"
 
 [features]
 cli = ["dep:clap"]
-wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi"]
+wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]

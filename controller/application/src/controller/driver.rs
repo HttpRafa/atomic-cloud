@@ -4,10 +4,10 @@ use colored::Colorize;
 use log::info;
 use tonic::async_trait;
 
-use crate::node::Node;
+use crate::controller::node::Node;
 
 #[cfg(feature = "wasm-drivers")]
-use crate::driver::wasm::WasmDriver;
+use crate::controller::driver::wasm::WasmDriver;
 
 #[cfg(feature = "wasm-drivers")]
 mod wasm;
@@ -27,7 +27,7 @@ pub struct Information {
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     async fn init(&self) -> Result<Information>;
-    async fn init_node(&self, node: &Node) -> Result<bool>;
+    async fn init_node(&self, node: &Node) -> Result<Option<String>>;
     async fn stop_server(&self, server: &str) -> Result<()>;
     async fn start_server(&self, server: &str) -> Result<()>;
 }

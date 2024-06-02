@@ -4,9 +4,8 @@ use backend::Backend;
 use colored::Colorize;
 
 use crate::{
-    error,
     exports::node::driver::bridge::{Capability, GuestGenericDriver, Information},
-    info, warn,
+    info,
 };
 
 mod backend;
@@ -41,22 +40,16 @@ impl GuestGenericDriver for Pelican {
         }
     }
 
-    fn init_node(&self, name: String, capabilities: Vec<Capability>) -> bool {
+    fn init_node(&self, name: String, capabilities: Vec<Capability>) -> Option<String> {
         info!("Checking node {}", name.blue());
 
         if let Some(Capability::SubNode(ref value)) = capabilities.iter().find(|cap| matches!(cap, Capability::SubNode(_))) {
             if !self.get_backend().node_exists(value) {
-                warn!("{} to check node {} because it does not exist in the Pelican panel", "Failed".red(), name.blue());
-                return false;
+                return Some("Node does not exist in the Pelican panel".to_string());
             }
-            true
+            None
         } else {
-            error!(
-                "{} to check node {} because it lacks the required sub-node capability to use Pelican as the backend",
-                "Failed".red(),
-                name.blue()
-            );
-            false
+            Some("Node lacks the required sub-node capability".to_string())
         }
     }
 }

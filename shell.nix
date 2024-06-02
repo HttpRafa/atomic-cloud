@@ -13,6 +13,7 @@ pkgs.mkShell {
 
     # Protobuf
     protobuf_26
+    grpcui
 
     # Wasm tooling
     wasm-tools

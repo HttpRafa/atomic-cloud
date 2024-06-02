@@ -19,11 +19,10 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 use crate::config::auto_complete::SimpleAutoComplete;
 use crate::config::validators::UnsignedValidator;
 use crate::config::CONFIG_DIRECTORY;
-use crate::driver::{DRIVERS_DIRECTORY, GenericDriver, Information};
-use crate::driver::source::Source;
-use crate::node::{Capability, Node};
+use crate::controller::node::{Node, Capability};
 
-use super::DATA_DIRECTORY;
+use super::source::Source;
+use super::{GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 
 bindgen!({
     world: "driver",
@@ -161,7 +160,7 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    async fn init_node(&self, node: &Node) -> Result<bool> {
+    async fn init_node(&self, node: &Node) -> Result<Option<String>> {
         let mut handle = self.handle.lock().await;
         let (resource, store) = handle.get();
         self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await

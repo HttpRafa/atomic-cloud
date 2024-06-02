@@ -7,12 +7,8 @@ use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
 
-mod driver;
 mod network;
 mod config;
-mod node;
-mod group;
-mod server;
 mod controller;
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
@@ -32,7 +28,7 @@ async fn main() {
     info!("Loading configurations...");
 
     let configuration = Config::new_filled();
-    let mut controller = Controller::new(configuration).await;
+    let controller = Controller::new(configuration).await;
     info!("Loaded cluster system in {:.2?}", start_time.elapsed());
     controller.start().await;
 }

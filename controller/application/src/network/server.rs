@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use proto::server_service_server::ServerService;
-use tokio::sync::mpsc::Sender;
 use tonic::async_trait;
 
-use super::NetworkTask;
+use crate::controller::Controller;
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -12,7 +13,7 @@ pub mod proto {
 }
 
 pub struct ServerServiceImpl {
-    pub sender: Sender<NetworkTask>
+    pub controller: Arc<Controller>
 }
 
 #[async_trait]

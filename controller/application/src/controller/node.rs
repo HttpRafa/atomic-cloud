@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, sync::Mutex};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -6,15 +6,24 @@ use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use stored::StoredNode;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use crate::driver::{GenericDriver, Drivers};
-use crate::node::stored::StoredNode;
+
+use super::driver::{Drivers, GenericDriver};
 
 const NODES_DIRECTORY: &str = "nodes";
 
+type NodeHandle = Arc<Mutex<Node>>;
+
+pub enum NodeCreationResult {
+    Created,
+    AlreadyExists,
+    Denied(String),
+}
+
 pub struct Nodes {
-    nodes: Vec<Arc<Node>>,
+    nodes: Vec<NodeHandle>,
 }
 
 impl Nodes {
@@ -66,17 +75,20 @@ impl Nodes {
                 }
             };
 
-            let node = match Node::from(&name, node, drivers) {
+            let node = match Node::try_from(&name, &node, drivers) {
                 Some(node) => node,
                 None => continue,
             };
 
             match node.init().await {
-                Ok(true) => {
+                Ok(None) => {
                     info!("Loaded node {}", &node.name.blue());
-                    nodes.push(Arc::new(node));
+                    nodes.push(Arc::new(Mutex::new(node)));
                 }
-                Ok(false) => {}
+                Ok(Some(error)) => {
+                    warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &node.name);
+                    warn!(" -> {}", &error);
+                }
                 Err(error) => {
                     error!("{} to load node {}: {}", "Failed".red(), &node.name, &error);
                 }
@@ -87,8 +99,23 @@ impl Nodes {
         Self { nodes }
     }
 
-    pub fn create_node(name: &String, driver: String, capabilities: Vec<Capability>) -> Result<()> {
-        StoredNode { driver, capabilities }.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))
+    pub async fn create_node(&mut self, name: &String, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<NodeCreationResult> {
+        if self.nodes.iter().any(|node| node.lock().unwrap().name == *name) {
+            return Ok(NodeCreationResult::AlreadyExists);
+        }
+        let stored_node = StoredNode { driver: driver.name().to_string(), capabilities };
+        let node = Node::from(name, &stored_node, driver);
+        match node.init().await {
+            Ok(None) => {
+                stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
+                self.nodes.push(Arc::new(Mutex::new(node)));
+                info!("Created node {}", name.blue());
+                Ok(NodeCreationResult::Created)
+            }
+            Ok(Some(error)) => Ok(NodeCreationResult::Denied(error)),
+            Err(error) => Err(error),
+        }
+        
     }
 }
 
@@ -101,12 +128,15 @@ pub struct Node {
 }
 
 impl Node {
-    fn from(name: &str, stored_node: StoredNode, drivers: &Drivers) -> Option<Self> {
-        drivers.find_by_name(&stored_node.driver).map(|driver| Self {
+    fn from(name: &str, stored_node: &StoredNode, driver: Arc<dyn GenericDriver>) -> Self {
+        Self {
             name: name.to_string(),
-            capabilities: stored_node.capabilities,
+            capabilities: stored_node.capabilities.clone(),
             driver,
-        }).or_else(|| {
+        }
+    }
+    fn try_from(name: &str, stored_node: &StoredNode, drivers: &Drivers) -> Option<Self> {
+        drivers.find_by_name(&stored_node.driver).map(|driver| Self::from(name, stored_node, driver)).or_else(|| {
             error!(
                 "{} to load node {} because there is no loaded driver with the name {}",
                 "Failed".red(),
@@ -117,7 +147,7 @@ impl Node {
         })
     }
 
-    pub async fn init(&self) -> Result<bool> {
+    pub async fn init(&self) -> Result<Option<String>> {
         self.driver.init_node(self).await
     }
 }
@@ -129,7 +159,7 @@ pub enum Capability {
     #[serde(rename = "unlimited_memory")]
     UnlimitedMemory(bool),
     #[serde(rename = "max_servers")]
-    MaxServers(u16),
+    MaxServers(u32),
     #[serde(rename = "sub_node")]
     SubNode(String),
 }
@@ -138,7 +168,8 @@ mod stored {
     use serde::{Deserialize, Serialize};
 
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-    use crate::node::Capability;
+
+    use super::Capability;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {

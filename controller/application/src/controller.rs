@@ -1,45 +1,65 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
-use tokio::sync::mpsc::Receiver;
+use driver::Drivers;
+use group::Groups;
+use node::Nodes;
+use server::Servers;
+use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
 
 use crate::config::Config;
-use crate::driver::Drivers;
-use crate::group::Groups;
-use crate::network::{start_controller_server, NetworkTask};
-use crate::node::Nodes;
-use crate::server::Servers;
+use crate::network::start_controller_server;
+
+pub mod node;
+pub mod group;
+pub mod server;
+pub mod driver;
 
 const TICK_RATE: u64 = 1;
 
+type ControllerHandle = Weak<Controller>;
+
 pub struct Controller {
-    configuration: Config,
-    drivers: Drivers,
-    nodes: Nodes,
-    groups: Groups,
-    servers: Servers
+    handle: ControllerHandle,
+
+    /* Inmutable */
+    pub(crate) configuration: Config,
+    pub(crate) drivers: Drivers,
+
+    /* Runtime State */
+    running: AtomicBool,
+
+    /* Mutable | This can be changed by the user at runtime */
+    nodes: Mutex<Nodes>,
+    groups: Mutex<Groups>,
+    servers: Mutex<Servers>
 }
 
 impl Controller {
-    pub async fn new(configuration: Config) -> Self {
+    pub async fn new(configuration: Config) -> Arc<Self> {
         let drivers = Drivers::load_all().await;
         let nodes = Nodes::load_all(&drivers).await;
         let groups = Groups::load_all(&nodes).await;
-        Self {
+        let servers = Servers::new();
+        Arc::new_cyclic(move |handle| Self {
+            handle: handle.clone(),
             configuration,
             drivers,
-            nodes,
-            groups,
-            servers: Servers::new()
-        }
+            running: AtomicBool::new(true),
+            nodes: Mutex::new(nodes),
+            groups: Mutex::new(groups),
+            servers: Mutex::new(servers)
+        })
     }
 
-    pub async fn start(&mut self) {
-        let mut network_tasks = start_controller_server(&self.configuration);
+    pub async fn start(&self) {
+        let network_handle = start_controller_server(self.handle.upgrade().unwrap());
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);
 
-        loop {
+        while self.running.load(Ordering::Relaxed) {
             let start_time = Instant::now();
-            self.tick(&mut network_tasks).await;
+            self.tick().await;
 
             let elapsed_time = start_time.elapsed();
             if elapsed_time < tick_duration {
@@ -47,19 +67,19 @@ impl Controller {
             }
         }
 
-        // TODO: Add if the controller can exist by is own: network_handle.abort();
+        network_handle.abort();
     }
 
-    async fn tick(&mut self, _network_tasks: &mut Receiver<NetworkTask>) {
-        // Process network requests
-        /*while let Ok(task) = network_tasks.try_recv() {
-            match task {
-                // Add task handling logic here
-                _ => warn!("No task handling implemented"),
-            }
-        }*/
+    pub fn request_stop(&self) {
+        self.running.store(false, Ordering::Relaxed);
+    }
 
+    pub async fn request_nodes(&self) -> MutexGuard<Nodes> {
+        self.nodes.lock().await
+    }
+
+    async fn tick(&self) {
         // Tick server manager
-        self.groups.tick();
+        self.groups.lock().await.tick();
     }
 }

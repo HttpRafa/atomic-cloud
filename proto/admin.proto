@@ -4,9 +4,11 @@ package admin;
 import "google/protobuf/empty.proto";
 
 service AdminService {
+    rpc StopService(google.protobuf.Empty) returns (google.protobuf.Empty);
+
     rpc GetNodes(google.protobuf.Empty) returns (NodeList);
-    rpc CreateNode(Node) returns (NodeResponse);
-    rpc DeleteNode(Node) returns (NodeResponse);
+    rpc CreateNode(Node) returns (google.protobuf.Empty);
+    rpc DeleteNode(Node) returns (google.protobuf.Empty);
 }
 
 message NodeList {
@@ -14,10 +16,12 @@ message NodeList {
 }
 
 message Node {
+    string name = 1;
+    string driver = 2;
 
-}
-
-message NodeResponse {
-    bool success = 1;
-    string message = 2;
+    // Capabilities
+    optional uint32 limitedMemory = 3;
+    optional bool unlimitedMemory = 4;
+    optional uint32 maxServers = 5;
+    optional string subNode = 6;
 }

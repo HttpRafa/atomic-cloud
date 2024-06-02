@@ -1,4 +1,4 @@
-use crate::node::Nodes;
+use super::node::Nodes;
 
 pub struct Groups {
 

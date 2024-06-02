@@ -22,9 +22,6 @@ tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros", "ti
 prost = "0.12.6"
 tonic = "0.11.0"
 
-# Cli
-clap = { version = "4.5.4", features = ["derive"], optional = true }
-
 # Drivers
 wasmtime = { version = "21.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "async", "parallel-compilation"], optional = true }
 wasmtime-wasi = { version = "21.0.1", optional = true }
@@ -34,5 +31,4 @@ minreq = { version = "2.11.2", features = ["https-rustls"], optional = true }
 tonic-build = "0.11.0"
 
 [features]
-cli = ["dep:clap"]
 wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]

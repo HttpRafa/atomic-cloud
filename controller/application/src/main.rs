@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 use colored::Colorize;
 use log::{info, LevelFilter};
@@ -7,12 +6,6 @@ use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
 use crate::config::Config;
 use crate::controller::Controller;
 use crate::version::Version;
-
-#[cfg(feature = "cli")]
-use cli::Cli;
-
-#[cfg(feature = "cli")]
-mod cli;
 
 mod driver;
 mod network;
@@ -32,20 +25,7 @@ pub const VERSION: Version = Version {
 #[tokio::main]
 async fn main() {
     print_ascii_art();
-
-    let mut log_level = LevelFilter::Info;
-
-    #[cfg(feature = "cli")]
-    if Cli::run(&mut log_level) { return; }
-
-    TermLogger::init(
-        log_level,
-        ConfigBuilder::new()
-            .set_location_level(LevelFilter::Error)
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    ).expect("Failed to init logging crate");
+    init_logging();
 
     let start_time = Instant::now();
     info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());
@@ -55,6 +35,29 @@ async fn main() {
     let controller = Controller::new(configuration).await;
     info!("Loaded cluster system in {:.2?}", start_time.elapsed());
     controller.start().await;
+}
+
+#[cfg(debug_assertions)]
+fn init_logging() {
+    TermLogger::init(
+        LevelFilter::Debug,
+        ConfigBuilder::new()
+            .set_location_level(LevelFilter::Error)
+            .build(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    ).expect("Failed to init logging crate");
+}
+
+#[cfg(not(debug_assertions))]
+fn init_logging() {
+    TermLogger::init(
+        LevelFilter::Info,
+        ConfigBuilder::new()
+            .build(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    ).expect("Failed to init logging crate");
 }
 
 fn print_ascii_art() {

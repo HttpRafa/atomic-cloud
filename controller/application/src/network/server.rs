@@ -1,16 +1,21 @@
-use std::sync::Arc;
-
+use proto::server_service_server::ServerService;
+use tokio::sync::mpsc::Sender;
 use tonic::async_trait;
 
-use crate::controller::Controller;
+use super::NetworkTask;
 
-use super::proto::controller_service_server::ControllerService;
+#[allow(clippy::all)]
+pub mod proto {
+    use tonic::include_proto;
 
-pub struct ControllerImpl {
-    pub controller: Arc<Controller>
+    include_proto!("server");
+}
+
+pub struct ServerServiceImpl {
+    pub sender: Sender<NetworkTask>
 }
 
 #[async_trait]
-impl ControllerService for ControllerImpl {
+impl ServerService for ServerServiceImpl {
 
 }

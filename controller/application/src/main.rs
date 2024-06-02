@@ -32,7 +32,7 @@ async fn main() {
     info!("Loading configurations...");
 
     let configuration = Config::new_filled();
-    let controller = Controller::new(configuration).await;
+    let mut controller = Controller::new(configuration).await;
     info!("Loaded cluster system in {:.2?}", start_time.elapsed());
     controller.start().await;
 }

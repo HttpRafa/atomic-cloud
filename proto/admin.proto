@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package admin;
+import "google/protobuf/empty.proto";
+
+service AdminService {
+    rpc GetNodes(google.protobuf.Empty) returns (NodeList);
+    rpc CreateNode(Node) returns (NodeResponse);
+    rpc DeleteNode(Node) returns (NodeResponse);
+}
+
+message NodeList {
+
+}
+
+message Node {
+
+}
+
+message NodeResponse {
+    bool success = 1;
+    string message = 2;
+}

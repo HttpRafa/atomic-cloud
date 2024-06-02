@@ -1,12 +1,9 @@
 use std::cell::UnsafeCell;
-
 use backend::Backend;
 use colored::Colorize;
 
-use crate::{
-    exports::node::driver::bridge::{Capability, GuestGenericDriver, Information},
-    info,
-};
+use crate::exports::node::driver::bridge::{Capability, GuestGenericDriver, Information};
+use crate::info;
 
 mod backend;
 

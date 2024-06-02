@@ -26,19 +26,18 @@ pub struct Config {
 
 impl Config {
     fn new_empty() -> Self {
-        Self {
-            listener: None,
-        }
+        Self { listener: None }
     }
 
     fn load_or_empty() -> Self {
         let path = Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
-        if !path.exists() { return Self::new_empty() }
-        Self::load_from_file(&path)
-            .unwrap_or_else(|error| {
-                warn!("Failed to read configuration from file: {}", error);
-                Self::new_empty()
-            })
+        if !path.exists() {
+            return Self::new_empty();
+        }
+        Self::load_from_file(&path).unwrap_or_else(|error| {
+            warn!("Failed to read configuration from file: {}", error);
+            Self::new_empty()
+        })
     }
 
     pub fn new_filled() -> Self {
@@ -49,7 +48,8 @@ impl Config {
                 .with_autocomplete(SimpleAutoComplete::from_slices(vec!["0.0.0.0", "127.0.0.1"]))
                 .with_validator(AddressValidator::new())
                 .with_validator(required!())
-                .prompt().unwrap_or_else(|error| {
+                .prompt()
+                .unwrap_or_else(|error| {
                     error!("Failed to read address from user input: {}", error);
                     exit(1);
                 });
@@ -58,7 +58,8 @@ impl Config {
                 .with_autocomplete(SimpleAutoComplete::from_slices(vec!["51067"]))
                 .with_validator(PortValidator::new())
                 .with_validator(required!())
-                .prompt().unwrap_or_else(|error| {
+                .prompt()
+                .unwrap_or_else(|error| {
                     error!("Failed to read port from user input: {}", error);
                     exit(1);
                 });

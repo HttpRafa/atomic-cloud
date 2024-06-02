@@ -1,7 +1,4 @@
-use std::{fs, sync::Mutex};
-use std::path::Path;
-use std::sync::Arc;
-
+use std::{fs, path::Path, sync::{Arc, Mutex}};
 use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
@@ -9,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use stored::StoredNode;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-
 use super::driver::{Drivers, GenericDriver};
 
 const NODES_DIRECTORY: &str = "nodes";
@@ -99,12 +95,14 @@ impl Nodes {
         Self { nodes }
     }
 
-    pub async fn create_node(&mut self, name: &String, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<NodeCreationResult> {
-        if self.nodes.iter().any(|node| node.lock().unwrap().name == *name) {
+    pub async fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<NodeCreationResult> {
+        if self.nodes.iter().any(|node| node.lock().unwrap().name == name) {
             return Ok(NodeCreationResult::AlreadyExists);
         }
+        
         let stored_node = StoredNode { driver: driver.name().to_string(), capabilities };
         let node = Node::from(name, &stored_node, driver);
+
         match node.init().await {
             Ok(None) => {
                 stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
@@ -115,7 +113,6 @@ impl Nodes {
             Ok(Some(error)) => Ok(NodeCreationResult::Denied(error)),
             Err(error) => Err(error),
         }
-        
     }
 }
 
@@ -135,6 +132,7 @@ impl Node {
             driver,
         }
     }
+
     fn try_from(name: &str, stored_node: &StoredNode, drivers: &Drivers) -> Option<Self> {
         drivers.find_by_name(&stored_node.driver).map(|driver| Self::from(name, stored_node, driver)).or_else(|| {
             error!(
@@ -166,9 +164,7 @@ pub enum Capability {
 
 mod stored {
     use serde::{Deserialize, Serialize};
-
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-
     use super::Capability;
 
     #[derive(Serialize, Deserialize)]

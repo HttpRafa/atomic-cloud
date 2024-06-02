@@ -1,12 +1,12 @@
 use std::sync::Arc;
-use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
 use anyhow::Result;
-use colored::Colorize;
-use log::info;
-use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
+use log::{info, error};
 use tokio::task::JoinHandle;
 use tonic::transport::Server;
+use colored::Colorize;
 
+use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
+use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
 use crate::controller::Controller;
 
 mod server;
@@ -17,7 +17,7 @@ pub fn start_controller_server(controller: Arc<Controller>) -> JoinHandle<()> {
 
     tokio::spawn(async move {
         if let Err(error) = run_controller_server(controller).await {
-            log::error!("Failed to start gRPC server: {}", error);
+            error!("Failed to start gRPC server: {}", error);
         }
     })
 }

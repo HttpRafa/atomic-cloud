@@ -21,8 +21,6 @@ pub struct Information {
     ready: bool,
 }
 
-// Drivers should be save the use from all threads beacuse they exist in a Arc thats stops them from being mutable
-// And if something is mutable inside of the driver it is wrapped in a Mutex like the Wasm Store
 #[async_trait]
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
@@ -51,7 +49,8 @@ impl Drivers {
 
     pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {
         self.drivers.iter()
-            .find(|driver| driver.name().eq_ignore_ascii_case(name)).cloned()
+            .find(|driver| driver.name().eq_ignore_ascii_case(name))
+            .cloned()
     }
 }
 
@@ -59,7 +58,6 @@ impl Drivers {
 mod source {
     use std::fs;
     use std::path::{Path, PathBuf};
-
     use anyhow::Result;
 
     pub struct Source {

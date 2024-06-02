@@ -1,5 +1,4 @@
 use std::sync::Arc;
-
 use proto::{admin_service_server::AdminService, Node, NodeList};
 use tonic::{async_trait, Request, Response, Status};
 
@@ -13,7 +12,7 @@ pub mod proto {
 }
 
 pub struct AdminServiceImpl {
-    pub controller: Arc<Controller>
+    pub controller: Arc<Controller>,
 }
 
 #[async_trait]
@@ -22,10 +21,12 @@ impl AdminService for AdminServiceImpl {
         self.controller.request_stop();
         Ok(Response::new(()))
     }
+
     async fn create_node(&self, request: Request<Node>) -> Result<Response<()>, Status> {
         let node = request.into_inner();
         let name = &node.name;
         let driver = &node.driver;
+
         let mut capabilities = Vec::new();
         if let Some(value) = node.limited_memory {
             capabilities.push(Capability::LimitedMemory(value));
@@ -51,16 +52,16 @@ impl AdminService for AdminServiceImpl {
                 NodeCreationResult::Created => Ok(Response::new(())),
                 NodeCreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
                 NodeCreationResult::Denied(error) => Err(Status::failed_precondition(error)),
-            }
+            },
             Err(error) => Err(Status::internal(error.to_string())),
         }
     }
+
     async fn delete_node(&self, _request: Request<Node>) -> Result<Response<()>, Status> {
         Ok(Response::new(()))
     }
-    async fn get_nodes(&self, _request: Request<()>) -> Result<Response<NodeList>, Status> {
-        Ok(Response::new(NodeList { 
 
-        }))
+    async fn get_nodes(&self, _request: Request<()>) -> Result<Response<NodeList>, Status> {
+        Ok(Response::new(NodeList {}))
     }
 }

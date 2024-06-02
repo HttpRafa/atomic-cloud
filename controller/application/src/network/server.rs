@@ -1,7 +1,6 @@
 use std::sync::Arc;
-
-use proto::server_service_server::ServerService;
 use tonic::async_trait;
+use proto::server_service_server::ServerService;
 
 use crate::controller::Controller;
 
@@ -13,10 +12,9 @@ pub mod proto {
 }
 
 pub struct ServerServiceImpl {
-    pub controller: Arc<Controller>
+    pub controller: Arc<Controller>,
 }
 
 #[async_trait]
 impl ServerService for ServerServiceImpl {
-
 }

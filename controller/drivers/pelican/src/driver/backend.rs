@@ -61,13 +61,13 @@ impl Backend {
     }
 
     pub fn node_exists(&self, name: &str) -> bool {
-        if let Some(response) = self.from_api::<BNodes>(Method::Get, APPLICATION_ENDPOINT, "nodes") {
+        if let Some(response) = self.pull_api::<BNodes>(Method::Get, APPLICATION_ENDPOINT, "nodes") {
             return response.data.iter().any(|node| node.attributes.name == name);
         }
         false
     }
 
-    fn from_api<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str) -> Option<T> {
+    fn pull_api<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str) -> Option<T> {
         let url = format!("{}{}/{}", self.url.as_ref().unwrap(), endpoint, target);
         debug!("Sending request to the pelican panel: {:?} {}", method, &url);
         let response = send_http_request(method, &url, &[Header {
@@ -81,9 +81,7 @@ impl Backend {
     }
 
     fn handle_response<T: DeserializeOwned>(response: Option<Response>, expected_code: u32) -> Option<T> {
-        if response.is_none() {
-            return None;
-        }
+        response.as_ref()?;
         let response = response.unwrap();
         if response.status_code != expected_code {
             error!("Received {} status code {} from the pelican panel: {}", "unexpected".red(), &response.status_code, &response.reason_phrase);

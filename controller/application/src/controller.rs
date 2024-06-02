@@ -1,15 +1,15 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
-use driver::Drivers;
-use group::Groups;
-use node::Nodes;
-use server::Servers;
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
 
 use crate::config::Config;
 use crate::network::start_controller_server;
+use crate::controller::driver::Drivers;
+use crate::controller::group::Groups;
+use crate::controller::node::Nodes;
+use crate::controller::server::Servers;
 
 pub mod node;
 pub mod group;
@@ -23,7 +23,7 @@ type ControllerHandle = Weak<Controller>;
 pub struct Controller {
     handle: ControllerHandle,
 
-    /* Inmutable */
+    /* Immutable */
     pub(crate) configuration: Config,
     pub(crate) drivers: Drivers,
 
@@ -33,7 +33,7 @@ pub struct Controller {
     /* Mutable | This can be changed by the user at runtime */
     nodes: Mutex<Nodes>,
     groups: Mutex<Groups>,
-    servers: Mutex<Servers>
+    servers: Mutex<Servers>,
 }
 
 impl Controller {
@@ -49,7 +49,7 @@ impl Controller {
             running: AtomicBool::new(true),
             nodes: Mutex::new(nodes),
             groups: Mutex::new(groups),
-            servers: Mutex::new(servers)
+            servers: Mutex::new(servers),
         })
     }
 

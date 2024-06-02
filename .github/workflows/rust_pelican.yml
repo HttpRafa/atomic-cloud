@@ -8,7 +8,7 @@ name: Publish pelican driver
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: josStorer/get-current-time@v2

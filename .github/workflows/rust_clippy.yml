@@ -6,7 +6,7 @@ name: Clippy check
 
 jobs:
   clippy_check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

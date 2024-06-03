@@ -1,23 +1,17 @@
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::process::exit;
 
 use anyhow::Result;
-use inquire::{required, Text};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use validators::PortValidator;
-
-use crate::config::auto_complete::SimpleAutoComplete;
-use crate::config::validators::AddressValidator;
-
-pub mod auto_complete;
-pub mod validators;
 
 pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
+
+const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
+const DEFAULT_BIND_PORT: u16 = 13180;
 
 #[derive(Deserialize, Serialize)]
 pub struct Config {
@@ -44,33 +38,28 @@ impl Config {
         let mut config = Self::load_or_empty();
 
         if config.listener.is_none() {
-            let address = Text::new("Which address should the TcpListener listen to?")
-                .with_autocomplete(SimpleAutoComplete::from_slices(vec!["0.0.0.0", "127.0.0.1"]))
-                .with_validator(AddressValidator::new())
-                .with_validator(required!())
-                .prompt()
-                .unwrap_or_else(|error| {
-                    error!("Failed to read address from user input: {}", error);
-                    exit(1);
-                });
-
-            let port = Text::new("On which port should the TcpListener listen?")
-                .with_autocomplete(SimpleAutoComplete::from_slices(vec!["51067"]))
-                .with_validator(PortValidator::new())
-                .with_validator(required!())
-                .prompt()
-                .unwrap_or_else(|error| {
-                    error!("Failed to read port from user input: {}", error);
-                    exit(1);
-                });
-
-            config.listener = Some(SocketAddr::new(address.parse().unwrap(), port.parse().unwrap()));
+            config.listener = Some(SocketAddr::new(DEFAULT_BIND_ADDRESS.parse().unwrap(), DEFAULT_BIND_PORT));
+            if let Err(error) = config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)) {
+                error!("Failed to save generated configuration to file: {}", &error);
+            }
         }
 
-        config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)).unwrap_or_else(|error| {
-            error!("Failed to save generated configuration to file: {}", error);
-            exit(1);
-        });
+        // Check config values are overridden by environment variables
+        if let Ok(address) = std::env::var("BIND_ADDRESS") {
+            if let Ok(address) = address.parse() {
+                config.listener.unwrap().set_ip(address);
+            } else {
+                error!("Failed to parse BIND_ADDRESS environment variable");
+            }
+        }
+        if let Ok(port) = std::env::var("BIND_PORT") {
+            if let Ok(port) = port.parse() {
+                config.listener.unwrap().set_port(port);
+            } else {
+                error!("Failed to parse BIND_PORT environment variable");
+            }
+        }
+
         config
     }
 }

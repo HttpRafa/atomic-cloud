@@ -5,13 +5,14 @@ use node::BNodes;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, node::driver::{http::{send_http_request, Header, Method, Response}, log::{request_user_input, Question}}, warn
+    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, node::driver::http::{send_http_request, Header, Method, Response}, warn
 };
 
 mod node;
 
 const BACKEND_FILE: &str = "backend.toml";
 
+/* Endpoints */
 const APPLICATION_ENDPOINT: &str = "/api/application";
 
 #[derive(Deserialize, Serialize)]
@@ -42,19 +43,30 @@ impl Backend {
 
     pub fn new_filled() -> Option<Self> {
         let mut backend = Self::load_or_empty();
+        let mut save = false;
 
         if backend.url.is_none() {
-            backend.url = request_user_input(Question::Text, "What is the url of the pelican panel?", &["http://panel.gameserver.local.example.com".to_string()]);
-            backend.url.as_ref()?;
+            backend.url = Some("http://panel.gameserver.local.example.com".to_string());
+            save = true;
         }
 
         if backend.token.is_none() {
-            backend.token = request_user_input(Question::Password, "What is the token of the pelican panel?", &[]);
-            backend.token.as_ref()?;
+            backend.token = Some("yourToken".to_string());
+            save = true;
         }
 
-        if let Err(err) = backend.save_to_file(&Path::new(CONFIG_DIRECTORY).join(BACKEND_FILE), false) {
-            error!("Failed to save backend configuration to file: {}", err);
+        if save {
+            if let Err(error) = backend.save_to_file(&Path::new(CONFIG_DIRECTORY).join(BACKEND_FILE), false) {
+                error!("Failed to save backend configuration to file: {}", &error);
+            }
+        }
+
+        // Check config values are overridden by environment variables
+        if let Ok(url) = std::env::var("PELICAN_URL") {
+            backend.url = Some(url);
+        }
+        if let Ok(token) = std::env::var("PELICAN_TOKEN") {
+            backend.token = Some(token);
         }
 
         Some(backend)

@@ -8,15 +8,6 @@ interface log {
         error,
     }
     log-string: func(level: level, message: string);
-
-    // This should only be used for questions in the init function
-    // If this is used outside of the init function, it can cause unexpected behavior in the console
-    variant question {
-        text,
-        password,
-        unsigned-number
-    }
-    request-user-input: func(question: question, message: string, auto-complete: list<string>) -> option<string>;
 }
 
 interface http {

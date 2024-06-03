@@ -1,44 +1,39 @@
-use std::{fs, path::Path, sync::{Arc, Mutex}};
+use std::{fs, path::Path, sync::Arc};
 use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use stored::StoredNode;
+use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use super::driver::{Drivers, GenericDriver};
+use super::{driver::{Drivers, GenericDriver}, CreationResult};
 
 const NODES_DIRECTORY: &str = "nodes";
 
-type NodeHandle = Arc<Mutex<Node>>;
-
-pub enum NodeCreationResult {
-    Created,
-    AlreadyExists,
-    Denied(String),
-}
+pub type NodeHandle = Arc<Mutex<Node>>;
 
 pub struct Nodes {
-    nodes: Vec<NodeHandle>,
+    pub nodes: Vec<NodeHandle>,
 }
 
 impl Nodes {
     pub async fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
-        let node_directory = Path::new(NODES_DIRECTORY);
-        if !node_directory.exists() {
-            fs::create_dir_all(node_directory).unwrap_or_else(|error| {
+        let nodes_directory = Path::new(NODES_DIRECTORY);
+        if !nodes_directory.exists() {
+            fs::create_dir_all(nodes_directory).unwrap_or_else(|error| {
                 warn!("{} to create nodes directory: {}", "Failed".red(), &error)
             });
         }
 
-        let mut nodes = Vec::new();
-        let entries = match fs::read_dir(node_directory) {
+        let mut nodes = Self { nodes: Vec::new() };
+        let entries = match fs::read_dir(nodes_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);
-                return Self { nodes };
+                return nodes;
             }
         };
 
@@ -76,52 +71,70 @@ impl Nodes {
                 None => continue,
             };
 
-            match node.init().await {
+            match nodes.add_node(node).await {
                 Ok(None) => {
-                    info!("Loaded node {}", &node.name.blue());
-                    nodes.push(Arc::new(Mutex::new(node)));
+                    info!("Loaded node {}", &name.blue());
                 }
                 Ok(Some(error)) => {
-                    warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &node.name);
+                    warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &name.blue());
                     warn!(" -> {}", &error);
                 }
                 Err(error) => {
-                    error!("{} to load node {}: {}", "Failed".red(), &node.name, &error);
+                    error!("{} to load node {}: {}", "Failed".red(), &name.blue(), &error);
                 }
             }
         }
 
-        info!("Loaded {}", format!("{} node(s)", nodes.len()).blue());
-        Self { nodes }
+        info!("Loaded {}", format!("{} node(s)", nodes.nodes.len()).blue());
+        nodes
     }
 
-    pub async fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<NodeCreationResult> {
-        if self.nodes.iter().any(|node| node.lock().unwrap().name == name) {
-            return Ok(NodeCreationResult::AlreadyExists);
+    pub async fn find_by_name(&self, name: &str) -> Option<NodeHandle> {
+        for node in &self.nodes {
+            if node.lock().await.name.eq_ignore_ascii_case(name) {
+                return Some(node.clone());
+            }
         }
-        
+        None
+    }
+
+    pub async fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<CreationResult> {
+        for node in &self.nodes {
+            if node.lock().await.name == name {
+                return Ok(CreationResult::AlreadyExists);
+            }
+        }
+
         let stored_node = StoredNode { driver: driver.name().to_string(), capabilities };
         let node = Node::from(name, &stored_node, driver);
 
-        match node.init().await {
+        match self.add_node(node).await {
             Ok(None) => {
                 stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
-                self.nodes.push(Arc::new(Mutex::new(node)));
                 info!("Created node {}", name.blue());
-                Ok(NodeCreationResult::Created)
+                Ok(CreationResult::Created)
             }
-            Ok(Some(error)) => Ok(NodeCreationResult::Denied(error)),
+            Ok(Some(error)) => Ok(CreationResult::Denied(error)),
+            Err(error) => Err(error),
+        }
+    }
+
+    async fn add_node(&mut self, node: Node) -> Result<Option<String>> {
+        match node.init().await {
+            Ok(None) => {
+                self.nodes.push(Arc::new(Mutex::new(node)));
+                Ok(None)
+            }
+            Ok(Some(error)) => Ok(Some(error)),
             Err(error) => Err(error),
         }
     }
 }
 
-#[derive(Serialize)]
 pub struct Node {
     pub name: String,
     pub capabilities: Vec<Capability>,
-    #[serde(skip_serializing)]
-    driver: Arc<dyn GenericDriver>,
+    pub driver: Arc<dyn GenericDriver>,
 }
 
 impl Node {

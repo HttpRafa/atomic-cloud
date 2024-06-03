@@ -13,24 +13,20 @@ const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 13180;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Config {
     pub listener: Option<SocketAddr>,
 }
 
 impl Config {
-    fn new_empty() -> Self {
-        Self { listener: None }
-    }
-
     fn load_or_empty() -> Self {
         let path = Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
         if !path.exists() {
-            return Self::new_empty();
+            return Self::default();
         }
         Self::load_from_file(&path).unwrap_or_else(|error| {
             warn!("Failed to read configuration from file: {}", error);
-            Self::new_empty()
+            Self::default()
         })
     }
 

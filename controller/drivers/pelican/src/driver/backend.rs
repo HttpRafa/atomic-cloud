@@ -15,29 +15,22 @@ const BACKEND_FILE: &str = "backend.toml";
 /* Endpoints */
 const APPLICATION_ENDPOINT: &str = "/api/application";
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Backend {
     url: Option<String>,
     token: Option<String>,
 }
 
 impl Backend {
-    fn new_empty() -> Self {
-        Self {
-            url: None,
-            token: None,
-        }
-    }
-
     fn load_or_empty() -> Self {
         let path = Path::new(CONFIG_DIRECTORY).join(BACKEND_FILE);
         if path.exists() {
             Self::load_from_file(&path).unwrap_or_else(|err| {
                 warn!("Failed to read backend configuration from file: {}", err);
-                Self::new_empty()
+                Self::default()
             })
         } else {
-            Self::new_empty()
+            Self::default()
         }
     }
 

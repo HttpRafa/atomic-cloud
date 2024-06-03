@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
+use log::warn;
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
 
@@ -67,10 +68,12 @@ impl Controller {
             }
         }
 
+        // Stop network stack
         network_handle.abort();
     }
 
     pub fn request_stop(&self) {
+        warn!("Controller stop requested. Stopping...");
         self.running.store(false, Ordering::Relaxed);
     }
 
@@ -78,8 +81,18 @@ impl Controller {
         self.nodes.lock().await
     }
 
+    pub async fn request_groups(&self) -> MutexGuard<Groups> {
+        self.groups.lock().await
+    }
+
     async fn tick(&self) {
         // Tick server manager
-        self.groups.lock().await.tick();
+        self.request_groups().await.tick();
     }
+}
+
+pub enum CreationResult {
+    Created,
+    AlreadyExists,
+    Denied(String),
 }

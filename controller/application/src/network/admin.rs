@@ -2,7 +2,7 @@ use std::sync::Arc;
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::Capability, server::ServerResources, Controller, CreationResult};
+use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, ServerResources}, Controller, CreationResult};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -17,7 +17,7 @@ pub struct AdminServiceImpl {
 
 #[async_trait]
 impl AdminService for AdminServiceImpl {
-    async fn stop_service(&self, _request: Request<()>) -> Result<Response<()>, Status> {
+    async fn request_stop(&self, _request: Request<()>) -> Result<Response<()>, Status> {
         self.controller.request_stop();
         Ok(Response::new(()))
     }
@@ -96,8 +96,8 @@ impl AdminService for AdminServiceImpl {
 
     async fn get_nodes(&self, _request: Request<()>) -> Result<Response<NodeList>, Status> {
         let handle = self.controller.request_nodes().await;
-        let mut nodes = Vec::with_capacity(handle.nodes.len());
-        for node in &handle.nodes {
+        let mut nodes = Vec::with_capacity(handle.get_amount());
+        for node in handle.get_nodes() {
             nodes.push(node.lock().await.name.clone());
         }
 
@@ -107,6 +107,8 @@ impl AdminService for AdminServiceImpl {
     async fn create_group(&self, request: Request<Group>) -> Result<Response<()>, Status> {
         let group = request.into_inner();
         let name = &group.name;
+
+        /* Scaling */
         let scaling = match &group.scaling {
             Some(scaling) => ScalingPolicy {
                 min: scaling.min,
@@ -115,6 +117,8 @@ impl AdminService for AdminServiceImpl {
             },
             None => ScalingPolicy::default(),
         };
+
+        /* Resources */
         let resources = match &group.resources {
             Some(resources) => ServerResources {
                 cpu: resources.cpu,
@@ -123,6 +127,16 @@ impl AdminService for AdminServiceImpl {
             },
             None => ServerResources::default(),
         };
+
+        /* Deployment */
+        let mut deployment = Vec::new();
+        if let Some(value) = group.deployment {
+            if let Some(image) = value.image {
+                deployment.push(DeploySetting::Image(image));
+            }
+        }
+
+        /* Nodes */
         let mut node_handles = Vec::with_capacity(group.nodes.len());
         for node in &group.nodes {
             let node = match self.controller.request_nodes().await.find_by_name(node).await {
@@ -133,7 +147,7 @@ impl AdminService for AdminServiceImpl {
         }
 
         let mut groups = self.controller.request_groups().await;
-        match groups.create_group(name, node_handles, scaling, resources).await {
+        match groups.create_group(name, node_handles, scaling, resources, deployment).await {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Group already exists")),

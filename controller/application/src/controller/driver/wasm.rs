@@ -108,7 +108,7 @@ impl WasmDriverHandle {
 }
 
 pub struct WasmDriver {
-    pub name: String,
+    name: String,
     bindings: Driver,
     handle: Mutex<WasmDriverHandle>,
 }

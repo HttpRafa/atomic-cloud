@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::{node::{NodeHandle, Nodes}, server::ServerResources, CreationResult};
+use super::{node::{NodeHandle, Nodes}, server::{DeploySetting, ServerResources}, CreationResult};
 
 const GROUPS_DIRECTORY: &str = "groups";
 
@@ -68,7 +68,7 @@ impl Groups {
                 }
             };
 
-            let group = match Group::try_from(&name, &group, &nodes).await {
+            let group = match Group::try_from(&name, &group, nodes).await {
                 Some(group) => group,
                 None => continue,
             };
@@ -86,7 +86,7 @@ impl Groups {
         // Check if all server have send there heartbeats etc..
     }
 
-    pub async fn create_group(&mut self, name: &str, node_handles: Vec<NodeHandle>, scaling: ScalingPolicy, resources: ServerResources) -> Result<CreationResult> {
+    pub async fn create_group(&mut self, name: &str, node_handles: Vec<NodeHandle>, scaling: ScalingPolicy, resources: ServerResources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
         if node_handles.is_empty() {
             return Ok(CreationResult::Denied("No nodes provided".to_string()));
         }
@@ -102,7 +102,7 @@ impl Groups {
             nodes.push(node.lock().await.name.clone());
         }
 
-        let stored_node = StoredGroup { nodes, scaling, resources };
+        let stored_node = StoredGroup { nodes, scaling, resources, deployment };
         let node = Group::from(name, &stored_node, node_handles);
 
         self.add_group(node).await;
@@ -128,6 +128,7 @@ pub struct Group {
     nodes: Vec<NodeHandle>,
     scaling: ScalingPolicy,
     resources: ServerResources,
+    deployment: Vec<DeploySetting>,
 }
 
 impl Group {
@@ -137,6 +138,7 @@ impl Group {
             nodes,
             scaling: stored_group.scaling,
             resources: stored_group.resources,
+            deployment: stored_group.deployment.clone(),
         }
     }
 
@@ -153,7 +155,7 @@ impl Group {
 mod shared {
     use serde::{Deserialize, Serialize};
 
-    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::ServerResources};
+    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{DeploySetting, ServerResources}};
 
     use super::ScalingPolicy;
 
@@ -162,6 +164,7 @@ mod shared {
         pub nodes: Vec<String>,
         pub scaling: ScalingPolicy,
         pub resources: ServerResources,
+        pub deployment: Vec<DeploySetting>
     }
 
     impl LoadFromTomlFile for StoredGroup {}

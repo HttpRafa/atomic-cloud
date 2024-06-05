@@ -5,7 +5,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
 service AdminService {
-    rpc StopService(google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
     rpc CreateNode(Node) returns (google.protobuf.Empty);
     rpc DeleteNode(google.protobuf.StringValue) returns (google.protobuf.Empty);
@@ -39,9 +39,10 @@ message GroupList {
 
 message Group {
     string name = 1;
-    Scaling scaling = 2;
-    Resources resources = 3;
-    repeated string nodes = 4;
+    repeated string nodes = 2;
+    Scaling scaling = 3;
+    Resources resources = 4;
+    DeploySetting deployment = 5;
 
     message Scaling {
         uint32 min = 1;
@@ -52,5 +53,8 @@ message Group {
         uint32 memory = 1;
         uint32 cpu = 2;
         uint32 disk = 3;
+    }
+    message DeploySetting {
+        optional string image = 1;
     }
 }

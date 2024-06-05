@@ -14,7 +14,7 @@ const NODES_DIRECTORY: &str = "nodes";
 pub type NodeHandle = Arc<Mutex<Node>>;
 
 pub struct Nodes {
-    pub nodes: Vec<NodeHandle>,
+    nodes: Vec<NodeHandle>,
 }
 
 impl Nodes {
@@ -87,6 +87,14 @@ impl Nodes {
 
         info!("Loaded {}", format!("{} node(s)", nodes.nodes.len()).blue());
         nodes
+    }
+
+    pub fn get_amount(&self) -> usize {
+        self.nodes.len()
+    }
+
+    pub fn get_nodes(&self) -> &Vec<NodeHandle> {
+        &self.nodes
     }
 
     pub async fn find_by_name(&self, name: &str) -> Option<NodeHandle> {

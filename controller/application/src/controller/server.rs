@@ -16,3 +16,8 @@ pub struct ServerResources {
     pub cpu: u32,
     pub disk: u32,
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum DeploySetting {
+    Image(String),
+}

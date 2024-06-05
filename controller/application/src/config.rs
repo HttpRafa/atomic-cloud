@@ -15,6 +15,7 @@ const DEFAULT_BIND_PORT: u16 = 13180;
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct Config {
+    /* Network */
     pub listener: Option<SocketAddr>,
 }
 

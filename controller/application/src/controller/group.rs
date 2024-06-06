@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, path::Path, sync::{Arc, Weak}};
 
 use anyhow::Result;
 use colored::Colorize;
@@ -9,11 +9,12 @@ use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::{node::{NodeHandle, Nodes}, server::{DeploySetting, ServerResources}, CreationResult};
+use super::{node::{Nodes, WeakNodeHandle}, server::{DeploySetting, Resources, Servers, StartRequest, WeakServerHandle}, CreationResult};
 
 const GROUPS_DIRECTORY: &str = "groups";
 
-pub type GroupHandle = Arc<Mutex<Group>>;
+type GroupHandle = Arc<Mutex<Group>>;
+pub type WeakGroupHandle = Weak<Mutex<Group>>;
 
 pub struct Groups {
     groups: Vec<GroupHandle>,
@@ -81,12 +82,14 @@ impl Groups {
         groups
     }
 
-    pub fn tick(&self) {
-        // Tick server manager
-        // Check if all server have send there heartbeats etc..
+    pub async fn tick(&self, servers: &mut Servers) {
+        for group in &self.groups {
+            let mut group = group.lock().await;
+            group.tick(servers).await;
+        }
     }
 
-    pub async fn create_group(&mut self, name: &str, node_handles: Vec<NodeHandle>, scaling: ScalingPolicy, resources: ServerResources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
+    pub async fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
         if node_handles.is_empty() {
             return Ok(CreationResult::Denied("No nodes provided".to_string()));
         }
@@ -99,7 +102,9 @@ impl Groups {
         
         let mut nodes = Vec::with_capacity(node_handles.len());
         for node in &node_handles {
-            nodes.push(node.lock().await.name.clone());
+            if let Some(node) = node.upgrade() {
+                nodes.push(node.lock().await.name.clone());
+            }
         }
 
         let stored_node = StoredGroup { nodes, scaling, resources, deployment };
@@ -111,8 +116,8 @@ impl Groups {
         Ok(CreationResult::Created)
     }
 
-    async fn add_group(&mut self, group: Group) {
-        self.groups.push(Arc::new(Mutex::new(group)));
+    async fn add_group(&mut self, group: GroupHandle) {
+        self.groups.push(group);
     }
 }
 
@@ -124,25 +129,34 @@ pub struct ScalingPolicy {
 }
 
 pub struct Group {
+    handle: WeakGroupHandle,
+
     name: String,
-    nodes: Vec<NodeHandle>,
+    nodes: Vec<WeakNodeHandle>,
     scaling: ScalingPolicy,
-    resources: ServerResources,
+    resources: Resources,
     deployment: Vec<DeploySetting>,
+
+    /* Servers that the group has started */
+    servers: Vec<WeakServerHandle>,
 }
 
 impl Group {
-    fn from(name: &str, stored_group: &StoredGroup, nodes: Vec<NodeHandle>) -> Self {
-        Self {
-            name: name.to_string(),
-            nodes,
-            scaling: stored_group.scaling,
-            resources: stored_group.resources,
-            deployment: stored_group.deployment.clone(),
-        }
+    fn from(name: &str, stored_group: &StoredGroup, nodes: Vec<WeakNodeHandle>) -> GroupHandle {
+        Arc::new_cyclic(|handle| {
+            Mutex::new(Self {
+                handle: handle.clone(),
+                name: name.to_string(),
+                nodes,
+                scaling: stored_group.scaling,
+                resources: stored_group.resources,
+                deployment: stored_group.deployment.clone(),
+                servers: Vec::new(),
+            })
+        })
     }
 
-    async fn try_from(name: &str, stored_group: &StoredGroup, nodes: &Nodes) -> Option<Self> {
+    async fn try_from(name: &str, stored_group: &StoredGroup, nodes: &Nodes) -> Option<GroupHandle> {
         let mut node_handles = Vec::with_capacity(stored_group.nodes.len());
         for node_name in &stored_group.nodes {
             let node = nodes.find_by_name(node_name).await?;
@@ -150,12 +164,32 @@ impl Group {
         }
         Some(Self::from(name, stored_group, node_handles))
     }
+
+    async fn tick(&mut self, servers: &mut Servers) {
+        // Create how many servers we need to start to reach the min value
+        for requested in 0..(self.scaling.min as usize).saturating_sub(self.servers.len()) {
+            // Check if we have reached the max value
+            if (self.servers.len() + requested) >= self.scaling.max as usize {
+                break;
+            }
+
+            // We need to start a server
+            servers.queue_server(StartRequest {
+                name: format!("{}{}", self.name, (self.servers.len() + requested)),
+                nodes: self.nodes.clone(),
+                group: self.handle.clone(),
+                resources: self.resources,
+                deployment: self.deployment.clone(),
+                priority: self.scaling.priority,
+            });
+        }
+    }
 }
 
 mod shared {
     use serde::{Deserialize, Serialize};
 
-    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{DeploySetting, ServerResources}};
+    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{DeploySetting, Resources}};
 
     use super::ScalingPolicy;
 
@@ -163,8 +197,8 @@ mod shared {
     pub struct StoredGroup {
         pub nodes: Vec<String>,
         pub scaling: ScalingPolicy,
-        pub resources: ServerResources,
-        pub deployment: Vec<DeploySetting>
+        pub resources: Resources,
+        pub deployment: Vec<DeploySetting>,
     }
 
     impl LoadFromTomlFile for StoredGroup {}

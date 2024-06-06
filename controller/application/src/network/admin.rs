@@ -2,7 +2,7 @@ use std::sync::Arc;
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, ServerResources}, Controller, CreationResult};
+use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, Resources}, Controller, CreationResult};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -65,7 +65,7 @@ impl AdminService for AdminServiceImpl {
     async fn get_node(&self, request: Request<String>) -> Result<Response<Node>, Status> {
         let handle = self.controller.request_nodes().await;
         let node = match handle.find_by_name(&request.into_inner()).await {
-            Some(node) => node,
+            Some(node) => node.upgrade().ok_or(Status::not_found("Node not found"))?,
             None => return Err(Status::not_found("Node not found")),
         };
         let node = node.lock().await;
@@ -120,12 +120,12 @@ impl AdminService for AdminServiceImpl {
 
         /* Resources */
         let resources = match &group.resources {
-            Some(resources) => ServerResources {
+            Some(resources) => Resources {
                 cpu: resources.cpu,
                 memory: resources.memory,
                 disk: resources.disk,
             },
-            None => ServerResources::default(),
+            None => Resources::default(),
         };
 
         /* Deployment */

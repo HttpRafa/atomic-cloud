@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
-use log::warn;
+use log::{debug, warn};
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
 
@@ -85,9 +85,21 @@ impl Controller {
         self.groups.lock().await
     }
 
+    pub async fn request_servers(&self) -> MutexGuard<Servers> {
+        self.servers.lock().await
+    }
+
     async fn tick(&self) {
-        // Tick server manager
-        self.request_groups().await.tick();
+        // NOTE: We have to be careful to not lock something used in some tick method to avoid deadlocks
+
+        let mut servers = self.request_servers().await;
+        // Check if all groups have started there servers etc..
+        self.request_groups().await.tick(&mut servers).await;
+
+        // Check if all servers have sent their heartbeats and start requested server if we can
+        servers.tick().await;
+
+        debug!("Controller ticked");
     }
 }
 

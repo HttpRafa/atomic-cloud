@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, path::Path, sync::{Arc, Weak}};
 use anyhow::Result;
 use colored::Colorize;
 use log::{error, info, warn};
@@ -11,7 +11,8 @@ use super::{driver::{Drivers, GenericDriver}, CreationResult};
 
 const NODES_DIRECTORY: &str = "nodes";
 
-pub type NodeHandle = Arc<Mutex<Node>>;
+type NodeHandle = Arc<Mutex<Node>>;
+pub type WeakNodeHandle = Weak<Mutex<Node>>;
 
 pub struct Nodes {
     nodes: Vec<NodeHandle>,
@@ -97,10 +98,10 @@ impl Nodes {
         &self.nodes
     }
 
-    pub async fn find_by_name(&self, name: &str) -> Option<NodeHandle> {
+    pub async fn find_by_name(&self, name: &str) -> Option<WeakNodeHandle> {
         for node in &self.nodes {
             if node.lock().await.name.eq_ignore_ascii_case(name) {
-                return Some(node.clone());
+                return Some(Arc::downgrade(node));
             }
         }
         None

@@ -34,8 +34,8 @@ impl AdminService for AdminServiceImpl {
         if let Some(value) = node.unlimited_memory {
             capabilities.push(Capability::UnlimitedMemory(value));
         }
-        if let Some(value) = node.max_servers {
-            capabilities.push(Capability::MaxServers(value));
+        if let Some(value) = node.max_allocations {
+            capabilities.push(Capability::MaxAllocations(value));
         }
         if let Some(value) = node.sub_node {
             capabilities.push(Capability::SubNode(value));
@@ -72,14 +72,14 @@ impl AdminService for AdminServiceImpl {
 
         let mut limited_memory = None;
         let mut unlimited_memory = None;
-        let mut max_servers = None;
+        let mut max_allocations = None;
         let mut sub_node = None;
 
         for capability in &node.capabilities {
             match capability {
                 Capability::LimitedMemory(value) => limited_memory = Some(*value),
                 Capability::UnlimitedMemory(value) => unlimited_memory = Some(*value),
-                Capability::MaxServers(value) => max_servers = Some(*value),
+                Capability::MaxAllocations(value) => max_allocations = Some(*value),
                 Capability::SubNode(value) => sub_node = Some(value.clone()),
             }
         }
@@ -89,7 +89,7 @@ impl AdminService for AdminServiceImpl {
             driver: node.driver.name().to_owned(),
             limited_memory,
             unlimited_memory,
-            max_servers,
+            max_allocations,
             sub_node,
         }))
     }
@@ -124,6 +124,7 @@ impl AdminService for AdminServiceImpl {
                 cpu: resources.cpu,
                 memory: resources.memory,
                 disk: resources.disk,
+                ports: resources.ports,
             },
             None => Resources::default(),
         };

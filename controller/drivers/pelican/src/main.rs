@@ -1,6 +1,6 @@
 #![no_main]
 
-use driver::Pelican;
+use driver::{Pelican, PelicanNodeWrapper};
 use exports::node::driver::bridge::Guest;
 use wit_bindgen::generate;
 
@@ -17,6 +17,7 @@ struct Export;
 
 impl Guest for Export {
     type GenericDriver = Pelican;
+    type GenericNode = PelicanNodeWrapper;
 }
 
 export!(Export);

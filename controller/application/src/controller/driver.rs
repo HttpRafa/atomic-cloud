@@ -25,13 +25,21 @@ pub struct Information {
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     async fn init(&self) -> Result<Information>;
-    async fn init_node(&self, node: &Node) -> Result<Option<String>>;
+    async fn init_node(&self, node: &Node) -> Result<Result<DriverNodeHandle, String>>;
     async fn stop_server(&self, server: &str) -> Result<()>;
     async fn start_server(&self, server: &str) -> Result<()>;
 }
 
+#[async_trait]
+pub trait GenericNode: Send + Sync {
+    async fn allocate_ports(&self, amount: u32) -> Result<Result<Vec<u32>, String>>;
+}
+
+pub type DriverHandle = Arc<dyn GenericDriver>;
+pub type DriverNodeHandle = Arc<dyn GenericNode>;
+
 pub struct Drivers {
-    drivers: Vec<Arc<dyn GenericDriver>>,
+    drivers: Vec<DriverHandle>,
 }
 
 impl Drivers {

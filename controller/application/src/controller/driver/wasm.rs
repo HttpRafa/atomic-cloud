@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Weak};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use exports::node::driver::bridge;
 use log::{debug, error, info, warn};
@@ -19,7 +19,7 @@ use crate::config::CONFIG_DIRECTORY;
 use crate::controller::node::{Node, Capability};
 
 use super::source::Source;
-use super::{GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
+use super::{DriverNodeHandle, GenericDriver, GenericNode, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 
 bindgen!({
     world: "driver",
@@ -108,6 +108,8 @@ impl WasmDriverHandle {
 }
 
 pub struct WasmDriver {
+    own: Weak<WasmDriver>,
+
     name: String,
     bindings: Driver,
     handle: Mutex<WasmDriverHandle>,
@@ -128,10 +130,16 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    async fn init_node(&self, node: &Node) -> Result<Option<String>> {
+    async fn init_node(&self, node: &Node) -> Result<Result<DriverNodeHandle, String>> {
         let mut handle = self.handle.lock().await;
         let (resource, store) = handle.get();
-        self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await
+        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await? {
+            Ok(node) => Ok(Ok(Arc::new(WasmNode {
+                handle: self.own.clone(),
+                resource: node,
+            }))),
+            Err(error) => Ok(Err(error)),
+        }
     }
 
     async fn stop_server(&self, _server: &str) -> Result<()> {
@@ -181,6 +189,7 @@ impl WasmDriver {
         Ok(Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {
+                own: handle.clone(),
                 name: name.to_string(),
                 bindings,
                 handle: Mutex::new(WasmDriverHandle::new(store, driver_resource)),
@@ -277,6 +286,24 @@ impl WasmDriver {
     }
 }
 
+struct WasmNode {
+    handle: Weak<WasmDriver>,
+    resource: ResourceAny, // This is delete if the handle is dropped
+}
+
+#[async_trait]
+impl GenericNode for WasmNode {
+    async fn allocate_ports(&self, amount: u32) -> Result<Result<Vec<u32>, String>> {
+        if let Some(driver) = self.handle.upgrade() {
+            let mut handle = driver.handle.lock().await;
+            let (_, store) = handle.get();
+            return Ok(driver.bindings.node_driver_bridge().generic_node().call_allocate_ports(store, self.resource, amount).await?);
+        }
+        warn!("I should not be here");
+        Err(anyhow!("I should not be here"))
+    }
+}
+
 impl From<bridge::Information> for Information {
     fn from(val: bridge::Information) -> Self {
         Information {
@@ -292,7 +319,7 @@ impl From<&Capability> for bridge::Capability {
         match val {
             Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(*memory),
             Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(*enabled),
-            Capability::MaxServers(servers) => bridge::Capability::MaxServers(*servers),
+            Capability::MaxAllocations(servers) => bridge::Capability::MaxAllocations(*servers),
             Capability::SubNode(node) => bridge::Capability::SubNode(node.to_owned()),
         }
     }

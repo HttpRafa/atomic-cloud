@@ -46,15 +46,20 @@ interface bridge {
     variant capability {
         limited-memory(u32),
         unlimited-memory(bool),
-        max-servers(u32),
+        max-allocations(u32),
         sub-node(string)
+    }
+
+    resource generic-node {
+        constructor(name: string, capabilities: list<capability>);
+        allocate-ports: func(amount: u32) -> result<list<u32>, string>;
     }
 
     resource generic-driver {
         constructor();
         // NOTE: Do not call any log or http functions in the constructor as they may not be available yet
         init: func() -> information;
-        init-node: func(name: string, capabilities: list<capability>) -> option<string>;
+        init-node: func(name: string, capabilities: list<capability>) -> result<generic-node, string>;
     }
 }
 

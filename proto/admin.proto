@@ -29,7 +29,7 @@ message Node {
     // Capabilities
     optional uint32 limitedMemory = 3;
     optional bool unlimitedMemory = 4;
-    optional uint32 maxServers = 5;
+    optional uint32 maxAllocations = 5;
     optional string subNode = 6;
 }
 
@@ -53,6 +53,7 @@ message Group {
         uint32 memory = 1;
         uint32 cpu = 2;
         uint32 disk = 3;
+        uint32 ports = 4;
     }
     message DeploySetting {
         optional string image = 1;

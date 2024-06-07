@@ -1,9 +1,13 @@
 use std::cell::UnsafeCell;
+use std::sync::{Arc, Mutex};
 use backend::Backend;
 use colored::Colorize;
+use node::PelicanNode;
 
-use crate::exports::node::driver::bridge::{Capability, GuestGenericDriver, Information};
+use crate::exports::node::driver::bridge::{Capability, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
 use crate::info;
+
+pub mod node;
 
 mod backend;
 
@@ -12,6 +16,9 @@ const VERSION: &str = "0.1.0";
 
 pub struct Pelican {
     backend: UnsafeCell<Option<Backend>>,
+
+    /* Nodes that this driver handles */
+    nodes: Mutex<Vec<Arc<PelicanNode>>>,
 }
 
 impl Pelican {
@@ -25,6 +32,7 @@ impl GuestGenericDriver for Pelican {
     fn new() -> Self {
         Self {
             backend: UnsafeCell::new(None),
+            nodes: Mutex::new(Vec::new()),
         }
     }
 
@@ -37,16 +45,24 @@ impl GuestGenericDriver for Pelican {
         }
     }
 
-    fn init_node(&self, name: String, capabilities: Vec<Capability>) -> Option<String> {
+    fn init_node(&self, name: String, capabilities: Vec<Capability>) -> Result<GenericNode, String> {
         info!("Checking node {}", name.blue());
 
         if let Some(Capability::SubNode(ref value)) = capabilities.iter().find(|cap| matches!(cap, Capability::SubNode(_))) {
             if !self.get_backend().node_exists(value) {
-                return Some("Node does not exist in the Pelican panel".to_string());
+                return Err("Node does not exist in the Pelican panel".to_string());
             }
-            None
+            let wrapper = PelicanNodeWrapper::new(name, capabilities);
+            // Add node to nodes
+            let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
+            nodes.push(wrapper.inner.clone());
+            Ok(GenericNode::new(wrapper))
         } else {
-            Some("Node lacks the required sub-node capability".to_string())
+            Err("Node lacks the required sub-node capability".to_string())
         }
     }
+}
+
+pub struct PelicanNodeWrapper {
+    pub inner: Arc<PelicanNode>,
 }

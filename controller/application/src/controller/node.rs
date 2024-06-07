@@ -1,5 +1,6 @@
 use std::{fs, path::Path, sync::{Arc, Weak}};
-use anyhow::Result;
+
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use stored::StoredNode;
 use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use super::{driver::{Drivers, GenericDriver}, CreationResult};
+use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, server::{DeploySetting, Resources}, CreationResult};
 
 const NODES_DIRECTORY: &str = "nodes";
 
@@ -128,7 +129,7 @@ impl Nodes {
         }
     }
 
-    async fn add_node(&mut self, node: Node) -> Result<Option<String>> {
+    async fn add_node(&mut self, mut node: Node) -> Result<Option<String>> {
         match node.init().await {
             Ok(None) => {
                 self.nodes.push(Arc::new(Mutex::new(node)));
@@ -140,10 +141,23 @@ impl Nodes {
     }
 }
 
+pub type AllocationHandle = Arc<Allocation>;
+pub type WeakAllocationHandle = Weak<Allocation>;
+
+pub struct Allocation {
+    pub ports: Vec<u32>,
+    pub resources: Resources,
+    pub deployment: Vec<DeploySetting>,
+}
+
 pub struct Node {
     pub name: String,
     pub capabilities: Vec<Capability>,
-    pub driver: Arc<dyn GenericDriver>,
+    pub driver: DriverHandle,
+    pub node: Option<DriverNodeHandle>,
+
+    /* Allocations made on this node */
+    pub allocations: Vec<WeakAllocationHandle>,
 }
 
 impl Node {
@@ -152,6 +166,8 @@ impl Node {
             name: name.to_string(),
             capabilities: stored_node.capabilities.clone(),
             driver,
+            node: None,
+            allocations: Vec::new(),
         }
     }
 
@@ -167,8 +183,51 @@ impl Node {
         })
     }
 
-    pub async fn init(&self) -> Result<Option<String>> {
-        self.driver.init_node(self).await
+    pub async fn init(&mut self) -> Result<Option<String>> {
+        match self.driver.init_node(self).await {
+            Ok(value) => match value {
+                Ok(node) => {
+                    self.node = Some(node);
+                    Ok(None)
+                },
+                Err(error) => Ok(Some(error)),
+            },
+            Err(error) => Err(error),
+        }
+    }
+
+    pub async fn allocate(&mut self, resources: Resources, deployment: Vec<DeploySetting>) -> Result<AllocationHandle> {
+        for capability in &self.capabilities {
+            match capability {
+                Capability::LimitedMemory(value) => {
+                    let used_memory: u32 = self.allocations.iter().map(|ele| ele.upgrade().unwrap().resources.memory).sum();
+                    if used_memory > *value {
+                        return Err(anyhow!("Node has reached the memory limit"));
+                    }
+                },
+                Capability::MaxAllocations(value) => {
+                    if self.allocations.len() + 1 > *value as usize {
+                        return Err(anyhow!("Node has reached the maximum amount of allocations"));
+                    }
+                },
+                _ => (),
+            }
+        }
+
+        let ports = match self.node.as_ref().unwrap().allocate_ports(resources.ports).await? {
+            Ok(ports) => ports,
+            Err(error) => return Err(anyhow!("Driver failed to allocate ports: {}", error)),
+        };
+
+        if ports.len() < resources.ports as usize {
+            return Err(anyhow!("Node did not allocate the required amount of ports"));
+        }
+
+        Ok(Arc::new(Allocation {
+            ports,
+            resources,
+            deployment,
+        }))
     }
 }
 
@@ -178,8 +237,8 @@ pub enum Capability {
     LimitedMemory(u32),
     #[serde(rename = "unlimited_memory")]
     UnlimitedMemory(bool),
-    #[serde(rename = "max_servers")]
-    MaxServers(u32),
+    #[serde(rename = "max_allocations")]
+    MaxAllocations(u32),
     #[serde(rename = "sub_node")]
     SubNode(String),
 }

@@ -19,3 +19,6 @@ toml = "0.8.13"
 
 # Pelican API
 serde_json = "1.0.117"
+
+# Testing
+rand = "0.8.5"

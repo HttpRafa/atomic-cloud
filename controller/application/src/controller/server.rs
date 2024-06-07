@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, sync::{Arc, Weak}};
 
-use log::debug;
+use log::info;
+use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
@@ -34,7 +35,7 @@ impl Servers {
                 let node = node.upgrade().unwrap();
                 let mut node = node.lock().await;
                 if let Ok(allocation) = node.allocate(request.resources, request.deployment.clone()).await {
-                    debug!("Starting server {} on node {} listening on ports {:?}", &request.name, &node.name, &allocation.ports);
+                    info!("Starting server {} on node {} listening on ports {:?}", &request.name.blue(), &node.name.blue(), &allocation.ports);
                     break;
                 }
             }

@@ -297,10 +297,9 @@ impl GenericNode for WasmNode {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().await;
             let (_, store) = handle.get();
-            return Ok(driver.bindings.node_driver_bridge().generic_node().call_allocate_ports(store, self.resource, amount).await?);
+            return driver.bindings.node_driver_bridge().generic_node().call_allocate_ports(store, self.resource, amount).await;
         }
-        warn!("I should not be here");
-        Err(anyhow!("I should not be here"))
+        Err(anyhow!("Failed to get handle to wasm driver"))
     }
 }
 

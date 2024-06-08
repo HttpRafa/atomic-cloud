@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
+use anyhow::Error;
 use log::{debug, warn};
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
@@ -106,5 +107,5 @@ impl Controller {
 pub enum CreationResult {
     Created,
     AlreadyExists,
-    Denied(String),
+    Denied(Error),
 }

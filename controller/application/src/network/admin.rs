@@ -51,7 +51,7 @@ impl AdminService for AdminServiceImpl {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
-                CreationResult::Denied(error) => Err(Status::failed_precondition(error)),
+                CreationResult::Denied(error) => Err(Status::failed_precondition(error.to_string())),
             },
             Err(error) => Err(Status::internal(error.to_string())),
         }
@@ -124,7 +124,7 @@ impl AdminService for AdminServiceImpl {
                 cpu: resources.cpu,
                 memory: resources.memory,
                 disk: resources.disk,
-                ports: resources.ports,
+                addresses: resources.addresses,
             },
             None => Resources::default(),
         };
@@ -152,7 +152,7 @@ impl AdminService for AdminServiceImpl {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Group already exists")),
-                CreationResult::Denied(error) => Err(Status::failed_precondition(error)),
+                CreationResult::Denied(error) => Err(Status::failed_precondition(error.to_string())),
             },
             Err(error) => Err(Status::internal(error.to_string())),
         }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rand::Rng;
 
-use crate::exports::node::driver::bridge::{Capability, GuestGenericNode};
+use crate::exports::node::driver::bridge::{Address, Capability, GuestGenericNode};
 
 use super::PelicanNodeWrapper;
 
@@ -16,13 +16,16 @@ impl GuestGenericNode for PelicanNodeWrapper {
         }
     }
 
-    fn allocate_ports(&self, amount: u32) -> Result<Vec<u32>, String> {
-        let mut ports = Vec::new();
+    fn allocate_addresses(&self, amount: u32) -> Result<Vec<Address>, String> {
+        let mut addresses = Vec::new();
         let mut random = rand::thread_rng();
         for _ in 0..amount {
-            ports.push(random.gen_range(25565..65535));
+            addresses.push(Address {
+                ip: format!("{}.{}.{}.{}", random.gen_range(1..255), random.gen_range(0..255), random.gen_range(0..255), random.gen_range(0..255)),
+                port: random.gen_range(25565..65535),
+            });
         }
-        Ok(ports)
+        Ok(addresses)
     }
 }
 

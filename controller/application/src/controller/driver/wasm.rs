@@ -1,5 +1,7 @@
 use std::fs;
+use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::{Arc, Weak};
 
 use anyhow::{anyhow, Result};
@@ -138,15 +140,15 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    async fn init_node(&self, node: &Node) -> Result<Result<DriverNodeHandle, String>> {
+    async fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
         let mut handle = self.handle.lock().await;
         let (resource, store) = handle.get();
         match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await? {
-            Ok(node) => Ok(Ok(Arc::new(WasmNode {
+            Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
                 resource: node,
-            }))),
-            Err(error) => Ok(Err(error)),
+            })),
+            Err(error) => Err(anyhow!(error)),
         }
     }
 
@@ -313,11 +315,24 @@ struct WasmNode {
 
 #[async_trait]
 impl GenericNode for WasmNode {
-    async fn allocate_ports(&self, amount: u32) -> Result<Result<Vec<u32>, String>> {
+    async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().await;
             let (_, store) = handle.get();
-            return driver.bindings.node_driver_bridge().generic_node().call_allocate_ports(store, self.resource, amount).await;
+            return match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount).await {
+                Ok(addresses) => match addresses {
+                    Ok(addresses) => {
+                        let mut result = Vec::with_capacity(addresses.len());
+                        for address in addresses {
+                            let ip = IpAddr::from_str(&address.ip)?;
+                            result.push(SocketAddr::new(ip, address.port));
+                        }
+                        Ok(result)
+                    },
+                    Err(error) => Err(anyhow!(error)),
+                },
+                Err(error) => Err(error),
+            }
         }
         Err(anyhow!("Failed to get handle to wasm driver"))
     }

@@ -1,6 +1,6 @@
 use std::{fs, path::Path, sync::{Arc, Weak}};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -91,7 +91,7 @@ impl Groups {
 
     pub async fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
         if node_handles.is_empty() {
-            return Ok(CreationResult::Denied("No nodes provided".to_string()));
+            return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
 
         for group in &self.groups {
@@ -175,7 +175,7 @@ impl Group {
 
             // We need to start a server
             servers.queue_server(StartRequest {
-                name: format!("{}{}", self.name, (self.servers.len() + requested)),
+                name: format!("{}-{}", self.name, (self.servers.len() + requested)),
                 nodes: self.nodes.clone(),
                 group: self.handle.clone(),
                 resources: self.resources,

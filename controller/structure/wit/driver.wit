@@ -50,9 +50,14 @@ interface bridge {
         sub-node(string)
     }
 
+    record address {
+        ip: string,
+        port: u16,
+    }
+
     resource generic-node {
         constructor(name: string, capabilities: list<capability>);
-        allocate-ports: func(amount: u32) -> result<list<u32>, string>;
+        allocate-addresses: func(amount: u32) -> result<list<address>, string>;
     }
 
     resource generic-driver {

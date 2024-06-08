@@ -35,7 +35,7 @@ impl Servers {
                 let node = node.upgrade().unwrap();
                 let mut node = node.lock().await;
                 if let Ok(allocation) = node.allocate(request.resources, request.deployment.clone()).await {
-                    info!("Starting server {} on node {} listening on ports {:?}", &request.name.blue(), &node.name.blue(), &allocation.ports);
+                    info!("Starting server {} on node {} listening on ports {:?}", &request.name.blue(), &node.name.blue(), &allocation.addresses);
                     break;
                 }
             }
@@ -77,7 +77,7 @@ pub struct Resources {
     pub memory: u32,
     pub cpu: u32,
     pub disk: u32,
-    pub ports: u32,
+    pub addresses: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

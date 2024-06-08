@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::{Arc, Weak}};
+use std::{fs, net::SocketAddr, path::Path, sync::{Arc, Weak}};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
@@ -74,15 +74,12 @@ impl Nodes {
             };
 
             match nodes.add_node(node).await {
-                Ok(None) => {
+                Ok(_) => {
                     info!("Loaded node {}", &name.blue());
-                }
-                Ok(Some(error)) => {
+                },
+                Err(error) => {
                     warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &name.blue());
                     warn!(" -> {}", &error);
-                }
-                Err(error) => {
-                    error!("{} to load node {}: {}", "Failed".red(), &name.blue(), &error);
                 }
             }
         }
@@ -119,23 +116,21 @@ impl Nodes {
         let node = Node::from(name, &stored_node, driver);
 
         match self.add_node(node).await {
-            Ok(None) => {
+            Ok(_) => {
                 stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
                 info!("Created node {}", name.blue());
                 Ok(CreationResult::Created)
             }
-            Ok(Some(error)) => Ok(CreationResult::Denied(error)),
-            Err(error) => Err(error),
+            Err(error) => Ok(CreationResult::Denied(error)),
         }
     }
 
-    async fn add_node(&mut self, mut node: Node) -> Result<Option<String>> {
+    async fn add_node(&mut self, mut node: Node) -> Result<()> {
         match node.init().await {
-            Ok(None) => {
+            Ok(_) => {
                 self.nodes.push(Arc::new(Mutex::new(node)));
-                Ok(None)
+                Ok(())
             }
-            Ok(Some(error)) => Ok(Some(error)),
             Err(error) => Err(error),
         }
     }
@@ -145,7 +140,7 @@ pub type AllocationHandle = Arc<Allocation>;
 pub type WeakAllocationHandle = Weak<Allocation>;
 
 pub struct Allocation {
-    pub ports: Vec<u32>,
+    pub addresses: Vec<SocketAddr>,
     pub resources: Resources,
     pub deployment: Vec<DeploySetting>,
 }
@@ -183,14 +178,11 @@ impl Node {
         })
     }
 
-    pub async fn init(&mut self) -> Result<Option<String>> {
+    pub async fn init(&mut self) -> Result<()> {
         match self.driver.init_node(self).await {
-            Ok(value) => match value {
-                Ok(node) => {
-                    self.node = Some(node);
-                    Ok(None)
-                },
-                Err(error) => Ok(Some(error)),
+            Ok(value) => {
+                self.node = Some(value);
+                Ok(())
             },
             Err(error) => Err(error),
         }
@@ -214,17 +206,13 @@ impl Node {
             }
         }
 
-        let ports = match self.node.as_ref().unwrap().allocate_ports(resources.ports).await? {
-            Ok(ports) => ports,
-            Err(error) => return Err(anyhow!("Driver failed to allocate ports: {}", error)),
-        };
-
-        if ports.len() < resources.ports as usize {
-            return Err(anyhow!("Node did not allocate the required amount of ports"));
+        let addresses = self.node.as_ref().unwrap().allocate_addresses(resources.addresses).await?;
+        if addresses.len() < resources.addresses as usize {
+            return Err(anyhow!("Node did not allocate the required amount of addresses"));
         }
 
         Ok(Arc::new(Allocation {
-            ports,
+            addresses,
             resources,
             deployment,
         }))

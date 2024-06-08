@@ -53,7 +53,7 @@ message Group {
         uint32 memory = 1;
         uint32 cpu = 2;
         uint32 disk = 3;
-        uint32 ports = 4;
+        uint32 addresses = 4;
     }
     message DeploySetting {
         optional string image = 1;

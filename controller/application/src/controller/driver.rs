@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use colored::Colorize;
 use log::info;
@@ -25,14 +25,14 @@ pub struct Information {
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     async fn init(&self) -> Result<Information>;
-    async fn init_node(&self, node: &Node) -> Result<Result<DriverNodeHandle, String>>;
+    async fn init_node(&self, node: &Node) -> Result<DriverNodeHandle>;
     async fn stop_server(&self, server: &str) -> Result<()>;
     async fn start_server(&self, server: &str) -> Result<()>;
 }
 
 #[async_trait]
 pub trait GenericNode: Send + Sync {
-    async fn allocate_ports(&self, amount: u32) -> Result<Result<Vec<u32>, String>>;
+    async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>>;
 }
 
 pub type DriverHandle = Arc<dyn GenericDriver>;

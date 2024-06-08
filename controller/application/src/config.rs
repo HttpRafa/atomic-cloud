@@ -11,7 +11,7 @@ pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
 
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
-const DEFAULT_BIND_PORT: u16 = 13180;
+const DEFAULT_BIND_PORT: u16 = 12892;
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct Config {

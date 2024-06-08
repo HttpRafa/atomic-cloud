@@ -43,11 +43,11 @@ jobs:
           ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pelican.wasm \
               -o ../pelican.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
 
-      - name: Upload file
+      - name: Upload file to Github
         if: success()
-        uses: appleboy/discord-action@master
+        uses: actions/upload-artifact@v4
         with:
-          webhook_id: ${{ secrets.WEBHOOK_ID }}
-          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-          message: Build of pelican driver finished [${{ steps.current-time.outputs.readableTime }}]
-          file: ./pelican.wasm
+          name: pelican
+          path: |
+            pelican.wasm
+            LICENSE

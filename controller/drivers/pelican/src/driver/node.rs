@@ -28,9 +28,7 @@ impl GuestGenericNode for PelicanNodeWrapper {
         Ok(addresses)
     }
 
-    fn deallocate_addresses(&self, _addresses: Vec<Address>) {
-
-    }
+    fn deallocate_addresses(&self, _addresses: Vec<Address>) {}
 }
 
 pub struct PelicanNode {

@@ -51,11 +51,11 @@ jobs:
         run: |
           mv controller/target/${{ matrix.target.platform }}/release/controller${{ matrix.target.extension }} controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
 
-      - name: Upload file
+      - name: Upload file to Github
         if: success()
-        uses: appleboy/discord-action@master
+        uses: actions/upload-artifact@v4
         with:
-          webhook_id: ${{ secrets.WEBHOOK_ID }}
-          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-          message: Build finished for ${{ matrix.target.name }} [${{ steps.current-time.outputs.readableTime }}]
-          file: ./controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
+          name: controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}
+          path: |
+            controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
+            LICENSE

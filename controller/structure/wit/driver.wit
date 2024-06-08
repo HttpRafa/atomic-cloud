@@ -58,6 +58,7 @@ interface bridge {
     resource generic-node {
         constructor(name: string, capabilities: list<capability>);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
+        deallocate-addresses: func(addresses: list<address>);
     }
 
     resource generic-driver {

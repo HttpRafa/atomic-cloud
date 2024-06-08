@@ -1,4 +1,5 @@
 use std::fs;
+use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Weak};
 
@@ -151,14 +152,6 @@ impl GenericDriver for WasmDriver {
             })),
             Err(error) => Err(anyhow!(error)),
         }
-    }
-
-    async fn stop_server(&self, _server: &str) -> Result<()> {
-        todo!()
-    }
-
-    async fn start_server(&self, _server: &str) -> Result<()> {
-        todo!()
     }
 }
 
@@ -326,6 +319,15 @@ impl From<&Capability> for bridge::Capability {
             Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(*enabled),
             Capability::MaxAllocations(servers) => bridge::Capability::MaxAllocations(*servers),
             Capability::SubNode(node) => bridge::Capability::SubNode(node.to_owned()),
+        }
+    }
+}
+
+impl From<&SocketAddr> for bridge::Address {
+    fn from(val: &SocketAddr) -> Self {
+        bridge::Address {
+            ip: val.ip().to_string(),
+            port: val.port(),
         }
     }
 }

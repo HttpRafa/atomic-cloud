@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::{node::{Nodes, WeakNodeHandle}, server::{DeploySetting, Resources, Servers, StartRequest, WeakServerHandle}, CreationResult};
+use super::{node::{Nodes, WeakNodeHandle}, server::{DeploySetting, Resources, ServerHandle, Servers, StartRequest}, CreationResult};
 
 const GROUPS_DIRECTORY: &str = "groups";
 
@@ -82,7 +82,7 @@ impl Groups {
         groups
     }
 
-    pub async fn tick(&self, servers: &mut Servers) {
+    pub async fn tick(&self, servers: &Servers) {
         for group in &self.groups {
             let mut group = group.lock().await;
             group.tick(servers).await;
@@ -123,8 +123,8 @@ impl Groups {
 
 #[derive(Serialize, Deserialize, Clone, Copy, Default)]
 pub struct ScalingPolicy {
-    pub min: u32,
-    pub max: u32,
+    pub minimum: u32,
+    pub maximum: u32,
     pub priority: i32,
 }
 
@@ -138,7 +138,7 @@ pub struct Group {
     deployment: Vec<DeploySetting>,
 
     /* Servers that the group has started */
-    servers: Vec<WeakServerHandle>,
+    servers: Vec<ServerHandle>,
 }
 
 impl Group {
@@ -149,7 +149,7 @@ impl Group {
                 name: name.to_string(),
                 nodes,
                 scaling: stored_group.scaling,
-                resources: stored_group.resources,
+                resources: stored_group.resources.clone(),
                 deployment: stored_group.deployment.clone(),
                 servers: Vec::new(),
             })
@@ -165,11 +165,11 @@ impl Group {
         Some(Self::from(name, stored_group, node_handles))
     }
 
-    async fn tick(&mut self, servers: &mut Servers) {
+    async fn tick(&mut self, servers: &Servers) {
         // Create how many servers we need to start to reach the min value
-        for requested in 0..(self.scaling.min as usize).saturating_sub(self.servers.len()) {
+        for requested in 0..(self.scaling.minimum as usize).saturating_sub(self.servers.len()) {
             // Check if we have reached the max value
-            if (self.servers.len() + requested) >= self.scaling.max as usize {
+            if (self.servers.len() + requested) >= self.scaling.maximum as usize {
                 break;
             }
 
@@ -178,11 +178,19 @@ impl Group {
                 name: format!("{}-{}", self.name, (self.servers.len() + requested)),
                 nodes: self.nodes.clone(),
                 group: self.handle.clone(),
-                resources: self.resources,
+                resources: self.resources.clone(),
                 deployment: self.deployment.clone(),
                 priority: self.scaling.priority,
-            });
+            }).await;
         }
+    }
+
+    pub fn add_server(&mut self, server: ServerHandle) {
+        self.servers.push(server);
+    }
+
+    pub fn remove_server(&mut self, server: &ServerHandle) {
+        self.servers.retain(|handle| !Arc::ptr_eq(handle, server));
     }
 }
 

@@ -137,7 +137,6 @@ impl Nodes {
 }
 
 pub type AllocationHandle = Arc<Allocation>;
-pub type WeakAllocationHandle = Weak<Allocation>;
 
 pub struct Allocation {
     pub addresses: Vec<SocketAddr>,
@@ -145,14 +144,22 @@ pub struct Allocation {
     pub deployment: Vec<DeploySetting>,
 }
 
+impl Allocation {
+    pub fn primary_address(&self) -> &SocketAddr {
+        &self.addresses[0]
+    }
+}
+
 pub struct Node {
     pub name: String,
     pub capabilities: Vec<Capability>,
+
+    /* Driver handles */
     pub driver: DriverHandle,
-    pub node: Option<DriverNodeHandle>,
+    inner: Option<DriverNodeHandle>,
 
     /* Allocations made on this node */
-    pub allocations: Vec<WeakAllocationHandle>,
+    pub allocations: Vec<AllocationHandle>,
 }
 
 impl Node {
@@ -161,7 +168,7 @@ impl Node {
             name: name.to_string(),
             capabilities: stored_node.capabilities.clone(),
             driver,
-            node: None,
+            inner: None,
             allocations: Vec::new(),
         }
     }
@@ -181,18 +188,18 @@ impl Node {
     pub async fn init(&mut self) -> Result<()> {
         match self.driver.init_node(self).await {
             Ok(value) => {
-                self.node = Some(value);
+                self.inner = Some(value);
                 Ok(())
             },
             Err(error) => Err(error),
         }
     }
 
-    pub async fn allocate(&mut self, resources: Resources, deployment: Vec<DeploySetting>) -> Result<AllocationHandle> {
+    pub async fn allocate(&mut self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
         for capability in &self.capabilities {
             match capability {
                 Capability::LimitedMemory(value) => {
-                    let used_memory: u32 = self.allocations.iter().map(|ele| ele.upgrade().unwrap().resources.memory).sum();
+                    let used_memory: u32 = self.allocations.iter().map(|allocation| allocation.resources.memory).sum();
                     if used_memory > *value {
                         return Err(anyhow!("Node has reached the memory limit"));
                     }
@@ -206,16 +213,29 @@ impl Node {
             }
         }
 
-        let addresses = self.node.as_ref().unwrap().allocate_addresses(resources.addresses).await?;
+        let addresses = self.inner.as_ref().unwrap().allocate_addresses(resources.addresses).await?;
         if addresses.len() < resources.addresses as usize {
             return Err(anyhow!("Node did not allocate the required amount of addresses"));
         }
 
-        Ok(Arc::new(Allocation {
+        let allocation = Arc::new(Allocation {
             addresses,
-            resources,
-            deployment,
-        }))
+            resources: resources.clone(),
+            deployment: deployment.to_owned(),
+        });
+        self.allocations.push(allocation.clone());
+        Ok(allocation)
+    }
+
+    pub async fn deallocate(&mut self, allocation: &AllocationHandle) {
+        self.inner.as_ref().unwrap().deallocate_addresses(allocation.addresses.clone()).await.unwrap_or_else(|error| {
+            error!("{} to deallocate addresses: {}", "Failed".red(), &error);
+        });
+        self.allocations.retain(|alloc| !Arc::ptr_eq(alloc, allocation));
+    }
+
+    pub fn get_inner(&self) -> &DriverNodeHandle {
+        self.inner.as_ref().unwrap()
     }
 }
 

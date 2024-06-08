@@ -5,6 +5,7 @@ use log::info;
 use tonic::async_trait;
 
 use crate::controller::node::Node;
+use crate::controller::server::ServerHandle;
 
 #[cfg(feature = "wasm-drivers")]
 use crate::controller::driver::wasm::WasmDriver;
@@ -26,13 +27,16 @@ pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     async fn init(&self) -> Result<Information>;
     async fn init_node(&self, node: &Node) -> Result<DriverNodeHandle>;
-    async fn stop_server(&self, server: &str) -> Result<()>;
-    async fn start_server(&self, server: &str) -> Result<()>;
 }
 
 #[async_trait]
 pub trait GenericNode: Send + Sync {
+    /* Prepare */
     async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>>;
+    async fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
+
+    /* Servers */
+    async fn start_server(&self, server: &ServerHandle) -> Result<()>;
 }
 
 pub type DriverHandle = Arc<dyn GenericDriver>;

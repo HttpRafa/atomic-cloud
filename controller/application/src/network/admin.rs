@@ -2,7 +2,7 @@ use std::sync::Arc;
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, Resources}, Controller, CreationResult};
+use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, Resources, Retention}, Controller, CreationResult};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -111,8 +111,8 @@ impl AdminService for AdminServiceImpl {
         /* Scaling */
         let scaling = match &group.scaling {
             Some(scaling) => ScalingPolicy {
-                min: scaling.min,
-                max: scaling.max,
+                minimum: scaling.minimum,
+                maximum: scaling.maximum,
                 priority: scaling.priority,
             },
             None => ScalingPolicy::default(),
@@ -134,6 +134,13 @@ impl AdminService for AdminServiceImpl {
         if let Some(value) = group.deployment {
             if let Some(image) = value.image {
                 deployment.push(DeploySetting::Image(image));
+            }
+            if let Some(retention) = value.disk_retention {
+                let retention = match retention {
+                    x if x == Retention::Keep as i32 => Retention::Keep,
+                    _ => Retention::Delete,
+                };
+                deployment.push(DeploySetting::DiskRetention(retention));
             }
         }
 

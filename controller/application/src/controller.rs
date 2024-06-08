@@ -2,7 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 use anyhow::Error;
-use log::{debug, warn};
+use log::warn;
+use server::Servers;
 use tokio::sync::{Mutex, MutexGuard};
 use tokio::time;
 
@@ -11,7 +12,6 @@ use crate::network::start_controller_server;
 use crate::controller::driver::Drivers;
 use crate::controller::group::Groups;
 use crate::controller::node::Nodes;
-use crate::controller::server::Servers;
 
 pub mod node;
 pub mod group;
@@ -32,10 +32,12 @@ pub struct Controller {
     /* Runtime State */
     running: AtomicBool,
 
-    /* Mutable | This can be changed by the user at runtime */
+    /* Accessed rarely */
     nodes: Mutex<Nodes>,
     groups: Mutex<Groups>,
-    servers: Mutex<Servers>,
+
+    /* Accessed frequently */
+    servers: Servers,
 }
 
 impl Controller {
@@ -44,14 +46,16 @@ impl Controller {
         let nodes = Nodes::load_all(&drivers).await;
         let groups = Groups::load_all(&nodes).await;
         let servers = Servers::new();
-        Arc::new_cyclic(move |handle| Self {
-            handle: handle.clone(),
-            configuration,
-            drivers,
-            running: AtomicBool::new(true),
-            nodes: Mutex::new(nodes),
-            groups: Mutex::new(groups),
-            servers: Mutex::new(servers),
+        Arc::new_cyclic(move |handle| {
+            Self {
+                handle: handle.clone(),
+                configuration,
+                drivers,
+                running: AtomicBool::new(true),
+                nodes: Mutex::new(nodes),
+                groups: Mutex::new(groups),
+                servers,
+            }
         })
     }
 
@@ -86,21 +90,19 @@ impl Controller {
         self.groups.lock().await
     }
 
-    pub async fn request_servers(&self) -> MutexGuard<Servers> {
-        self.servers.lock().await
+    pub fn request_servers(&self) -> &Servers {
+        &self.servers
     }
 
     async fn tick(&self) {
         // NOTE: We have to be careful to not lock something used in some tick method to avoid deadlocks
 
-        let mut servers = self.request_servers().await;
+        let servers = self.request_servers();
         // Check if all groups have started there servers etc..
-        self.request_groups().await.tick(&mut servers).await;
+        self.request_groups().await.tick(servers).await;
 
         // Check if all servers have sent their heartbeats and start requested server if we can
-        servers.tick().await;
-
-        debug!("Controller ticked");
+        servers.tick(&self.handle).await;
     }
 }
 

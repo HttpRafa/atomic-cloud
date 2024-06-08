@@ -45,17 +45,25 @@ message Group {
     DeploySetting deployment = 5;
 
     message Scaling {
-        uint32 min = 1;
-        uint32 max = 2;
+        uint32 minimum = 1;
+        uint32 maximum = 2;
         int32 priority = 3;
     }
+
     message Resources {
         uint32 memory = 1;
         uint32 cpu = 2;
         uint32 disk = 3;
         uint32 addresses = 4;
     }
+
     message DeploySetting {
         optional string image = 1;
+        optional Retention diskRetention = 2;
+
+        enum Retention {
+            KEEP = 0;
+            DELETE = 1;
+        } 
     }
 }

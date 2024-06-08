@@ -1,7 +1,5 @@
 use std::fs;
-use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
-use std::str::FromStr;
 use std::sync::{Arc, Weak};
 
 use anyhow::{anyhow, Result};
@@ -11,6 +9,7 @@ use log::{debug, error, info, warn};
 use node::driver;
 use node::driver::http::{Header, Method, Response};
 use node::driver::log::Level;
+use node_impl::WasmNode;
 use tokio::sync::Mutex;
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
@@ -20,7 +19,9 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 use crate::config::CONFIG_DIRECTORY;
 use crate::controller::node::{Node, Capability};
 use super::source::Source;
-use super::{DriverNodeHandle, GenericDriver, GenericNode, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
+use super::{DriverNodeHandle, GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
+
+mod node_impl;
 
 bindgen!({
     world: "driver",
@@ -305,36 +306,6 @@ impl WasmDriver {
         if old_loaded == drivers.len() {
             warn!("The Wasm driver feature is enabled, but no Wasm drivers were loaded.");
         }
-    }
-}
-
-struct WasmNode {
-    handle: Weak<WasmDriver>,
-    resource: ResourceAny, // This is delete if the handle is dropped
-}
-
-#[async_trait]
-impl GenericNode for WasmNode {
-    async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
-        if let Some(driver) = self.handle.upgrade() {
-            let mut handle = driver.handle.lock().await;
-            let (_, store) = handle.get();
-            return match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount).await {
-                Ok(addresses) => match addresses {
-                    Ok(addresses) => {
-                        let mut result = Vec::with_capacity(addresses.len());
-                        for address in addresses {
-                            let ip = IpAddr::from_str(&address.ip)?;
-                            result.push(SocketAddr::new(ip, address.port));
-                        }
-                        Ok(result)
-                    },
-                    Err(error) => Err(anyhow!(error)),
-                },
-                Err(error) => Err(error),
-            }
-        }
-        Err(anyhow!("Failed to get handle to wasm driver"))
     }
 }
 

@@ -17,7 +17,6 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 
 use crate::config::CONFIG_DIRECTORY;
 use crate::controller::node::{Node, Capability};
-
 use super::source::Source;
 use super::{DriverNodeHandle, GenericDriver, GenericNode, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 
@@ -28,6 +27,15 @@ bindgen!({
 });
 
 const WASM_DIRECTORY: &str = "wasm";
+
+/* Caching of compiled wasm artifacts */
+const CACHE_CONFIG_FILE: &str = "wasm.toml";
+const DEFAULT_CACHE_CONFIG: &str = r#"# Comment out certain settings to use default values.
+# For more settings, please refer to the documentation:
+# https://bytecodealliance.github.io/wasmtime/cli-cache.html
+
+[cache]
+enabled = true"#;
 
 struct WasmDriverState {
     handle: Weak<WasmDriver>,
@@ -169,6 +177,10 @@ impl WasmDriver {
         let mut config = Config::new();
         config.async_support(true);
         config.wasm_component_model(true);
+        if let Err(error) = config.cache_config_load(Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE)) {
+            warn!("{} to enable caching for wasmtime engine: {}", "Failed".red(), &error);
+        }
+
         let engine = Engine::new(&config)?;
         let component = Component::from_binary(&engine, &source.code)?;
 
@@ -198,6 +210,14 @@ impl WasmDriver {
     }
 
     pub async fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
+        // Check if cache configuration exists
+        let cache_config = Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE);
+        if !cache_config.exists() {
+            fs::write(&cache_config, DEFAULT_CACHE_CONFIG).unwrap_or_else(|error| {
+                warn!("{} to create default cache configuration file: {}", "Failed".red(), &error)
+            });
+        }
+
         let old_loaded = drivers.len();
 
         let drivers_directory = Path::new(DRIVERS_DIRECTORY).join(WASM_DIRECTORY);

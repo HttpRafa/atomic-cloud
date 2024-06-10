@@ -1,7 +1,7 @@
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, Mutex, Weak};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
@@ -11,7 +11,6 @@ use node::driver;
 use node::driver::http::{Header, Method, Response};
 use node::driver::log::Level;
 use node_impl::WasmNode;
-use tokio::sync::Mutex;
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
@@ -27,7 +26,6 @@ mod node_impl;
 bindgen!({
     world: "driver",
     path: "../structure/wit/",
-    async: true,
 });
 
 const WASM_DIRECTORY: &str = "wasm";
@@ -58,14 +56,14 @@ impl WasiView for WasmDriverState {
 
 #[async_trait]
 impl driver::api::Host for WasmDriverState {
-    async fn get_name(&mut self) -> String {
+    fn get_name(&mut self) -> String {
         self.handle.upgrade().unwrap().name.clone()
     }
 }
 
 #[async_trait]
 impl driver::log::Host for WasmDriverState {
-    async fn log_string(&mut self, level: Level, message: String) {
+    fn log_string(&mut self, level: Level, message: String) {
         match level {
             Level::Info => info!("{}", message),
             Level::Warn => warn!("{}", message),
@@ -77,7 +75,7 @@ impl driver::log::Host for WasmDriverState {
 
 #[async_trait]
 impl driver::http::Host for WasmDriverState {
-    async fn send_http_request(&mut self, method: Method, url: String, headers: Vec<Header>) -> Option<Response> {
+    fn send_http_request(&mut self, method: Method, url: String, headers: Vec<Header>) -> Option<Response> {
         let driver = self.handle.upgrade().unwrap();
         let mut request = match method {
             Method::Get => minreq::get(url),
@@ -133,19 +131,19 @@ impl GenericDriver for WasmDriver {
         &self.name
     }
 
-    async fn init(&self) -> Result<Information> {
-        let mut handle = self.handle.lock().await;
+    fn init(&self) -> Result<Information> {
+        let mut handle = self.handle.lock().unwrap();
         let (resource, store) = handle.get();
-        match self.bindings.node_driver_bridge().generic_driver().call_init(store, resource).await {
+        match self.bindings.node_driver_bridge().generic_driver().call_init(store, resource) {
             Ok(information) => Ok(information.into()),
             Err(error) => Err(error),
         }
     }
 
-    async fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
-        let mut handle = self.handle.lock().await;
+    fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
+        let mut handle = self.handle.lock().unwrap();
         let (resource, store) = handle.get();
-        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>()).await? {
+        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>())? {
             Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
                 resource: node,
@@ -156,7 +154,7 @@ impl GenericDriver for WasmDriver {
 }
 
 impl WasmDriver {
-    async fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
+    fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
         let config_directory = Path::new(CONFIG_DIRECTORY).join(name);
         let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(name);
         if !config_directory.exists() {
@@ -171,7 +169,6 @@ impl WasmDriver {
         }
 
         let mut config = Config::new();
-        config.async_support(true);
         config.wasm_component_model(true);
         if let Err(error) = config.cache_config_load(Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE)) {
             warn!("{} to enable caching for wasmtime engine: {}", "Failed".red(), &error);
@@ -181,7 +178,7 @@ impl WasmDriver {
         let component = Component::from_binary(&engine, &source.code)?;
 
         let mut linker = Linker::new(&engine);
-        wasmtime_wasi::add_to_linker_async(&mut linker)?;
+        wasmtime_wasi::add_to_linker_sync(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
 
         let wasi = WasiCtxBuilder::new().inherit_stdio().preopened_dir(&config_directory, "/configs/", DirPerms::all(), FilePerms::all())?.preopened_dir(&data_directory, "/data/", DirPerms::all(), FilePerms::all())?.build();
@@ -192,8 +189,8 @@ impl WasmDriver {
             wasi,
             table,
         });
-        let (bindings, _) = Driver::instantiate_async(&mut store, &component, &linker).await?;
-        let driver_resource = bindings.node_driver_bridge().generic_driver().call_constructor(&mut store).await?;
+        let (bindings, _) = Driver::instantiate(&mut store, &component, &linker)?;
+        let driver_resource = bindings.node_driver_bridge().generic_driver().call_constructor(&mut store)?;
         Ok(Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {
@@ -205,7 +202,7 @@ impl WasmDriver {
         }))
     }
 
-    pub async fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
+    pub fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
         // Check if cache configuration exists
         let cache_config = Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE);
         if !cache_config.exists() {
@@ -265,9 +262,9 @@ impl WasmDriver {
             };
 
             info!("Compiling driver {}...", &name.blue());
-            let driver = WasmDriver::new(&name, &source).await;
+            let driver = WasmDriver::new(&name, &source);
             match driver {
-                Ok(driver) => match driver.init().await {
+                Ok(driver) => match driver.init() {
                     Ok(info) => {
                         if info.ready {
                             info!(

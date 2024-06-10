@@ -46,8 +46,8 @@ impl AdminService for AdminServiceImpl {
             None => return Err(Status::invalid_argument("The driver does not exist")),
         };
 
-        let mut nodes = self.controller.request_nodes().await;
-        match nodes.create_node(name, driver, capabilities).await {
+        let mut nodes = self.controller.lock_nodes();
+        match nodes.create_node(name, driver, capabilities) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
@@ -63,12 +63,12 @@ impl AdminService for AdminServiceImpl {
     }
 
     async fn get_node(&self, request: Request<String>) -> Result<Response<Node>, Status> {
-        let handle = self.controller.request_nodes().await;
-        let node = match handle.find_by_name(&request.into_inner()).await {
+        let handle = self.controller.lock_nodes();
+        let node = match handle.find_by_name(&request.into_inner()) {
             Some(node) => node.upgrade().ok_or(Status::not_found("Node not found"))?,
             None => return Err(Status::not_found("Node not found")),
         };
-        let node = node.lock().await;
+        let node = node.lock().unwrap();
 
         let mut limited_memory = None;
         let mut unlimited_memory = None;
@@ -95,10 +95,10 @@ impl AdminService for AdminServiceImpl {
     }
 
     async fn get_nodes(&self, _request: Request<()>) -> Result<Response<NodeList>, Status> {
-        let handle = self.controller.request_nodes().await;
+        let handle = self.controller.lock_nodes();
         let mut nodes = Vec::with_capacity(handle.get_amount());
         for node in handle.get_nodes() {
-            nodes.push(node.lock().await.name.clone());
+            nodes.push(node.lock().unwrap().name.clone());
         }
 
         Ok(Response::new(NodeList { nodes }))
@@ -147,15 +147,15 @@ impl AdminService for AdminServiceImpl {
         /* Nodes */
         let mut node_handles = Vec::with_capacity(group.nodes.len());
         for node in &group.nodes {
-            let node = match self.controller.request_nodes().await.find_by_name(node).await {
+            let node = match self.controller.lock_nodes().find_by_name(node) {
                 Some(node) => node,
                 None => return Err(Status::invalid_argument(format!("Node {} does not exist", node))),
             };
             node_handles.push(node);
         }
 
-        let mut groups = self.controller.request_groups().await;
-        match groups.create_group(name, node_handles, scaling, resources, deployment).await {
+        let mut groups = self.controller.lock_groups();
+        match groups.create_group(name, node_handles, scaling, resources, deployment) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Group already exists")),

@@ -1,11 +1,10 @@
-use std::{fs, net::SocketAddr, path::Path, sync::{Arc, Weak}};
+use std::{fs, net::SocketAddr, path::Path, sync::{Arc, Mutex, Weak}};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use stored::StoredNode;
-use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, server::{DeploySetting, Resources}, CreationResult};
@@ -20,7 +19,7 @@ pub struct Nodes {
 }
 
 impl Nodes {
-    pub async fn load_all(drivers: &Drivers) -> Self {
+    pub fn load_all(drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
         let nodes_directory = Path::new(NODES_DIRECTORY);
@@ -73,7 +72,7 @@ impl Nodes {
                 None => continue,
             };
 
-            match nodes.add_node(node).await {
+            match nodes.add_node(node) {
                 Ok(_) => {
                     info!("Loaded node {}", &name.blue());
                 },
@@ -96,18 +95,18 @@ impl Nodes {
         &self.nodes
     }
 
-    pub async fn find_by_name(&self, name: &str) -> Option<WeakNodeHandle> {
+    pub fn find_by_name(&self, name: &str) -> Option<WeakNodeHandle> {
         for node in &self.nodes {
-            if node.lock().await.name.eq_ignore_ascii_case(name) {
+            if node.lock().unwrap().name.eq_ignore_ascii_case(name) {
                 return Some(Arc::downgrade(node));
             }
         }
         None
     }
 
-    pub async fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<CreationResult> {
+    pub fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<CreationResult> {
         for node in &self.nodes {
-            if node.lock().await.name == name {
+            if node.lock().unwrap().name == name {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
@@ -115,7 +114,7 @@ impl Nodes {
         let stored_node = StoredNode { driver: driver.name().to_string(), capabilities };
         let node = Node::from(name, &stored_node, driver);
 
-        match self.add_node(node).await {
+        match self.add_node(node) {
             Ok(_) => {
                 stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
                 info!("Created node {}", name.blue());
@@ -125,8 +124,8 @@ impl Nodes {
         }
     }
 
-    async fn add_node(&mut self, mut node: Node) -> Result<()> {
-        match node.init().await {
+    fn add_node(&mut self, mut node: Node) -> Result<()> {
+        match node.init() {
             Ok(_) => {
                 self.nodes.push(Arc::new(Mutex::new(node)));
                 Ok(())
@@ -185,8 +184,8 @@ impl Node {
         })
     }
 
-    pub async fn init(&mut self) -> Result<()> {
-        match self.driver.init_node(self).await {
+    pub fn init(&mut self) -> Result<()> {
+        match self.driver.init_node(self) {
             Ok(value) => {
                 self.inner = Some(value);
                 Ok(())
@@ -195,7 +194,7 @@ impl Node {
         }
     }
 
-    pub async fn allocate(&mut self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
+    pub fn allocate(&mut self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
         for capability in &self.capabilities {
             match capability {
                 Capability::LimitedMemory(value) => {
@@ -213,7 +212,7 @@ impl Node {
             }
         }
 
-        let addresses = self.inner.as_ref().unwrap().allocate_addresses(resources.addresses).await?;
+        let addresses = self.inner.as_ref().unwrap().allocate_addresses(resources.addresses)?;
         if addresses.len() < resources.addresses as usize {
             return Err(anyhow!("Node did not allocate the required amount of addresses"));
         }
@@ -227,8 +226,8 @@ impl Node {
         Ok(allocation)
     }
 
-    pub async fn deallocate(&mut self, allocation: &AllocationHandle) {
-        self.inner.as_ref().unwrap().deallocate_addresses(allocation.addresses.clone()).await.unwrap_or_else(|error| {
+    pub fn deallocate(&mut self, allocation: &AllocationHandle) {
+        self.inner.as_ref().unwrap().deallocate_addresses(allocation.addresses.clone()).unwrap_or_else(|error| {
             error!("{} to deallocate addresses: {}", "Failed".red(), &error);
         });
         self.allocations.retain(|alloc| !Arc::ptr_eq(alloc, allocation));

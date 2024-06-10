@@ -25,18 +25,18 @@ pub struct Information {
 #[async_trait]
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
-    async fn init(&self) -> Result<Information>;
-    async fn init_node(&self, node: &Node) -> Result<DriverNodeHandle>;
+    fn init(&self) -> Result<Information>;
+    fn init_node(&self, node: &Node) -> Result<DriverNodeHandle>;
 }
 
 #[async_trait]
 pub trait GenericNode: Send + Sync {
     /* Prepare */
-    async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>>;
-    async fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
+    fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>>;
+    fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
 
     /* Servers */
-    async fn start_server(&self, server: &ServerHandle) -> Result<()>;
+    fn start_server(&self, server: &ServerHandle) -> Result<()>;
 }
 
 pub type DriverHandle = Arc<dyn GenericDriver>;
@@ -47,13 +47,13 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    pub async fn load_all() -> Self {
+    pub fn load_all() -> Self {
         info!("Loading drivers...");
 
         let mut drivers = Vec::new();
 
         #[cfg(feature = "wasm-drivers")]
-        WasmDriver::load_all(&mut drivers).await;
+        WasmDriver::load_all(&mut drivers);
 
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Self { drivers }

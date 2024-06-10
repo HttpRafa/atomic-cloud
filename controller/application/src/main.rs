@@ -18,8 +18,7 @@ pub const VERSION: Version = Version {
     patch: 0,
 };
 
-#[tokio::main]
-async fn main() {
+fn main() {
     print_ascii_art();
     init_logging();
 
@@ -28,9 +27,9 @@ async fn main() {
     info!("Loading configurations...");
 
     let configuration = Config::new_filled();
-    let controller = Controller::new(configuration).await;
+    let controller = Controller::new(configuration);
     info!("Loaded cluster system in {:.2?}", start_time.elapsed());
-    controller.start().await;
+    controller.start();
 }
 
 #[cfg(debug_assertions)]

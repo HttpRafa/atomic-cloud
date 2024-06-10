@@ -1,11 +1,10 @@
-use std::{fs, path::Path, sync::{Arc, Weak}};
+use std::{fs, path::Path, sync::{Arc, Mutex, Weak}};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredGroup;
-use tokio::sync::Mutex;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
@@ -21,7 +20,7 @@ pub struct Groups {
 }
 
 impl Groups {
-    pub async fn load_all(nodes: &Nodes) -> Self {
+    pub fn load_all(nodes: &Nodes) -> Self {
         info!("Loading groups...");
 
         let groups_directory = Path::new(GROUPS_DIRECTORY);
@@ -69,12 +68,12 @@ impl Groups {
                 }
             };
 
-            let group = match Group::try_from(&name, &group, nodes).await {
+            let group = match Group::try_from(&name, &group, nodes) {
                 Some(group) => group,
                 None => continue,
             };
 
-            groups.add_group(group).await;
+            groups.add_group(group);
             info!("Loaded group {}", &name.blue());
         }
         
@@ -82,20 +81,20 @@ impl Groups {
         groups
     }
 
-    pub async fn tick(&self, servers: &Servers) {
+    pub fn tick(&self, servers: &Servers) {
         for group in &self.groups {
-            let mut group = group.lock().await;
-            group.tick(servers).await;
+            let mut group = group.lock().unwrap();
+            group.tick(servers);
         }
     }
 
-    pub async fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
+    pub fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
         if node_handles.is_empty() {
             return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
 
         for group in &self.groups {
-            if group.lock().await.name == name {
+            if group.lock().unwrap().name == name {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
@@ -103,20 +102,20 @@ impl Groups {
         let mut nodes = Vec::with_capacity(node_handles.len());
         for node in &node_handles {
             if let Some(node) = node.upgrade() {
-                nodes.push(node.lock().await.name.clone());
+                nodes.push(node.lock().unwrap().name.clone());
             }
         }
 
         let stored_node = StoredGroup { nodes, scaling, resources, deployment };
         let node = Group::from(name, &stored_node, node_handles);
 
-        self.add_group(node).await;
+        self.add_group(node);
         stored_node.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
         info!("Created group {}", name.blue());
         Ok(CreationResult::Created)
     }
 
-    async fn add_group(&mut self, group: GroupHandle) {
+    fn add_group(&mut self, group: GroupHandle) {
         self.groups.push(group);
     }
 }
@@ -156,16 +155,16 @@ impl Group {
         })
     }
 
-    async fn try_from(name: &str, stored_group: &StoredGroup, nodes: &Nodes) -> Option<GroupHandle> {
+    fn try_from(name: &str, stored_group: &StoredGroup, nodes: &Nodes) -> Option<GroupHandle> {
         let mut node_handles = Vec::with_capacity(stored_group.nodes.len());
         for node_name in &stored_group.nodes {
-            let node = nodes.find_by_name(node_name).await?;
+            let node = nodes.find_by_name(node_name)?;
             node_handles.push(node);
         }
         Some(Self::from(name, stored_group, node_handles))
     }
 
-    async fn tick(&mut self, servers: &Servers) {
+    fn tick(&mut self, servers: &Servers) {
         // Create how many servers we need to start to reach the min value
         for requested in 0..(self.scaling.minimum as usize).saturating_sub(self.servers.len()) {
             // Check if we have reached the max value
@@ -181,7 +180,7 @@ impl Group {
                 resources: self.resources.clone(),
                 deployment: self.deployment.clone(),
                 priority: self.scaling.priority,
-            }).await;
+            });
         }
     }
 

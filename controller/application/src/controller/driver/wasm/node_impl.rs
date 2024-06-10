@@ -15,11 +15,11 @@ pub struct WasmNode {
 
 #[async_trait]
 impl GenericNode for WasmNode {
-    async fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
+    fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
         if let Some(driver) = self.handle.upgrade() {
-            let mut handle = driver.handle.lock().await;
+            let mut handle = driver.handle.lock().unwrap();
             let (_, store) = handle.get();
-            match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount).await {
+            match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount) {
                 Ok(Ok(addresses)) => {
                     addresses
                         .into_iter()
@@ -37,17 +37,17 @@ impl GenericNode for WasmNode {
         }
     }
 
-    async fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()> {
+    fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
-            let mut handle = driver.handle.lock().await;
+            let mut handle = driver.handle.lock().unwrap();
             let (_, store) = handle.get();
-            driver.bindings.node_driver_bridge().generic_node().call_deallocate_addresses(store, self.resource, &addresses.iter().map(|address| address.into()).collect::<Vec<Address>>()).await
+            driver.bindings.node_driver_bridge().generic_node().call_deallocate_addresses(store, self.resource, &addresses.iter().map(|address| address.into()).collect::<Vec<Address>>())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
     }
 
-    async fn start_server(&self, _server: &ServerHandle) -> Result<()> {
+    fn start_server(&self, _server: &ServerHandle) -> Result<()> {
         Err(anyhow!("Not implemented yet"))
     }
 }

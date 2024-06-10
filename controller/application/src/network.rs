@@ -1,40 +1,66 @@
 use std::sync::Arc;
 use anyhow::Result;
-use log::{info, error};
-use tokio::task::JoinHandle;
+use log::{error, info};
+use tokio::{sync::watch::{self, Receiver, Sender}, task::JoinHandle};
 use tonic::transport::Server;
 use colored::Colorize;
 
 use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
 use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
-use crate::controller::Controller;
+use crate::controller::{Controller, WeakControllerHandle};
 
 mod server;
 mod admin;
 
-pub fn start_controller_server(controller: Arc<Controller>) -> JoinHandle<()> {
-    info!("Starting networking stack...");
-
-    tokio::spawn(async move {
-        if let Err(error) = run_controller_server(controller).await {
-            error!("Failed to start gRPC server: {}", error);
-        }
-    })
+pub struct NetworkStack {
+    shutdown: Sender<bool>,
+    handle: JoinHandle<()>,
+    controller: WeakControllerHandle,
 }
 
-async fn run_controller_server(controller: Arc<Controller>) -> Result<()> {
-    let address = controller.configuration.listener.expect("No listener address found in the config");
+impl NetworkStack {
+    pub fn start(controller: Arc<Controller>) -> Self {
 
-    let admin_service = AdminServiceImpl { controller: Arc::clone(&controller) };
-    let server_service = ServerServiceImpl { controller };
+        info!("Starting networking stack...");
 
-    info!("Controller {} on {}", "listening".blue(), format!("{}", address).blue());
+        let (sender, receiver) = watch::channel(false);
+    
+        return NetworkStack {
+            shutdown: sender,
+            handle: controller.get_runtime().spawn(launch_server(controller.clone(), receiver)),
+            controller: Arc::downgrade(&controller),
+        };
+    
+        async fn launch_server(controller: Arc<Controller>, shutdown: Receiver<bool>) {
+            if let Err(error) = run(controller, shutdown).await {
+                error!("Failed to start gRPC server: {}", error);
+            }
+        }
+    
+        async fn run(controller: Arc<Controller>, mut shutdown: Receiver<bool>) -> Result<()> {
+            let address = controller.configuration.listener.expect("No listener address found in the config");
+    
+            let admin_service = AdminServiceImpl { controller: Arc::clone(&controller) };
+            let server_service = ServerServiceImpl { controller };
+        
+            info!("Controller {} on {}", "listening".blue(), format!("{}", address).blue());
+        
+            Server::builder()
+                .add_service(AdminServiceServer::new(admin_service))
+                .add_service(ServerServiceServer::new(server_service))
+                .serve_with_shutdown(address, async {
+                    shutdown.changed().await.ok();
+                })
+                .await?;
+        
+            Ok(())
+        }
+    }
 
-    Server::builder()
-        .add_service(AdminServiceServer::new(admin_service))
-        .add_service(ServerServiceServer::new(server_service))
-        .serve(address)
-        .await?;
-
-    Ok(())
+    pub fn shutdown(self) {
+        self.shutdown.send(true).expect("Failed to send shutdown signal");
+        if let Some(controller) = self.controller.upgrade() {
+            controller.get_runtime().block_on(self.handle).expect("Failed to shutdown network stack");
+        }
+    }
 }

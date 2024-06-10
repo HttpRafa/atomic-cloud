@@ -1,14 +1,14 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::thread;
 use std::time::{Duration, Instant};
 use anyhow::Error;
 use log::warn;
 use server::Servers;
-use tokio::sync::{Mutex, MutexGuard};
-use tokio::time;
+use tokio::runtime::{Builder, Runtime};
 
 use crate::config::Config;
-use crate::network::start_controller_server;
+use crate::network::NetworkStack;
 use crate::controller::driver::Drivers;
 use crate::controller::group::Groups;
 use crate::controller::node::Nodes;
@@ -20,16 +20,18 @@ pub mod driver;
 
 const TICK_RATE: u64 = 1;
 
-type ControllerHandle = Weak<Controller>;
+pub type ControllerHandle = Arc<Controller>;
+pub type WeakControllerHandle = Weak<Controller>;
 
 pub struct Controller {
-    handle: ControllerHandle,
+    handle: WeakControllerHandle,
 
     /* Immutable */
     pub(crate) configuration: Config,
     pub(crate) drivers: Drivers,
 
     /* Runtime State */
+    runtime: Runtime,
     running: AtomicBool,
 
     /* Accessed rarely */
@@ -41,16 +43,17 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub async fn new(configuration: Config) -> Arc<Self> {
-        let drivers = Drivers::load_all().await;
-        let nodes = Nodes::load_all(&drivers).await;
-        let groups = Groups::load_all(&nodes).await;
+    pub fn new(configuration: Config) -> Arc<Self> {
+        let drivers = Drivers::load_all();
+        let nodes = Nodes::load_all(&drivers);
+        let groups = Groups::load_all(&nodes);
         let servers = Servers::new();
         Arc::new_cyclic(move |handle| {
             Self {
                 handle: handle.clone(),
                 configuration,
                 drivers,
+                runtime: Builder::new_multi_thread().enable_all().build().expect("Failed to create Tokio runtime"),
                 running: AtomicBool::new(true),
                 nodes: Mutex::new(nodes),
                 groups: Mutex::new(groups),
@@ -59,22 +62,25 @@ impl Controller {
         })
     }
 
-    pub async fn start(&self) {
-        let network_handle = start_controller_server(self.handle.upgrade().unwrap());
+    pub fn start(&self) {
+        let network_handle = NetworkStack::start(self.handle.upgrade().unwrap());
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);
+
+        // Wait for 1 second before starting the tick loop
+        thread::sleep(Duration::from_secs(1));
 
         while self.running.load(Ordering::Relaxed) {
             let start_time = Instant::now();
-            self.tick().await;
+            self.tick();
 
             let elapsed_time = start_time.elapsed();
             if elapsed_time < tick_duration {
-                time::sleep(tick_duration - elapsed_time).await;
+                thread::sleep(tick_duration - elapsed_time);
             }
         }
 
         // Stop network stack
-        network_handle.abort();
+        network_handle.shutdown();
     }
 
     pub fn request_stop(&self) {
@@ -82,27 +88,29 @@ impl Controller {
         self.running.store(false, Ordering::Relaxed);
     }
 
-    pub async fn request_nodes(&self) -> MutexGuard<Nodes> {
-        self.nodes.lock().await
+    pub fn lock_nodes(&self) -> MutexGuard<Nodes> {
+        self.nodes.lock().expect("Failed to get lock to nodes")
     }
 
-    pub async fn request_groups(&self) -> MutexGuard<Groups> {
-        self.groups.lock().await
+    pub fn lock_groups(&self) -> MutexGuard<Groups> {
+        self.groups.lock().expect("Failed to get lock to groups")
     }
 
-    pub fn request_servers(&self) -> &Servers {
+    pub fn get_servers(&self) -> &Servers {
         &self.servers
     }
 
-    async fn tick(&self) {
-        // NOTE: We have to be careful to not lock something used in some tick method to avoid deadlocks
+    pub fn get_runtime(&self) -> &Runtime {
+        &self.runtime
+    }
 
-        let servers = self.request_servers();
+    fn tick(&self) {
+        let servers = self.get_servers();
         // Check if all groups have started there servers etc..
-        self.request_groups().await.tick(servers).await;
+        self.lock_groups().tick(servers);
 
         // Check if all servers have sent their heartbeats and start requested server if we can
-        servers.tick(&self.handle).await;
+        servers.tick(&self.handle);
     }
 }
 

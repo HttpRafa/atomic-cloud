@@ -1,9 +1,8 @@
-use std::{collections::VecDeque, sync::{Arc, Mutex}, thread};
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
 use log::{error, info, warn};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
-use tokio::task::spawn_blocking;
 
 use crate::controller::{ControllerHandle, WeakControllerHandle};
 
@@ -140,12 +139,16 @@ pub struct Resources {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Retention {
+    #[serde(rename = "keep")]
     Keep,
+    #[serde(rename = "delete")]
     Delete,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum DeploySetting {
+    #[serde(rename = "image")]
     Image(String),
+    #[serde(rename = "disk_retention")]
     DiskRetention(Retention),
 }

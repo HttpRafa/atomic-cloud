@@ -18,6 +18,8 @@ pub mod group;
 pub mod server;
 pub mod driver;
 
+static STARTUP_SLEEP: Duration = Duration::from_secs(1);
+
 const TICK_RATE: u64 = 1;
 
 pub type ControllerHandle = Arc<Controller>;
@@ -67,7 +69,7 @@ impl Controller {
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);
 
         // Wait for 1 second before starting the tick loop
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(STARTUP_SLEEP);
 
         while self.running.load(Ordering::Relaxed) {
             let start_time = Instant::now();

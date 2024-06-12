@@ -32,10 +32,10 @@ impl Servers {
         'handle_request: while let Some(request) = requests.pop_back() {
             // Collect and sort nodes by the number of allocations
     
-            // Try to allocate resources on nodes
             for node in &request.nodes {
                 let arc = node.upgrade().unwrap();
                 let mut node = (node, &mut arc.lock().unwrap());
+                // Try to allocate resources on nodes
                 if let Ok(allocation) = node.1.allocate(&request.resources, &request.deployment) {
                     self.start_server(&controller, &request, allocation, (node.0, &mut node.1));
                     break 'handle_request;
@@ -82,7 +82,7 @@ impl Servers {
         self.servers.lock().unwrap().push(server.clone());
 
         // Send start request to node
-        // We do this async because the driver chould be running blocking code
+        // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = controller.upgrade() {
             let copy = controller.clone();
             controller.get_runtime().spawn_blocking(move || start_thread(copy, server));

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use log::{error, info, warn};
 use colored::Colorize;
@@ -8,6 +8,12 @@ use uuid::Uuid;
 use crate::controller::{ControllerHandle, WeakControllerHandle};
 
 use super::{group::WeakGroupHandle, node::{AllocationHandle, NodeHandle, WeakNodeHandle}};
+
+//const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(60);
+//const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
+
+const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(5);
+const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(2);
 
 pub type ServerHandle = Arc<Server>;
 
@@ -32,20 +38,22 @@ impl Servers {
 
     pub fn tick(&self) {
         // Sort requests by priority and process them
-        let mut requests = self.requests.lock().unwrap();
-        requests.make_contiguous().sort_unstable_by_key(|req| req.priority);
-        'handle_request: while let Some(request) = requests.pop_back() {
-            // Collect and sort nodes by the number of allocations
-    
-            for node in &request.nodes {
-                let node = node.upgrade().unwrap();
-                // Try to allocate resources on nodes
-                if let Ok(allocation) = node.allocate(&request.resources, &request.deployment) {
-                    self.start_server(&request, allocation, &node);
-                    break 'handle_request;
+        {
+            let mut requests = self.requests.lock().unwrap();
+            requests.make_contiguous().sort_unstable_by_key(|req| req.priority);
+            'handle_request: while let Some(request) = requests.pop_back() {
+                // Collect and sort nodes by the number of allocations
+        
+                for node in &request.nodes {
+                    let node = node.upgrade().unwrap();
+                    // Try to allocate resources on nodes
+                    if let Ok(allocation) = node.allocate(&request.resources, &request.deployment) {
+                        self.start_server(&request, allocation, &node);
+                        break 'handle_request;
+                    }
                 }
+                warn!("{} to allocate resources for server {}", "Failed".red(), request.name.red());
             }
-            warn!("{} to allocate resources for server {}", "Failed".red(), request.name.red());
         }
     }
 
@@ -53,7 +61,7 @@ impl Servers {
         self.requests.lock().unwrap().push_back(request);
     }
 
-    pub fn stop_server(&self, server: &ServerHandle) {
+    fn stop_server_nolock(&self, server: &ServerHandle, servers: &mut Vec<ServerHandle>) {
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
         // Remove resources allocated by server from node
@@ -72,7 +80,7 @@ impl Servers {
         if let Some(group) = server.group.upgrade() {
             group.remove_server(&server);
         }
-        self.servers.lock().unwrap().retain(|handle| !Arc::ptr_eq(handle, server));
+        servers.retain(|handle| !Arc::ptr_eq(handle, server));
 
         fn stop_thread(server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {
@@ -83,6 +91,10 @@ impl Servers {
         }
     }
 
+    pub fn stop_server(&self, server: &ServerHandle) {
+        self.stop_server_nolock(server, &mut self.servers.lock().unwrap());
+    }
+
     fn start_server(&self, request: &StartRequest, allocation: AllocationHandle, node: &NodeHandle) {
         info!("{} server {} on node {} listening on {}", "Starting".green(), request.name.blue(), node.name.blue(), allocation.primary_address().to_string().blue());
         let server = Arc::new(Server {
@@ -91,6 +103,7 @@ impl Servers {
             group: request.group.clone(),
             node: Arc::downgrade(&node),
             allocation,
+            health: Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT),
             state: State::Starting,
         });
 
@@ -124,8 +137,29 @@ pub struct Server {
     pub node: WeakNodeHandle,
     pub allocation: AllocationHandle,
 
-    /* State that the server can have */
+    /* Health and State of the server */
+    health: Health,
     state: State,
+}
+
+pub struct Health {
+    pub next_checkin: Instant,
+    pub timeout: Duration,
+}
+
+impl Health {
+    pub fn new(startup_time: Duration, timeout: Duration) -> Self {
+        Self {
+            next_checkin: Instant::now() + startup_time,
+            timeout,
+        }
+    }
+    pub fn reset(&mut self) {
+        self.next_checkin = Instant::now() + self.timeout;
+    }
+    pub fn is_dead(&self) -> bool {
+        Instant::now() > self.next_checkin
+    }
 }
 
 pub enum State {

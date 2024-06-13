@@ -35,14 +35,14 @@ interface api {
 }
 
 interface bridge {
-    // Init
+    /* Init */
     record information {
         authors: list<string>,
         version: string,
         ready: bool,
     }
 
-    // Nodes
+    /* Nodes */
     variant capability {
         limited-memory(u32),
         unlimited-memory(bool),
@@ -50,15 +50,51 @@ interface bridge {
         sub-node(string)
     }
 
+    /* Allocation */
     record address {
         ip: string,
         port: u16,
     }
 
+    /* Server | Start */
+    record resources {
+        memory: u32,
+        cpu: u32,
+        disk: u32,
+        addresses: u32,
+    }
+
+    variant retention {
+        keep,
+        delete,
+    }
+
+    variant deploy-setting {
+        image(string),
+        disk-retention(retention),
+    }
+
+    record allocation {
+        addresses: list<address>,
+        resources: resources,
+        deployment: list<deploy-setting>,
+    }
+
+    record server {
+        name: string,
+        uuid: string,
+        group: string,
+        allocation: allocation,
+    }
+    /* Server | End */
+
     resource generic-node {
         constructor(name: string, capabilities: list<capability>);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
+
+        start-server: func(server: server);
+        stop-server: func(server: server);
     }
 
     resource generic-driver {

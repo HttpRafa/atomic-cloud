@@ -68,7 +68,6 @@ impl AdminService for AdminServiceImpl {
             Some(node) => node.upgrade().ok_or(Status::not_found("Node not found"))?,
             None => return Err(Status::not_found("Node not found")),
         };
-        let node = node.lock().unwrap();
 
         let mut limited_memory = None;
         let mut unlimited_memory = None;
@@ -98,7 +97,7 @@ impl AdminService for AdminServiceImpl {
         let handle = self.controller.lock_nodes();
         let mut nodes = Vec::with_capacity(handle.get_amount());
         for node in handle.get_nodes() {
-            nodes.push(node.lock().unwrap().name.clone());
+            nodes.push(node.name.clone());
         }
 
         Ok(Response::new(NodeList { nodes }))

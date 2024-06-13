@@ -11,8 +11,8 @@ use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, se
 
 const NODES_DIRECTORY: &str = "nodes";
 
-type NodeHandle = Arc<Mutex<Node>>;
-pub type WeakNodeHandle = Weak<Mutex<Node>>;
+pub type NodeHandle = Arc<Node>;
+pub type WeakNodeHandle = Weak<Node>;
 
 pub struct Nodes {
     nodes: Vec<NodeHandle>,
@@ -97,7 +97,7 @@ impl Nodes {
 
     pub fn find_by_name(&self, name: &str) -> Option<WeakNodeHandle> {
         for node in &self.nodes {
-            if node.lock().unwrap().name.eq_ignore_ascii_case(name) {
+            if node.name.eq_ignore_ascii_case(name) {
                 return Some(Arc::downgrade(node));
             }
         }
@@ -106,7 +106,7 @@ impl Nodes {
 
     pub fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<CreationResult> {
         for node in &self.nodes {
-            if node.lock().unwrap().name == name {
+            if node.name == name {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
@@ -127,7 +127,7 @@ impl Nodes {
     fn add_node(&mut self, mut node: Node) -> Result<()> {
         match node.init() {
             Ok(_) => {
-                self.nodes.push(Arc::new(Mutex::new(node)));
+                self.nodes.push(Arc::new(node));
                 Ok(())
             }
             Err(error) => Err(error),
@@ -158,7 +158,7 @@ pub struct Node {
     inner: Option<DriverNodeHandle>,
 
     /* Allocations made on this node */
-    pub allocations: Vec<AllocationHandle>,
+    pub allocations: Mutex<Vec<AllocationHandle>>,
 }
 
 impl Node {
@@ -168,7 +168,7 @@ impl Node {
             capabilities: stored_node.capabilities.clone(),
             driver,
             inner: None,
-            allocations: Vec::new(),
+            allocations: Mutex::new(Vec::new()),
         }
     }
 
@@ -194,17 +194,18 @@ impl Node {
         }
     }
 
-    pub fn allocate(&mut self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
+    pub fn allocate(&self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
+        let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
         for capability in &self.capabilities {
             match capability {
                 Capability::LimitedMemory(value) => {
-                    let used_memory: u32 = self.allocations.iter().map(|allocation| allocation.resources.memory).sum();
+                    let used_memory: u32 = allocations.iter().map(|allocation| allocation.resources.memory).sum();
                     if used_memory > *value {
                         return Err(anyhow!("Node has reached the memory limit"));
                     }
                 },
                 Capability::MaxAllocations(value) => {
-                    if self.allocations.len() + 1 > *value as usize {
+                    if allocations.len() + 1 > *value as usize {
                         return Err(anyhow!("Node has reached the maximum amount of allocations"));
                     }
                 },
@@ -222,15 +223,15 @@ impl Node {
             resources: resources.clone(),
             deployment: deployment.to_owned(),
         });
-        self.allocations.push(allocation.clone());
+        allocations.push(allocation.clone());
         Ok(allocation)
     }
 
-    pub fn deallocate(&mut self, allocation: &AllocationHandle) {
+    pub fn deallocate(&self, allocation: &AllocationHandle) {
         self.inner.as_ref().unwrap().deallocate_addresses(allocation.addresses.clone()).unwrap_or_else(|error| {
             error!("{} to deallocate addresses: {}", "Failed".red(), &error);
         });
-        self.allocations.retain(|alloc| !Arc::ptr_eq(alloc, allocation));
+        self.allocations.lock().expect("Failed to lock allocations").retain(|alloc| !Arc::ptr_eq(alloc, allocation));
     }
 
     pub fn get_inner(&self) -> &DriverNodeHandle {

@@ -37,6 +37,7 @@ pub trait GenericNode: Send + Sync {
 
     /* Servers */
     fn start_server(&self, server: &ServerHandle) -> Result<()>;
+    fn stop_server(&self, server: &ServerHandle) -> Result<()>;
 }
 
 pub type DriverHandle = Arc<dyn GenericDriver>;

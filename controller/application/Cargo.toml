@@ -12,6 +12,9 @@ colored = "2.1.0"
 # Error handling
 anyhow = "1.0.86"
 
+# Server system
+uuid = { version = "1.8.0", features = ["v4"] }
+
 # Configuration
 serde = { version = "1.0.203", features = ["derive"] }
 toml = "0.8.13"

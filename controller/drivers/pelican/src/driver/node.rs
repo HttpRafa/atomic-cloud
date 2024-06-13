@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rand::Rng;
 
-use crate::exports::node::driver::bridge::{Address, Capability, GuestGenericNode};
+use crate::exports::node::driver::bridge::{Address, Capability, GuestGenericNode, Server};
 
 use super::PelicanNodeWrapper;
 
@@ -29,6 +29,12 @@ impl GuestGenericNode for PelicanNodeWrapper {
     }
 
     fn deallocate_addresses(&self, _addresses: Vec<Address>) {}
+
+    fn start_server(&self, _server: Server) {
+    }
+
+    fn stop_server(&self, _server: Server) {
+    }
 }
 
 pub struct PelicanNode {

@@ -12,8 +12,8 @@ use super::{node::{Nodes, WeakNodeHandle}, server::{DeploySetting, Resources, Se
 
 const GROUPS_DIRECTORY: &str = "groups";
 
-type GroupHandle = Arc<Mutex<Group>>;
-pub type WeakGroupHandle = Weak<Mutex<Group>>;
+type GroupHandle = Arc<Group>;
+pub type WeakGroupHandle = Weak<Group>;
 
 pub struct Groups {
     groups: Vec<GroupHandle>,
@@ -83,7 +83,6 @@ impl Groups {
 
     pub fn tick(&self, servers: &Servers) {
         for group in &self.groups {
-            let mut group = group.lock().unwrap();
             group.tick(servers);
         }
     }
@@ -94,7 +93,7 @@ impl Groups {
         }
 
         for group in &self.groups {
-            if group.lock().unwrap().name == name {
+            if group.name == name {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
@@ -102,7 +101,7 @@ impl Groups {
         let mut nodes = Vec::with_capacity(node_handles.len());
         for node in &node_handles {
             if let Some(node) = node.upgrade() {
-                nodes.push(node.lock().unwrap().name.clone());
+                nodes.push(node.name.clone());
             }
         }
 
@@ -130,28 +129,28 @@ pub struct ScalingPolicy {
 pub struct Group {
     handle: WeakGroupHandle,
 
-    name: String,
-    nodes: Vec<WeakNodeHandle>,
-    scaling: ScalingPolicy,
-    resources: Resources,
-    deployment: Vec<DeploySetting>,
+    pub name: String,
+    pub nodes: Vec<WeakNodeHandle>,
+    pub scaling: ScalingPolicy,
+    pub resources: Resources,
+    pub deployment: Vec<DeploySetting>,
 
     /* Servers that the group has started */
-    servers: Vec<ServerHandle>,
+    servers: Mutex<Vec<ServerHandle>>,
 }
 
 impl Group {
     fn from(name: &str, stored_group: &StoredGroup, nodes: Vec<WeakNodeHandle>) -> GroupHandle {
         Arc::new_cyclic(|handle| {
-            Mutex::new(Self {
+            Self {
                 handle: handle.clone(),
                 name: name.to_string(),
                 nodes,
                 scaling: stored_group.scaling,
                 resources: stored_group.resources.clone(),
                 deployment: stored_group.deployment.clone(),
-                servers: Vec::new(),
-            })
+                servers: Mutex::new(Vec::new()),
+            }
         })
     }
 
@@ -164,17 +163,18 @@ impl Group {
         Some(Self::from(name, stored_group, node_handles))
     }
 
-    fn tick(&mut self, servers: &Servers) {
+    fn tick(&self, server_manager: &Servers) {
+        let servers = self.servers.lock().expect("Failed to lock servers");
         // Create how many servers we need to start to reach the min value
-        for requested in 0..(self.scaling.minimum as usize).saturating_sub(self.servers.len()) {
+        for requested in 0..(self.scaling.minimum as usize).saturating_sub(servers.len()) {
             // Check if we have reached the max value
-            if (self.servers.len() + requested) >= self.scaling.maximum as usize {
+            if (servers.len() + requested) >= self.scaling.maximum as usize {
                 break;
             }
 
             // We need to start a server
-            servers.queue_server(StartRequest {
-                name: format!("{}-{}", self.name, (self.servers.len() + requested)),
+            server_manager.queue_server(StartRequest {
+                name: format!("{}-{}", self.name, (servers.len() + requested)),
                 nodes: self.nodes.clone(),
                 group: self.handle.clone(),
                 resources: self.resources.clone(),
@@ -184,12 +184,12 @@ impl Group {
         }
     }
 
-    pub fn add_server(&mut self, server: ServerHandle) {
-        self.servers.push(server);
+    pub fn add_server(&self, server: ServerHandle) {
+        self.servers.lock().expect("Failed to lock servers").push(server);
     }
 
-    pub fn remove_server(&mut self, server: &ServerHandle) {
-        self.servers.retain(|handle| !Arc::ptr_eq(handle, server));
+    pub fn remove_server(&self, server: &ServerHandle) {
+        self.servers.lock().expect("Failed to lock servers").retain(|handle| !Arc::ptr_eq(handle, server));
     }
 }
 

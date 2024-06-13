@@ -46,11 +46,11 @@ pub struct Controller {
 
 impl Controller {
     pub fn new(configuration: Config) -> Arc<Self> {
-        let drivers = Drivers::load_all();
-        let nodes = Nodes::load_all(&drivers);
-        let groups = Groups::load_all(&nodes);
-        let servers = Servers::new();
         Arc::new_cyclic(move |handle| {
+            let drivers = Drivers::load_all();
+            let nodes = Nodes::load_all(&drivers);
+            let groups = Groups::load_all(&nodes);
+            let servers = Servers::new(handle.clone());
             Self {
                 handle: handle.clone(),
                 configuration,
@@ -112,7 +112,7 @@ impl Controller {
         self.lock_groups().tick(servers);
 
         // Check if all servers have sent their heartbeats and start requested server if we can
-        servers.tick(&self.handle);
+        servers.tick();
     }
 }
 

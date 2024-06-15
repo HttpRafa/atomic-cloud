@@ -3,8 +3,8 @@ on:
     branches:
       - main
     paths:
-      - controller/drivers/pelican/**
-name: Publish pelican driver
+      - controller/drivers/pterodactyl/**
+name: Publish pterodactyl driver
 
 jobs:
   build:
@@ -39,15 +39,15 @@ jobs:
         working-directory: controller/
         run: |
           export RUSTFLAGS="-Z wasi-exec-model=reactor"
-          cargo +nightly build -p pelican --target wasm32-wasip1 --release
-          ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pelican.wasm \
-              -o ../pelican.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
+          cargo +nightly build -p pterodactyl --target wasm32-wasip1 --release
+          ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pterodactyl.wasm \
+              -o ../pterodactyl.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
 
       - name: Upload file to Github
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: pelican
+          name: pterodactyl
           path: |
-            pelican.wasm
+            pterodactyl.wasm
             LICENSE

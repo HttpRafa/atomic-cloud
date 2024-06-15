@@ -9,11 +9,8 @@ use crate::controller::{ControllerHandle, WeakControllerHandle};
 
 use super::{group::WeakGroupHandle, node::{AllocationHandle, NodeHandle, WeakNodeHandle}};
 
-//const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(60);
-//const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
-
-const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(5);
-const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(2);
+const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(60);
+const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub type ServerHandle = Arc<Server>;
 
@@ -37,6 +34,29 @@ impl Servers {
     }
 
     pub fn tick(&self) {
+        // Check health of servers
+        {
+            let mut servers = self.servers.lock().unwrap();
+            let dead_servers = servers.iter().filter(|server| {
+                if server.health.is_dead() {
+                    match server.state {
+                        State::Starting => {
+                            warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", EXPECTED_STARTUP_TIME).blue());
+                        }
+                        _ => {
+                            warn!("Server {} has not checked in for {:.2?}, indicating a potential failure.", server.name.red(), format!("{:.2?}", server.health.timeout).blue());
+                        }
+                    }
+                    true
+                } else {
+                    false
+                }
+            }).cloned().collect::<Vec<_>>();
+            for server in dead_servers {
+                self.stop_server_nolock(&server, &mut servers);
+            }
+        }
+
         // Sort requests by priority and process them
         {
             let mut requests = self.requests.lock().unwrap();
@@ -49,7 +69,7 @@ impl Servers {
                     // Try to allocate resources on nodes
                     if let Ok(allocation) = node.allocate(&request.resources, &request.deployment) {
                         self.start_server(&request, allocation, &node);
-                        break 'handle_request;
+                        continue 'handle_request;
                     }
                 }
                 warn!("{} to allocate resources for server {}", "Failed".red(), request.name.red());

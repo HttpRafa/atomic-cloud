@@ -4,12 +4,12 @@ use rand::Rng;
 
 use crate::exports::node::driver::bridge::{Address, Capability, GuestGenericNode, Server};
 
-use super::PelicanNodeWrapper;
+use super::PterodactylNodeWrapper;
 
-impl GuestGenericNode for PelicanNodeWrapper {
+impl GuestGenericNode for PterodactylNodeWrapper {
     fn new(name: String, capabilities: Vec<Capability>) -> Self {
         Self {
-            inner: Arc::new(PelicanNode {
+            inner: Arc::new(PterodactylNode {
                 name,
                 capabilities,
             }),
@@ -37,7 +37,7 @@ impl GuestGenericNode for PelicanNodeWrapper {
     }
 }
 
-pub struct PelicanNode {
+pub struct PterodactylNode {
     pub name: String,
     pub capabilities: Vec<Capability>,
 }

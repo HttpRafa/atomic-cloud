@@ -2,7 +2,7 @@ use std::{fs, path::Path, sync::{Arc, Mutex, Weak}};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredGroup;
 

@@ -39,7 +39,7 @@ impl Backend {
         let mut save = false;
 
         if backend.url.is_none() {
-            backend.url = Some("http://panel.gameserver.local.example.com".to_string());
+            backend.url = Some("http://panel.gameserver.example.com".to_string());
             save = true;
         }
 
@@ -55,10 +55,10 @@ impl Backend {
         }
 
         // Check config values are overridden by environment variables
-        if let Ok(url) = std::env::var("PELICAN_URL") {
+        if let Ok(url) = std::env::var("PTERODACTYL_URL") {
             backend.url = Some(url);
         }
-        if let Ok(token) = std::env::var("PELICAN_TOKEN") {
+        if let Ok(token) = std::env::var("PTERODACTYL_TOKEN") {
             backend.token = Some(token);
         }
 
@@ -74,7 +74,7 @@ impl Backend {
 
     fn pull_api<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str) -> Option<T> {
         let url = format!("{}{}/{}", self.url.as_ref().unwrap(), endpoint, target);
-        debug!("Sending request to the pelican panel: {:?} {}", method, &url);
+        debug!("Sending request to the pterodactyl panel: {:?} {}", method, &url);
         let response = send_http_request(method, &url, &[Header {
             key: "Authorization".to_string(),
             value: format!("Bearer {}", self.token.as_ref().unwrap()),
@@ -89,13 +89,13 @@ impl Backend {
         response.as_ref()?;
         let response = response.unwrap();
         if response.status_code != expected_code {
-            error!("Received {} status code {} from the pelican panel: {}", "unexpected".red(), &response.status_code, &response.reason_phrase);
+            error!("Received {} status code {} from the pterodactyl panel: {}", "unexpected".red(), &response.status_code, &response.reason_phrase);
             debug!("Response body: {}", String::from_utf8_lossy(&response.bytes));
             return None;
         }
         let response = serde_json::from_slice::<T>(&response.bytes);
         if let Err(error) = response {
-            error!("{} to parse response from the pelican panel: {}", "Failed".red(), &error);
+            error!("{} to parse response from the pterodactyl panel: {}", "Failed".red(), &error);
             return None;
         }
         Some(response.unwrap())

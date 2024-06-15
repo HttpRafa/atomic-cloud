@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "application",
-    "drivers/pelican"
+    "drivers/pterodactyl"
 ]
 
 [profile.release]

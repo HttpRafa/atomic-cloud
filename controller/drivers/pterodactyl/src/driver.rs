@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 use std::sync::{Arc, Mutex};
 use backend::Backend;
 use colored::Colorize;
-use node::PelicanNode;
+use node::PterodactylNode;
 
 use crate::exports::node::driver::bridge::{Capability, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
 use crate::info;
@@ -14,21 +14,21 @@ mod backend;
 const AUTHORS: [&str; 1] = ["HttpRafa"];
 const VERSION: &str = "0.1.0";
 
-pub struct Pelican {
+pub struct Pterodactyl {
     backend: UnsafeCell<Option<Backend>>,
 
     /* Nodes that this driver handles */
-    nodes: Mutex<Vec<Arc<PelicanNode>>>,
+    nodes: Mutex<Vec<Arc<PterodactylNode>>>,
 }
 
-impl Pelican {
+impl Pterodactyl {
     fn get_backend(&self) -> &Backend {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.backend.get() }.as_ref().unwrap()
     }
 }
 
-impl GuestGenericDriver for Pelican {
+impl GuestGenericDriver for Pterodactyl {
     fn new() -> Self {
         Self {
             backend: UnsafeCell::new(None),
@@ -50,9 +50,9 @@ impl GuestGenericDriver for Pelican {
 
         if let Some(Capability::SubNode(ref value)) = capabilities.iter().find(|cap| matches!(cap, Capability::SubNode(_))) {
             if !self.get_backend().node_exists(value) {
-                return Err("Node does not exist in the Pelican panel".to_string());
+                return Err("Node does not exist in the Pterodactyl panel".to_string());
             }
-            let wrapper = PelicanNodeWrapper::new(name, capabilities);
+            let wrapper = PterodactylNodeWrapper::new(name, capabilities);
             // Add node to nodes
             let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
             nodes.push(wrapper.inner.clone());
@@ -63,6 +63,6 @@ impl GuestGenericDriver for Pelican {
     }
 }
 
-pub struct PelicanNodeWrapper {
-    pub inner: Arc<PelicanNode>,
+pub struct PterodactylNodeWrapper {
+    pub inner: Arc<PterodactylNode>,
 }

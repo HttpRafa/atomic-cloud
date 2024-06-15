@@ -12,7 +12,7 @@ pub mod node;
 mod backend;
 
 const AUTHORS: [&str; 1] = ["HttpRafa"];
-const VERSION: &str = "0.1.0";
+const VERSION: &str = "0.1.0-alpha";
 
 pub struct Pterodactyl {
     backend: UnsafeCell<Option<Backend>>,

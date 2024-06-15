@@ -4,7 +4,7 @@ use backend::Backend;
 use colored::Colorize;
 use node::PterodactylNode;
 
-use crate::exports::node::driver::bridge::{Capability, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
+use crate::exports::node::driver::bridge::{Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
 use crate::info;
 
 pub mod node;
@@ -45,11 +45,11 @@ impl GuestGenericDriver for Pterodactyl {
         }
     }
 
-    fn init_node(&self, name: String, capabilities: Vec<Capability>) -> Result<GenericNode, String> {
+    fn init_node(&self, name: String, capabilities: Capabilities) -> Result<GenericNode, String> {
         info!("Checking node {}", name.blue());
 
-        if let Some(Capability::SubNode(ref value)) = capabilities.iter().find(|cap| matches!(cap, Capability::SubNode(_))) {
-            if !self.get_backend().node_exists(value) {
+        if let Some(value) = capabilities.sub_node.as_ref() {
+            if !self.get_backend().node_exists(&value) {
                 return Err("Node does not exist in the Pterodactyl panel".to_string());
             }
             let wrapper = PterodactylNodeWrapper::new(name, capabilities);

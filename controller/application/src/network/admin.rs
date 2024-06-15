@@ -2,7 +2,7 @@ use std::sync::Arc;
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::Capability, server::{DeploySetting, Resources, Retention}, Controller, CreationResult};
+use crate::controller::{group::ScalingPolicy, node::Capabilities, server::{Deployment, DriverSetting, Resources, Retention}, Controller, CreationResult};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -27,19 +27,10 @@ impl AdminService for AdminServiceImpl {
         let name = &node.name;
         let driver = &node.driver;
 
-        let mut capabilities = Vec::new();
-        if let Some(value) = node.limited_memory {
-            capabilities.push(Capability::LimitedMemory(value));
-        }
-        if let Some(value) = node.unlimited_memory {
-            capabilities.push(Capability::UnlimitedMemory(value));
-        }
-        if let Some(value) = node.max_allocations {
-            capabilities.push(Capability::MaxAllocations(value));
-        }
-        if let Some(value) = node.sub_node {
-            capabilities.push(Capability::SubNode(value));
-        }
+        let mut capabilities = Capabilities::default();
+        capabilities.memory = node.memory;
+        capabilities.max_allocations = node.max_allocations;
+        capabilities.sub_node = node.sub_node;
 
         let driver = match self.controller.drivers.find_by_name(driver) {
             Some(driver) => driver,
@@ -69,27 +60,12 @@ impl AdminService for AdminServiceImpl {
             None => return Err(Status::not_found("Node not found")),
         };
 
-        let mut limited_memory = None;
-        let mut unlimited_memory = None;
-        let mut max_allocations = None;
-        let mut sub_node = None;
-
-        for capability in &node.capabilities {
-            match capability {
-                Capability::LimitedMemory(value) => limited_memory = Some(*value),
-                Capability::UnlimitedMemory(value) => unlimited_memory = Some(*value),
-                Capability::MaxAllocations(value) => max_allocations = Some(*value),
-                Capability::SubNode(value) => sub_node = Some(value.clone()),
-            }
-        }
-
         Ok(Response::new(Node {
             name: node.name.to_owned(),
             driver: node.driver.name().to_owned(),
-            limited_memory,
-            unlimited_memory,
-            max_allocations,
-            sub_node,
+            memory: node.capabilities.memory,
+            max_allocations: node.capabilities.max_allocations,
+            sub_node: node.capabilities.sub_node.clone(),
         }))
     }
 
@@ -129,17 +105,17 @@ impl AdminService for AdminServiceImpl {
         };
 
         /* Deployment */
-        let mut deployment = Vec::new();
+        let mut deployment = Deployment::default();
         if let Some(value) = group.deployment {
-            if let Some(image) = value.image {
-                deployment.push(DeploySetting::Image(image));
-            }
-            if let Some(retention) = value.disk_retention {
-                let retention = match retention {
+            deployment.driver_settings = value.driver_settings.iter().map(|setting| DriverSetting {
+                key: setting.key.clone(),
+                value: setting.value.clone(),
+            }).collect();
+            if let Some(value) = value.disk_retention {
+                deployment.disk_retention = match value {
                     x if x == Retention::Keep as i32 => Retention::Keep,
                     _ => Retention::Delete,
                 };
-                deployment.push(DeploySetting::DiskRetention(retention));
             }
         }
 

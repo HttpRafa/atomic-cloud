@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use stored::StoredNode;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, server::{DeploySetting, Resources}, CreationResult};
+use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, server::{Deployment, Resources}, CreationResult};
 
 const NODES_DIRECTORY: &str = "nodes";
 
@@ -104,7 +104,7 @@ impl Nodes {
         None
     }
 
-    pub fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Vec<Capability>) -> Result<CreationResult> {
+    pub fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Capabilities) -> Result<CreationResult> {
         for node in &self.nodes {
             if node.name == name {
                 return Ok(CreationResult::AlreadyExists);
@@ -140,7 +140,7 @@ pub type AllocationHandle = Arc<Allocation>;
 pub struct Allocation {
     pub addresses: Vec<SocketAddr>,
     pub resources: Resources,
-    pub deployment: Vec<DeploySetting>,
+    pub deployment: Deployment,
 }
 
 impl Allocation {
@@ -151,7 +151,7 @@ impl Allocation {
 
 pub struct Node {
     pub name: String,
-    pub capabilities: Vec<Capability>,
+    pub capabilities: Capabilities,
 
     /* Driver handles */
     pub driver: DriverHandle,
@@ -194,22 +194,17 @@ impl Node {
         }
     }
 
-    pub fn allocate(&self, resources: &Resources, deployment: &[DeploySetting]) -> Result<AllocationHandle> {
+    pub fn allocate(&self, resources: &Resources, deployment: Deployment) -> Result<AllocationHandle> {
         let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
-        for capability in &self.capabilities {
-            match capability {
-                Capability::LimitedMemory(value) => {
-                    let used_memory: u32 = allocations.iter().map(|allocation| allocation.resources.memory).sum();
-                    if used_memory > *value {
-                        return Err(anyhow!("Node has reached the memory limit"));
-                    }
-                },
-                Capability::MaxAllocations(value) => {
-                    if allocations.len() + 1 > *value as usize {
-                        return Err(anyhow!("Node has reached the maximum amount of allocations"));
-                    }
-                },
-                _ => (),
+        if let Some(max_memory) = self.capabilities.memory {
+            let used_memory: u32 = allocations.iter().map(|allocation| allocation.resources.memory).sum();
+            if used_memory > max_memory {
+                return Err(anyhow!("Node has reached the memory limit"));
+            }
+        }
+        if let Some(max_allocations) = self.capabilities.max_allocations {
+            if allocations.len() + 1 > max_allocations as usize {
+                return Err(anyhow!("Node has reached the maximum amount of allocations"));
             }
         }
 
@@ -221,7 +216,7 @@ impl Node {
         let allocation = Arc::new(Allocation {
             addresses,
             resources: resources.clone(),
-            deployment: deployment.to_owned(),
+            deployment: deployment,
         });
         allocations.push(allocation.clone());
         Ok(allocation)
@@ -239,27 +234,23 @@ impl Node {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub enum Capability {
-    #[serde(rename = "limited_memory")]
-    LimitedMemory(u32),
-    #[serde(rename = "unlimited_memory")]
-    UnlimitedMemory(bool),
-    #[serde(rename = "max_allocations")]
-    MaxAllocations(u32),
-    #[serde(rename = "sub_node")]
-    SubNode(String),
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct Capabilities {
+    pub memory: Option<u32>,
+    pub max_allocations: Option<u32>,
+    pub sub_node: Option<String>,
 }
 
 mod stored {
     use serde::{Deserialize, Serialize};
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-    use super::Capability;
+
+    use super::Capabilities;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {
         pub driver: String,
-        pub capabilities: Vec<Capability>,
+        pub capabilities: Capabilities,
     }
 
     impl LoadFromTomlFile for StoredNode {}

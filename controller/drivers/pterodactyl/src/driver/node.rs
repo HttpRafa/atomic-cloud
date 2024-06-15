@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use rand::Rng;
 
-use crate::exports::node::driver::bridge::{Address, Capability, GuestGenericNode, Server};
+use crate::exports::node::driver::bridge::{Address, Capabilities, GuestGenericNode, Server};
 
 use super::PterodactylNodeWrapper;
 
 impl GuestGenericNode for PterodactylNodeWrapper {
-    fn new(name: String, capabilities: Vec<Capability>) -> Self {
+    fn new(name: String, capabilities: Capabilities) -> Self {
         Self {
             inner: Arc::new(PterodactylNode {
                 name,
@@ -39,5 +39,5 @@ impl GuestGenericNode for PterodactylNodeWrapper {
 
 pub struct PterodactylNode {
     pub name: String,
-    pub capabilities: Vec<Capability>,
+    pub capabilities: Capabilities,
 }

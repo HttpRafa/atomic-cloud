@@ -43,11 +43,10 @@ interface bridge {
     }
 
     /* Nodes */
-    variant capability {
-        limited-memory(u32),
-        unlimited-memory(bool),
-        max-allocations(u32),
-        sub-node(string)
+    record capabilities {
+        memory: option<u32>,
+        max-allocations: option<u32>,
+        sub-node: option<string>,
     }
 
     /* Allocation */
@@ -64,20 +63,25 @@ interface bridge {
         addresses: u32,
     }
 
+    record driver-setting {
+        key: string,
+        value: string,
+    }
+
     variant retention {
         keep,
         delete,
     }
 
-    variant deploy-setting {
-        image(string),
-        disk-retention(retention),
+    record deployment {
+        driver-settings: list<driver-setting>,
+        disk-retention: retention,
     }
 
     record allocation {
         addresses: list<address>,
         resources: resources,
-        deployment: list<deploy-setting>,
+        deployment: deployment,
     }
 
     record server {
@@ -89,7 +93,7 @@ interface bridge {
     /* Server | End */
 
     resource generic-node {
-        constructor(name: string, capabilities: list<capability>);
+        constructor(name: string, capabilities: capabilities);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
@@ -101,7 +105,7 @@ interface bridge {
         constructor();
         // NOTE: Do not call any log or http functions in the constructor as they may not be available yet
         init: func() -> information;
-        init-node: func(name: string, capabilities: list<capability>) -> result<generic-node, string>;
+        init-node: func(name: string, capabilities: capabilities) -> result<generic-node, string>;
     }
 }
 

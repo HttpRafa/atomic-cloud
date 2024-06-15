@@ -17,7 +17,7 @@ use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use crate::config::CONFIG_DIRECTORY;
-use crate::controller::node::{Node, Capability};
+use crate::controller::node::{Capabilities, Node};
 use super::source::Source;
 use super::{DriverNodeHandle, GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 
@@ -143,7 +143,7 @@ impl GenericDriver for WasmDriver {
     fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
         let mut handle = self.handle.lock().unwrap();
         let (resource, store) = handle.get();
-        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &node.capabilities.iter().map(|cap| cap.into()).collect::<Vec<bridge::Capability>>())? {
+        match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &(&node.capabilities).into())? {
             Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
                 resource: node,
@@ -309,22 +309,21 @@ impl From<bridge::Information> for Information {
     }
 }
 
-impl From<&Capability> for bridge::Capability {
-    fn from(val: &Capability) -> Self {
-        match val {
-            Capability::LimitedMemory(memory) => bridge::Capability::LimitedMemory(*memory),
-            Capability::UnlimitedMemory(enabled) => bridge::Capability::UnlimitedMemory(*enabled),
-            Capability::MaxAllocations(servers) => bridge::Capability::MaxAllocations(*servers),
-            Capability::SubNode(node) => bridge::Capability::SubNode(node.to_owned()),
+impl Into<bridge::Capabilities> for &Capabilities {
+    fn into(self) -> bridge::Capabilities {
+        bridge::Capabilities { 
+            memory: self.memory, 
+            max_allocations: self.max_allocations, 
+            sub_node: self.sub_node.clone(), 
         }
     }
 }
 
-impl From<&SocketAddr> for bridge::Address {
-    fn from(val: &SocketAddr) -> Self {
+impl Into<bridge::Address> for &SocketAddr {
+    fn into(self) -> bridge::Address {
         bridge::Address {
-            ip: val.ip().to_string(),
-            port: val.port(),
+            ip: self.ip().to_string(),
+            port: self.port(),
         }
     }
 }

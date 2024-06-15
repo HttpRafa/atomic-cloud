@@ -8,7 +8,7 @@ use shared::StoredGroup;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::{node::{Nodes, WeakNodeHandle}, server::{DeploySetting, Resources, ServerHandle, Servers, StartRequest}, CreationResult};
+use super::{node::{Nodes, WeakNodeHandle}, server::{Deployment, Resources, ServerHandle, Servers, StartRequest}, CreationResult};
 
 const GROUPS_DIRECTORY: &str = "groups";
 
@@ -87,7 +87,7 @@ impl Groups {
         }
     }
 
-    pub fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Vec<DeploySetting>) -> Result<CreationResult> {
+    pub fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Deployment) -> Result<CreationResult> {
         if node_handles.is_empty() {
             return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
@@ -133,7 +133,7 @@ pub struct Group {
     pub nodes: Vec<WeakNodeHandle>,
     pub scaling: ScalingPolicy,
     pub resources: Resources,
-    pub deployment: Vec<DeploySetting>,
+    pub deployment: Deployment,
 
     /* Servers that the group has started */
     servers: Mutex<Vec<ServerHandle>>,
@@ -196,7 +196,7 @@ impl Group {
 mod shared {
     use serde::{Deserialize, Serialize};
 
-    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{DeploySetting, Resources}};
+    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{Deployment, Resources}};
 
     use super::ScalingPolicy;
 
@@ -205,7 +205,7 @@ mod shared {
         pub nodes: Vec<String>,
         pub scaling: ScalingPolicy,
         pub resources: Resources,
-        pub deployment: Vec<DeploySetting>,
+        pub deployment: Deployment,
     }
 
     impl LoadFromTomlFile for StoredGroup {}

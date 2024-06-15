@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
-use crate::controller::{driver::GenericNode, node::Allocation, server::{DeploySetting, Resources, Retention, Server, ServerHandle}};
+use crate::controller::{driver::GenericNode, node::Allocation, server::{Deployment, DriverSetting, Resources, Retention, Server, ServerHandle}};
 
 use super::{exports::node::driver::bridge::{self, Address}, WasmDriver};
 
@@ -68,6 +68,15 @@ impl GenericNode for WasmNode {
     }
 }
 
+impl Into<bridge::DriverSetting> for &DriverSetting {
+    fn into(self) -> bridge::DriverSetting {
+        bridge::DriverSetting {
+            key: self.key.clone(),
+            value: self.value.clone(),
+        }
+    }
+}
+
 impl Into<bridge::Retention> for &Retention {
     fn into(self) -> bridge::Retention {
         match self {
@@ -77,11 +86,11 @@ impl Into<bridge::Retention> for &Retention {
     }
 }
 
-impl Into<bridge::DeploySetting> for &DeploySetting {
-    fn into(self) -> bridge::DeploySetting {
-        match self {
-            DeploySetting::Image(image) => bridge::DeploySetting::Image(image.clone()),
-            DeploySetting::DiskRetention(retention) => bridge::DeploySetting::DiskRetention(retention.into()),
+impl Into<bridge::Deployment> for &Deployment {
+    fn into(self) -> bridge::Deployment {
+        bridge::Deployment { 
+            driver_settings: self.driver_settings.iter().map(|setting| setting.into()).collect(), 
+            disk_retention: (&self.disk_retention).into(), 
         }
     }
 }
@@ -102,7 +111,7 @@ impl Into<bridge::Allocation> for Arc<Allocation> {
         bridge::Allocation {
             addresses: self.addresses.iter().map(|address| address.into()).collect(),
             resources: self.resources.clone().into(),
-            deployment: self.deployment.iter().map(|setting: &DeploySetting| setting.into()).collect(),
+            deployment: (&self.deployment).into(),
         }
     }
 }

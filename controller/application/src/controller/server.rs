@@ -67,7 +67,7 @@ impl Servers {
                 for node in &request.nodes {
                     let node = node.upgrade().unwrap();
                     // Try to allocate resources on nodes
-                    if let Ok(allocation) = node.allocate(&request.resources, &request.deployment) {
+                    if let Ok(allocation) = node.allocate(&request.resources, request.deployment.clone()) {
                         self.start_server(&request, allocation, &node);
                         continue 'handle_request;
                     }
@@ -193,7 +193,7 @@ pub struct StartRequest {
     pub group: WeakGroupHandle,
     pub nodes: Vec<WeakNodeHandle>,
     pub resources: Resources,
-    pub deployment: Vec<DeploySetting>,
+    pub deployment: Deployment,
     pub priority: i32,
 }
 
@@ -205,18 +205,23 @@ pub struct Resources {
     pub addresses: u32,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub enum Retention {
+    #[serde(rename = "delete")]
+    #[default]
+    Delete,
     #[serde(rename = "keep")]
     Keep,
-    #[serde(rename = "delete")]
-    Delete,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub enum DeploySetting {
-    #[serde(rename = "image")]
-    Image(String),
-    #[serde(rename = "disk_retention")]
-    DiskRetention(Retention),
+pub struct DriverSetting {
+    pub key: String,
+    pub value: String
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct Deployment {
+    pub driver_settings: Vec<DriverSetting>,
+    pub disk_retention: Retention,
 }

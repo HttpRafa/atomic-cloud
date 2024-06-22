@@ -69,6 +69,7 @@ impl Drivers {
 
 #[cfg(feature = "wasm-drivers")]
 mod source {
+    use std::fmt::{Display, Formatter};
     use std::fs;
     use std::path::{Path, PathBuf};
     use anyhow::Result;
@@ -76,6 +77,12 @@ mod source {
     pub struct Source {
         pub path: PathBuf,
         pub code: Vec<u8>,
+    }
+
+    impl Display for Source {
+        fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(formatter, "{}", self.path.display())
+        }
     }
 
     impl Source {

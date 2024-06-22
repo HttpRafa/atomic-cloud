@@ -7,9 +7,10 @@ use crate::exports::node::driver::bridge::{Address, Capabilities, GuestGenericNo
 use super::PterodactylNodeWrapper;
 
 impl GuestGenericNode for PterodactylNodeWrapper {
-    fn new(name: String, capabilities: Capabilities) -> Self {
+    fn new(name: String, id: Option<u32>, capabilities: Capabilities) -> Self {
         Self {
             inner: Arc::new(PterodactylNode {
+                id: id.unwrap(),
                 name,
                 capabilities,
             }),
@@ -38,6 +39,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
 }
 
 pub struct PterodactylNode {
+    pub id: u32,
     pub name: String,
     pub capabilities: Capabilities,
 }

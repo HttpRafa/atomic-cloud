@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-pub struct BNode {
+pub struct BUser {
     pub id: u32,
-    pub name: String,
+    pub username: String,
 }

@@ -67,15 +67,14 @@ impl Nodes {
                 }
             };
 
+            info!("Loading node {}", &name.blue());
             let node = match Node::try_from(&name, &node, drivers) {
                 Some(node) => node,
                 None => continue,
             };
 
             match nodes.add_node(node) {
-                Ok(_) => {
-                    info!("Loaded node {}", &name.blue());
-                },
+                Ok(_) => {},
                 Err(error) => {
                     warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &name.blue());
                     warn!(" -> {}", &error);

@@ -5,7 +5,7 @@ use colored::Colorize;
 use node::PterodactylNode;
 
 use crate::exports::node::driver::bridge::{Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
-use crate::info;
+use crate::{error, info};
 
 pub mod node;
 
@@ -37,7 +37,11 @@ impl GuestGenericDriver for Pterodactyl {
     }
 
     fn init(&self) -> Information {
-        unsafe { *self.backend.get() = Backend::new_filled(); }
+        let backend = Backend::new_filled_and_resolved();
+        if let Err(error) = &backend {
+            error!("Failed to initialize Pterodactyl driver: {}", error.to_string().red());
+        }
+        unsafe { *self.backend.get() = backend.ok() };
         Information {
             authors: AUTHORS.iter().map(|&author| author.to_string()).collect(),
             version: VERSION.to_string(),
@@ -46,17 +50,17 @@ impl GuestGenericDriver for Pterodactyl {
     }
 
     fn init_node(&self, name: String, capabilities: Capabilities) -> Result<GenericNode, String> {
-        info!("Checking node {}", name.blue());
-
         if let Some(value) = capabilities.sub_node.as_ref() {
-            if !self.get_backend().node_exists(&value) {
+            if let Some(node) = self.get_backend().get_node_by_name(&value) {
+                let wrapper = PterodactylNodeWrapper::new(name.clone(), Some(node.id), capabilities);
+                // Add node to nodes
+                let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
+                nodes.push(wrapper.inner.clone());
+                info!("Node {}[{}] was {}", name.blue(), format!("{}", node.id).blue(), "loaded".green());
+                return Ok(GenericNode::new(wrapper));
+            } else {
                 return Err("Node does not exist in the Pterodactyl panel".to_string());
             }
-            let wrapper = PterodactylNodeWrapper::new(name, capabilities);
-            // Add node to nodes
-            let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
-            nodes.push(wrapper.inner.clone());
-            Ok(GenericNode::new(wrapper))
         } else {
             Err("Node lacks the required sub-node capability".to_string())
         }

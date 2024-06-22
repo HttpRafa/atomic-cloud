@@ -93,7 +93,7 @@ interface bridge {
     /* Server | End */
 
     resource generic-node {
-        constructor(name: string, capabilities: capabilities);
+        constructor(name: string, id: option<u32>, capabilities: capabilities);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
@@ -103,7 +103,6 @@ interface bridge {
 
     resource generic-driver {
         constructor();
-        // NOTE: Do not call any log or http functions in the constructor as they may not be available yet
         init: func() -> information;
         init-node: func(name: string, capabilities: capabilities) -> result<generic-node, string>;
     }

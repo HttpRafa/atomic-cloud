@@ -122,7 +122,14 @@ pub struct WasmDriver {
 
     name: String,
     bindings: Driver,
-    handle: Mutex<WasmDriverHandle>,
+    handle: Mutex<Option<WasmDriverHandle>>,
+}
+
+impl WasmDriver {
+    fn get_resource_and_store(handle: &mut Option<WasmDriverHandle>) -> (ResourceAny, &mut Store<WasmDriverState>) {
+        let (resource, store) = handle.as_mut().unwrap().get();
+        (resource, store)
+    }
 }
 
 #[async_trait]
@@ -133,7 +140,7 @@ impl GenericDriver for WasmDriver {
 
     fn init(&self) -> Result<Information> {
         let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = handle.get();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
         match self.bindings.node_driver_bridge().generic_driver().call_init(store, resource) {
             Ok(information) => Ok(information.into()),
             Err(error) => Err(error),
@@ -142,7 +149,7 @@ impl GenericDriver for WasmDriver {
 
     fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
         let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = handle.get();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
         match self.bindings.node_driver_bridge().generic_driver().call_init_node(store, resource, &node.name, &(&node.capabilities).into())? {
             Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
@@ -190,16 +197,18 @@ impl WasmDriver {
             table,
         });
         let (bindings, _) = Driver::instantiate(&mut store, &component, &linker)?;
-        let driver_resource = bindings.node_driver_bridge().generic_driver().call_constructor(&mut store)?;
-        Ok(Arc::new_cyclic(|handle| {
+        let driver = Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {
                 own: handle.clone(),
                 name: name.to_string(),
                 bindings,
-                handle: Mutex::new(WasmDriverHandle::new(store, driver_resource)),
+                handle: Mutex::new(None),
             }
-        }))
+        });
+        let driver_resource = driver.bindings.node_driver_bridge().generic_driver().call_constructor(&mut store)?;
+        driver.handle.lock().unwrap().replace(WasmDriverHandle::new(store, driver_resource));
+        Ok(driver)
     }
 
     pub fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
@@ -285,9 +294,10 @@ impl WasmDriver {
                     ),
                 },
                 Err(error) => error!(
-                    "{} to compile driver {}: {}",
+                    "{} to compile driver {} at location {}: {}",
                     "Failed".red(),
                     &name,
+                    &source,
                     &error
                 ),
             }

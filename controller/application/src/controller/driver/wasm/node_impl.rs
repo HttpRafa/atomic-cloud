@@ -18,7 +18,7 @@ impl GenericNode for WasmNode {
     fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
-            let (_, store) = handle.get();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount) {
                 Ok(Ok(addresses)) => {
                     addresses
@@ -40,7 +40,7 @@ impl GenericNode for WasmNode {
     fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
-            let (_, store) = handle.get();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver.bindings.node_driver_bridge().generic_node().call_deallocate_addresses(store, self.resource, &addresses.iter().map(|address| address.into()).collect::<Vec<Address>>())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
@@ -50,7 +50,7 @@ impl GenericNode for WasmNode {
     fn start_server(&self, server: &ServerHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
-            let (_, store) = handle.get();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver.bindings.node_driver_bridge().generic_node().call_start_server(store, self.resource, &server.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
@@ -60,7 +60,7 @@ impl GenericNode for WasmNode {
     fn stop_server(&self, server: &ServerHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
-            let (_, store) = handle.get();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver.bindings.node_driver_bridge().generic_node().call_stop_server(store, self.resource, &server.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))

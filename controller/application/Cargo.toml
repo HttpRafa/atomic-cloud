@@ -17,7 +17,7 @@ uuid = { version = "1.8.0", features = ["v4"] }
 
 # Configuration
 serde = { version = "1.0.203", features = ["derive"] }
-toml = "0.8.13"
+toml = "0.8.14"
 
 # Async runtime
 tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros"] }
@@ -25,8 +25,8 @@ prost = "0.12.6"
 tonic = "0.11.0"
 
 # Drivers
-wasmtime = { version = "21.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
-wasmtime-wasi = { version = "21.0.1", optional = true }
+wasmtime = { version = "22.0.0", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime-wasi = { version = "22.0.0", optional = true }
 minreq = { version = "2.11.2", features = ["https-rustls"], optional = true }
 
 [build-dependencies]

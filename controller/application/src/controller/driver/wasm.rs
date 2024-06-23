@@ -65,10 +65,10 @@ impl driver::api::Host for WasmDriverState {
 impl driver::log::Host for WasmDriverState {
     fn log_string(&mut self, level: Level, message: String) {
         match level {
-            Level::Info => info!("{}", message),
-            Level::Warn => warn!("{}", message),
-            Level::Error => error!("{}", message),
-            Level::Debug => debug!("{}", message),
+            Level::Info => info!("{} {}", format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(), message),
+            Level::Warn => warn!("{} {}", format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(), message),
+            Level::Error => error!("{} {}", format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(), message),
+            Level::Debug => debug!("{} {}", format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(), message),
         }
     }
 }
@@ -127,8 +127,7 @@ pub struct WasmDriver {
 
 impl WasmDriver {
     fn get_resource_and_store(handle: &mut Option<WasmDriverHandle>) -> (ResourceAny, &mut Store<WasmDriverState>) {
-        let (resource, store) = handle.as_mut().unwrap().get();
-        (resource, store)
+        handle.as_mut().unwrap().get()
     }
 }
 

@@ -15,7 +15,7 @@ colored = "2.1.0"
 
 # Configuration
 serde = { version = "1.0.203", features = ["derive"] }
-toml = "0.8.13"
+toml = "0.8.14"
 
 # Pelican API
 serde_json = "1.0.117"

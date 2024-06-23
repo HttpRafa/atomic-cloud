@@ -1,8 +1,9 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
+use allocation::BAllocation;
 use anyhow::Result;
 use colored::Colorize;
-use list::BList;
+use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use user::BUser;
@@ -11,9 +12,10 @@ use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, node::driver::http::{send_http_request, Header, Method, Response}, warn
 };
 
-mod list;
+mod common;
 mod node;
 mod user;
+mod allocation;
 
 const BACKEND_FILE: &str = "backend.toml";
 
@@ -109,33 +111,61 @@ impl Backend {
         Ok(backend)
     }
 
+    pub fn get_free_allocations(&self, node_id: u32, amount: u32) -> Vec<BAllocation> {
+        let mut allocations = Vec::with_capacity(amount as usize);
+        self.api_find_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |object| {
+            for allocation in &object.data {
+                if allocation.attributes.assigned {
+                    continue;
+                }
+                allocations.push(allocation.attributes.clone());
+            }
+            None
+        });
+        allocations
+    }
+
     pub fn get_user_by_name(&self, username: &str) -> Option<BUser> {
-        if let Some(response) = self.pull_list::<BUser>(Method::Get, APPLICATION_ENDPOINT, "users") {
-            return response.data.iter().find(|node| node.attributes.username == username).map(|node| node.attributes.clone());
-        }
-        None
+        self.api_find_on_pages::<BUser>(Method::Get, APPLICATION_ENDPOINT, "users", |object| 
+            object.data.iter().find(|node| node.attributes.username == username).map(|node| node.attributes.clone()))
     }
 
-    // TODO: This function currently only supports up to 50 nodes because pterodactyl only sends 50 per page
     pub fn get_node_by_name(&self, name: &str) -> Option<BNode> {
-        if let Some(response) = self.pull_list::<BNode>(Method::Get, APPLICATION_ENDPOINT, "nodes") {
-            return response.data.iter().find(|node| node.attributes.name == name).map(|node| node.attributes.clone());
+        self.api_find_on_pages::<BNode>(Method::Get, APPLICATION_ENDPOINT, "nodes", |object| 
+            object.data.iter().find(|node| node.attributes.name == name).map(|node| node.attributes.clone()))
+    }
+
+    fn api_find_on_pages<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> Option<T>) -> Option<T> {
+        let mut page = 1;
+        loop {
+            if let Some(response) = self.api_get_list::<T>(method, endpoint, target, Some(page)) {
+                if let Some(data) = callback(&response) {
+                    return Some(data);
+                }
+                if response.meta.pagination.total_pages <= page {
+                    break;
+                }
+                page += 1;
+            }
         }
         None
     }
 
-    fn pull_list<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str) -> Option<BList<T>> {
-        self.pull_api::<BList<T>>(method, endpoint, target)
+    fn api_get_list<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, page: Option<u32>) -> Option<BList<T>> {
+        self.api_get::<Vec<BObject<T>>>(method, endpoint, target, page)
     }
 
-    fn pull_api<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str) -> Option<T> {
-        let url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
+    fn api_get<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, page: Option<u32>) -> Option<BBody<T>> {
+        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
+        if let Some(page) = page {
+            url = format!("{}?page={}", &url, &page);
+        }
         debug!("Sending request to the pterodactyl panel: {:?} {}", method, &url);
         let response = send_http_request(method, &url, &[Header {
             key: "Authorization".to_string(),
             value: format!("Bearer {}", &self.token.as_ref().unwrap()),
         }]);
-        if let Some(response) = Self::handle_response::<T>(response, 200) {
+        if let Some(response) = Self::handle_response::<BBody<T>>(response, 200) {
             return Some(response);
         }
         None

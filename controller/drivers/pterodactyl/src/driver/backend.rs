@@ -9,7 +9,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use user::BUser;
 
 use crate::{
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, node::driver::http::{send_http_request, Header, Method, Response}, warn
+    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, exports::node::driver::bridge::Address, node::driver::http::{send_http_request, Header, Method, Response}, warn
 };
 
 mod common;
@@ -111,19 +111,19 @@ impl Backend {
         Ok(backend)
     }
 
-    pub fn get_free_allocations(&self, node_id: u32, amount: u32) -> Vec<BAllocation> {
+    pub fn get_free_allocations(&self, used_allocations: &Vec<Address>, node_id: u32, amount: u32) -> Vec<BAllocation> {
         let mut allocations = Vec::with_capacity(amount as usize);
-        self.api_find_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |response| {
+        self.for_each_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |response| {
             for allocation in &response.data {
-                if allocation.attributes.assigned {
+                if allocation.attributes.assigned || used_allocations.iter().any(|used| used.ip == allocation.attributes.ip && used.port == allocation.attributes.port) {
                     continue;
                 }
                 allocations.push(allocation.attributes.clone());
                 if allocations.len() >= amount as usize {
-                    return None;
+                    return true;
                 }
             }
-            None
+            false
         });
         allocations
     }

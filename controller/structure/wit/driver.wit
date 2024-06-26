@@ -35,6 +35,8 @@ interface api {
 }
 
 interface bridge {
+    type uuid = string;
+
     /* Init */
     record information {
         authors: list<string>,
@@ -86,7 +88,7 @@ interface bridge {
 
     record server {
         name: string,
-        uuid: string,
+        uuid: uuid,
         group: string,
         allocation: allocation,
     }

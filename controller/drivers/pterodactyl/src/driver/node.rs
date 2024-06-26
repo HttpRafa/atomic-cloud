@@ -12,19 +12,30 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 id: id.unwrap(),
                 name,
                 capabilities,
+                used_allocations: UnsafeCell::new(vec![]),
             }),
         }
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
     fn allocate_addresses(&self, amount: u32) -> Result<Vec<Address>, String> {
-        Ok(self.get_backend().get_free_allocations(self.inner.id, amount).iter().map(|allocation| Address {
-            ip: allocation.ip.clone(),
-            port: allocation.port,
-        }).collect())
+        let used = self.inner.get_used_allocations();
+        let allocations = self.get_backend().get_free_allocations(&used, self.inner.id, amount).iter().map(|allocation| {
+            used.push(Address {
+                ip: allocation.ip.clone(),
+                port: allocation.port,
+            });
+            Address {
+                ip: allocation.ip.clone(),
+                port: allocation.port,
+            }
+        }).collect();
+        Ok(allocations)
     }
 
-    fn deallocate_addresses(&self, _addresses: Vec<Address>) {}
+    fn deallocate_addresses(&self, addresses: Vec<Address>) {
+        self.inner.get_used_allocations().retain(|x| !addresses.iter().any(|address| *x.ip == address.ip && x.port == address.port));
+    }
 
     fn start_server(&self, _server: Server) {
     }
@@ -34,8 +45,18 @@ impl GuestGenericNode for PterodactylNodeWrapper {
 }
 
 pub struct PterodactylNode {
+    /* Informations about the node */
     pub backend: UnsafeCell<Option<Arc<Backend>>>,
     pub id: u32,
     pub name: String,
     pub capabilities: Capabilities,
+
+    pub used_allocations: UnsafeCell<Vec<Address>>,
+}
+
+impl PterodactylNode {
+    fn get_used_allocations(&self) -> &mut Vec<Address> {
+        // Safe as we are only run on the same thread
+        unsafe { &mut *self.used_allocations.get() }
+    }
 }

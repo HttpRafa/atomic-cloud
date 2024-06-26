@@ -130,6 +130,7 @@ pub struct Group {
     handle: WeakGroupHandle,
 
     pub name: String,
+
     pub nodes: Vec<WeakNodeHandle>,
     pub scaling: ScalingPolicy,
     pub resources: Resources,

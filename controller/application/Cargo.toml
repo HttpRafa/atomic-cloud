@@ -13,7 +13,7 @@ colored = "2.1.0"
 anyhow = "1.0.86"
 
 # Server system
-uuid = { version = "1.8.0", features = ["v4"] }
+uuid = { version = "1.9.1", features = ["v4"] }
 
 # Configuration
 serde = { version = "1.0.203", features = ["derive"] }

@@ -113,8 +113,8 @@ impl Backend {
 
     pub fn get_free_allocations(&self, node_id: u32, amount: u32) -> Vec<BAllocation> {
         let mut allocations = Vec::with_capacity(amount as usize);
-        self.api_find_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |object| {
-            for allocation in &object.data {
+        self.api_find_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |response| {
+            for allocation in &response.data {
                 if allocation.attributes.assigned {
                     continue;
                 }
@@ -139,11 +139,23 @@ impl Backend {
     }
 
     fn api_find_on_pages<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> Option<T>) -> Option<T> {
+        let mut value = None;
+        self.for_each_on_pages(method, endpoint, target, |response| {
+            if let Some(data) = callback(response) {
+                value = Some(data);
+                return true;
+            }
+            false
+        });
+        value
+    }
+
+    fn for_each_on_pages<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> bool) {
         let mut page = 1;
         loop {
             if let Some(response) = self.api_get_list::<T>(method, endpoint, target, Some(page)) {
-                if let Some(data) = callback(&response) {
-                    return Some(data);
+                if callback(&response) {
+                    return;
                 }
                 if response.meta.pagination.total_pages <= page {
                     break;
@@ -151,7 +163,6 @@ impl Backend {
                 page += 1;
             }
         }
-        None
     }
 
     fn api_get_list<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, page: Option<u32>) -> Option<BList<T>> {

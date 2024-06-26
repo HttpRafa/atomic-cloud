@@ -119,6 +119,9 @@ impl Backend {
                     continue;
                 }
                 allocations.push(allocation.attributes.clone());
+                if allocations.len() >= amount as usize {
+                    return None;
+                }
             }
             None
         });

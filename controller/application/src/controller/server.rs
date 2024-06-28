@@ -240,7 +240,9 @@ pub struct StartRequest {
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Resources {
     pub memory: u32,
+    pub swap: u32,
     pub cpu: u32,
+    pub io: u32,
     pub disk: u32,
     pub addresses: u32,
 }
@@ -255,13 +257,15 @@ pub enum Retention {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct DriverSetting {
+pub struct KeyValue {
     pub key: String,
     pub value: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Deployment {
-    pub driver_settings: Vec<DriverSetting>,
+    pub settings: Vec<KeyValue>,
+    pub environment: Vec<KeyValue>,
     pub disk_retention: Retention,
+    pub image: String,
 }

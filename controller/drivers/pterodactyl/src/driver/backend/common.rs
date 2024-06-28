@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct BMetadata {
@@ -16,7 +16,7 @@ pub struct BBody<T> {
     pub meta: BMetadata,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct BObject<T> {
     pub attributes: T,
 }

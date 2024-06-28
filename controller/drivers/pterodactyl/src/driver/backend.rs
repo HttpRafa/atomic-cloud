@@ -6,19 +6,21 @@ use colored::Colorize;
 use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use server::{BCServer, BCServerAllocation, BServer, BServerFeatureLimits};
 use user::BUser;
 
 use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
-    exports::node::driver::bridge::Address,
+    exports::node::driver::bridge::Server,
     node::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
 
-mod allocation;
+pub mod allocation;
 mod common;
 mod node;
+pub mod server;
 mod user;
 
 const BACKEND_FILE: &str = "backend.toml";
@@ -127,9 +129,56 @@ impl Backend {
         Ok(backend)
     }
 
+    pub fn create_server(
+        &self,
+        server: &Server,
+        allocation: &BAllocation,
+        egg: u32,
+        startup: &str,
+        features: BServerFeatureLimits,
+    ) -> Option<BServer> {
+        let backend_server = BCServer {
+            name: server.name.clone(),
+            user: self.resolved.as_ref().unwrap().user,
+            egg,
+            docker_image: server.allocation.deployment.image.clone(),
+            startup: startup.to_owned(),
+            environment: server
+                .allocation
+                .deployment
+                .environment
+                .iter()
+                .map(|value| (value.key.clone(), value.value.clone()))
+                .collect(),
+            limits: server.allocation.resources.into(),
+            feature_limits: features,
+            allocation: BCServerAllocation {
+                default: allocation.id,
+            },
+        };
+        self.post_object_to_api::<BCServer, BServer>(
+            APPLICATION_ENDPOINT,
+            "servers",
+            &BObject {
+                attributes: backend_server,
+            },
+        )
+        .map(|data| data.attributes)
+    }
+
+    pub fn get_server_by_name(&self, name: &str) -> Option<BServer> {
+        self.api_find_on_pages::<BServer>(Method::Get, APPLICATION_ENDPOINT, "servers", |object| {
+            object
+                .data
+                .iter()
+                .find(|server| server.attributes.name == name)
+                .map(|server| server.attributes.clone())
+        })
+    }
+
     pub fn get_free_allocations(
         &self,
-        used_allocations: &[Address],
+        used_allocations: &[BAllocation],
         node_id: u32,
         amount: u32,
     ) -> Vec<BAllocation> {
@@ -225,16 +274,27 @@ impl Backend {
         target: &str,
         page: Option<u32>,
     ) -> Option<BList<T>> {
-        self.api_get::<Vec<BObject<T>>>(method, endpoint, target, page)
+        self.send_request_to_api(method, endpoint, target, None, page)
     }
 
-    fn api_get<T: DeserializeOwned>(
+    fn post_object_to_api<T: Serialize, K: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        target: &str,
+        object: &BObject<T>,
+    ) -> Option<BObject<K>> {
+        let body = serde_json::to_vec(object).ok();
+        self.send_request_to_api(Method::Post, endpoint, target, body.as_deref(), None)
+    }
+
+    fn send_request_to_api<T: DeserializeOwned>(
         &self,
         method: Method,
         endpoint: &str,
         target: &str,
+        body: Option<&[u8]>,
         page: Option<u32>,
-    ) -> Option<BBody<T>> {
+    ) -> Option<T> {
         let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
@@ -250,8 +310,9 @@ impl Backend {
                 key: "Authorization".to_string(),
                 value: format!("Bearer {}", &self.token.as_ref().unwrap()),
             }],
+            body,
         );
-        if let Some(response) = Self::handle_response::<BBody<T>>(response, 200) {
+        if let Some(response) = Self::handle_response::<T>(response, 200) {
             return Some(response);
         }
         None

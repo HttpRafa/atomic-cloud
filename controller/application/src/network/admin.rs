@@ -5,7 +5,7 @@ use tonic::{async_trait, Request, Response, Status};
 use crate::controller::{
     group::ScalingPolicy,
     node::Capabilities,
-    server::{Deployment, DriverSetting, Resources, Retention},
+    server::{Deployment, KeyValue, Resources, Retention},
     Controller, CreationResult,
 };
 
@@ -104,8 +104,10 @@ impl AdminService for AdminServiceImpl {
         /* Resources */
         let resources = match &group.resources {
             Some(resources) => Resources {
-                cpu: resources.cpu,
                 memory: resources.memory,
+                swap: resources.swap,
+                cpu: resources.cpu,
+                io: resources.io,
                 disk: resources.disk,
                 addresses: resources.addresses,
             },
@@ -115,10 +117,10 @@ impl AdminService for AdminServiceImpl {
         /* Deployment */
         let mut deployment = Deployment::default();
         if let Some(value) = group.deployment {
-            deployment.driver_settings = value
-                .driver_settings
+            deployment.settings = value
+                .settings
                 .iter()
-                .map(|setting| DriverSetting {
+                .map(|setting| KeyValue {
                     key: setting.key.clone(),
                     value: setting.value.clone(),
                 })

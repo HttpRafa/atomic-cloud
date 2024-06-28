@@ -27,7 +27,7 @@ interface http {
         headers: list<header>,
         bytes: list<u8>,
     }
-    send-http-request: func(method: method, url: string, headers: list<header>) -> option<response>;
+    send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
 }
 
 interface api {
@@ -60,12 +60,14 @@ interface bridge {
     /* Server | Start */
     record resources {
         memory: u32,
+        swap: u32,
         cpu: u32,
+        io: u32,
         disk: u32,
         addresses: u32,
     }
 
-    record driver-setting {
+    record setting {
         key: string,
         value: string,
     }
@@ -75,9 +77,16 @@ interface bridge {
         delete,
     }
 
+    record key-value {
+        key: string,
+        value: string,
+    }
+
     record deployment {
-        driver-settings: list<driver-setting>,
+        settings: list<key-value>,
+        environment: list<key-value>,
         disk-retention: retention,
+        image: string,
     }
 
     record allocation {

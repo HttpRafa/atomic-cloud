@@ -96,6 +96,7 @@ impl driver::http::Host for WasmDriverState {
         method: Method,
         url: String,
         headers: Vec<Header>,
+        body: Option<Vec<u8>>,
     ) -> Option<Response> {
         let driver = self.handle.upgrade().unwrap();
         let mut request = match method {
@@ -104,6 +105,9 @@ impl driver::http::Host for WasmDriverState {
             Method::Put => minreq::put(url),
             Method::Delete => minreq::delete(url),
         };
+        if let Some(body) = body {
+            request = request.with_body(body);
+        }
         for header in headers {
             request = request.with_header(&header.key, &header.value);
         }

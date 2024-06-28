@@ -68,7 +68,7 @@ impl GuestGenericDriver for Pterodactyl {
                     "Node {}[{}] was {}",
                     name.blue(),
                     format!("{}", node.id).blue(),
-                    "loaded".green()
+                    "added".green()
                 );
                 Ok(GenericNode::new(wrapper))
             } else {

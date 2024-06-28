@@ -11,7 +11,7 @@ use wasmtime::component::ResourceAny;
 use crate::controller::{
     driver::GenericNode,
     node::Allocation,
-    server::{Deployment, DriverSetting, Resources, Retention, Server, ServerHandle},
+    server::{Deployment, KeyValue, Resources, Retention, Server, ServerHandle},
 };
 
 use super::{
@@ -101,9 +101,9 @@ impl GenericNode for WasmNode {
     }
 }
 
-impl From<&DriverSetting> for bridge::DriverSetting {
-    fn from(val: &DriverSetting) -> Self {
-        bridge::DriverSetting {
+impl From<&KeyValue> for bridge::KeyValue {
+    fn from(val: &KeyValue) -> Self {
+        bridge::KeyValue {
             key: val.key.clone(),
             value: val.value.clone(),
         }
@@ -122,12 +122,10 @@ impl From<&Retention> for bridge::Retention {
 impl From<&Deployment> for bridge::Deployment {
     fn from(val: &Deployment) -> Self {
         bridge::Deployment {
-            driver_settings: val
-                .driver_settings
-                .iter()
-                .map(|setting| setting.into())
-                .collect(),
+            settings: val.settings.iter().map(|setting| setting.into()).collect(),
+            environment: val.environment.iter().map(|env| env.into()).collect(),
             disk_retention: (&val.disk_retention).into(),
+            image: val.image.clone(),
         }
     }
 }
@@ -136,7 +134,9 @@ impl From<Resources> for bridge::Resources {
     fn from(val: Resources) -> Self {
         bridge::Resources {
             memory: val.memory,
+            swap: val.swap,
             cpu: val.cpu,
+            io: val.io,
             disk: val.disk,
             addresses: val.addresses,
         }

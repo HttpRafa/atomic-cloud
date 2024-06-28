@@ -51,19 +51,22 @@ message Group {
 
     message Resources {
         uint32 memory = 1;
-        uint32 cpu = 2;
-        uint32 disk = 3;
-        uint32 addresses = 4;
-    }
-
-    message DriverSetting {
-        string key = 1;
-        string value = 2;
+        uint32 swap = 2;
+        uint32 cpu = 3;
+        uint32 io = 4;
+        uint32 disk = 5;
+        uint32 addresses = 6;
     }
 
     message Deployment {
-        repeated DriverSetting driverSettings = 1;
-        optional Retention diskRetention = 2;
+        repeated KeyValue settings = 1;
+        repeated KeyValue environment = 2;
+        optional Retention diskRetention = 3;
+
+        message KeyValue {
+            string key = 1;
+            string value = 2;
+        }
 
         enum Retention {
             KEEP = 0;

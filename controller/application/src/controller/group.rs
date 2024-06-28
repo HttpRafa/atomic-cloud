@@ -1,4 +1,8 @@
-use std::{fs, path::Path, sync::{Arc, Mutex, Weak}};
+use std::{
+    fs,
+    path::Path,
+    sync::{Arc, Mutex, Weak},
+};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
@@ -8,7 +12,11 @@ use shared::StoredGroup;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::{node::{Nodes, WeakNodeHandle}, server::{Deployment, Resources, ServerHandle, Servers, StartRequest}, CreationResult};
+use super::{
+    node::{Nodes, WeakNodeHandle},
+    server::{Deployment, Resources, ServerHandle, Servers, StartRequest},
+    CreationResult,
+};
 
 const GROUPS_DIRECTORY: &str = "groups";
 
@@ -76,8 +84,11 @@ impl Groups {
             groups.add_group(group);
             info!("Loaded group {}", &name.blue());
         }
-        
-        info!("Loaded {}", format!("{} group(s)", groups.groups.len()).blue());
+
+        info!(
+            "Loaded {}",
+            format!("{} group(s)", groups.groups.len()).blue()
+        );
         groups
     }
 
@@ -87,7 +98,14 @@ impl Groups {
         }
     }
 
-    pub fn create_group(&mut self, name: &str, node_handles: Vec<WeakNodeHandle>, scaling: ScalingPolicy, resources: Resources, deployment: Deployment) -> Result<CreationResult> {
+    pub fn create_group(
+        &mut self,
+        name: &str,
+        node_handles: Vec<WeakNodeHandle>,
+        scaling: ScalingPolicy,
+        resources: Resources,
+        deployment: Deployment,
+    ) -> Result<CreationResult> {
         if node_handles.is_empty() {
             return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
@@ -97,7 +115,7 @@ impl Groups {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
-        
+
         let mut nodes = Vec::with_capacity(node_handles.len());
         for node in &node_handles {
             if let Some(node) = node.upgrade() {
@@ -105,7 +123,12 @@ impl Groups {
             }
         }
 
-        let stored_node = StoredGroup { nodes, scaling, resources, deployment };
+        let stored_node = StoredGroup {
+            nodes,
+            scaling,
+            resources,
+            deployment,
+        };
         let node = Group::from(name, &stored_node, node_handles);
 
         self.add_group(node);
@@ -142,16 +165,14 @@ pub struct Group {
 
 impl Group {
     fn from(name: &str, stored_group: &StoredGroup, nodes: Vec<WeakNodeHandle>) -> GroupHandle {
-        Arc::new_cyclic(|handle| {
-            Self {
-                handle: handle.clone(),
-                name: name.to_string(),
-                nodes,
-                scaling: stored_group.scaling,
-                resources: stored_group.resources.clone(),
-                deployment: stored_group.deployment.clone(),
-                servers: Mutex::new(Vec::new()),
-            }
+        Arc::new_cyclic(|handle| Self {
+            handle: handle.clone(),
+            name: name.to_string(),
+            nodes,
+            scaling: stored_group.scaling,
+            resources: stored_group.resources.clone(),
+            deployment: stored_group.deployment.clone(),
+            servers: Mutex::new(Vec::new()),
         })
     }
 
@@ -186,18 +207,27 @@ impl Group {
     }
 
     pub fn add_server(&self, server: ServerHandle) {
-        self.servers.lock().expect("Failed to lock servers").push(server);
+        self.servers
+            .lock()
+            .expect("Failed to lock servers")
+            .push(server);
     }
 
     pub fn remove_server(&self, server: &ServerHandle) {
-        self.servers.lock().expect("Failed to lock servers").retain(|handle| !Arc::ptr_eq(handle, server));
+        self.servers
+            .lock()
+            .expect("Failed to lock servers")
+            .retain(|handle| !Arc::ptr_eq(handle, server));
     }
 }
 
 mod shared {
     use serde::{Deserialize, Serialize};
 
-    use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, controller::server::{Deployment, Resources}};
+    use crate::{
+        config::{LoadFromTomlFile, SaveToTomlFile},
+        controller::server::{Deployment, Resources},
+    };
 
     use super::ScalingPolicy;
 

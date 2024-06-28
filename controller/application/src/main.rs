@@ -1,15 +1,15 @@
-use std::time::Instant;
 use colored::Colorize;
 use log::{info, LevelFilter};
-use simplelog::{ColorChoice, ConfigBuilder, TerminalMode, TermLogger};
+use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
+use std::time::Instant;
 
 use crate::config::Config;
 use crate::controller::Controller;
-use crate::version::{Version, Stage};
+use crate::version::{Stage, Version};
 
-mod network;
 mod config;
 mod controller;
+mod network;
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
@@ -24,7 +24,10 @@ fn main() {
     init_logging();
 
     let start_time = Instant::now();
-    info!("Starting cluster system version {}...", format!("v{}", VERSION).blue());
+    info!(
+        "Starting cluster system version {}...",
+        format!("v{}", VERSION).blue()
+    );
     info!("Loading configurations...");
 
     let configuration = Config::new_filled();
@@ -42,28 +45,55 @@ fn init_logging() {
             .build(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
-    ).expect("Failed to init logging crate");
+    )
+    .expect("Failed to init logging crate");
 }
 
 #[cfg(not(debug_assertions))]
 fn init_logging() {
     TermLogger::init(
         LevelFilter::Info,
-        ConfigBuilder::new()
-            .build(),
+        ConfigBuilder::new().build(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
-    ).expect("Failed to init logging crate");
+    )
+    .expect("Failed to init logging crate");
 }
 
 fn print_ascii_art() {
-    println!("{}{}", r"   _   _                  _".blue(), r"          ___ _                 _".cyan());
-    println!("{}{}", r"  /_\ | |_ ___  _ __ ___ (_) ___".blue(), r"    / __\ | ___  _   _  __| |".cyan());
-    println!("{}{}", r" //_\\| __/ _ \| '_ ` _ \| |/ __|".blue(), r"  / /  | |/ _ \| | | |/ _` |".cyan());
-    println!("{}{}", r"/  _  \ || (_) | | | | | | | (__".blue(), r"  / /___| | (_) | |_| | (_| |".cyan());
-    println!("{}{}", r"\_/ \_/\__\___/|_| |_| |_|_|\___|".blue(), r" \____/|_|\___/ \__,_|\__,_|".cyan());
+    println!(
+        "{}{}",
+        r"   _   _                  _".blue(),
+        r"          ___ _                 _".cyan()
+    );
+    println!(
+        "{}{}",
+        r"  /_\ | |_ ___  _ __ ___ (_) ___".blue(),
+        r"    / __\ | ___  _   _  __| |".cyan()
+    );
+    println!(
+        "{}{}",
+        r" //_\\| __/ _ \| '_ ` _ \| |/ __|".blue(),
+        r"  / /  | |/ _ \| | | |/ _` |".cyan()
+    );
+    println!(
+        "{}{}",
+        r"/  _  \ || (_) | | | | | | | (__".blue(),
+        r"  / /___| | (_) | |_| | (_| |".cyan()
+    );
+    println!(
+        "{}{}",
+        r"\_/ \_/\__\___/|_| |_| |_|_|\___|".blue(),
+        r" \____/|_|\___/ \__,_|\__,_|".cyan()
+    );
     println!();
-    println!("«{}» {} | {} by {}", "*".blue(), "Atomic Cloud".blue(), format!("v{}", VERSION).blue(), AUTHORS.join(", ").blue());
+    println!(
+        "«{}» {} | {} by {}",
+        "*".blue(),
+        "Atomic Cloud".blue(),
+        format!("v{}", VERSION).blue(),
+        AUTHORS.join(", ").blue()
+    );
     println!();
 }
 
@@ -95,7 +125,11 @@ mod version {
 
     impl Display for Version {
         fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(formatter, "{}.{}.{}-{}", self.major, self.minor, self.patch, self.stage)
+            write!(
+                formatter,
+                "{}.{}.{}-{}",
+                self.major, self.minor, self.patch, self.stage
+            )
         }
     }
 }

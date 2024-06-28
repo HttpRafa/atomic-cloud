@@ -1,12 +1,23 @@
-use std::{net::{IpAddr, SocketAddr}, str::FromStr, sync::{Arc, Weak}};
+use std::{
+    net::{IpAddr, SocketAddr},
+    str::FromStr,
+    sync::{Arc, Weak},
+};
 
 use anyhow::{anyhow, Result};
 use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
-use crate::controller::{driver::GenericNode, node::Allocation, server::{Deployment, DriverSetting, Resources, Retention, Server, ServerHandle}};
+use crate::controller::{
+    driver::GenericNode,
+    node::Allocation,
+    server::{Deployment, DriverSetting, Resources, Retention, Server, ServerHandle},
+};
 
-use super::{exports::node::driver::bridge::{self, Address}, WasmDriver};
+use super::{
+    exports::node::driver::bridge::{self, Address},
+    WasmDriver,
+};
 
 pub struct WasmNode {
     pub handle: Weak<WasmDriver>,
@@ -19,16 +30,19 @@ impl GenericNode for WasmNode {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
-            match driver.bindings.node_driver_bridge().generic_node().call_allocate_addresses(store, self.resource, amount) {
-                Ok(Ok(addresses)) => {
-                    addresses
-                        .into_iter()
-                        .map(|address| {
-                            let ip = IpAddr::from_str(&address.ip)?;
-                            Ok(SocketAddr::new(ip, address.port))
-                        })
-                        .collect::<Result<Vec<SocketAddr>>>()
-                },
+            match driver
+                .bindings
+                .node_driver_bridge()
+                .generic_node()
+                .call_allocate_addresses(store, self.resource, amount)
+            {
+                Ok(Ok(addresses)) => addresses
+                    .into_iter()
+                    .map(|address| {
+                        let ip = IpAddr::from_str(&address.ip)?;
+                        Ok(SocketAddr::new(ip, address.port))
+                    })
+                    .collect::<Result<Vec<SocketAddr>>>(),
                 Ok(Err(error)) => Err(anyhow!(error)),
                 Err(error) => Err(error),
             }
@@ -41,7 +55,18 @@ impl GenericNode for WasmNode {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
-            driver.bindings.node_driver_bridge().generic_node().call_deallocate_addresses(store, self.resource, &addresses.iter().map(|address| address.into()).collect::<Vec<Address>>())
+            driver
+                .bindings
+                .node_driver_bridge()
+                .generic_node()
+                .call_deallocate_addresses(
+                    store,
+                    self.resource,
+                    &addresses
+                        .iter()
+                        .map(|address| address.into())
+                        .collect::<Vec<Address>>(),
+                )
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
@@ -51,7 +76,11 @@ impl GenericNode for WasmNode {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
-            driver.bindings.node_driver_bridge().generic_node().call_start_server(store, self.resource, &server.into())
+            driver
+                .bindings
+                .node_driver_bridge()
+                .generic_node()
+                .call_start_server(store, self.resource, &server.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
@@ -61,7 +90,11 @@ impl GenericNode for WasmNode {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
-            driver.bindings.node_driver_bridge().generic_node().call_stop_server(store, self.resource, &server.into())
+            driver
+                .bindings
+                .node_driver_bridge()
+                .generic_node()
+                .call_stop_server(store, self.resource, &server.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
@@ -88,9 +121,13 @@ impl From<&Retention> for bridge::Retention {
 
 impl From<&Deployment> for bridge::Deployment {
     fn from(val: &Deployment) -> Self {
-        bridge::Deployment { 
-            driver_settings: val.driver_settings.iter().map(|setting| setting.into()).collect(), 
-            disk_retention: (&val.disk_retention).into(), 
+        bridge::Deployment {
+            driver_settings: val
+                .driver_settings
+                .iter()
+                .map(|setting| setting.into())
+                .collect(),
+            disk_retention: (&val.disk_retention).into(),
         }
     }
 }
@@ -118,7 +155,10 @@ impl From<Arc<Allocation>> for bridge::Allocation {
 
 impl From<&Arc<Server>> for bridge::Server {
     fn from(val: &Arc<Server>) -> Self {
-        let group = val.group.upgrade().expect("Failed to get group while trying to convert server to driver representation");
+        let group = val
+            .group
+            .upgrade()
+            .expect("Failed to get group while trying to convert server to driver representation");
         bridge::Server {
             name: val.name.clone(),
             uuid: val.uuid.to_string(),

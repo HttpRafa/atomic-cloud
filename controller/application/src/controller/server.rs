@@ -1,13 +1,20 @@
-use std::{collections::VecDeque, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
-use log::{error, info, warn};
 use colored::Colorize;
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::controller::{ControllerHandle, WeakControllerHandle};
 
-use super::{group::WeakGroupHandle, node::{AllocationHandle, NodeHandle, WeakNodeHandle}};
+use super::{
+    group::WeakGroupHandle,
+    node::{AllocationHandle, NodeHandle, WeakNodeHandle},
+};
 
 const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(60);
 const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
@@ -60,19 +67,27 @@ impl Servers {
         // Sort requests by priority and process them
         {
             let mut requests = self.requests.lock().unwrap();
-            requests.make_contiguous().sort_unstable_by_key(|req| req.priority);
+            requests
+                .make_contiguous()
+                .sort_unstable_by_key(|req| req.priority);
             'handle_request: while let Some(request) = requests.pop_back() {
                 // Collect and sort nodes by the number of allocations
-        
+
                 for node in &request.nodes {
                     let node = node.upgrade().unwrap();
                     // Try to allocate resources on nodes
-                    if let Ok(allocation) = node.allocate(&request.resources, request.deployment.clone()) {
+                    if let Ok(allocation) =
+                        node.allocate(&request.resources, request.deployment.clone())
+                    {
                         self.start_server(&request, allocation, &node);
                         continue 'handle_request;
                     }
                 }
-                warn!("{} to allocate resources for server {}", "Failed".red(), request.name.red());
+                warn!(
+                    "{} to allocate resources for server {}",
+                    "Failed".red(),
+                    request.name.red()
+                );
             }
         }
     }
@@ -93,7 +108,9 @@ impl Servers {
         // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = self.controller.upgrade() {
             let server = server.clone();
-            controller.get_runtime().spawn_blocking(move || stop_thread(server));
+            controller
+                .get_runtime()
+                .spawn_blocking(move || stop_thread(server));
         }
 
         // Remove server from group and servers list
@@ -105,7 +122,12 @@ impl Servers {
         fn stop_thread(server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {
                 if let Err(error) = node.get_inner().stop_server(&server) {
-                    error!("{} to stop server {}: {}", "Failed".red(), server.name.red(), error);
+                    error!(
+                        "{} to stop server {}: {}",
+                        "Failed".red(),
+                        server.name.red(),
+                        error
+                    );
                 }
             }
         }
@@ -115,8 +137,19 @@ impl Servers {
         self.stop_server_nolock(server, &mut self.servers.lock().unwrap());
     }
 
-    fn start_server(&self, request: &StartRequest, allocation: AllocationHandle, node: &NodeHandle) {
-        info!("{} server {} on node {} listening on {}", "Starting".green(), request.name.blue(), node.name.blue(), allocation.primary_address().to_string().blue());
+    fn start_server(
+        &self,
+        request: &StartRequest,
+        allocation: AllocationHandle,
+        node: &NodeHandle,
+    ) {
+        info!(
+            "{} server {} on node {} listening on {}",
+            "Starting".green(),
+            request.name.blue(),
+            node.name.blue(),
+            allocation.primary_address().to_string().blue()
+        );
         let server = Arc::new(Server {
             name: request.name.clone(),
             uuid: Uuid::new_v4(),
@@ -136,13 +169,20 @@ impl Servers {
         // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = self.controller.upgrade() {
             let copy = controller.clone();
-            controller.get_runtime().spawn_blocking(move || start_thread(copy, server));
+            controller
+                .get_runtime()
+                .spawn_blocking(move || start_thread(copy, server));
         }
 
         fn start_thread(controller: ControllerHandle, server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {
                 if let Err(error) = node.get_inner().start_server(&server) {
-                    error!("{} to start server {}: {}", "Failed".red(), server.name.red(), error);
+                    error!(
+                        "{} to start server {}: {}",
+                        "Failed".red(),
+                        server.name.red(),
+                        error
+                    );
                     controller.get_servers().stop_server(&server);
                 }
             }
@@ -217,7 +257,7 @@ pub enum Retention {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DriverSetting {
     pub key: String,
-    pub value: String
+    pub value: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

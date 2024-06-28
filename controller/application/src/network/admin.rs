@@ -1,8 +1,13 @@
-use std::sync::Arc;
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
+use std::sync::Arc;
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::Capabilities, server::{Deployment, DriverSetting, Resources, Retention}, Controller, CreationResult};
+use crate::controller::{
+    group::ScalingPolicy,
+    node::Capabilities,
+    server::{Deployment, DriverSetting, Resources, Retention},
+    Controller, CreationResult,
+};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -43,7 +48,9 @@ impl AdminService for AdminServiceImpl {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
-                CreationResult::Denied(error) => Err(Status::failed_precondition(error.to_string())),
+                CreationResult::Denied(error) => {
+                    Err(Status::failed_precondition(error.to_string()))
+                }
             },
             Err(error) => Err(Status::internal(error.to_string())),
         }
@@ -108,10 +115,14 @@ impl AdminService for AdminServiceImpl {
         /* Deployment */
         let mut deployment = Deployment::default();
         if let Some(value) = group.deployment {
-            deployment.driver_settings = value.driver_settings.iter().map(|setting| DriverSetting {
-                key: setting.key.clone(),
-                value: setting.value.clone(),
-            }).collect();
+            deployment.driver_settings = value
+                .driver_settings
+                .iter()
+                .map(|setting| DriverSetting {
+                    key: setting.key.clone(),
+                    value: setting.value.clone(),
+                })
+                .collect();
             if let Some(value) = value.disk_retention {
                 deployment.disk_retention = match value {
                     x if x == Retention::Keep as i32 => Retention::Keep,
@@ -125,7 +136,12 @@ impl AdminService for AdminServiceImpl {
         for node in &group.nodes {
             let node = match self.controller.lock_nodes().find_by_name(node) {
                 Some(node) => node,
-                None => return Err(Status::invalid_argument(format!("Node {} does not exist", node))),
+                None => {
+                    return Err(Status::invalid_argument(format!(
+                        "Node {} does not exist",
+                        node
+                    )))
+                }
             };
             node_handles.push(node);
         }
@@ -134,8 +150,12 @@ impl AdminService for AdminServiceImpl {
         match groups.create_group(name, node_handles, scaling, resources, deployment) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
-                CreationResult::AlreadyExists => Err(Status::already_exists("Group already exists")),
-                CreationResult::Denied(error) => Err(Status::failed_precondition(error.to_string())),
+                CreationResult::AlreadyExists => {
+                    Err(Status::already_exists("Group already exists"))
+                }
+                CreationResult::Denied(error) => {
+                    Err(Status::failed_precondition(error.to_string()))
+                }
             },
             Err(error) => Err(Status::internal(error.to_string())),
         }

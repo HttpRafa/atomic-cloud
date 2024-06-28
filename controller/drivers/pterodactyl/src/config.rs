@@ -1,6 +1,6 @@
-use std::{fs, path::Path};
 use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
+use std::{fs, path::Path};
 
 pub const CONFIG_DIRECTORY: &str = "/configs";
 

@@ -9,13 +9,17 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use user::BUser;
 
 use crate::{
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY}, debug, error, exports::node::driver::bridge::Address, node::driver::http::{send_http_request, Header, Method, Response}, warn
+    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
+    debug, error,
+    exports::node::driver::bridge::Address,
+    node::driver::http::{send_http_request, Header, Method, Response},
+    warn,
 };
 
+mod allocation;
 mod common;
 mod node;
 mod user;
-mod allocation;
 
 const BACKEND_FILE: &str = "backend.toml";
 
@@ -37,10 +41,16 @@ pub struct Backend {
 
 impl ResolvedValues {
     fn new_resolved(backend: &Backend) -> Result<Self> {
-        let user = backend.get_user_by_name(backend.user.as_ref().unwrap()).ok_or_else(|| anyhow::anyhow!("The provided user {} does not exist in the Pterodactyl panel", &backend.user.as_ref().unwrap()))?.id;
-        Ok(Self {
-            user,
-        })
+        let user = backend
+            .get_user_by_name(backend.user.as_ref().unwrap())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "The provided user {} does not exist in the Pterodactyl panel",
+                    &backend.user.as_ref().unwrap()
+                )
+            })?
+            .id;
+        Ok(Self { user })
     }
 }
 
@@ -62,9 +72,12 @@ impl Backend {
                 Self::new_empty()
             })
         } else {
-            let backend = Self::new_empty();     
+            let backend = Self::new_empty();
             if let Err(error) = backend.save_to_file(&path, false) {
-                error!("Failed to save default backend configuration to file: {}", &error);
+                error!(
+                    "Failed to save default backend configuration to file: {}",
+                    &error
+                );
             }
             backend
         }
@@ -95,7 +108,10 @@ impl Backend {
             missing.push("user");
         }
         if !missing.is_empty() {
-            error!("The following required configuration values are missing: {}", missing.join(", ").red());
+            error!(
+                "The following required configuration values are missing: {}",
+                missing.join(", ").red()
+            );
             return Err(anyhow::anyhow!("Missing required configuration values"));
         }
 
@@ -111,34 +127,65 @@ impl Backend {
         Ok(backend)
     }
 
-    pub fn get_free_allocations(&self, used_allocations: &[Address], node_id: u32, amount: u32) -> Vec<BAllocation> {
+    pub fn get_free_allocations(
+        &self,
+        used_allocations: &[Address],
+        node_id: u32,
+        amount: u32,
+    ) -> Vec<BAllocation> {
         let mut allocations = Vec::with_capacity(amount as usize);
-        self.for_each_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |response| {
-            for allocation in &response.data {
-                if allocation.attributes.assigned || used_allocations.iter().any(|used| used.ip == allocation.attributes.ip && used.port == allocation.attributes.port) {
-                    continue;
+        self.for_each_on_pages::<BAllocation>(
+            Method::Get,
+            APPLICATION_ENDPOINT,
+            format!("nodes/{}/allocations", &node_id).as_str(),
+            |response| {
+                for allocation in &response.data {
+                    if allocation.attributes.assigned
+                        || used_allocations.iter().any(|used| {
+                            used.ip == allocation.attributes.ip
+                                && used.port == allocation.attributes.port
+                        })
+                    {
+                        continue;
+                    }
+                    allocations.push(allocation.attributes.clone());
+                    if allocations.len() >= amount as usize {
+                        return true;
+                    }
                 }
-                allocations.push(allocation.attributes.clone());
-                if allocations.len() >= amount as usize {
-                    return true;
-                }
-            }
-            false
-        });
+                false
+            },
+        );
         allocations
     }
 
     pub fn get_user_by_name(&self, username: &str) -> Option<BUser> {
-        self.api_find_on_pages::<BUser>(Method::Get, APPLICATION_ENDPOINT, "users", |object| 
-            object.data.iter().find(|node| node.attributes.username == username).map(|node| node.attributes.clone()))
+        self.api_find_on_pages::<BUser>(Method::Get, APPLICATION_ENDPOINT, "users", |object| {
+            object
+                .data
+                .iter()
+                .find(|node| node.attributes.username == username)
+                .map(|node| node.attributes.clone())
+        })
     }
 
     pub fn get_node_by_name(&self, name: &str) -> Option<BNode> {
-        self.api_find_on_pages::<BNode>(Method::Get, APPLICATION_ENDPOINT, "nodes", |object| 
-            object.data.iter().find(|node| node.attributes.name == name).map(|node| node.attributes.clone()))
+        self.api_find_on_pages::<BNode>(Method::Get, APPLICATION_ENDPOINT, "nodes", |object| {
+            object
+                .data
+                .iter()
+                .find(|node| node.attributes.name == name)
+                .map(|node| node.attributes.clone())
+        })
     }
 
-    fn api_find_on_pages<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> Option<T>) -> Option<T> {
+    fn api_find_on_pages<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        target: &str,
+        mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> Option<T>,
+    ) -> Option<T> {
         let mut value = None;
         self.for_each_on_pages(method, endpoint, target, |response| {
             if let Some(data) = callback(response) {
@@ -150,7 +197,13 @@ impl Backend {
         value
     }
 
-    fn for_each_on_pages<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> bool) {
+    fn for_each_on_pages<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        target: &str,
+        mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> bool,
+    ) {
         let mut page = 1;
         loop {
             if let Some(response) = self.api_get_list::<T>(method, endpoint, target, Some(page)) {
@@ -165,37 +218,71 @@ impl Backend {
         }
     }
 
-    fn api_get_list<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, page: Option<u32>) -> Option<BList<T>> {
+    fn api_get_list<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        target: &str,
+        page: Option<u32>,
+    ) -> Option<BList<T>> {
         self.api_get::<Vec<BObject<T>>>(method, endpoint, target, page)
     }
 
-    fn api_get<T: DeserializeOwned>(&self, method: Method, endpoint: &str, target: &str, page: Option<u32>) -> Option<BBody<T>> {
+    fn api_get<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        target: &str,
+        page: Option<u32>,
+    ) -> Option<BBody<T>> {
         let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
         }
-        debug!("Sending request to the pterodactyl panel: {:?} {}", method, &url);
-        let response = send_http_request(method, &url, &[Header {
-            key: "Authorization".to_string(),
-            value: format!("Bearer {}", &self.token.as_ref().unwrap()),
-        }]);
+        debug!(
+            "Sending request to the pterodactyl panel: {:?} {}",
+            method, &url
+        );
+        let response = send_http_request(
+            method,
+            &url,
+            &[Header {
+                key: "Authorization".to_string(),
+                value: format!("Bearer {}", &self.token.as_ref().unwrap()),
+            }],
+        );
         if let Some(response) = Self::handle_response::<BBody<T>>(response, 200) {
             return Some(response);
         }
         None
     }
 
-    fn handle_response<T: DeserializeOwned>(response: Option<Response>, expected_code: u32) -> Option<T> {
+    fn handle_response<T: DeserializeOwned>(
+        response: Option<Response>,
+        expected_code: u32,
+    ) -> Option<T> {
         response.as_ref()?;
         let response = response.unwrap();
         if response.status_code != expected_code {
-            error!("Received {} status code {} from the pterodactyl panel: {}", "unexpected".red(), &response.status_code, &response.reason_phrase);
-            debug!("Response body: {}", String::from_utf8_lossy(&response.bytes));
+            error!(
+                "Received {} status code {} from the pterodactyl panel: {}",
+                "unexpected".red(),
+                &response.status_code,
+                &response.reason_phrase
+            );
+            debug!(
+                "Response body: {}",
+                String::from_utf8_lossy(&response.bytes)
+            );
             return None;
         }
         let response = serde_json::from_slice::<T>(&response.bytes);
         if let Err(error) = response {
-            error!("{} to parse response from the pterodactyl panel: {}", "Failed".red(), &error);
+            error!(
+                "{} to parse response from the pterodactyl panel: {}",
+                "Failed".red(),
+                &error
+            );
             return None;
         }
         Some(response.unwrap())

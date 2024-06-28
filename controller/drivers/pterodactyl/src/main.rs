@@ -4,8 +4,8 @@ use driver::{Pterodactyl, PterodactylNodeWrapper};
 use exports::node::driver::bridge::Guest;
 use wit_bindgen::generate;
 
-mod driver;
 mod config;
+mod driver;
 mod log;
 
 generate!({

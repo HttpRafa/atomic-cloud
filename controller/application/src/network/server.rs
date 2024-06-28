@@ -1,6 +1,6 @@
+use proto::server_service_server::ServerService;
 use std::sync::Arc;
 use tonic::async_trait;
-use proto::server_service_server::ServerService;
 
 use crate::controller::Controller;
 
@@ -16,5 +16,4 @@ pub struct ServerServiceImpl {
 }
 
 #[async_trait]
-impl ServerService for ServerServiceImpl {
-}
+impl ServerService for ServerServiceImpl {}

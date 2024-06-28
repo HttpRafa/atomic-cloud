@@ -1,11 +1,13 @@
-use std::cell::UnsafeCell;
-use std::rc::Rc;
-use std::sync::{Mutex};
 use backend::Backend;
 use colored::Colorize;
 use node::PterodactylNode;
+use std::cell::UnsafeCell;
+use std::rc::Rc;
+use std::sync::Mutex;
 
-use crate::exports::node::driver::bridge::{Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information};
+use crate::exports::node::driver::bridge::{
+    Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information,
+};
 use crate::{error, info};
 
 pub mod node;
@@ -40,7 +42,10 @@ impl GuestGenericDriver for Pterodactyl {
     fn init(&self) -> Information {
         let backend = Backend::new_filled_and_resolved();
         if let Err(error) = &backend {
-            error!("Failed to initialize Pterodactyl driver: {}", error.to_string().red());
+            error!(
+                "Failed to initialize Pterodactyl driver: {}",
+                error.to_string().red()
+            );
         }
         unsafe { *self.backend.get() = backend.ok().map(Rc::new) };
         Information {
@@ -53,12 +58,18 @@ impl GuestGenericDriver for Pterodactyl {
     fn init_node(&self, name: String, capabilities: Capabilities) -> Result<GenericNode, String> {
         if let Some(value) = capabilities.sub_node.as_ref() {
             if let Some(node) = self.get_backend().get_node_by_name(value) {
-                let wrapper = PterodactylNodeWrapper::new(name.clone(), Some(node.id), capabilities);
+                let wrapper =
+                    PterodactylNodeWrapper::new(name.clone(), Some(node.id), capabilities);
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add node to nodes
                 let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
                 nodes.push(wrapper.inner.clone());
-                info!("Node {}[{}] was {}", name.blue(), format!("{}", node.id).blue(), "loaded".green());
+                info!(
+                    "Node {}[{}] was {}",
+                    name.blue(),
+                    format!("{}", node.id).blue(),
+                    "loaded".green()
+                );
                 Ok(GenericNode::new(wrapper))
             } else {
                 Err("Node does not exist in the Pterodactyl panel".to_string())

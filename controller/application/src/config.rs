@@ -4,8 +4,8 @@ use std::path::Path;
 
 use anyhow::Result;
 use log::{error, warn};
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
@@ -35,8 +35,12 @@ impl Config {
         let mut config = Self::load_or_empty();
 
         if config.listener.is_none() {
-            config.listener = Some(SocketAddr::new(DEFAULT_BIND_ADDRESS.parse().unwrap(), DEFAULT_BIND_PORT));
-            if let Err(error) = config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE)) {
+            config.listener = Some(SocketAddr::new(
+                DEFAULT_BIND_ADDRESS.parse().unwrap(),
+                DEFAULT_BIND_PORT,
+            ));
+            if let Err(error) = config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE))
+            {
                 error!("Failed to save generated configuration to file: {}", &error);
             }
         }

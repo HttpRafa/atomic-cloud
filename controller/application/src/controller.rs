@@ -1,22 +1,22 @@
+use anyhow::Error;
+use log::warn;
+use server::Servers;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
-use anyhow::Error;
-use log::warn;
-use server::Servers;
 use tokio::runtime::{Builder, Runtime};
 
 use crate::config::Config;
-use crate::network::NetworkStack;
 use crate::controller::driver::Drivers;
 use crate::controller::group::Groups;
 use crate::controller::node::Nodes;
+use crate::network::NetworkStack;
 
-pub mod node;
-pub mod group;
-pub mod server;
 pub mod driver;
+pub mod group;
+pub mod node;
+pub mod server;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 
@@ -55,7 +55,10 @@ impl Controller {
                 handle: handle.clone(),
                 configuration,
                 drivers,
-                runtime: Builder::new_multi_thread().enable_all().build().expect("Failed to create Tokio runtime"),
+                runtime: Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .expect("Failed to create Tokio runtime"),
                 running: AtomicBool::new(true),
                 nodes: Mutex::new(nodes),
                 groups: Mutex::new(groups),

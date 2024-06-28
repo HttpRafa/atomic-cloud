@@ -18,7 +18,7 @@ pub struct BBody<T> {
 
 #[derive(Deserialize)]
 pub struct BObject<T> {
-    pub attributes: T
+    pub attributes: T,
 }
 
 pub type BList<T> = BBody<Vec<BObject<T>>>;

@@ -1,7 +1,7 @@
-use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use colored::Colorize;
 use log::info;
+use std::{net::SocketAddr, sync::Arc};
 use tonic::async_trait;
 
 use crate::controller::node::Node;
@@ -61,7 +61,8 @@ impl Drivers {
     }
 
     pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {
-        self.drivers.iter()
+        self.drivers
+            .iter()
             .find(|driver| driver.name().eq_ignore_ascii_case(name))
             .cloned()
     }
@@ -69,10 +70,10 @@ impl Drivers {
 
 #[cfg(feature = "wasm-drivers")]
 mod source {
+    use anyhow::Result;
     use std::fmt::{Display, Formatter};
     use std::fs;
     use std::path::{Path, PathBuf};
-    use anyhow::Result;
 
     pub struct Source {
         pub path: PathBuf,

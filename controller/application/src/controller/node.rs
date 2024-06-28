@@ -1,4 +1,9 @@
-use std::{fs, net::SocketAddr, path::Path, sync::{Arc, Mutex, Weak}};
+use std::{
+    fs,
+    net::SocketAddr,
+    path::Path,
+    sync::{Arc, Mutex, Weak},
+};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
@@ -6,8 +11,12 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use stored::StoredNode;
 
+use super::{
+    driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver},
+    server::{Deployment, Resources},
+    CreationResult,
+};
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-use super::{driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver}, server::{Deployment, Resources}, CreationResult};
 
 const NODES_DIRECTORY: &str = "nodes";
 
@@ -74,9 +83,13 @@ impl Nodes {
             };
 
             match nodes.add_node(node) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(error) => {
-                    warn!("{} to load node {} because it was denied by the driver", "Failed".red(), &name.blue());
+                    warn!(
+                        "{} to load node {} because it was denied by the driver",
+                        "Failed".red(),
+                        &name.blue()
+                    );
                     warn!(" -> {}", &error);
                 }
             }
@@ -103,19 +116,28 @@ impl Nodes {
         None
     }
 
-    pub fn create_node(&mut self, name: &str, driver: Arc<dyn GenericDriver>, capabilities: Capabilities) -> Result<CreationResult> {
+    pub fn create_node(
+        &mut self,
+        name: &str,
+        driver: Arc<dyn GenericDriver>,
+        capabilities: Capabilities,
+    ) -> Result<CreationResult> {
         for node in &self.nodes {
             if node.name == name {
                 return Ok(CreationResult::AlreadyExists);
             }
         }
 
-        let stored_node = StoredNode { driver: driver.name().to_string(), capabilities };
+        let stored_node = StoredNode {
+            driver: driver.name().to_string(),
+            capabilities,
+        };
         let node = Node::from(name, &stored_node, driver);
 
         match self.add_node(node) {
             Ok(_) => {
-                stored_node.save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
+                stored_node
+                    .save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
                 info!("Created node {}", name.blue());
                 Ok(CreationResult::Created)
             }
@@ -172,15 +194,18 @@ impl Node {
     }
 
     fn try_from(name: &str, stored_node: &StoredNode, drivers: &Drivers) -> Option<Self> {
-        drivers.find_by_name(&stored_node.driver).map(|driver| Self::from(name, stored_node, driver)).or_else(|| {
-            error!(
-                "{} to load node {} because there is no loaded driver with the name {}",
-                "Failed".red(),
-                &name.red(),
-                &stored_node.driver.red()
-            );
-            None
-        })
+        drivers
+            .find_by_name(&stored_node.driver)
+            .map(|driver| Self::from(name, stored_node, driver))
+            .or_else(|| {
+                error!(
+                    "{} to load node {} because there is no loaded driver with the name {}",
+                    "Failed".red(),
+                    &name.red(),
+                    &stored_node.driver.red()
+                );
+                None
+            })
     }
 
     pub fn init(&mut self) -> Result<()> {
@@ -188,28 +213,43 @@ impl Node {
             Ok(value) => {
                 self.inner = Some(value);
                 Ok(())
-            },
+            }
             Err(error) => Err(error),
         }
     }
 
-    pub fn allocate(&self, resources: &Resources, deployment: Deployment) -> Result<AllocationHandle> {
+    pub fn allocate(
+        &self,
+        resources: &Resources,
+        deployment: Deployment,
+    ) -> Result<AllocationHandle> {
         let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
         if let Some(max_memory) = self.capabilities.memory {
-            let used_memory: u32 = allocations.iter().map(|allocation| allocation.resources.memory).sum();
+            let used_memory: u32 = allocations
+                .iter()
+                .map(|allocation| allocation.resources.memory)
+                .sum();
             if used_memory > max_memory {
                 return Err(anyhow!("Node has reached the memory limit"));
             }
         }
         if let Some(max_allocations) = self.capabilities.max_allocations {
             if allocations.len() + 1 > max_allocations as usize {
-                return Err(anyhow!("Node has reached the maximum amount of allocations"));
+                return Err(anyhow!(
+                    "Node has reached the maximum amount of allocations"
+                ));
             }
         }
 
-        let addresses = self.inner.as_ref().unwrap().allocate_addresses(resources.addresses)?;
+        let addresses = self
+            .inner
+            .as_ref()
+            .unwrap()
+            .allocate_addresses(resources.addresses)?;
         if addresses.len() < resources.addresses as usize {
-            return Err(anyhow!("Node did not allocate the required amount of addresses"));
+            return Err(anyhow!(
+                "Node did not allocate the required amount of addresses"
+            ));
         }
 
         let allocation = Arc::new(Allocation {
@@ -222,10 +262,17 @@ impl Node {
     }
 
     pub fn deallocate(&self, allocation: &AllocationHandle) {
-        self.inner.as_ref().unwrap().deallocate_addresses(allocation.addresses.clone()).unwrap_or_else(|error| {
-            error!("{} to deallocate addresses: {}", "Failed".red(), &error);
-        });
-        self.allocations.lock().expect("Failed to lock allocations").retain(|alloc| !Arc::ptr_eq(alloc, allocation));
+        self.inner
+            .as_ref()
+            .unwrap()
+            .deallocate_addresses(allocation.addresses.clone())
+            .unwrap_or_else(|error| {
+                error!("{} to deallocate addresses: {}", "Failed".red(), &error);
+            });
+        self.allocations
+            .lock()
+            .expect("Failed to lock allocations")
+            .retain(|alloc| !Arc::ptr_eq(alloc, allocation));
     }
 
     pub fn get_inner(&self) -> &DriverNodeHandle {
@@ -241,8 +288,8 @@ pub struct Capabilities {
 }
 
 mod stored {
-    use serde::{Deserialize, Serialize};
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
+    use serde::{Deserialize, Serialize};
 
     use super::Capabilities;
 

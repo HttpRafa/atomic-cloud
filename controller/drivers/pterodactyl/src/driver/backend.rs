@@ -37,7 +37,7 @@ pub struct Backend {
 
 impl ResolvedValues {
     fn new_resolved(backend: &Backend) -> Result<Self> {
-        let user = backend.get_user_by_name(&backend.user.as_ref().unwrap()).ok_or_else(|| anyhow::anyhow!("The provided user {} does not exist in the Pterodactyl panel", &backend.user.as_ref().unwrap()))?.id;
+        let user = backend.get_user_by_name(backend.user.as_ref().unwrap()).ok_or_else(|| anyhow::anyhow!("The provided user {} does not exist in the Pterodactyl panel", &backend.user.as_ref().unwrap()))?.id;
         Ok(Self {
             user,
         })
@@ -111,7 +111,7 @@ impl Backend {
         Ok(backend)
     }
 
-    pub fn get_free_allocations(&self, used_allocations: &Vec<Address>, node_id: u32, amount: u32) -> Vec<BAllocation> {
+    pub fn get_free_allocations(&self, used_allocations: &[Address], node_id: u32, amount: u32) -> Vec<BAllocation> {
         let mut allocations = Vec::with_capacity(amount as usize);
         self.for_each_on_pages::<BAllocation>(Method::Get, APPLICATION_ENDPOINT, format!("nodes/{}/allocations", &node_id).as_str(), |response| {
             for allocation in &response.data {

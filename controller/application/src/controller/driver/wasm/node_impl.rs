@@ -68,62 +68,62 @@ impl GenericNode for WasmNode {
     }
 }
 
-impl Into<bridge::DriverSetting> for &DriverSetting {
-    fn into(self) -> bridge::DriverSetting {
+impl From<&DriverSetting> for bridge::DriverSetting {
+    fn from(val: &DriverSetting) -> Self {
         bridge::DriverSetting {
-            key: self.key.clone(),
-            value: self.value.clone(),
+            key: val.key.clone(),
+            value: val.value.clone(),
         }
     }
 }
 
-impl Into<bridge::Retention> for &Retention {
-    fn into(self) -> bridge::Retention {
-        match self {
+impl From<&Retention> for bridge::Retention {
+    fn from(val: &Retention) -> Self {
+        match val {
             Retention::Keep => bridge::Retention::Keep,
             Retention::Delete => bridge::Retention::Delete,
         }
     }
 }
 
-impl Into<bridge::Deployment> for &Deployment {
-    fn into(self) -> bridge::Deployment {
+impl From<&Deployment> for bridge::Deployment {
+    fn from(val: &Deployment) -> Self {
         bridge::Deployment { 
-            driver_settings: self.driver_settings.iter().map(|setting| setting.into()).collect(), 
-            disk_retention: (&self.disk_retention).into(), 
+            driver_settings: val.driver_settings.iter().map(|setting| setting.into()).collect(), 
+            disk_retention: (&val.disk_retention).into(), 
         }
     }
 }
 
-impl Into<bridge::Resources> for Resources {
-    fn into(self) -> bridge::Resources {
+impl From<Resources> for bridge::Resources {
+    fn from(val: Resources) -> Self {
         bridge::Resources {
-            memory: self.memory,
-            cpu: self.cpu,
-            disk: self.disk,
-            addresses: self.addresses,
+            memory: val.memory,
+            cpu: val.cpu,
+            disk: val.disk,
+            addresses: val.addresses,
         }
     }
 }
 
-impl Into<bridge::Allocation> for Arc<Allocation> {
-    fn into(self) -> bridge::Allocation {
+impl From<Arc<Allocation>> for bridge::Allocation {
+    fn from(val: Arc<Allocation>) -> Self {
         bridge::Allocation {
-            addresses: self.addresses.iter().map(|address| address.into()).collect(),
-            resources: self.resources.clone().into(),
-            deployment: (&self.deployment).into(),
+            addresses: val.addresses.iter().map(|address| address.into()).collect(),
+            resources: val.resources.clone().into(),
+            deployment: (&val.deployment).into(),
         }
     }
 }
 
-impl Into<bridge::Server> for &Arc<Server> {
-    fn into(self) -> bridge::Server {
-        let group = self.group.upgrade().expect("Failed to get group while trying to convert server to driver representation");
+impl From<&Arc<Server>> for bridge::Server {
+    fn from(val: &Arc<Server>) -> Self {
+        let group = val.group.upgrade().expect("Failed to get group while trying to convert server to driver representation");
         bridge::Server {
-            name: self.name.clone(),
-            uuid: self.uuid.to_string(),
+            name: val.name.clone(),
+            uuid: val.uuid.to_string(),
             group: group.name.clone(),
-            allocation: self.allocation.clone().into(),
+            allocation: val.allocation.clone().into(),
         }
     }
 }

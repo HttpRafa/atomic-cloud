@@ -27,10 +27,11 @@ impl AdminService for AdminServiceImpl {
         let name = &node.name;
         let driver = &node.driver;
 
-        let mut capabilities = Capabilities::default();
-        capabilities.memory = node.memory;
-        capabilities.max_allocations = node.max_allocations;
-        capabilities.sub_node = node.sub_node;
+        let capabilities = Capabilities {
+            memory: node.memory,
+            max_allocations: node.max_allocations,
+            sub_node: node.sub_node,
+        };
 
         let driver = match self.controller.drivers.find_by_name(driver) {
             Some(driver) => driver,

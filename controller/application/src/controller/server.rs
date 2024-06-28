@@ -98,7 +98,7 @@ impl Servers {
 
         // Remove server from group and servers list
         if let Some(group) = server.group.upgrade() {
-            group.remove_server(&server);
+            group.remove_server(server);
         }
         servers.retain(|handle| !Arc::ptr_eq(handle, server));
 
@@ -121,7 +121,7 @@ impl Servers {
             name: request.name.clone(),
             uuid: Uuid::new_v4(),
             group: request.group.clone(),
-            node: Arc::downgrade(&node),
+            node: Arc::downgrade(node),
             allocation,
             health: Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT),
             state: State::Starting,

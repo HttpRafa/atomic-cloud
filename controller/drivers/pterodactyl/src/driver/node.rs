@@ -1,4 +1,4 @@
-use std::{cell::UnsafeCell, sync::Arc};
+use std::{cell::UnsafeCell, rc::Rc, sync::{Mutex, MutexGuard}};
 
 use crate::exports::node::driver::bridge::{Address, Capabilities, GuestGenericNode, Server};
 
@@ -7,19 +7,19 @@ use super::{backend::Backend, PterodactylNodeWrapper};
 impl GuestGenericNode for PterodactylNodeWrapper {
     fn new(name: String, id: Option<u32>, capabilities: Capabilities) -> Self {
         Self {
-            inner: Arc::new(PterodactylNode {
+            inner: Rc::new(PterodactylNode {
                 backend: UnsafeCell::new(None),
                 id: id.unwrap(),
                 name,
                 capabilities,
-                used_allocations: UnsafeCell::new(vec![]),
+                used_allocations: Mutex::new(vec![]),
             }),
         }
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
     fn allocate_addresses(&self, amount: u32) -> Result<Vec<Address>, String> {
-        let used = self.inner.get_used_allocations();
+        let mut used = self.inner.get_used_allocations();
         let allocations = self.get_backend().get_free_allocations(&used, self.inner.id, amount).iter().map(|allocation| {
             used.push(Address {
                 ip: allocation.ip.clone(),
@@ -46,17 +46,17 @@ impl GuestGenericNode for PterodactylNodeWrapper {
 
 pub struct PterodactylNode {
     /* Informations about the node */
-    pub backend: UnsafeCell<Option<Arc<Backend>>>,
+    pub backend: UnsafeCell<Option<Rc<Backend>>>,
     pub id: u32,
     pub name: String,
     pub capabilities: Capabilities,
 
-    pub used_allocations: UnsafeCell<Vec<Address>>,
+    pub used_allocations: Mutex<Vec<Address>>,
 }
 
 impl PterodactylNode {
-    fn get_used_allocations(&self) -> &mut Vec<Address> {
+    fn get_used_allocations(&self) -> MutexGuard<Vec<Address>> {
         // Safe as we are only run on the same thread
-        unsafe { &mut *self.used_allocations.get() }
+        self.used_allocations.lock().unwrap()
     }
 }

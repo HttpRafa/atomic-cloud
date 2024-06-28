@@ -318,21 +318,21 @@ impl From<bridge::Information> for Information {
     }
 }
 
-impl Into<bridge::Capabilities> for &Capabilities {
-    fn into(self) -> bridge::Capabilities {
+impl From<&Capabilities> for bridge::Capabilities {
+    fn from(val: &Capabilities) -> Self {
         bridge::Capabilities { 
-            memory: self.memory, 
-            max_allocations: self.max_allocations, 
-            sub_node: self.sub_node.clone(), 
+            memory: val.memory, 
+            max_allocations: val.max_allocations, 
+            sub_node: val.sub_node.clone(), 
         }
     }
 }
 
-impl Into<bridge::Address> for &SocketAddr {
-    fn into(self) -> bridge::Address {
+impl From<&SocketAddr> for bridge::Address {
+    fn from(val: &SocketAddr) -> Self {
         bridge::Address {
-            ip: self.ip().to_string(),
-            port: self.port(),
+            ip: val.ip().to_string(),
+            port: val.port(),
         }
     }
 }

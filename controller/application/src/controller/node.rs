@@ -215,7 +215,7 @@ impl Node {
         let allocation = Arc::new(Allocation {
             addresses,
             resources: resources.clone(),
-            deployment: deployment,
+            deployment,
         });
         allocations.push(allocation.clone());
         Ok(allocation)

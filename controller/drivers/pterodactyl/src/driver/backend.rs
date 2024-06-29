@@ -132,6 +132,7 @@ impl Backend {
     pub fn create_server(
         &self,
         server: &Server,
+        node: u32,
         allocation: &BAllocation,
         egg: u32,
         startup: &str,
@@ -139,6 +140,7 @@ impl Backend {
     ) -> Option<BServer> {
         let backend_server = BCServer {
             name: server.name.clone(),
+            node,
             user: self.resolved.as_ref().unwrap().user,
             egg,
             docker_image: server.allocation.deployment.image.clone(),
@@ -312,13 +314,14 @@ impl Backend {
             }],
             body,
         );
-        if let Some(response) = Self::handle_response::<T>(response, 200) {
+        if let Some(response) = Self::handle_response::<T>(&url, response, 200) {
             return Some(response);
         }
         None
     }
 
     fn handle_response<T: DeserializeOwned>(
+        url: &str,
         response: Option<Response>,
         expected_code: u32,
     ) -> Option<T> {
@@ -326,10 +329,11 @@ impl Backend {
         let response = response.unwrap();
         if response.status_code != expected_code {
             error!(
-                "Received {} status code {} from the pterodactyl panel: {}",
-                "unexpected".red(),
-                &response.status_code,
-                &response.reason_phrase
+                "An unexpected error occurred while sending a request to the Pterodactyl panel at {}: Received {} status code {} - {}",
+                url,
+                response.status_code,
+                response.reason_phrase,
+                String::from_utf8_lossy(&response.bytes)
             );
             debug!(
                 "Response body: {}",
@@ -340,9 +344,8 @@ impl Backend {
         let response = serde_json::from_slice::<T>(&response.bytes);
         if let Err(error) = response {
             error!(
-                "{} to parse response from the pterodactyl panel: {}",
-                "Failed".red(),
-                &error
+                "Failed to parse response from the Pterodactyl panel at URL {}: {}",
+                url, &error
             );
             return None;
         }

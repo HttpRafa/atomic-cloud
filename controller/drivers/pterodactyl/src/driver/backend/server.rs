@@ -8,6 +8,7 @@ use crate::exports::node::driver::bridge::Resources;
 #[derive(Serialize, Clone)]
 pub struct BCServer {
     pub name: String,
+    pub node: u32,
     pub user: u32,
     pub egg: u32,
     pub docker_image: String,

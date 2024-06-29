@@ -108,6 +108,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             // Create a new server
             self.get_backend().create_server(
                 &server,
+                self.inner.id,
                 &allocation,
                 egg.unwrap(),
                 startup.unwrap().as_str(),

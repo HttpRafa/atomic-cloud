@@ -1,5 +1,6 @@
 use colored::Colorize;
 use server::{PanelServer, ServerName};
+use toml::de;
 use std::{
     cell::UnsafeCell,
     rc::Rc,
@@ -79,12 +80,23 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         );
 
         // Check if a server with the same name is already exists
-        if let Some(_server) = self.get_backend().get_server_by_name(&name) {
+        if let Some(server) = self.get_backend().get_server_by_name(&name) {
+            if deployment.disk_retention == Retention::Temporary {
+                error!(
+                    "Server {} already exists on the panel, but the disk retention is temporary",
+                    server.name
+                );
+                return;
+            }
             // Just use the existing server and change its settings
             info!(
-                "Server {} already exists on the panel, updating settings",
+                "Server {} already exists on the panel, updating settings and starting...",
                 server.name
             );
+            self.get_backend().start_server(&server.identifier);
+            self.inner
+                    .get_servers()
+                    .push(PanelServer::new(server.id, server.identifier, name));
         } else {
             let allocations = server
                 .allocation
@@ -158,7 +170,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 );
                 self.inner
                     .get_servers()
-                    .push(PanelServer::new(server.id, name));
+                    .push(PanelServer::new(server.id, server.identifier, name));
             }
         }
     }
@@ -169,11 +181,16 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 self.get_backend().delete_server(backend_server.id);
                 info!(
                     "Server {} successfully {} from the panel",
-                    server.name.blue(),
+                    backend_server.name.generate().blue(),
                     "deleted".red()
                 );
             } else {
-                // TODO: self.get_backend().stop_server(&backend_server);
+                self.get_backend().stop_server(&backend_server);
+                info!(
+                    "Panel is {} the server {}...",
+                    "stopping".red(),
+                    backend_server.name.generate().blue(),
+                );
             }
             self.inner.delete_server(backend_server.id);
         } else {

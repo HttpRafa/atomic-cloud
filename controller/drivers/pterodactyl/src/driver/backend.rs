@@ -6,7 +6,7 @@ use colored::Colorize;
 use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use server::{BCServer, BCServerAllocation, BServer, BServerEgg, BServerFeatureLimits};
+use server::{BCServer, BCServerAllocation, BServer, BServerEgg, BServerFeatureLimits, BSignal};
 use user::BUser;
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
     warn,
 };
 
-use super::node::server::ServerName;
+use super::node::server::{PanelServer, ServerName};
 
 pub mod allocation;
 mod common;
@@ -29,6 +29,7 @@ const BACKEND_FILE: &str = "backend.toml";
 
 /* Endpoints */
 const APPLICATION_ENDPOINT: &str = "/api/application";
+const CLIENT_ENDPOINT: &str = "/api/client";
 
 #[derive(Deserialize, Serialize)]
 pub struct ResolvedValues {
@@ -38,9 +39,20 @@ pub struct ResolvedValues {
 #[derive(Deserialize, Serialize)]
 pub struct Backend {
     url: Option<String>,
-    token: Option<String>,
+    tokens: Tokens,
     user: Option<String>,
     resolved: Option<ResolvedValues>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Tokens {
+    pub application: Option<String>,
+    pub client: Option<String>,
+}
+
+pub enum Endpoint {
+    Application,
+    Client,
 }
 
 impl ResolvedValues {
@@ -62,7 +74,10 @@ impl Backend {
     fn new_empty() -> Self {
         Self {
             url: Some("".to_string()),
-            token: Some("".to_string()),
+            tokens: Tokens {
+                application: Some("".to_string()),
+                client: Some("".to_string()),
+            },
             user: Some("".to_string()),
             resolved: None,
         }
@@ -94,8 +109,11 @@ impl Backend {
         if let Ok(url) = std::env::var("PTERODACTYL_URL") {
             backend.url = Some(url);
         }
-        if let Ok(token) = std::env::var("PTERODACTYL_TOKEN") {
-            backend.token = Some(token);
+        if let Ok(token) = std::env::var("PTERODACTYL_APPLICATION_TOKEN") {
+            backend.tokens.application = Some(token);
+        }
+        if let Ok(token) = std::env::var("PTERODACTYL_CLIENT_TOKEN") {
+            backend.tokens.client = Some(token);
         }
         if let Ok(user) = std::env::var("PTERODACTYL_USER") {
             backend.user = Some(user);
@@ -105,8 +123,11 @@ impl Backend {
         if backend.url.is_none() || backend.url.as_ref().unwrap().is_empty() {
             missing.push("url");
         }
-        if backend.token.is_none() || backend.token.as_ref().unwrap().is_empty() {
-            missing.push("token");
+        if backend.tokens.application.is_none() || backend.tokens.application.as_ref().unwrap().is_empty() {
+            missing.push("tokens.application");
+        }
+        if backend.tokens.client.is_none() || backend.tokens.client.as_ref().unwrap().is_empty() {
+            missing.push("tokens.client");
         }
         if backend.user.is_none() || backend.user.as_ref().unwrap().is_empty() {
             missing.push("user");
@@ -131,8 +152,23 @@ impl Backend {
         Ok(backend)
     }
 
+    pub fn stop_server(&self, server: &PanelServer) -> bool {
+        self.change_power_state(&server.identifier, "stop")
+    }
+
+    pub fn start_server(&self, identifier: &str) -> bool {
+        self.change_power_state(identifier, "start")
+    }
+
+    fn change_power_state(&self, identifier: &str, state: &str) -> bool {
+        let state = serde_json::to_vec(&BSignal {
+            signal: state.to_string(),
+        }).ok();
+        self.send_to_api(Method::Post, &Endpoint::Client, &format!("servers/{}/power", &identifier), 204, state.as_deref(), None)
+    }
+
     pub fn delete_server(&self, server: u32) -> bool {
-        self.delete_in_api(APPLICATION_ENDPOINT, &format!("servers/{}", server))
+        self.delete_in_api(&Endpoint::Application, &format!("servers/{}", server))
     }
 
     pub fn create_server(
@@ -163,7 +199,7 @@ impl Backend {
             start_on_completion: true,
         };
         self.post_object_to_api::<BCServer, BServer>(
-            APPLICATION_ENDPOINT,
+            &Endpoint::Application,
             "servers",
             &backend_server,
         )
@@ -171,7 +207,7 @@ impl Backend {
     }
 
     pub fn get_server_by_name(&self, name: &ServerName) -> Option<BServer> {
-        self.api_find_on_pages::<BServer>(Method::Get, APPLICATION_ENDPOINT, "servers", |object| {
+        self.api_find_on_pages::<BServer>(Method::Get, &Endpoint::Application, "servers", |object| {
             object
                 .data
                 .iter()
@@ -189,7 +225,7 @@ impl Backend {
         let mut allocations = Vec::with_capacity(amount as usize);
         self.for_each_on_pages::<BAllocation>(
             Method::Get,
-            APPLICATION_ENDPOINT,
+            &Endpoint::Application,
             format!("nodes/{}/allocations", &node_id).as_str(),
             |response| {
                 for allocation in &response.data {
@@ -213,7 +249,7 @@ impl Backend {
     }
 
     pub fn get_user_by_name(&self, username: &str) -> Option<BUser> {
-        self.api_find_on_pages::<BUser>(Method::Get, APPLICATION_ENDPOINT, "users", |object| {
+        self.api_find_on_pages::<BUser>(Method::Get, &Endpoint::Application, "users", |object| {
             object
                 .data
                 .iter()
@@ -223,7 +259,7 @@ impl Backend {
     }
 
     pub fn get_node_by_name(&self, name: &str) -> Option<BNode> {
-        self.api_find_on_pages::<BNode>(Method::Get, APPLICATION_ENDPOINT, "nodes", |object| {
+        self.api_find_on_pages::<BNode>(Method::Get, &Endpoint::Application, "nodes", |object| {
             object
                 .data
                 .iter()
@@ -235,7 +271,7 @@ impl Backend {
     fn api_find_on_pages<T: DeserializeOwned>(
         &self,
         method: Method,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> Option<T>,
     ) -> Option<T> {
@@ -253,7 +289,7 @@ impl Backend {
     fn for_each_on_pages<T: DeserializeOwned>(
         &self,
         method: Method,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         mut callback: impl FnMut(&BBody<Vec<BObject<T>>>) -> bool,
     ) {
@@ -274,20 +310,20 @@ impl Backend {
     fn api_get_list<T: DeserializeOwned>(
         &self,
         method: Method,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         page: Option<u32>,
     ) -> Option<BList<T>> {
         self.send_to_api_parse(method, endpoint, target, 200, None, page)
     }
 
-    fn delete_in_api(&self, endpoint: &str, target: &str) -> bool {
+    fn delete_in_api(&self, endpoint: &Endpoint, target: &str) -> bool {
         self.send_to_api(Method::Delete, endpoint, target, 204, None, None)
     }
 
     fn post_object_to_api<T: Serialize, K: DeserializeOwned>(
         &self,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         object: &T,
     ) -> Option<BObject<K>> {
@@ -298,13 +334,16 @@ impl Backend {
     fn send_to_api(
         &self,
         method: Method,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         expected_code: u32,
         body: Option<&[u8]>,
         page: Option<u32>,
     ) -> bool {
-        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
+        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), match endpoint {
+            Endpoint::Application => APPLICATION_ENDPOINT,
+            Endpoint::Client => CLIENT_ENDPOINT,
+        }, target);
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
         }
@@ -318,7 +357,10 @@ impl Backend {
             &[
                 Header {
                     key: "Authorization".to_string(),
-                    value: format!("Bearer {}", &self.token.as_ref().unwrap()),
+                    value: format!("Bearer {}", match endpoint {
+                        Endpoint::Application => self.tokens.application.as_ref().unwrap(),
+                        Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                    }),
                 },
                 Header {
                     key: "Content-Type".to_string(),
@@ -336,13 +378,16 @@ impl Backend {
     fn send_to_api_parse<T: DeserializeOwned>(
         &self,
         method: Method,
-        endpoint: &str,
+        endpoint: &Endpoint,
         target: &str,
         expected_code: u32,
         body: Option<&[u8]>,
         page: Option<u32>,
     ) -> Option<T> {
-        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
+        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), match endpoint {
+            Endpoint::Application => APPLICATION_ENDPOINT,
+            Endpoint::Client => CLIENT_ENDPOINT,
+        }, target);
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
         }
@@ -356,7 +401,10 @@ impl Backend {
             &[
                 Header {
                     key: "Authorization".to_string(),
-                    value: format!("Bearer {}", &self.token.as_ref().unwrap()),
+                    value: format!("Bearer {}", match endpoint {
+                        Endpoint::Application => self.tokens.application.as_ref().unwrap(),
+                        Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                    }),
                 },
                 Header {
                     key: "Content-Type".to_string(),

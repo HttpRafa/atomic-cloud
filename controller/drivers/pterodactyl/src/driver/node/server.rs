@@ -5,12 +5,13 @@ use crate::exports::node::driver::bridge::Retention;
 #[derive(Clone)]
 pub struct PanelServer {
     pub id: u32,
+    pub identifier: String,
     pub name: ServerName,
 }
 
 impl PanelServer {
-    pub fn new(id: u32, name: ServerName) -> PanelServer {
-        Self { id, name }
+    pub fn new(id: u32, identifier: String, name: ServerName) -> PanelServer {
+        Self { id, identifier, name }
     }
 }
 

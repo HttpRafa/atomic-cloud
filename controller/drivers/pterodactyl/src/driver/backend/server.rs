@@ -46,9 +46,15 @@ impl BCServerAllocation {
     }
 }
 
+#[derive(Serialize, Clone)]
+pub struct BSignal {
+    pub signal: String,
+}
+
 #[derive(Deserialize, Clone)]
 pub struct BServer {
     pub id: u32,
+    pub identifier: String,
     pub name: String,
 }
 

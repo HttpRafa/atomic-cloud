@@ -113,8 +113,8 @@ impl From<&KeyValue> for bridge::KeyValue {
 impl From<&Retention> for bridge::Retention {
     fn from(val: &Retention) -> Self {
         match val {
-            Retention::Keep => bridge::Retention::Keep,
-            Retention::Delete => bridge::Retention::Delete,
+            Retention::Permanent => bridge::Retention::Permanent,
+            Retention::Temporary => bridge::Retention::Temporary,
         }
     }
 }

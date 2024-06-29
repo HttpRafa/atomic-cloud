@@ -4,6 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::exports::node::driver::bridge::Resources;
 
+use super::allocation::BAllocation;
+
+pub struct BServerEgg {
+    pub id: u32,
+    pub startup: String,
+}
+
 /* Create Server on panel */
 #[derive(Serialize, Clone)]
 pub struct BCServer {
@@ -17,11 +24,26 @@ pub struct BCServer {
     pub limits: BServerLimits,
     pub feature_limits: BServerFeatureLimits,
     pub allocation: BCServerAllocation,
+    pub start_on_completion: bool,
 }
 
 #[derive(Serialize, Clone)]
 pub struct BCServerAllocation {
     pub default: u32,
+    pub additional: Vec<u32>,
+}
+
+impl BCServerAllocation {
+    pub fn from(allocations: &[BAllocation]) -> BCServerAllocation {
+        let mut additional = Vec::with_capacity(allocations.len() - 1);
+        for item in allocations.iter().skip(1) {
+            additional.push(item.id);
+        }
+        Self {
+            default: allocations[0].id,
+            additional,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]

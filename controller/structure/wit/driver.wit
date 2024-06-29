@@ -73,8 +73,8 @@ interface bridge {
     }
 
     variant retention {
-        keep,
-        delete,
+        permanent,
+        temporary,
     }
 
     record key-value {
@@ -104,7 +104,7 @@ interface bridge {
     /* Server | End */
 
     resource generic-node {
-        constructor(name: string, id: option<u32>, capabilities: capabilities);
+        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
@@ -113,7 +113,7 @@ interface bridge {
     }
 
     resource generic-driver {
-        constructor();
+        constructor(cloud-identifier: string);
         init: func() -> information;
         init-node: func(name: string, capabilities: capabilities) -> result<generic-node, string>;
     }

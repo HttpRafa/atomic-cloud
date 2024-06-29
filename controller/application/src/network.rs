@@ -31,6 +31,8 @@ impl NetworkStack {
             shutdown: sender,
             handle: controller
                 .get_runtime()
+                .as_ref()
+                .unwrap()
                 .spawn(launch_server(controller.clone(), receiver)),
             controller: Arc::downgrade(&controller),
         };
@@ -77,6 +79,8 @@ impl NetworkStack {
         if let Some(controller) = self.controller.upgrade() {
             controller
                 .get_runtime()
+                .as_ref()
+                .unwrap()
                 .block_on(self.handle)
                 .expect("Failed to shutdown network stack");
         }

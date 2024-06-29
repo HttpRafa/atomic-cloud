@@ -10,7 +10,8 @@ mod log;
 
 generate!({
     world: "driver",
-    path: "../../structure/wit/"
+    path: "../../structure/wit/",
+    additional_derives: [PartialEq, Eq],
 });
 
 struct Export;

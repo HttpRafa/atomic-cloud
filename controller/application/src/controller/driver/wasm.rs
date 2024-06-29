@@ -209,7 +209,7 @@ impl GenericDriver for WasmDriver {
 }
 
 impl WasmDriver {
-    fn new(name: &str, source: &Source) -> Result<Arc<Self>> {
+    fn new(cloud_identifier: &str, name: &str, source: &Source) -> Result<Arc<Self>> {
         let config_directory = Path::new(CONFIG_DIRECTORY).join(name);
         let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(name);
         if !config_directory.exists() {
@@ -286,7 +286,7 @@ impl WasmDriver {
             .bindings
             .node_driver_bridge()
             .generic_driver()
-            .call_constructor(&mut store)?;
+            .call_constructor(&mut store, cloud_identifier)?;
         driver
             .handle
             .lock()
@@ -295,7 +295,7 @@ impl WasmDriver {
         Ok(driver)
     }
 
-    pub fn load_all(drivers: &mut Vec<Arc<dyn GenericDriver>>) {
+    pub fn load_all(cloud_identifier: &str, drivers: &mut Vec<Arc<dyn GenericDriver>>) {
         // Check if cache configuration exists
         let cache_config = Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE);
         if !cache_config.exists() {
@@ -365,7 +365,7 @@ impl WasmDriver {
             };
 
             info!("Compiling driver {}...", &name.blue());
-            let driver = WasmDriver::new(&name, &source);
+            let driver = WasmDriver::new(cloud_identifier, &name, &source);
             match driver {
                 Ok(driver) => match driver.init() {
                     Ok(info) => {

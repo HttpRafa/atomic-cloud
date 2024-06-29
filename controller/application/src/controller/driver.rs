@@ -48,13 +48,13 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    pub fn load_all() -> Self {
+    pub fn load_all(cloud_identifier: &str) -> Self {
         info!("Loading drivers...");
 
         let mut drivers = Vec::new();
 
         #[cfg(feature = "wasm-drivers")]
-        WasmDriver::load_all(&mut drivers);
+        WasmDriver::load_all(cloud_identifier, &mut drivers);
 
         info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
         Self { drivers }

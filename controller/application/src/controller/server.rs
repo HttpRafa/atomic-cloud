@@ -16,7 +16,7 @@ use super::{
     node::{AllocationHandle, NodeHandle, WeakNodeHandle},
 };
 
-const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(60);
+const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(120);
 const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub type ServerHandle = Arc<Server>;
@@ -96,6 +96,13 @@ impl Servers {
         self.requests.lock().unwrap().push_back(request);
     }
 
+    pub fn stop_all(&self) {
+        let mut servers = self.servers.lock().unwrap();
+        while let Some(server) = servers.pop() {
+            self.stop_server_nolock(&server, &mut servers);
+        }
+    }
+
     fn stop_server_nolock(&self, server: &ServerHandle, servers: &mut Vec<ServerHandle>) {
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
@@ -110,6 +117,8 @@ impl Servers {
             let server = server.clone();
             controller
                 .get_runtime()
+                .as_ref()
+                .unwrap()
                 .spawn_blocking(move || stop_thread(server));
         }
 
@@ -171,6 +180,8 @@ impl Servers {
             let copy = controller.clone();
             controller
                 .get_runtime()
+                .as_ref()
+                .unwrap()
                 .spawn_blocking(move || start_thread(copy, server));
         }
 
@@ -249,11 +260,11 @@ pub struct Resources {
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub enum Retention {
-    #[serde(rename = "delete")]
+    #[serde(rename = "temporary")]
     #[default]
-    Delete,
-    #[serde(rename = "keep")]
-    Keep,
+    Temporary,
+    #[serde(rename = "permanent")]
+    Permanent,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

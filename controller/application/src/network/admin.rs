@@ -117,6 +117,7 @@ impl AdminService for AdminServiceImpl {
         /* Deployment */
         let mut deployment = Deployment::default();
         if let Some(value) = group.deployment {
+            deployment.image.clone_from(&value.image);
             deployment.settings = value
                 .settings
                 .iter()
@@ -125,10 +126,18 @@ impl AdminService for AdminServiceImpl {
                     value: setting.value.clone(),
                 })
                 .collect();
+            deployment.environment = value
+                .environment
+                .iter()
+                .map(|setting| KeyValue {
+                    key: setting.key.clone(),
+                    value: setting.value.clone(),
+                })
+                .collect();
             if let Some(value) = value.disk_retention {
                 deployment.disk_retention = match value {
-                    x if x == Retention::Keep as i32 => Retention::Keep,
-                    _ => Retention::Delete,
+                    x if x == Retention::Permanent as i32 => Retention::Permanent,
+                    _ => Retention::Temporary,
                 };
             }
         }

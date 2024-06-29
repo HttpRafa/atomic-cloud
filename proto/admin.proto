@@ -59,9 +59,10 @@ message Group {
     }
 
     message Deployment {
-        repeated KeyValue settings = 1;
-        repeated KeyValue environment = 2;
-        optional Retention diskRetention = 3;
+        string image = 1;
+        repeated KeyValue settings = 2;
+        repeated KeyValue environment = 3;
+        optional Retention diskRetention = 4;
 
         message KeyValue {
             string key = 1;
@@ -69,8 +70,8 @@ message Group {
         }
 
         enum Retention {
-            KEEP = 0;
-            DELETE = 1;
+            PERMANEMT = 0;
+            TEMPORARY = 1;
         } 
     }
 }

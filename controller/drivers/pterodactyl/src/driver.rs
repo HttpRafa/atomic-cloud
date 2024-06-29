@@ -18,6 +18,10 @@ const AUTHORS: [&str; 1] = ["HttpRafa"];
 const VERSION: &str = "0.1.0-alpha";
 
 pub struct Pterodactyl {
+    /* Cloud Identification */
+    cloud_identifier: String,
+
+    /* Backend */
     backend: UnsafeCell<Option<Rc<Backend>>>,
 
     /* Nodes that this driver handles */
@@ -32,8 +36,9 @@ impl Pterodactyl {
 }
 
 impl GuestGenericDriver for Pterodactyl {
-    fn new() -> Self {
+    fn new(cloud_identifier: String) -> Self {
         Self {
+            cloud_identifier,
             backend: UnsafeCell::new(None),
             nodes: Mutex::new(Vec::new()),
         }
@@ -58,8 +63,12 @@ impl GuestGenericDriver for Pterodactyl {
     fn init_node(&self, name: String, capabilities: Capabilities) -> Result<GenericNode, String> {
         if let Some(value) = capabilities.sub_node.as_ref() {
             if let Some(node) = self.get_backend().get_node_by_name(value) {
-                let wrapper =
-                    PterodactylNodeWrapper::new(name.clone(), Some(node.id), capabilities);
+                let wrapper = PterodactylNodeWrapper::new(
+                    self.cloud_identifier.clone(),
+                    name.clone(),
+                    Some(node.id),
+                    capabilities,
+                );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add node to nodes
                 let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");

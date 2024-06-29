@@ -6,6 +6,7 @@ use anyhow::Result;
 use log::{error, warn};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
@@ -15,6 +16,9 @@ const DEFAULT_BIND_PORT: u16 = 12892;
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct Config {
+    /* Cloud Identification */
+    pub identifier: Option<String>,
+
     /* Network */
     pub listener: Option<SocketAddr>,
 }
@@ -34,11 +38,19 @@ impl Config {
     pub fn new_filled() -> Self {
         let mut config = Self::load_or_empty();
 
+        let mut save = false;
+        if config.identifier.is_none() {
+            config.identifier = Some(Uuid::new_v4().to_string());
+            save = true;
+        }
         if config.listener.is_none() {
             config.listener = Some(SocketAddr::new(
                 DEFAULT_BIND_ADDRESS.parse().unwrap(),
                 DEFAULT_BIND_PORT,
             ));
+            save = true;
+        }
+        if save {
             if let Err(error) = config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE))
             {
                 error!("Failed to save generated configuration to file: {}", &error);
@@ -46,6 +58,9 @@ impl Config {
         }
 
         // Check config values are overridden by environment variables
+        if let Ok(identifier) = std::env::var("INSTANCE_IDENTIFIER") {
+            config.identifier = Some(identifier);
+        }
         if let Ok(address) = std::env::var("BIND_ADDRESS") {
             if let Ok(address) = address.parse() {
                 config.listener.unwrap().set_ip(address);

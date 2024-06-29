@@ -1,5 +1,6 @@
 use anyhow::Error;
-use log::warn;
+use colored::Colorize;
+use log::{info, warn};
 use server::Servers;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
@@ -19,6 +20,7 @@ pub mod node;
 pub mod server;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
+static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
 
 const TICK_RATE: u64 = 1;
 
@@ -33,7 +35,7 @@ pub struct Controller {
     pub(crate) drivers: Drivers,
 
     /* Runtime State */
-    runtime: Runtime,
+    runtime: Mutex<Option<Runtime>>,
     running: AtomicBool,
 
     /* Accessed rarely */
@@ -47,7 +49,7 @@ pub struct Controller {
 impl Controller {
     pub fn new(configuration: Config) -> Arc<Self> {
         Arc::new_cyclic(move |handle| {
-            let drivers = Drivers::load_all();
+            let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
             let nodes = Nodes::load_all(&drivers);
             let groups = Groups::load_all(&nodes);
             let servers = Servers::new(handle.clone());
@@ -55,10 +57,12 @@ impl Controller {
                 handle: handle.clone(),
                 configuration,
                 drivers,
-                runtime: Builder::new_multi_thread()
-                    .enable_all()
-                    .build()
-                    .expect("Failed to create Tokio runtime"),
+                runtime: Mutex::new(Some(
+                    Builder::new_multi_thread()
+                        .enable_all()
+                        .build()
+                        .expect("Failed to create Tokio runtime"),
+                )),
                 running: AtomicBool::new(true),
                 nodes: Mutex::new(nodes),
                 groups: Mutex::new(groups),
@@ -84,8 +88,24 @@ impl Controller {
             }
         }
 
+        // Stop all servers
+        info!("{} all servers...", "Stopping".yellow());
+        self.servers.stop_all();
+
         // Stop network stack
+        info!("{} network stack...", "Stopping".yellow());
         network_handle.shutdown();
+
+        // Wait for all tokio task to finish
+        info!(
+            "{} for async runtime to {}...",
+            "Waiting".blue(),
+            "exit".red()
+        );
+        (*self.runtime.lock().unwrap())
+            .take()
+            .unwrap()
+            .shutdown_timeout(SHUTDOWN_WAIT);
     }
 
     pub fn request_stop(&self) {
@@ -105,8 +125,8 @@ impl Controller {
         &self.servers
     }
 
-    pub fn get_runtime(&self) -> &Runtime {
-        &self.runtime
+    pub fn get_runtime(&self) -> MutexGuard<Option<Runtime>> {
+        self.runtime.lock().expect("Failed to get lock to runtime")
     }
 
     fn tick(&self) {

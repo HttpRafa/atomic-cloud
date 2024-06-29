@@ -6,16 +6,18 @@ use colored::Colorize;
 use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use server::{BCServer, BCServerAllocation, BServer, BServerFeatureLimits};
+use server::{BCServer, BCServerAllocation, BServer, BServerEgg, BServerFeatureLimits};
 use user::BUser;
 
 use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
-    exports::node::driver::bridge::Server,
+    exports::node::driver::bridge::Allocation,
     node::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
+
+use super::node::server::ServerName;
 
 pub mod allocation;
 mod common;
@@ -129,51 +131,51 @@ impl Backend {
         Ok(backend)
     }
 
+    pub fn delete_server(&self, server: u32) -> bool {
+        self.delete_in_api(APPLICATION_ENDPOINT, &format!("servers/{}", server))
+    }
+
     pub fn create_server(
         &self,
-        server: &Server,
+        name: &ServerName,
         node: u32,
-        allocation: &BAllocation,
-        egg: u32,
-        startup: &str,
+        allocation: &Allocation,
+        allocations: &[BAllocation],
+        egg: BServerEgg,
         features: BServerFeatureLimits,
     ) -> Option<BServer> {
         let backend_server = BCServer {
-            name: server.name.clone(),
+            name: name.generate(),
             node,
             user: self.resolved.as_ref().unwrap().user,
-            egg,
-            docker_image: server.allocation.deployment.image.clone(),
-            startup: startup.to_owned(),
-            environment: server
-                .allocation
+            egg: egg.id,
+            docker_image: allocation.deployment.image.clone(),
+            startup: egg.startup.to_owned(),
+            environment: allocation
                 .deployment
                 .environment
                 .iter()
                 .map(|value| (value.key.clone(), value.value.clone()))
                 .collect(),
-            limits: server.allocation.resources.into(),
+            limits: allocation.resources.into(),
             feature_limits: features,
-            allocation: BCServerAllocation {
-                default: allocation.id,
-            },
+            allocation: BCServerAllocation::from(allocations),
+            start_on_completion: true,
         };
         self.post_object_to_api::<BCServer, BServer>(
             APPLICATION_ENDPOINT,
             "servers",
-            &BObject {
-                attributes: backend_server,
-            },
+            &backend_server,
         )
         .map(|data| data.attributes)
     }
 
-    pub fn get_server_by_name(&self, name: &str) -> Option<BServer> {
+    pub fn get_server_by_name(&self, name: &ServerName) -> Option<BServer> {
         self.api_find_on_pages::<BServer>(Method::Get, APPLICATION_ENDPOINT, "servers", |object| {
             object
                 .data
                 .iter()
-                .find(|server| server.attributes.name == name)
+                .find(|server| server.attributes.name == name.generate())
                 .map(|server| server.attributes.clone())
         })
     }
@@ -276,24 +278,67 @@ impl Backend {
         target: &str,
         page: Option<u32>,
     ) -> Option<BList<T>> {
-        self.send_request_to_api(method, endpoint, target, None, page)
+        self.send_to_api_parse(method, endpoint, target, 200, None, page)
+    }
+
+    fn delete_in_api(&self, endpoint: &str, target: &str) -> bool {
+        self.send_to_api(Method::Delete, endpoint, target, 204, None, None)
     }
 
     fn post_object_to_api<T: Serialize, K: DeserializeOwned>(
         &self,
         endpoint: &str,
         target: &str,
-        object: &BObject<T>,
+        object: &T,
     ) -> Option<BObject<K>> {
         let body = serde_json::to_vec(object).ok();
-        self.send_request_to_api(Method::Post, endpoint, target, body.as_deref(), None)
+        self.send_to_api_parse(Method::Post, endpoint, target, 201, body.as_deref(), None)
     }
 
-    fn send_request_to_api<T: DeserializeOwned>(
+    fn send_to_api(
         &self,
         method: Method,
         endpoint: &str,
         target: &str,
+        expected_code: u32,
+        body: Option<&[u8]>,
+        page: Option<u32>,
+    ) -> bool {
+        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), endpoint, target);
+        if let Some(page) = page {
+            url = format!("{}?page={}", &url, &page);
+        }
+        debug!(
+            "Sending request to the pterodactyl panel: {:?} {}",
+            method, &url
+        );
+        let response = send_http_request(
+            method,
+            &url,
+            &[
+                Header {
+                    key: "Authorization".to_string(),
+                    value: format!("Bearer {}", &self.token.as_ref().unwrap()),
+                },
+                Header {
+                    key: "Content-Type".to_string(),
+                    value: "application/json".to_string(),
+                },
+            ],
+            body,
+        );
+        if Self::check_response(&url, body, response, expected_code).is_some() {
+            return true;
+        }
+        false
+    }
+
+    fn send_to_api_parse<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        endpoint: &str,
+        target: &str,
+        expected_code: u32,
         body: Option<&[u8]>,
         page: Option<u32>,
     ) -> Option<T> {
@@ -308,39 +353,59 @@ impl Backend {
         let response = send_http_request(
             method,
             &url,
-            &[Header {
-                key: "Authorization".to_string(),
-                value: format!("Bearer {}", &self.token.as_ref().unwrap()),
-            }],
+            &[
+                Header {
+                    key: "Authorization".to_string(),
+                    value: format!("Bearer {}", &self.token.as_ref().unwrap()),
+                },
+                Header {
+                    key: "Content-Type".to_string(),
+                    value: "application/json".to_string(),
+                },
+            ],
             body,
         );
-        if let Some(response) = Self::handle_response::<T>(&url, response, 200) {
+        if let Some(response) = Self::handle_response::<T>(&url, body, response, expected_code) {
             return Some(response);
         }
         None
     }
 
-    fn handle_response<T: DeserializeOwned>(
+    fn check_response(
         url: &str,
+        body: Option<&[u8]>,
         response: Option<Response>,
         expected_code: u32,
-    ) -> Option<T> {
+    ) -> Option<Response> {
         response.as_ref()?;
         let response = response.unwrap();
         if response.status_code != expected_code {
             error!(
-                "An unexpected error occurred while sending a request to the Pterodactyl panel at {}: Received {} status code {} - {}",
-                url,
-                response.status_code,
-                response.reason_phrase,
-                String::from_utf8_lossy(&response.bytes)
-            );
+                    "An unexpected error occurred while sending a request to the Pterodactyl panel at {}: Received {} status code {} - {}",
+                    url,
+                    response.status_code,
+                    response.reason_phrase,
+                    String::from_utf8_lossy(&response.bytes)
+                );
+            if let Some(body) = body {
+                debug!("Sended body: {}", String::from_utf8_lossy(body));
+            }
             debug!(
                 "Response body: {}",
                 String::from_utf8_lossy(&response.bytes)
             );
             return None;
         }
+        Some(response)
+    }
+
+    fn handle_response<T: DeserializeOwned>(
+        url: &str,
+        body: Option<&[u8]>,
+        response: Option<Response>,
+        expected_code: u32,
+    ) -> Option<T> {
+        let response = Self::check_response(url, body, response, expected_code)?;
         let response = serde_json::from_slice::<T>(&response.bytes);
         if let Err(error) = response {
             error!(

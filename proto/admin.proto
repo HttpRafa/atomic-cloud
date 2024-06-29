@@ -70,8 +70,8 @@ message Group {
         }
 
         enum Retention {
-            PERMANEMT = 0;
-            TEMPORARY = 1;
+            TEMPORARY = 0;
+            PERMANEMT = 1;
         } 
     }
 }

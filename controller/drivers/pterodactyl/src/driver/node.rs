@@ -151,7 +151,11 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                     backups: 0,
                 },
             ) {
-                info!("Server {} {} on the panel", server.name, "created".green());
+                info!(
+                    "Server {} successfully {} on the panel",
+                    server.name.blue(),
+                    "created".green()
+                );
                 self.inner
                     .get_servers()
                     .push(PanelServer::new(server.id, name));
@@ -163,6 +167,11 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         if let Some(backend_server) = self.inner.find_server(&server.name) {
             if server.allocation.deployment.disk_retention == Retention::Temporary {
                 self.get_backend().delete_server(backend_server.id);
+                info!(
+                    "Server {} successfully {} from the panel",
+                    server.name.blue(),
+                    "deleted".red()
+                );
             } else {
                 // TODO: self.get_backend().stop_server(&backend_server);
             }

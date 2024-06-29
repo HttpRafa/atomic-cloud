@@ -1,6 +1,6 @@
 use anyhow::Error;
 use colored::Colorize;
-use log::{info, warn};
+use log::info;
 use server::Servers;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
@@ -97,11 +97,7 @@ impl Controller {
         network_handle.shutdown();
 
         // Wait for all tokio task to finish
-        info!(
-            "{} for async runtime to {}...",
-            "Waiting".blue(),
-            "exit".red()
-        );
+        info!("{} async runtime...", "Stopping".yellow());
         (*self.runtime.lock().unwrap())
             .take()
             .unwrap()
@@ -109,7 +105,7 @@ impl Controller {
     }
 
     pub fn request_stop(&self) {
-        warn!("Controller stop requested. Stopping...");
+        info!("Controller stop requested. Stopping...");
         self.running.store(false, Ordering::Relaxed);
     }
 

@@ -1,6 +1,7 @@
 use std::fs;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::time::Duration;
 
 use anyhow::Result;
 use log::{error, warn};
@@ -11,8 +12,19 @@ use uuid::Uuid;
 pub const CONFIG_DIRECTORY: &str = "configs";
 const CONFIG_FILE: &str = "config.toml";
 
+const DEFAULT_EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(130);
+const DEFAULT_EXPECTED_RESTART_TIME: Duration = Duration::from_secs(120);
+const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
+
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 12892;
+
+#[derive(Deserialize, Serialize, Default)]
+pub struct Timings {
+    pub startup: Option<Duration>,
+    pub restart: Option<Duration>,
+    pub healthbeat: Option<Duration>,
+}
 
 #[derive(Deserialize, Serialize, Default)]
 pub struct Config {
@@ -21,6 +33,9 @@ pub struct Config {
 
     /* Network */
     pub listener: Option<SocketAddr>,
+
+    /* Timings */
+    pub timings: Timings,
 }
 
 impl Config {
@@ -48,6 +63,18 @@ impl Config {
                 DEFAULT_BIND_ADDRESS.parse().unwrap(),
                 DEFAULT_BIND_PORT,
             ));
+            save = true;
+        }
+        if config.timings.startup.is_none() {
+            config.timings.startup = Some(DEFAULT_EXPECTED_STARTUP_TIME);
+            save = true;
+        }
+        if config.timings.restart.is_none() {
+            config.timings.restart = Some(DEFAULT_EXPECTED_RESTART_TIME);
+            save = true;
+        }
+        if config.timings.healthbeat.is_none() {
+            config.timings.healthbeat = Some(DEFAULT_HEALTH_CHECK_TIMEOUT);
             save = true;
         }
         if save {

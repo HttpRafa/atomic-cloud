@@ -1,4 +1,5 @@
 use anyhow::Result;
+use auth::{AdminInterceptor, ServerInterceptor};
 use colored::Colorize;
 use log::{error, info};
 use std::sync::Arc;
@@ -14,6 +15,7 @@ use server::{proto::server_service_server::ServerServiceServer, ServerServiceImp
 
 mod admin;
 mod server;
+mod auth;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,
@@ -52,7 +54,9 @@ impl NetworkStack {
             let admin_service = AdminServiceImpl {
                 controller: Arc::clone(&controller),
             };
-            let server_service = ServerServiceImpl { controller };
+            let server_service = ServerServiceImpl {
+                controller: Arc::clone(&controller),
+            };
 
             info!(
                 "Controller {} on {}",
@@ -61,8 +65,12 @@ impl NetworkStack {
             );
 
             Server::builder()
-                .add_service(AdminServiceServer::new(admin_service))
-                .add_service(ServerServiceServer::new(server_service))
+                .add_service(AdminServiceServer::with_interceptor(admin_service, AdminInterceptor {
+                    controller: Arc::clone(&controller),
+                }))
+                .add_service(ServerServiceServer::with_interceptor(server_service, ServerInterceptor {
+                    controller,
+                }))
                 .serve_with_shutdown(address, async {
                     shutdown.changed().await.ok();
                 })

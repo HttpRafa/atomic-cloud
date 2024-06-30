@@ -1,4 +1,5 @@
 use anyhow::Error;
+use auth::Auth;
 use colored::Colorize;
 use log::info;
 use server::Servers;
@@ -18,6 +19,7 @@ pub mod driver;
 pub mod group;
 pub mod node;
 pub mod server;
+mod auth;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
@@ -38,6 +40,9 @@ pub struct Controller {
     runtime: Mutex<Option<Runtime>>,
     running: AtomicBool,
 
+    /* Authentication */
+    auth: Auth,
+
     /* Accessed rarely */
     nodes: Mutex<Nodes>,
     groups: Mutex<Groups>,
@@ -49,6 +54,7 @@ pub struct Controller {
 impl Controller {
     pub fn new(configuration: Config) -> Arc<Self> {
         Arc::new_cyclic(move |handle| {
+            let auth = Auth::load_all();
             let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
             let nodes = Nodes::load_all(&drivers);
             let groups = Groups::load_all(&nodes);
@@ -64,6 +70,7 @@ impl Controller {
                         .expect("Failed to create Tokio runtime"),
                 )),
                 running: AtomicBool::new(true),
+                auth,
                 nodes: Mutex::new(nodes),
                 groups: Mutex::new(groups),
                 servers,
@@ -115,6 +122,10 @@ impl Controller {
 
     pub fn lock_groups(&self) -> MutexGuard<Groups> {
         self.groups.lock().expect("Failed to get lock to groups")
+    }
+
+    pub fn get_auth(&self) -> &Auth {
+        &self.auth
     }
 
     pub fn get_servers(&self) -> &Servers {

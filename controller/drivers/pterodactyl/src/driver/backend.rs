@@ -123,7 +123,9 @@ impl Backend {
         if backend.url.is_none() || backend.url.as_ref().unwrap().is_empty() {
             missing.push("url");
         }
-        if backend.tokens.application.is_none() || backend.tokens.application.as_ref().unwrap().is_empty() {
+        if backend.tokens.application.is_none()
+            || backend.tokens.application.as_ref().unwrap().is_empty()
+        {
             missing.push("tokens.application");
         }
         if backend.tokens.client.is_none() || backend.tokens.client.as_ref().unwrap().is_empty() {
@@ -167,8 +169,16 @@ impl Backend {
     fn change_power_state(&self, identifier: &str, state: &str) -> bool {
         let state = serde_json::to_vec(&BSignal {
             signal: state.to_string(),
-        }).ok();
-        self.send_to_api(Method::Post, &Endpoint::Client, &format!("servers/{}/power", &identifier), 204, state.as_deref(), None)
+        })
+        .ok();
+        self.send_to_api(
+            Method::Post,
+            &Endpoint::Client,
+            &format!("servers/{}/power", &identifier),
+            204,
+            state.as_deref(),
+            None,
+        )
     }
 
     pub fn delete_server(&self, server: u32) -> bool {
@@ -211,13 +221,18 @@ impl Backend {
     }
 
     pub fn get_server_by_name(&self, name: &ServerName) -> Option<BServer> {
-        self.api_find_on_pages::<BServer>(Method::Get, &Endpoint::Application, "servers", |object| {
-            object
-                .data
-                .iter()
-                .find(|server| server.attributes.name == name.generate())
-                .map(|server| server.attributes.clone())
-        })
+        self.api_find_on_pages::<BServer>(
+            Method::Get,
+            &Endpoint::Application,
+            "servers",
+            |object| {
+                object
+                    .data
+                    .iter()
+                    .find(|server| server.attributes.name == name.generate())
+                    .map(|server| server.attributes.clone())
+            },
+        )
     }
 
     pub fn get_free_allocations(
@@ -344,10 +359,15 @@ impl Backend {
         body: Option<&[u8]>,
         page: Option<u32>,
     ) -> bool {
-        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), match endpoint {
-            Endpoint::Application => APPLICATION_ENDPOINT,
-            Endpoint::Client => CLIENT_ENDPOINT,
-        }, target);
+        let mut url = format!(
+            "{}{}/{}",
+            &self.url.as_ref().unwrap(),
+            match endpoint {
+                Endpoint::Application => APPLICATION_ENDPOINT,
+                Endpoint::Client => CLIENT_ENDPOINT,
+            },
+            target
+        );
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
         }
@@ -361,10 +381,13 @@ impl Backend {
             &[
                 Header {
                     key: "Authorization".to_string(),
-                    value: format!("Bearer {}", match endpoint {
-                        Endpoint::Application => self.tokens.application.as_ref().unwrap(),
-                        Endpoint::Client => self.tokens.client.as_ref().unwrap(),
-                    }),
+                    value: format!(
+                        "Bearer {}",
+                        match endpoint {
+                            Endpoint::Application => self.tokens.application.as_ref().unwrap(),
+                            Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                        }
+                    ),
                 },
                 Header {
                     key: "Content-Type".to_string(),
@@ -388,10 +411,15 @@ impl Backend {
         body: Option<&[u8]>,
         page: Option<u32>,
     ) -> Option<T> {
-        let mut url = format!("{}{}/{}", &self.url.as_ref().unwrap(), match endpoint {
-            Endpoint::Application => APPLICATION_ENDPOINT,
-            Endpoint::Client => CLIENT_ENDPOINT,
-        }, target);
+        let mut url = format!(
+            "{}{}/{}",
+            &self.url.as_ref().unwrap(),
+            match endpoint {
+                Endpoint::Application => APPLICATION_ENDPOINT,
+                Endpoint::Client => CLIENT_ENDPOINT,
+            },
+            target
+        );
         if let Some(page) = page {
             url = format!("{}?page={}", &url, &page);
         }
@@ -405,10 +433,13 @@ impl Backend {
             &[
                 Header {
                     key: "Authorization".to_string(),
-                    value: format!("Bearer {}", match endpoint {
-                        Endpoint::Application => self.tokens.application.as_ref().unwrap(),
-                        Endpoint::Client => self.tokens.client.as_ref().unwrap(),
-                    }),
+                    value: format!(
+                        "Bearer {}",
+                        match endpoint {
+                            Endpoint::Application => self.tokens.application.as_ref().unwrap(),
+                            Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                        }
+                    ),
                 },
                 Header {
                     key: "Content-Type".to_string(),

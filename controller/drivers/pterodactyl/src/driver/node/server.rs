@@ -11,7 +11,11 @@ pub struct PanelServer {
 
 impl PanelServer {
     pub fn new(id: u32, identifier: String, name: ServerName) -> PanelServer {
-        Self { id, identifier, name }
+        Self {
+            id,
+            identifier,
+            name,
+        }
     }
 }
 

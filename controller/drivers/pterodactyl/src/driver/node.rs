@@ -94,8 +94,8 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             );
             self.get_backend().start_server(&server.identifier);
             self.inner
-                    .get_servers()
-                    .push(PanelServer::new(server.id, server.identifier, name));
+                .get_servers()
+                .push(PanelServer::new(server.id, server.identifier, name));
         } else {
             let allocations = server
                 .allocation

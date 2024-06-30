@@ -7,7 +7,6 @@ use std::{
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
-use toml::ser;
 use uuid::Uuid;
 
 use crate::controller::{ControllerHandle, WeakControllerHandle};
@@ -16,9 +15,6 @@ use super::{
     group::WeakGroupHandle,
     node::{AllocationHandle, NodeHandle, WeakNodeHandle},
 };
-
-const EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(120);
-const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub type ServerHandle = Arc<Server>;
 
@@ -42,17 +38,23 @@ impl Servers {
     }
 
     pub fn tick(&self) {
+        // Get Controller handle
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("Failed to upgrade controller");
+
         // Check health of servers
         {
             let dead_servers = self.servers.lock().unwrap().iter().filter(|server| {
                 let health = server.health.lock().unwrap();
                 if health.is_dead() {
                     match *server.state.lock().unwrap() {
-                        State::Starting => {
-                            warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", EXPECTED_STARTUP_TIME).blue());
+                        State::Starting | State::Restarting => {
+                            warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
                         }
                         _ => {
-                            warn!("Server {} has not checked in for {:.2?}, indicating a potential failure.", server.name.red(), format!("{:.2?}", health.timeout).blue());
+                            warn!("Server {} has not checked in for {}, indicating a potential failure.", server.name.red(), format!("{:.2?}", health.timeout).blue());
                         }
                     }
                     true
@@ -148,8 +150,18 @@ impl Servers {
     }
 
     pub fn restart_server(&self, server: &ServerHandle) {
+        info!("{} server {}", "Restarting".yellow(), server.name.blue());
+
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("Failed to upgrade controller");
+
         *server.state.lock().unwrap() = State::Restarting;
-        *server.health.lock().unwrap() = Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT);
+        *server.health.lock().unwrap() = Health::new(
+            controller.configuration.timings.restart.unwrap(),
+            controller.configuration.timings.healthbeat.unwrap(),
+        );
 
         // Send restart request to node
         // We do this async because the driver chould be running blocking code like network requests
@@ -184,6 +196,11 @@ impl Servers {
         allocation: AllocationHandle,
         node: &NodeHandle,
     ) {
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("Failed to upgrade controller");
+
         info!(
             "{} server {} on node {} listening on {}",
             "Starting".green(),
@@ -197,7 +214,10 @@ impl Servers {
             group: request.group.clone(),
             node: Arc::downgrade(node),
             allocation,
-            health: Mutex::new(Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT)),
+            health: Mutex::new(Health::new(
+                controller.configuration.timings.startup.unwrap(),
+                controller.configuration.timings.healthbeat.unwrap(),
+            )),
             state: Mutex::new(State::Starting),
         });
 

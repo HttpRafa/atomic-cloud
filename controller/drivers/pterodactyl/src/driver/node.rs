@@ -1,6 +1,5 @@
 use colored::Colorize;
 use server::{PanelServer, ServerName};
-use toml::de;
 use std::{
     cell::UnsafeCell,
     rc::Rc,
@@ -172,6 +171,24 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                     .get_servers()
                     .push(PanelServer::new(server.id, server.identifier, name));
             }
+        }
+    }
+
+    fn restart_server(&self, server: Server) {
+        if let Some(backend_server) = self.inner.find_server(&server.name) {
+            self.get_backend().restart_server(&backend_server);
+            info!(
+                "Panel is {} the server {}...",
+                "restart".yellow(),
+                backend_server.name.generate().blue(),
+            );
+        } else {
+            error!(
+                "{} to restart server {} because the server was {} by this driver",
+                "Failed".red(),
+                server.name,
+                "never started".red()
+            );
         }
     }
 

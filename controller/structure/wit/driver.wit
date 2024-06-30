@@ -109,6 +109,7 @@ interface bridge {
         deallocate-addresses: func(addresses: list<address>);
 
         start-server: func(server: server);
+        restart-server: func(server: server);
         stop-server: func(server: server);
     }
 

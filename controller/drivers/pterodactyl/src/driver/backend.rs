@@ -152,12 +152,16 @@ impl Backend {
         Ok(backend)
     }
 
-    pub fn stop_server(&self, server: &PanelServer) -> bool {
-        self.change_power_state(&server.identifier, "stop")
-    }
-
     pub fn start_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "start")
+    }
+
+    pub fn restart_server(&self, identifier: &PanelServer) -> bool {
+        self.change_power_state(&identifier.identifier, "restart")
+    }
+
+    pub fn stop_server(&self, server: &PanelServer) -> bool {
+        self.change_power_state(&server.identifier, "stop")
     }
 
     fn change_power_state(&self, identifier: &str, state: &str) -> bool {

@@ -86,6 +86,20 @@ impl GenericNode for WasmNode {
         }
     }
 
+    fn restart_server(&self, server: &ServerHandle) -> Result<()> {
+        if let Some(driver) = self.handle.upgrade() {
+            let mut handle = driver.handle.lock().unwrap();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
+            driver
+                .bindings
+                .node_driver_bridge()
+                .generic_node()
+                .call_restart_server(store, self.resource, &server.into())
+        } else {
+            Err(anyhow!("Failed to get handle to wasm driver"))
+        }
+    }
+
     fn stop_server(&self, server: &ServerHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();

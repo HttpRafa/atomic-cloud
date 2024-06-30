@@ -7,6 +7,7 @@ use std::{
 use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use toml::ser;
 use uuid::Uuid;
 
 use crate::controller::{ControllerHandle, WeakControllerHandle};
@@ -43,15 +44,15 @@ impl Servers {
     pub fn tick(&self) {
         // Check health of servers
         {
-            let mut servers = self.servers.lock().unwrap();
-            let dead_servers = servers.iter().filter(|server| {
-                if server.health.is_dead() {
-                    match server.state {
+            let dead_servers = self.servers.lock().unwrap().iter().filter(|server| {
+                let health = server.health.lock().unwrap();
+                if health.is_dead() {
+                    match *server.state.lock().unwrap() {
                         State::Starting => {
                             warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", EXPECTED_STARTUP_TIME).blue());
                         }
                         _ => {
-                            warn!("Server {} has not checked in for {:.2?}, indicating a potential failure.", server.name.red(), format!("{:.2?}", server.health.timeout).blue());
+                            warn!("Server {} has not checked in for {:.2?}, indicating a potential failure.", server.name.red(), format!("{:.2?}", health.timeout).blue());
                         }
                     }
                     true
@@ -60,7 +61,7 @@ impl Servers {
                 }
             }).cloned().collect::<Vec<_>>();
             for server in dead_servers {
-                self.stop_server_nolock(&server, &mut servers);
+                self.restart_server(&server);
             }
         }
 
@@ -146,6 +147,37 @@ impl Servers {
         self.stop_server_nolock(server, &mut self.servers.lock().unwrap());
     }
 
+    pub fn restart_server(&self, server: &ServerHandle) {
+        *server.state.lock().unwrap() = State::Restarting;
+        *server.health.lock().unwrap() = Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT);
+
+        // Send restart request to node
+        // We do this async because the driver chould be running blocking code like network requests
+        if let Some(controller) = self.controller.upgrade() {
+            let server = server.clone();
+            let copy = controller.clone();
+            controller
+                .get_runtime()
+                .as_ref()
+                .unwrap()
+                .spawn_blocking(move || restart_thread(copy, server));
+        }
+
+        fn restart_thread(controller: ControllerHandle, server: ServerHandle) {
+            if let Some(node) = server.node.upgrade() {
+                if let Err(error) = &node.get_inner().restart_server(&server) {
+                    error!(
+                        "{} to restart server {}: {}",
+                        "Failed".red(),
+                        server.name.red(),
+                        error
+                    );
+                    controller.get_servers().stop_server(&server);
+                }
+            }
+        }
+    }
+
     fn start_server(
         &self,
         request: &StartRequest,
@@ -165,8 +197,8 @@ impl Servers {
             group: request.group.clone(),
             node: Arc::downgrade(node),
             allocation,
-            health: Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT),
-            state: State::Starting,
+            health: Mutex::new(Health::new(EXPECTED_STARTUP_TIME, DEFAULT_HEALTH_CHECK_TIMEOUT)),
+            state: Mutex::new(State::Starting),
         });
 
         if let Some(group) = request.group.upgrade() {
@@ -209,8 +241,8 @@ pub struct Server {
     pub allocation: AllocationHandle,
 
     /* Health and State of the server */
-    health: Health,
-    state: State,
+    health: Mutex<Health>,
+    state: Mutex<State>,
 }
 
 pub struct Health {
@@ -235,6 +267,7 @@ impl Health {
 
 pub enum State {
     Starting,
+    Restarting,
     Running,
     Stopping,
 }

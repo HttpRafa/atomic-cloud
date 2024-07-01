@@ -10,14 +10,14 @@ pub struct AdminInterceptor {
 }
 
 impl Interceptor for AdminInterceptor {
-    fn call(&mut self, request: Request<()>) -> Result<Request<()>, Status> {
+    fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
         let metadata = request.metadata();
         let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
         match token {
             Some(token) => {
                 let user = self.controller.get_auth().get_user(token);
-                if let Some(_user) = user {
-                    // TODO: Add admin to request that the method knows which admin is calling
+                if let Some(user) = user {
+                    request.extensions_mut().insert(user);
                     Ok(request)
                 } else {
                     Err(Status::unauthenticated("Invalid user token"))
@@ -34,14 +34,14 @@ pub struct ServerInterceptor {
 }
 
 impl Interceptor for ServerInterceptor {
-    fn call(&mut self, request: Request<()>) -> Result<Request<()>, Status> {
+    fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
         let metadata = request.metadata();
         let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
         match token {
             Some(token) => {
                 let server = self.controller.get_auth().get_server(token);
-                if let Some(_server) = server {
-                    // TODO: Add server to request that the method knows which server is calling
+                if let Some(server) = server {
+                    request.extensions_mut().insert(server);
                     Ok(request)
                 } else {
                     Err(Status::unauthenticated("Invalid server token"))

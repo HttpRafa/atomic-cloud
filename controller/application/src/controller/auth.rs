@@ -4,13 +4,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHashString, SaltString},
-    Argon2, PasswordHasher, PasswordVerifier,
-};
 use colored::Colorize;
 use log::{error, info, warn};
-use once_cell::sync::Lazy;
 use stored::StoredUser;
 use uuid::Uuid;
 
@@ -23,18 +18,16 @@ const USERS_DIRECTORY: &str = "users";
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
-static ARGON2: Lazy<Argon2> = Lazy::new(Argon2::default);
-
 type AuthUserHandle = Arc<AuthUser>;
 
 pub struct AuthUser {
     pub username: String,
-    pub token: PasswordHashString,
+    pub token: String,
 }
 
 pub struct AuthServer {
     pub _server: ServerHandle,
-    pub _token: PasswordHashString,
+    pub _token: String,
 }
 
 pub struct Auth {
@@ -96,23 +89,9 @@ impl Auth {
                 }
             };
 
-            let token = match user.parse_argon2() {
-                Ok(hash) => hash,
-                Err(error) => {
-                    error!(
-                        "{} to parse user token {} from file({:?}): {}",
-                        "Failed".red(),
-                        &name,
-                        &path,
-                        &error
-                    );
-                    continue;
-                }
-            };
-
             let user = AuthUser {
                 username: name.clone(),
-                token,
+                token: user.token,
             };
             if users
                 .iter()
@@ -126,7 +105,7 @@ impl Auth {
         }
 
         if users.is_empty() {
-            let token = Uuid::new_v4().to_string();
+            let token = format!("actl_{}", Uuid::new_v4().as_simple());
             Self::create_user_in(&mut users, DEFAULT_ADMIN_USERNAME, &token);
             info!("{}", "-----------------------------------".red());
             info!("{}", "No users found, created default admin user".red());
@@ -144,12 +123,7 @@ impl Auth {
     }
 
     pub fn get_user(&self, token: &str) -> Option<AuthUserHandle> {
-        self.users.lock().unwrap().iter().find_map(|user| {
-            ARGON2
-                .verify_password(token.as_bytes(), &user.token.password_hash())
-                .ok()
-                .map(|_| user.clone())
-        })
+        self.users.lock().unwrap().iter().find(|user| user.token == token).cloned()
     }
 
     pub fn get_server(&self, _token: &str) -> Option<AuthServer> {
@@ -157,17 +131,8 @@ impl Auth {
     }
 
     fn create_user_in(users: &mut Vec<AuthUserHandle>, username: &str, token: &str) -> bool {
-        let salt = SaltString::generate(&mut OsRng);
-        let token = match ARGON2.hash_password(token.as_bytes(), &salt) {
-            Ok(token) => token,
-            Err(error) => {
-                error!("{} to hash token: {}", "Failed".red(), &error);
-                return false;
-            }
-        };
-
         let stored_user = StoredUser {
-            token: token.serialize().to_string(),
+            token: token.to_string(),
         };
         let user_path = Path::new(AUTH_DIRECTORY)
             .join(USERS_DIRECTORY)
@@ -183,7 +148,7 @@ impl Auth {
 
         let user = AuthUser {
             username: username.to_string(),
-            token: token.serialize(),
+            token: token.to_string(),
         };
         users.push(Arc::new(user));
 
@@ -193,18 +158,11 @@ impl Auth {
 
 mod stored {
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-    use argon2::password_hash::{PasswordHashString, Result};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredUser {
         pub token: String,
-    }
-
-    impl StoredUser {
-        pub fn parse_argon2(self) -> Result<PasswordHashString> {
-            PasswordHashString::new(&self.token)
-        }
     }
 
     impl LoadFromTomlFile for StoredUser {}

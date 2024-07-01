@@ -129,6 +129,9 @@ impl Servers {
         if let Some(group) = server.group.upgrade() {
             group.remove_server(server);
         }
+        if let Some(controller) = self.controller.upgrade() {
+            controller.get_auth().unregister_server(server);
+        }
         servers.retain(|handle| !Arc::ptr_eq(handle, server));
 
         fn stop_thread(server: ServerHandle) {
@@ -223,6 +226,10 @@ impl Servers {
 
         if let Some(group) = request.group.upgrade() {
             group.add_server(server.clone());
+        }
+        // Create a token for the server
+        if let Some(controller) = self.controller.upgrade() {
+            controller.get_auth().register_server(server.clone());
         }
         self.servers.lock().unwrap().push(server.clone());
 

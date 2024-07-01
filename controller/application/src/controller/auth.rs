@@ -19,6 +19,7 @@ const USERS_DIRECTORY: &str = "users";
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
 type AuthUserHandle = Arc<AuthUser>;
+type AuthServerHandle = Arc<AuthServer>;
 
 pub struct AuthUser {
     pub username: String,
@@ -26,15 +27,23 @@ pub struct AuthUser {
 }
 
 pub struct AuthServer {
-    pub _server: ServerHandle,
-    pub _token: String,
+    pub server: ServerHandle,
+    pub token: String,
 }
 
 pub struct Auth {
     pub users: Mutex<Vec<AuthUserHandle>>,
+    pub servers: Mutex<Vec<AuthServerHandle>>,
 }
 
 impl Auth {
+    pub fn new(users: Vec<AuthUserHandle>) -> Self {
+        Auth {
+            users: Mutex::new(users),
+            servers: Mutex::new(Vec::new()),
+        }
+    }
+
     pub fn load_all() -> Self {
         info!("Loading users...");
 
@@ -50,9 +59,7 @@ impl Auth {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read users directory: {}", "Failed".red(), &error);
-                return Auth {
-                    users: Mutex::new(users),
-                };
+                return Auth::new(users);
             }
         };
 
@@ -104,33 +111,62 @@ impl Auth {
             info!("Loaded user {}", &name.blue());
         }
 
-        if users.is_empty() {
-            let token = format!("actl_{}", Uuid::new_v4().as_simple());
-            Self::create_user_in(&mut users, DEFAULT_ADMIN_USERNAME, &token);
+        let amount = users.len();
+        let auth = Auth::new(users);
+        if amount <= 0 {
+            let user = auth
+                .register_user(DEFAULT_ADMIN_USERNAME)
+                .expect("Failed to create default admin user");
             info!("{}", "-----------------------------------".red());
             info!("{}", "No users found, created default admin user".red());
             info!("{}{}", "Username: ".red(), DEFAULT_ADMIN_USERNAME.red());
-            info!("{}{}", "Token: ".red(), &token.red());
+            info!("{}{}", "Token: ".red(), &user.token.red());
             info!("{}", "-----------------------------------".red());
-            info!("{}", "      Welcome to Atomic Cloud       ".bright_blue().bold());
+            info!(
+                "{}",
+                "      Welcome to Atomic Cloud       ".bright_blue().bold()
+            );
             info!("{}", "-----------------------------------".red());
         }
 
-        info!("Loaded {}", format!("{} user(s)", users.len()).blue());
-        Auth {
-            users: Mutex::new(users),
-        }
+        info!("Loaded {}", format!("{} user(s)", amount).blue());
+        auth
     }
 
     pub fn get_user(&self, token: &str) -> Option<AuthUserHandle> {
-        self.users.lock().unwrap().iter().find(|user| user.token == token).cloned()
+        self.users
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|user| user.token == token)
+            .cloned()
     }
 
     pub fn get_server(&self, _token: &str) -> Option<AuthServer> {
         None
     }
 
-    fn create_user_in(users: &mut Vec<AuthUserHandle>, username: &str, token: &str) -> bool {
+    pub fn register_server(&self, server: ServerHandle) -> Option<AuthServerHandle> {
+        let token = format!("actl_{}", Uuid::new_v4().as_simple());
+
+        let server = Arc::new(AuthServer {
+            server,
+            token: token.to_string(),
+        });
+        self.servers.lock().unwrap().push(server.clone());
+
+        Some(server)
+    }
+
+    pub fn unregister_server(&self, server: &ServerHandle) {
+        self.servers
+            .lock()
+            .unwrap()
+            .retain(|s| Arc::ptr_eq(&s.server, server))
+    }
+
+    pub fn register_user(&self, username: &str) -> Option<AuthUserHandle> {
+        let token = format!("actl_{}", Uuid::new_v4().as_simple());
         let stored_user = StoredUser {
             token: token.to_string(),
         };
@@ -143,16 +179,16 @@ impl Auth {
                 "Failed".red(),
                 &user_path.display()
             );
-            return false;
+            return None;
         }
 
-        let user = AuthUser {
+        let user = Arc::new(AuthUser {
             username: username.to_string(),
             token: token.to_string(),
-        };
-        users.push(Arc::new(user));
+        });
+        self.users.lock().unwrap().push(user.clone());
 
-        true
+        Some(user)
     }
 }
 

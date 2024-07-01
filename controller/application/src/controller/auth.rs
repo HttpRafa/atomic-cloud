@@ -113,7 +113,7 @@ impl Auth {
 
         let amount = users.len();
         let auth = Auth::new(users);
-        if amount <= 0 {
+        if amount == 0 {
             let user = auth
                 .register_user(DEFAULT_ADMIN_USERNAME)
                 .expect("Failed to create default admin user");

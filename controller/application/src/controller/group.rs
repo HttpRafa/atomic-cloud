@@ -33,9 +33,9 @@ impl Groups {
 
         let groups_directory = Path::new(GROUPS_DIRECTORY);
         if !groups_directory.exists() {
-            fs::create_dir_all(groups_directory).unwrap_or_else(|error| {
-                warn!("{} to create groups directory: {}", "Failed".red(), &error)
-            });
+            if let Err(error) = fs::create_dir_all(groups_directory) {
+                warn!("{} to create groups directory: {}", "Failed".red(), &error);
+            }
         }
 
         let mut groups = Self { groups: Vec::new() };
@@ -61,7 +61,11 @@ impl Groups {
                 continue;
             }
 
-            let name = path.file_stem().unwrap().to_string_lossy().to_string();
+            let name = match path.file_stem() {
+                Some(name) => name.to_string_lossy().to_string(),
+                None => continue,
+            };
+
             let group = match StoredGroup::load_from_file(&path) {
                 Ok(group) => group,
                 Err(error) => {
@@ -110,29 +114,25 @@ impl Groups {
             return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
 
-        for group in &self.groups {
-            if group.name == name {
-                return Ok(CreationResult::AlreadyExists);
-            }
+        if self.groups.iter().any(|group| group.name == name) {
+            return Ok(CreationResult::AlreadyExists);
         }
 
-        let mut nodes = Vec::with_capacity(node_handles.len());
-        for node in &node_handles {
-            if let Some(node) = node.upgrade() {
-                nodes.push(node.name.clone());
-            }
-        }
+        let nodes: Vec<String> = node_handles
+            .iter()
+            .filter_map(|node| node.upgrade().map(|n| n.name.clone()))
+            .collect();
 
-        let stored_node = StoredGroup {
+        let stored_group = StoredGroup {
             nodes,
             scaling,
             resources,
             deployment,
         };
-        let node = Group::from(name, &stored_node, node_handles);
+        let group = Group::from(name, &stored_group, node_handles);
 
-        self.add_group(node);
-        stored_node.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
+        self.add_group(group);
+        stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
         info!("Created group {}", name.blue());
         Ok(CreationResult::Created)
     }
@@ -151,15 +151,11 @@ pub struct ScalingPolicy {
 
 pub struct Group {
     handle: WeakGroupHandle,
-
     pub name: String,
-
     pub nodes: Vec<WeakNodeHandle>,
     pub scaling: ScalingPolicy,
     pub resources: Resources,
     pub deployment: Deployment,
-
-    /* Servers that the group has started */
     servers: Mutex<Vec<ServerHandle>>,
 }
 
@@ -177,26 +173,29 @@ impl Group {
     }
 
     fn try_from(name: &str, stored_group: &StoredGroup, nodes: &Nodes) -> Option<GroupHandle> {
-        let mut node_handles = Vec::with_capacity(stored_group.nodes.len());
-        for node_name in &stored_group.nodes {
-            let node = nodes.find_by_name(node_name)?;
-            node_handles.push(node);
+        let node_handles: Vec<WeakNodeHandle> = stored_group
+            .nodes
+            .iter()
+            .filter_map(|node_name| nodes.find_by_name(node_name))
+            .collect();
+        if node_handles.is_empty() {
+            return None;
         }
         Some(Self::from(name, stored_group, node_handles))
     }
 
-    fn tick(&self, server_manager: &Servers) {
-        let servers = self.servers.lock().expect("Failed to lock servers");
-        // Create how many servers we need to start to reach the min value
-        for requested in 0..(self.scaling.minimum as usize).saturating_sub(servers.len()) {
-            // Check if we have reached the max value
-            if (servers.len() + requested) >= self.scaling.maximum as usize {
+    fn tick(&self, servers: &Servers) {
+        let servers_lock = self.servers.lock().expect("Failed to lock servers");
+        let servers_len = servers_lock.len();
+        drop(servers_lock); // Explicitly drop the lock here to avoid holding it during server queueing
+
+        for requested in 0..(self.scaling.minimum as usize).saturating_sub(servers_len) {
+            if (servers_len + requested) >= self.scaling.maximum as usize {
                 break;
             }
 
-            // We need to start a server
-            server_manager.queue_server(StartRequest {
-                name: format!("{}-{}", self.name, (servers.len() + requested)),
+            servers.queue_server(StartRequest {
+                name: format!("{}-{}", self.name, servers_len + requested),
                 nodes: self.nodes.clone(),
                 group: self.handle.clone(),
                 resources: self.resources.clone(),

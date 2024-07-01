@@ -28,7 +28,7 @@ fn main() {
         "Starting cluster system version {}...",
         format!("v{}", VERSION).blue()
     );
-    info!("Loading configurations...");
+    info!("Loading configuration...");
 
     let configuration = Config::new_filled();
     let controller = Controller::new(configuration);

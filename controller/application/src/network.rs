@@ -14,8 +14,8 @@ use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
 use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
 
 mod admin;
-mod server;
 mod auth;
+mod server;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,
@@ -65,12 +65,16 @@ impl NetworkStack {
             );
 
             Server::builder()
-                .add_service(AdminServiceServer::with_interceptor(admin_service, AdminInterceptor {
-                    controller: Arc::clone(&controller),
-                }))
-                .add_service(ServerServiceServer::with_interceptor(server_service, ServerInterceptor {
-                    controller,
-                }))
+                .add_service(AdminServiceServer::with_interceptor(
+                    admin_service,
+                    AdminInterceptor {
+                        controller: Arc::clone(&controller),
+                    },
+                ))
+                .add_service(ServerServiceServer::with_interceptor(
+                    server_service,
+                    ServerInterceptor { controller },
+                ))
                 .serve_with_shutdown(address, async {
                     shutdown.changed().await.ok();
                 })

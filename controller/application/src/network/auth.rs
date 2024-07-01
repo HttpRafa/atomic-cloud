@@ -15,15 +15,15 @@ impl Interceptor for AdminInterceptor {
         let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
         match token {
             Some(token) => {
-                let admin = self.controller.get_auth().get_admin(token);
-                if let Some(_admin) = admin {
+                let user = self.controller.get_auth().get_user(token);
+                if let Some(_user) = user {
                     // TODO: Add admin to request that the method knows which admin is calling
                     Ok(request)
                 } else {
-                    Err(Status::unauthenticated("Invalid admin token"))
+                    Err(Status::unauthenticated("Invalid user token"))
                 }
             }
-            None => Err(Status::unauthenticated("No admin token provided")),
+            None => Err(Status::unauthenticated("No user token provided")),
         }
     }
 }

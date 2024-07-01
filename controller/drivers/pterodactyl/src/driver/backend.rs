@@ -38,16 +38,21 @@ pub struct ResolvedValues {
 
 #[derive(Deserialize, Serialize)]
 pub struct Backend {
-    url: Option<String>,
-    tokens: Tokens,
-    user: Option<String>,
+    application: Application,
+    client: Client,
     resolved: Option<ResolvedValues>,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct Tokens {
-    pub application: Option<String>,
-    pub client: Option<String>,
+pub struct Application {
+    pub url: Option<String>,
+    pub token: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Client {
+    pub username: Option<String>,
+    pub token: Option<String>,
 }
 
 pub enum Endpoint {
@@ -58,11 +63,11 @@ pub enum Endpoint {
 impl ResolvedValues {
     fn new_resolved(backend: &Backend) -> Result<Self> {
         let user = backend
-            .get_user_by_name(backend.user.as_ref().unwrap())
+            .get_user_by_name(backend.client.username.as_ref().unwrap())
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "The provided user {} does not exist in the Pterodactyl panel",
-                    &backend.user.as_ref().unwrap()
+                    "The provided username {} does not exist in the Pterodactyl panel",
+                    &backend.client.username.as_ref().unwrap()
                 )
             })?
             .id;
@@ -73,12 +78,14 @@ impl ResolvedValues {
 impl Backend {
     fn new_empty() -> Self {
         Self {
-            url: Some("".to_string()),
-            tokens: Tokens {
-                application: Some("".to_string()),
-                client: Some("".to_string()),
+            application: Application {
+                url: Some("".to_string()),
+                token: Some("".to_string()),
             },
-            user: Some("".to_string()),
+            client: Client {
+                username: Some("".to_string()),
+                token: Some("".to_string()),
+            },
             resolved: None,
         }
     }
@@ -107,32 +114,34 @@ impl Backend {
 
         // Check config values are overridden by environment variables
         if let Ok(url) = std::env::var("PTERODACTYL_URL") {
-            backend.url = Some(url);
-        }
-        if let Ok(token) = std::env::var("PTERODACTYL_APPLICATION_TOKEN") {
-            backend.tokens.application = Some(token);
-        }
-        if let Ok(token) = std::env::var("PTERODACTYL_CLIENT_TOKEN") {
-            backend.tokens.client = Some(token);
+            backend.application.url = Some(url);
         }
         if let Ok(user) = std::env::var("PTERODACTYL_USER") {
-            backend.user = Some(user);
+            backend.client.username = Some(user);
+        }
+        if let Ok(token) = std::env::var("PTERODACTYL_APPLICATION_TOKEN") {
+            backend.application.token = Some(token);
+        }
+        if let Ok(token) = std::env::var("PTERODACTYL_CLIENT_TOKEN") {
+            backend.client.token = Some(token);
         }
 
         let mut missing = vec![];
-        if backend.url.is_none() || backend.url.as_ref().unwrap().is_empty() {
-            missing.push("url");
-        }
-        if backend.tokens.application.is_none()
-            || backend.tokens.application.as_ref().unwrap().is_empty()
+        if backend.application.url.is_none() || backend.application.url.as_ref().unwrap().is_empty()
         {
-            missing.push("tokens.application");
+            missing.push("application.url");
         }
-        if backend.tokens.client.is_none() || backend.tokens.client.as_ref().unwrap().is_empty() {
-            missing.push("tokens.client");
+        if backend.client.username.is_none() || backend.client.username.as_ref().unwrap().is_empty()
+        {
+            missing.push("client.username");
         }
-        if backend.user.is_none() || backend.user.as_ref().unwrap().is_empty() {
-            missing.push("user");
+        if backend.application.token.is_none()
+            || backend.application.token.as_ref().unwrap().is_empty()
+        {
+            missing.push("application.token");
+        }
+        if backend.client.token.is_none() || backend.client.token.as_ref().unwrap().is_empty() {
+            missing.push("client.token");
         }
         if !missing.is_empty() {
             error!(
@@ -361,7 +370,7 @@ impl Backend {
     ) -> bool {
         let mut url = format!(
             "{}{}/{}",
-            &self.url.as_ref().unwrap(),
+            &self.application.url.as_ref().unwrap(),
             match endpoint {
                 Endpoint::Application => APPLICATION_ENDPOINT,
                 Endpoint::Client => CLIENT_ENDPOINT,
@@ -384,8 +393,8 @@ impl Backend {
                     value: format!(
                         "Bearer {}",
                         match endpoint {
-                            Endpoint::Application => self.tokens.application.as_ref().unwrap(),
-                            Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                            Endpoint::Application => self.application.token.as_ref().unwrap(),
+                            Endpoint::Client => self.client.token.as_ref().unwrap(),
                         }
                     ),
                 },
@@ -413,7 +422,7 @@ impl Backend {
     ) -> Option<T> {
         let mut url = format!(
             "{}{}/{}",
-            &self.url.as_ref().unwrap(),
+            &self.application.url.as_ref().unwrap(),
             match endpoint {
                 Endpoint::Application => APPLICATION_ENDPOINT,
                 Endpoint::Client => CLIENT_ENDPOINT,
@@ -436,8 +445,8 @@ impl Backend {
                     value: format!(
                         "Bearer {}",
                         match endpoint {
-                            Endpoint::Application => self.tokens.application.as_ref().unwrap(),
-                            Endpoint::Client => self.tokens.client.as_ref().unwrap(),
+                            Endpoint::Application => self.application.token.as_ref().unwrap(),
+                            Endpoint::Client => self.client.token.as_ref().unwrap(),
                         }
                     ),
                 },

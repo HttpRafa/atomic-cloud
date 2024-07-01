@@ -11,11 +11,14 @@ RUN rustup toolchain install nightly
 # Install the wasm32-wasi target for nightly
 RUN rustup target add wasm32-wasip1 --toolchain nightly
 
+# Install binstall
+RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
 # Add $HOME/.cargo/bin to PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install wasm-tools
-RUN cargo install wasm-tools
+RUN cargo binstall wasm-tools --no-confirm
 
 # Install gRPC UI
 RUN aur-install grpcui-bin

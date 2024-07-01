@@ -33,9 +33,9 @@ impl Nodes {
 
         let nodes_directory = Path::new(NODES_DIRECTORY);
         if !nodes_directory.exists() {
-            fs::create_dir_all(nodes_directory).unwrap_or_else(|error| {
-                warn!("{} to create nodes directory: {}", "Failed".red(), &error)
-            });
+            if let Err(error) = fs::create_dir_all(nodes_directory) {
+                warn!("{} to create nodes directory: {}", "Failed".red(), &error);
+            }
         }
 
         let mut nodes = Self { nodes: Vec::new() };
@@ -61,7 +61,11 @@ impl Nodes {
                 continue;
             }
 
-            let name = path.file_stem().unwrap().to_string_lossy().to_string();
+            let name = match path.file_stem() {
+                Some(name) => name.to_string_lossy().to_string(),
+                None => continue,
+            };
+
             let node = match StoredNode::load_from_file(&path) {
                 Ok(node) => node,
                 Err(error) => {
@@ -82,16 +86,13 @@ impl Nodes {
                 None => continue,
             };
 
-            match nodes.add_node(node) {
-                Ok(_) => {}
-                Err(error) => {
-                    warn!(
-                        "{} to load node {} because it was denied by the driver",
-                        "Failed".red(),
-                        &name.blue()
-                    );
-                    warn!(" -> {}", &error);
-                }
+            if let Err(error) = nodes.add_node(node) {
+                warn!(
+                    "{} to load node {} because it was denied by the driver",
+                    "Failed".red(),
+                    &name.blue()
+                );
+                warn!(" -> {}", &error);
             }
         }
 
@@ -122,10 +123,8 @@ impl Nodes {
         driver: Arc<dyn GenericDriver>,
         capabilities: Capabilities,
     ) -> Result<CreationResult> {
-        for node in &self.nodes {
-            if node.name == name {
-                return Ok(CreationResult::AlreadyExists);
-            }
+        if self.nodes.iter().any(|node| node.name == name) {
+            return Ok(CreationResult::AlreadyExists);
         }
 
         let stored_node = StoredNode {
@@ -224,6 +223,7 @@ impl Node {
         deployment: Deployment,
     ) -> Result<AllocationHandle> {
         let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
+
         if let Some(max_memory) = self.capabilities.memory {
             let used_memory: u32 = allocations
                 .iter()
@@ -233,6 +233,7 @@ impl Node {
                 return Err(anyhow!("Node has reached the memory limit"));
             }
         }
+
         if let Some(max_allocations) = self.capabilities.max_allocations {
             if allocations.len() + 1 > max_allocations as usize {
                 return Err(anyhow!(
@@ -262,13 +263,14 @@ impl Node {
     }
 
     pub fn deallocate(&self, allocation: &AllocationHandle) {
-        self.inner
+        if let Err(error) = self
+            .inner
             .as_ref()
             .unwrap()
             .deallocate_addresses(allocation.addresses.clone())
-            .unwrap_or_else(|error| {
-                error!("{} to deallocate addresses: {}", "Failed".red(), &error);
-            });
+        {
+            error!("{} to deallocate addresses: {}", "Failed".red(), &error);
+        }
         self.allocations
             .lock()
             .expect("Failed to lock allocations")
@@ -288,10 +290,9 @@ pub struct Capabilities {
 }
 
 mod stored {
+    use super::Capabilities;
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
-
-    use super::Capabilities;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {

@@ -15,11 +15,11 @@ use crate::controller::group::Groups;
 use crate::controller::node::Nodes;
 use crate::network::NetworkStack;
 
+mod auth;
 pub mod driver;
 pub mod group;
 pub mod node;
 pub mod server;
-mod auth;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);

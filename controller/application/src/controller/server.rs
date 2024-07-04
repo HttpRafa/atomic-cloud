@@ -17,6 +17,7 @@ use super::{
 };
 
 pub type ServerHandle = Arc<Server>;
+pub type StartRequestHandle = Arc<StartRequest>;
 
 pub struct Servers {
     controller: WeakControllerHandle,
@@ -24,8 +25,9 @@ pub struct Servers {
     /* Servers started by this atomic cloud instance */
     servers: Mutex<Vec<ServerHandle>>,
 
-    /* Servers that should be started next controller tick */
-    requests: Mutex<VecDeque<StartRequest>>,
+    /* Servers that should be started/stopped next controller tick */
+    start_requests: Mutex<VecDeque<StartRequestHandle>>,
+    stop_requests: Mutex<VecDeque<StopRequest>>,
 }
 
 impl Servers {
@@ -33,7 +35,8 @@ impl Servers {
         Self {
             controller,
             servers: Mutex::new(Vec::new()),
-            requests: Mutex::new(VecDeque::new()),
+            start_requests: Mutex::new(VecDeque::new()),
+            stop_requests: Mutex::new(VecDeque::new()),
         }
     }
 
@@ -67,23 +70,45 @@ impl Servers {
             }
         }
 
+        // Stop all servers that have to be stopped
+        {
+            let mut requests = self.stop_requests.lock().unwrap();
+            requests.retain(|request| {
+                if let Some(when) = request.when {
+                    if when > Instant::now() {
+                        return true;
+                    }
+                }
+
+                self.stop_server_nolock(request, &mut self.servers.lock().unwrap());
+                false
+            });
+        }
+
         // Sort requests by priority and process them
         {
-            let mut requests = self.requests.lock().unwrap();
-            requests
-                .make_contiguous()
-                .sort_unstable_by_key(|req| req.priority);
-            'handle_request: while let Some(request) = requests.pop_back() {
-                // Collect and sort nodes by the number of allocations
+            let mut requests = self.start_requests.lock().unwrap();
+            {
+                let contiguous = requests.make_contiguous();
+                contiguous.sort_unstable_by_key(|req| req.priority);
+                contiguous.reverse();
+            }
+            requests.retain(|request| {
+                if let Some(when) = request.when {
+                    if when > Instant::now() {
+                        return true;
+                    }
+                }
 
+                // Collect and sort nodes by the number of allocations
                 for node in &request.nodes {
                     let node = node.upgrade().unwrap();
                     // Try to allocate resources on nodes
                     if let Ok(allocation) =
                         node.allocate(&request.resources, request.deployment.clone())
                     {
-                        self.start_server(&request, allocation, &node);
-                        continue 'handle_request;
+                        self.start_server(request, allocation, &node);
+                        return false;
                     }
                 }
                 warn!(
@@ -91,22 +116,26 @@ impl Servers {
                     "Failed".red(),
                     request.name.red()
                 );
-            }
+                true
+            });
         }
     }
 
-    pub fn queue_server(&self, request: StartRequest) {
-        self.requests.lock().unwrap().push_back(request);
+    pub fn queue_server(&self, request: StartRequest) -> StartRequestHandle {
+        let arc = Arc::new(request);
+        self.start_requests.lock().unwrap().push_back(arc.clone());
+        arc
     }
 
     pub fn stop_all(&self) {
         let mut servers = self.servers.lock().unwrap();
         while let Some(server) = servers.pop() {
-            self.stop_server_nolock(&server, &mut servers);
+            self.stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
         }
     }
 
-    fn stop_server_nolock(&self, server: &ServerHandle, servers: &mut Vec<ServerHandle>) {
+    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
+        let server = &request.server;
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
         // Remove resources allocated by server from node
@@ -148,8 +177,18 @@ impl Servers {
         }
     }
 
-    pub fn stop_server(&self, server: &ServerHandle) {
-        self.stop_server_nolock(server, &mut self.servers.lock().unwrap());
+    pub fn stop_server_now(&self, server: ServerHandle) {
+        self.stop_requests
+            .lock()
+            .unwrap()
+            .push_back(StopRequest { when: None, server });
+    }
+
+    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
+        self.stop_requests.lock().unwrap().push_back(StopRequest {
+            when: Some(when),
+            server,
+        });
     }
 
     pub fn restart_server(&self, server: &ServerHandle) {
@@ -187,7 +226,7 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server(&server);
+                    controller.get_servers().stop_server_now(server);
                 }
             }
         }
@@ -195,7 +234,7 @@ impl Servers {
 
     fn start_server(
         &self,
-        request: &StartRequest,
+        request: &StartRequestHandle,
         allocation: AllocationHandle,
         node: &NodeHandle,
     ) {
@@ -225,7 +264,7 @@ impl Servers {
         });
 
         if let Some(group) = request.group.upgrade() {
-            group.add_server(server.clone());
+            group.set_active(server.clone(), request);
         }
         // Create a token for the server
         if let Some(controller) = self.controller.upgrade() {
@@ -253,7 +292,7 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server(&server);
+                    controller.get_servers().stop_server_now(server);
                 }
             }
         }
@@ -292,20 +331,26 @@ impl Health {
     }
 }
 
-pub enum State {
-    Starting,
-    Restarting,
-    Running,
-    Stopping,
-}
-
 pub struct StartRequest {
+    pub when: Option<Instant>,
     pub name: String,
     pub group: WeakGroupHandle,
     pub nodes: Vec<WeakNodeHandle>,
     pub resources: Resources,
     pub deployment: Deployment,
     pub priority: i32,
+}
+
+pub struct StopRequest {
+    pub when: Option<Instant>,
+    pub server: ServerHandle,
+}
+
+pub enum State {
+    Starting,
+    Restarting,
+    Running,
+    Stopping,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

@@ -14,7 +14,7 @@ use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
 use super::{
     node::{Nodes, WeakNodeHandle},
-    server::{Deployment, Resources, ServerHandle, Servers, StartRequest},
+    server::{Deployment, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle},
     CreationResult,
 };
 
@@ -149,6 +149,11 @@ pub struct ScalingPolicy {
     pub priority: i32,
 }
 
+pub enum GroupedServer {
+    Queueing(StartRequestHandle),
+    Active(ServerHandle),
+}
+
 pub struct Group {
     handle: WeakGroupHandle,
     pub name: String,
@@ -156,7 +161,7 @@ pub struct Group {
     pub scaling: ScalingPolicy,
     pub resources: Resources,
     pub deployment: Deployment,
-    servers: Mutex<Vec<ServerHandle>>,
+    servers: Mutex<Vec<GroupedServer>>,
 }
 
 impl Group {
@@ -185,38 +190,49 @@ impl Group {
     }
 
     fn tick(&self, servers: &Servers) {
-        let servers_lock = self.servers.lock().expect("Failed to lock servers");
-        let servers_len = servers_lock.len();
-        drop(servers_lock); // Explicitly drop the lock here to avoid holding it during server queueing
+        let mut group_servers = self.servers.lock().expect("Failed to lock servers");
 
-        for requested in 0..(self.scaling.minimum as usize).saturating_sub(servers_len) {
-            if (servers_len + requested) >= self.scaling.maximum as usize {
+        for requested in 0..(self.scaling.minimum as usize).saturating_sub(group_servers.len()) {
+            if (group_servers.len() + requested) >= self.scaling.maximum as usize {
                 break;
             }
 
-            servers.queue_server(StartRequest {
-                name: format!("{}-{}", self.name, servers_len + requested),
+            let request = servers.queue_server(StartRequest {
+                when: None,
+                name: format!("{}-{}", self.name, group_servers.len() + requested),
                 nodes: self.nodes.clone(),
                 group: self.handle.clone(),
                 resources: self.resources.clone(),
                 deployment: self.deployment.clone(),
                 priority: self.scaling.priority,
             });
+
+            // Add queueing server to group
+            group_servers.push(GroupedServer::Queueing(request));
         }
     }
 
-    pub fn add_server(&self, server: ServerHandle) {
-        self.servers
-            .lock()
-            .expect("Failed to lock servers")
-            .push(server);
+    pub fn set_active(&self, server: ServerHandle, request: &StartRequestHandle) {
+        let mut servers = self.servers.lock().expect("Failed to lock servers");
+        servers.retain(|grouped| {
+            if let GroupedServer::Queueing(start_request) = grouped {
+                return !Arc::ptr_eq(start_request, request);
+            }
+            true
+        });
+        servers.push(GroupedServer::Active(server));
     }
 
     pub fn remove_server(&self, server: &ServerHandle) {
         self.servers
             .lock()
             .expect("Failed to lock servers")
-            .retain(|handle| !Arc::ptr_eq(handle, server));
+            .retain(|handle| {
+                if let GroupedServer::Active(s) = handle {
+                    return !Arc::ptr_eq(s, server);
+                }
+                true
+            });
     }
 }
 

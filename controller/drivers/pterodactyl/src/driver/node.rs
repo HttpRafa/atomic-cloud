@@ -179,7 +179,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             self.get_backend().restart_server(&backend_server);
             info!(
                 "Panel is {} the server {}...",
-                "restart".yellow(),
+                "restarting".yellow(),
                 backend_server.name.generate().blue(),
             );
         } else {

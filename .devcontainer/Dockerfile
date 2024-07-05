@@ -2,7 +2,19 @@
 FROM ghcr.io/greyltc-org/archlinux-aur:paru
 
 RUN pacman-key --init
-RUN pacman -Syu --noconfirm && pacman -S git openssh nano rustup protobuf --noconfirm
+RUN pacman -Syu --noconfirm
+
+# Tools
+RUN pacman -S base-devel git openssh nano --noconfirm
+
+# Protobuf
+RUN pacman -S protobuf --noconfirm
+
+# Rust
+RUN pacman -S rustup --noconfirm
+
+# Kotlin
+RUN pacman -S jdk21-openjdk gradle --noconfirm
 
 # Install Rustup and set default toolchains
 RUN rustup default stable

@@ -13,8 +13,8 @@ mod network;
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
-    major: 1,
-    minor: 0,
+    major: 0,
+    minor: 1,
     patch: 0,
     stage: Stage::Alpha,
 };

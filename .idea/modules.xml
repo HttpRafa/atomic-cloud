@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/atomic-cloud.iml" filepath="$PROJECT_DIR$/.idea/atomic-cloud.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/api/atomic-cloud.api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/api/atomic-cloud.api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/paper/atomic-cloud.paper.main.iml" filepath="$PROJECT_DIR$/.idea/modules/paper/atomic-cloud.paper.main.iml" />
     </modules>
   </component>
 </project>

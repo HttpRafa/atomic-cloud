@@ -3,7 +3,7 @@ on:
     branches:
       - main
     paths:
-      - controller/application/**
+      - controller/**
 name: Publish controller
 
 jobs:
@@ -43,13 +43,12 @@ jobs:
           sudo apt install protobuf-compiler gcc-mingw-w64 -y
 
       - name: Build Controller
-        working-directory: controller/
         run: cargo build -p controller --release --target ${{ matrix.target.platform }} --features ${{ matrix.feature.name }}
 
       - name: Copy Executable
         if: success()
         run: |
-          mv controller/target/${{ matrix.target.platform }}/release/controller${{ matrix.target.extension }} controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
+          mv ./target/${{ matrix.target.platform }}/release/controller${{ matrix.target.extension }} controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
 
       - name: Upload file to Github
         if: success()

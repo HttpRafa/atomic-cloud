@@ -3,7 +3,7 @@ on:
     branches:
       - main
     paths:
-      - controller/drivers/pterodactyl/**
+      - drivers/pterodactyl/**
 name: Publish pterodactyl driver
 
 jobs:
@@ -27,7 +27,6 @@ jobs:
           targets: wasm32-wasip1
 
       - name: Install wasm-tools
-        working-directory: controller/
         run: |
           mkdir tools/
           cd tools/
@@ -36,7 +35,6 @@ jobs:
           mv wasm-tools-1.209.0-x86_64-linux/* .
 
       - name: Build Driver
-        working-directory: controller/
         run: |
           export RUSTFLAGS="-Z wasi-exec-model=reactor"
           cargo +nightly build -p pterodactyl --target wasm32-wasip1 --release

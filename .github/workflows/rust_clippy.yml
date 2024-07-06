@@ -2,6 +2,7 @@ on:
   push:
     paths:
       - controller/**
+      - drivers/pterodactyl/**
 name: Clippy check
 
 jobs:
@@ -22,5 +23,4 @@ jobs:
           sudo apt install protobuf-compiler -y
 
       - name: Run Clippy
-        working-directory: controller/
         run: cargo clippy --all-targets --all-features

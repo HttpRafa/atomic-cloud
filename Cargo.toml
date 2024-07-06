@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "controller",
+    "drivers/pterodactyl",
+    "clients/wrapper",
+]
+
+[profile.release]
+lto = true
+strip = true

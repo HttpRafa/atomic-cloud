@@ -1,10 +1,38 @@
-[workspace]
-resolver = "2"
-members = [
-    "application",
-    "drivers/pterodactyl"
-]
+[package]
+name = "controller"
+version = "0.1.0"
+edition = "2021"
 
-[profile.release]
-lto = true
-strip = true
+[dependencies]
+# Logging
+log = "0.4.22"
+simplelog = "0.12.2"
+colored = "2.1.0"
+
+# Error handling
+anyhow = "1.0.86"
+
+# Server system
+uuid = { version = "1.9.1", features = ["v4"] }
+
+# Configuration
+serde = { version = "1.0.203", features = ["derive"] }
+toml = "0.8.14"
+
+# Async runtime
+tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros"] }
+
+# API
+prost = "0.12.6"
+tonic = "0.11.0"
+
+# Drivers
+wasmtime = { version = "22.0.0", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime-wasi = { version = "22.0.0", optional = true }
+minreq = { version = "2.11.2", features = ["https-rustls"], optional = true }
+
+[build-dependencies]
+tonic-build = "0.11.0"
+
+[features]
+wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]

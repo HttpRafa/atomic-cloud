@@ -5,13 +5,11 @@ plugins {
     // Kotlin
     id("org.jetbrains.kotlin.jvm") version "2.0.20-Beta1"
     id("com.diffplug.spotless") version "7.0.0.BETA1"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 allprojects {
     apply(plugin = "kotlin")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "com.github.johnrengelman.shadow")
 
     group = project.properties["maven_group"].toString()
     version = project.properties["client_version"].toString()
@@ -45,8 +43,4 @@ allprojects {
             indentWithSpaces()
         }
     }
-}
-
-tasks.named("jar") {
-    dependsOn("shadowJar")
 }

@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     // Paper
     id("io.papermc.paperweight.userdev") version "1.7.1"

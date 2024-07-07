@@ -1,7 +1,7 @@
 rootProject.name = "atomic-cloud"
 
 // Include
-includeSubProjects("api", "paper")
+includeSubProjects("api", "common", "paper")
 
 fun includeSubProjects(vararg names: String) {
     names.forEach { name ->

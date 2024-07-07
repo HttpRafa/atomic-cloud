@@ -12,6 +12,7 @@ dependencies {
 
     // The cloud API
     implementation(project(":api"))
+    implementation(project(":common"))
 }
 
 tasks {
@@ -19,6 +20,7 @@ tasks {
         dependencies {
             exclude(".*:.*")
             include(project(":api"))
+            include(project(":common"))
         }
     }
 

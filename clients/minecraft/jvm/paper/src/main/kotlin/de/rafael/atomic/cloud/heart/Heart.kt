@@ -5,9 +5,8 @@ import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.Bukkit
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Consumer
 
-object Heart : Consumer<ScheduledTask> {
+object Heart {
 
     private const val HEARTBEAT_INTERVAL_SEC = 10L // Every 10 seconds
     private val shouldBeat = AtomicBoolean(true)
@@ -15,7 +14,9 @@ object Heart : Consumer<ScheduledTask> {
     fun start() {
         Plugin.logger.info("Starting heart of this server...")
         shouldBeat.set(true)
-        Bukkit.getAsyncScheduler().runAtFixedRate(Plugin, Heart, 0, HEARTBEAT_INTERVAL_SEC, TimeUnit.SECONDS)
+        Bukkit.getAsyncScheduler().runAtFixedRate(Plugin, {
+            beat(it)
+        }, 0, HEARTBEAT_INTERVAL_SEC, TimeUnit.SECONDS)
     }
 
     fun stop() {
@@ -23,7 +24,7 @@ object Heart : Consumer<ScheduledTask> {
         shouldBeat.set(false)
     }
 
-    override fun accept(task: ScheduledTask) {
+    private fun beat(task: ScheduledTask) {
         if (!shouldBeat.get()) {
             task.cancel()
             return

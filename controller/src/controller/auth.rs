@@ -142,7 +142,7 @@ impl Auth {
             .cloned()
     }
 
-    pub fn get_server(&self, _token: &str) -> Option<AuthServer> {
+    pub fn get_server(&self, _token: &str) -> Option<AuthServerHandle> {
         None
     }
 

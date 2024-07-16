@@ -2,3 +2,14 @@
 name = "wrapper"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+# Cli
+clap = { version = "4.5.9", features = ["derive"] }
+
+# API
+prost = "0.13.1"
+tonic = "0.12.0"
+
+[build-dependencies]
+tonic-build = "0.12.0"

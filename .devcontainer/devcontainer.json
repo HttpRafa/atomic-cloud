@@ -10,7 +10,6 @@
                 // Extensions for Rust development
                 "rust-lang.rust-analyzer",
                 "vadimcn.vscode-lldb",
-                "serayuzgur.crates",
                 "usernamehw.errorlens",
                 "tamasfe.even-better-toml",
 
@@ -19,6 +18,7 @@
                 "bytecodealliance.wit-idl",
 
                 // Extensions for general development
+                "fill-labs.dependi",
                 "ms-vscode.makefile-tools",
                 "ms-azuretools.vscode-docker",
                 "github.vscode-github-actions"

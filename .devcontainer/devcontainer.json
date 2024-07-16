@@ -19,6 +19,7 @@
                 "bytecodealliance.wit-idl",
 
                 // Extensions for general development
+                "ms-vscode.makefile-tools",
                 "ms-azuretools.vscode-docker",
                 "github.vscode-github-actions"
             ]

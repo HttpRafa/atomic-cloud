@@ -147,7 +147,7 @@ impl Auth {
     }
 
     pub fn register_server(&self, server: ServerHandle) -> Option<AuthServerHandle> {
-        let token = format!("actl_{}", Uuid::new_v4().as_simple());
+        let token = format!("actl_{}{}", Uuid::new_v4().as_simple(), Uuid::new_v4().as_simple());
 
         let server = Arc::new(AuthServer {
             server,
@@ -166,7 +166,7 @@ impl Auth {
     }
 
     pub fn register_user(&self, username: &str) -> Option<AuthUserHandle> {
-        let token = format!("actl_{}", Uuid::new_v4().as_simple());
+        let token = format!("actl_{}{}", Uuid::new_v4().as_simple(), Uuid::new_v4().as_simple());
         let stored_user = StoredUser {
             token: token.to_string(),
         };

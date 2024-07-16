@@ -1,0 +1,57 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - clients/wrapper/**
+name: Publish wrapper
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        target:
+          - name: linux
+            platform: x86_64-unknown-linux-gnu
+            extension: ""
+          - name: windows
+            platform: x86_64-pc-windows-gnu
+            extension: ".exe"
+
+    steps:
+      - uses: josStorer/get-current-time@v2
+        id: current-time
+        with:
+          format: DD-MM-YYYY-hh-mm-ss
+          utcOffset: "+02:00"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.platform }}
+
+      - name: Install Protobuf and MinGW (for Windows build)
+        run: |
+          sudo apt update
+          sudo apt install protobuf-compiler gcc-mingw-w64 -y
+
+      - name: Build Wrapper
+        run: cargo build -p wrapper --release --target ${{ matrix.target.platform }}
+
+      - name: Copy Executable
+        if: success()
+        run: |
+          mv ./target/${{ matrix.target.platform }}/release/wrapper${{ matrix.target.extension }} wrapper-${{ matrix.target.name }}${{ matrix.target.extension }}
+
+      - name: Upload file to Github
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrapper-${{ matrix.target.name }}
+          path: |
+            wrapper-${{ matrix.target.name }}${{ matrix.target.extension }}
+            LICENSE

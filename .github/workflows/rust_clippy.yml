@@ -2,6 +2,7 @@ on:
   push:
     paths:
       - controller/**
+      - clients/wrapper/**
       - drivers/pterodactyl/**
 name: Clippy check
 

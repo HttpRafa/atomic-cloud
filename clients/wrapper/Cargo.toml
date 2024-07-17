@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# CLI
-clap = { version = "4.5.9", features = ["derive"] }
+# Logging
+log = "0.4.22"
+simplelog = "0.12.2"
+colored = "2.1.0"
 
 # API
 prost = "0.13.1"

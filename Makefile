@@ -20,6 +20,9 @@ clean:
 	rm -rf $(RUN_DIR)
 	cargo clean
 
+## Build target
+build: build-controller build-wrapper build-drivers create-components
+
 ## Run target
 run: build-drivers create-components run-controller
 
@@ -27,8 +30,16 @@ run: build-drivers create-components run-controller
 run-controller:
 	(cd $(RUN_DIR); cargo run -p controller --all-features -- $(CONTROLLER_ARGS))
 
+## Build controller target
+build-controller:
+	cargo build -p controller --all-features --release
+
+## Build wrapper target
+build-wrapper:
+	cargo build -p wrapper --all-features --release
+
 ## Build drivers target
-build-drivers: $(RUN_DIR)-directory
+build-drivers:
 	RUSTFLAGS="$(WASM_RUSTFLAGS)" cargo +nightly build -p pterodactyl --target $(WASM_TARGET) --release
 
 ## Component target

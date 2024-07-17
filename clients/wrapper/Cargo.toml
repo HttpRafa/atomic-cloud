@@ -4,10 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Common
+common = { path = "../../common" }
+
 # Logging
 log = "0.4.22"
 simplelog = "0.12.2"
 colored = "2.1.0"
+
+# Signal handling
+ctrlc = "3.4.4"
 
 # API
 prost = "0.13.1"

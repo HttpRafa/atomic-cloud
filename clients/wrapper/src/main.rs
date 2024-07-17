@@ -1,37 +1,26 @@
-use log::{info, LevelFilter};
-use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
+use colored::Colorize;
+use common::{
+    init::CloudInit,
+    version::{Stage, Version},
+};
+use log::info;
 use wrapper::Wrapper;
 
 mod wrapper;
 
-fn main() {
-    init_logging();
+pub const AUTHORS: [&str; 1] = ["HttpRafa"];
+pub const VERSION: Version = Version {
+    major: 0,
+    minor: 1,
+    patch: 0,
+    stage: Stage::Alpha,
+};
 
-    info!("Starting wrapper...");
+fn main() {
+    CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
+    CloudInit::init_logging();
+
+    info!("{} wrapper...", "Starting".green());
     let mut wrapper = Wrapper::new();
     wrapper.start();
-}
-
-#[cfg(debug_assertions)]
-fn init_logging() {
-    TermLogger::init(
-        LevelFilter::Debug,
-        ConfigBuilder::new()
-            .set_location_level(LevelFilter::Error)
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .expect("Failed to init logging crate");
-}
-
-#[cfg(not(debug_assertions))]
-fn init_logging() {
-    TermLogger::init(
-        LevelFilter::Info,
-        ConfigBuilder::new().build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )
-    .expect("Failed to init logging crate");
 }

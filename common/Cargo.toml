@@ -1,0 +1,10 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Logging
+log = "0.4.22"
+simplelog = "0.12.2"
+colored = "2.1.0"

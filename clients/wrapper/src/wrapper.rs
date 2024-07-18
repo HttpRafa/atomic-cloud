@@ -69,6 +69,17 @@ impl Wrapper {
                 thread::sleep(tick_duration - elapsed_time);
             }
         }
+
+        // Kill child process
+        if let Some(mut child) = self.process.take() {
+            if child.try_wait().ok().flatten().is_none() {
+                info!("{} child process...", "Stopping".red());
+                child.kill().expect("Failed to kill child process");
+                child.wait().expect("Failed to wait for child process");
+            }
+        }
+
+        info!("All {}! Bye :)", "done".green());
     }
 
     fn tick(&mut self) {
@@ -79,17 +90,18 @@ impl Wrapper {
             .and_then(|child| child.try_wait().ok().flatten())
         {
             info!(
-                "Child process {} with status {}",
+                "Child process {} with {}",
                 "exited".red(),
                 format!("{}", status).blue()
             );
-            info!("Wrapper stop requested. Stopping...");
+            info!("Wrapper stop requested. {}...", "Stopping".red());
             self.running.store(false, Ordering::Relaxed);
         }
     }
 
     fn start_child(&mut self) {
         info!("{} child process...", "Starting".green());
+        info!("-> {} {}", self.program.blue(), self.args.join(" "));
         self.process = Some(
             match Command::new(&self.program)
                 .args(&self.args)

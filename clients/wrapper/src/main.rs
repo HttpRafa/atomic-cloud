@@ -16,11 +16,12 @@ pub const VERSION: Version = Version {
     stage: Stage::Alpha,
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
     CloudInit::init_logging();
 
     info!("{} wrapper...", "Starting".green());
-    let mut wrapper = Wrapper::new();
-    wrapper.start();
+    let mut wrapper = Wrapper::new().await;
+    wrapper.start().await;
 }

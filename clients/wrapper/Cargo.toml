@@ -12,8 +12,14 @@ log = "0.4.22"
 simplelog = "0.12.2"
 colored = "2.1.0"
 
+# Error handling
+anyhow = "1.0.86"
+
 # Signal handling
 ctrlc = "3.4.4"
+
+# Async runtime
+tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros"] }
 
 # API
 prost = "0.13.1"

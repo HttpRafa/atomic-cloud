@@ -90,16 +90,9 @@ impl Config {
         }
         if let Ok(address) = std::env::var("BIND_ADDRESS") {
             if let Ok(address) = address.parse() {
-                config.listener.unwrap().set_ip(address);
+                config.listener.replace(address);
             } else {
                 error!("Failed to parse BIND_ADDRESS environment variable");
-            }
-        }
-        if let Ok(port) = std::env::var("BIND_PORT") {
-            if let Ok(port) = port.parse() {
-                config.listener.unwrap().set_port(port);
-            } else {
-                error!("Failed to parse BIND_PORT environment variable");
             }
         }
 

@@ -1,5 +1,5 @@
 use std::{
-    process::{exit, Child, Command, Stdio},
+    process::exit,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -9,9 +9,19 @@ use std::{
 };
 
 use colored::Colorize;
+use heart::Heart;
 use log::{error, info};
+use network::CloudConnection;
+use process::ManagedProcess;
+
+mod heart;
+mod network;
+mod process;
 
 const TICK_RATE: u64 = 1;
+
+// TODO: Change this to a configuration value
+static BEAT_INTERVAL: Duration = Duration::from_secs(5);
 
 pub struct Wrapper {
     /* Immutable */
@@ -20,13 +30,15 @@ pub struct Wrapper {
 
     /* Runtime State */
     running: Arc<AtomicBool>,
+    process: Option<ManagedProcess>,
 
-    /* Child */
-    process: Option<Child>,
+    /* Accessed frequently */
+    heart: Heart,
+    connection: CloudConnection,
 }
 
 impl Wrapper {
-    pub fn new() -> Wrapper {
+    pub async fn new() -> Wrapper {
         let mut args = std::env::args();
         if args.len() < 2 {
             error!(
@@ -39,15 +51,24 @@ impl Wrapper {
         }
         let mut args = args.skip(1);
         let program = args.next().unwrap();
+
+        let mut connection = CloudConnection::from_env();
+        if let Err(error) = connection.connect().await {
+            error!("Failed to connect to cloud: {}", error);
+            exit(1);
+        }
+
         Self {
             program,
             args: args.collect(),
             running: Arc::new(AtomicBool::new(true)),
             process: None,
+            heart: Heart::new(BEAT_INTERVAL),
+            connection,
         }
     }
 
-    pub fn start(&mut self) {
+    pub async fn start(&mut self) {
         // Set up signal handlers
         let running = self.running.clone();
         ctrlc::set_handler(move || {
@@ -62,7 +83,7 @@ impl Wrapper {
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);
         while self.running.load(Ordering::Relaxed) {
             let start_time = Instant::now();
-            self.tick();
+            self.tick().await;
 
             let elapsed_time = start_time.elapsed();
             if elapsed_time < tick_duration {
@@ -71,49 +92,31 @@ impl Wrapper {
         }
 
         // Kill child process
-        if let Some(mut child) = self.process.take() {
-            if child.try_wait().ok().flatten().is_none() {
-                info!("{} child process...", "Stopping".red());
-                child.kill().expect("Failed to kill child process");
-                child.wait().expect("Failed to wait for child process");
-            }
+        if let Some(mut process) = self.process.take() {
+            process.kill_if_running();
         }
 
         info!("All {}! Bye :)", "done".green());
     }
 
-    fn tick(&mut self) {
+    pub fn request_stop(&self) {
+        info!("Wrapper stop requested. {}...", "Stopping".red());
+        self.running.store(false, Ordering::Relaxed);
+    }
+
+    async fn tick(&mut self) {
+        // Heartbeat
+        self.heart.tick(&mut self.connection).await;
+
         // Request stop when child process stopped
-        if let Some(status) = self
-            .process
-            .as_mut()
-            .and_then(|child| child.try_wait().ok().flatten())
-        {
-            info!(
-                "Child process {} with {}",
-                "exited".red(),
-                format!("{}", status).blue()
-            );
-            info!("Wrapper stop requested. {}...", "Stopping".red());
-            self.running.store(false, Ordering::Relaxed);
+        if let Some(process) = &mut self.process {
+            if process.tick() {
+                self.request_stop();
+            }
         }
     }
 
     fn start_child(&mut self) {
-        info!("{} child process...", "Starting".green());
-        info!("-> {} {}", self.program.blue(), self.args.join(" "));
-        self.process = Some(
-            match Command::new(&self.program)
-                .args(&self.args)
-                .stdin(Stdio::inherit())
-                .spawn()
-            {
-                Ok(child) => child,
-                Err(error) => {
-                    error!("{} to start child process: {}", "Failed".red(), error);
-                    exit(1);
-                }
-            },
-        )
+        self.process = Some(ManagedProcess::start(&self.program, &self.args));
     }
 }

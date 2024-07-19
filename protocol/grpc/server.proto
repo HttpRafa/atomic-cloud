@@ -4,7 +4,9 @@ option java_multiple_files = true;
 option java_package = "de.rafael.atomic.cloud.grpc.server";
 
 package server;
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
 
 service ServerService {
-    
+    rpc BeatHeart(google.protobuf.Empty) returns (google.protobuf.Empty);
 }

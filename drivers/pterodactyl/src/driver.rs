@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use crate::exports::node::driver::bridge::{
-    Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information,
+    Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information, RemoteController,
 };
 use crate::{error, info};
 
@@ -64,7 +64,7 @@ impl GuestGenericDriver for Pterodactyl {
         &self,
         name: String,
         capabilities: Capabilities,
-        controller_address: String,
+        controller: RemoteController,
     ) -> Result<GenericNode, String> {
         if let Some(value) = capabilities.sub_node.as_ref() {
             if let Some(node) = self.get_backend().get_node_by_name(value) {
@@ -73,7 +73,7 @@ impl GuestGenericDriver for Pterodactyl {
                     name.clone(),
                     Some(node.id),
                     capabilities,
-                    controller_address.clone(),
+                    controller,
                 );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add node to nodes

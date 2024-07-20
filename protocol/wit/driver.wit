@@ -44,12 +44,17 @@ interface bridge {
         ready: bool,
     }
 
-    /* Nodes */
+    /* Node | Start */
     record capabilities {
         memory: option<u32>,
         max-allocations: option<u32>,
         sub-node: option<string>,
     }
+
+    record remote-controller {
+        address: string,
+    }
+    /* Node | End */
 
     /* Allocation */
     record address {
@@ -109,7 +114,7 @@ interface bridge {
     /* Server | End */
 
     resource generic-node {
-        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller-address: string);
+        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
         allocate-addresses: func(amount: u32) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
@@ -121,7 +126,7 @@ interface bridge {
     resource generic-driver {
         constructor(cloud-identifier: string);
         init: func() -> information;
-        init-node: func(name: string, capabilities: capabilities, controller-address: string) -> result<generic-node, string>;
+        init-node: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-node, string>;
     }
 }
 

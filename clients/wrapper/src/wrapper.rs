@@ -70,10 +70,12 @@ impl Wrapper {
 
     pub async fn start(&mut self) {
         // Set up signal handlers
-        let running = self.running.clone();
+        let running = Arc::downgrade(&self.running);
         ctrlc::set_handler(move || {
             info!("{} signal received. Stopping...", "Interrupt".red());
-            running.store(false, Ordering::Relaxed);
+            if let Some(running) = running.upgrade() {
+                running.store(false, Ordering::Relaxed);
+            }
         })
         .expect("Failed to set Ctrl+C handler");
 

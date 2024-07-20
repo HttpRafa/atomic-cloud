@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use allocation::BAllocation;
 use anyhow::Result;
@@ -13,7 +13,7 @@ use user::BUser;
 use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
-    exports::node::driver::bridge::{Allocation, Auth, Server},
+    exports::node::driver::bridge::Server,
     node::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
@@ -228,7 +228,7 @@ impl Backend {
         // Add required values to the server object
         environment.insert(
             "CONTROLLER_ADDRESS".to_string(),
-            node.inner.controller_address.to_string(),
+            node.inner.controller.address.clone(),
         );
         environment.insert("SERVER_TOKEN".to_string(), server.auth.token.clone());
 

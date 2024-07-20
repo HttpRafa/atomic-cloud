@@ -79,6 +79,9 @@ impl Controller {
     }
 
     pub fn start(&self) {
+        // Set up signal handlers
+        self.setup_interrupts();
+
         let network_handle = NetworkStack::start(self.handle.upgrade().unwrap());
         let tick_duration = Duration::from_millis(1000 / TICK_RATE);
 
@@ -143,6 +146,18 @@ impl Controller {
 
         // Check if all servers have sent their heartbeats and start requested server if we can
         servers.tick();
+    }
+
+    fn setup_interrupts(&self) {
+        // Set up signal handlers
+        let controller = self.handle.clone();
+        ctrlc::set_handler(move || {
+            info!("{} signal received. Stopping...", "Interrupt".red());
+            if let Some(controller) = controller.upgrade() {
+                controller.request_stop();
+            }
+        })
+        .expect("Failed to set Ctrl+C handler");
     }
 }
 

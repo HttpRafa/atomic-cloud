@@ -19,7 +19,7 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 use super::source::Source;
 use super::{DriverNodeHandle, GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 use crate::config::CONFIG_DIRECTORY;
-use crate::controller::node::{Capabilities, Node};
+use crate::controller::node::{Capabilities, Node, RemoteController};
 
 mod node_impl;
 
@@ -202,7 +202,7 @@ impl GenericDriver for WasmDriver {
                 resource,
                 &node.name,
                 &(&node.capabilities).into(),
-                &node.controller.address.as_str(),
+                &(&node.controller).into(),
             )? {
             Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
@@ -423,6 +423,14 @@ impl From<&Capabilities> for bridge::Capabilities {
             memory: val.memory,
             max_allocations: val.max_allocations,
             sub_node: val.sub_node.clone(),
+        }
+    }
+}
+
+impl From<&RemoteController> for bridge::RemoteController {
+    fn from(val: &RemoteController) -> Self {
+        bridge::RemoteController {
+            address: val.address.to_string(),
         }
     }
 }

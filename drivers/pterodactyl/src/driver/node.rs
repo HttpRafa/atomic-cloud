@@ -6,11 +6,10 @@ use std::{
     sync::{Mutex, MutexGuard},
     vec,
 };
-use url::Url;
 
 use crate::{
     error,
-    exports::node::driver::bridge::{Address, Capabilities, GuestGenericNode, Retention, Server},
+    exports::node::driver::bridge::{Address, Capabilities, GuestGenericNode, RemoteController, Retention, Server},
     info,
 };
 
@@ -31,7 +30,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         name: String,
         id: Option<u32>,
         capabilities: Capabilities,
-        controller_address: String,
+        controller: RemoteController,
     ) -> Self {
         Self {
             inner: Rc::new(PterodactylNode {
@@ -40,8 +39,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 id: id.unwrap(),
                 name,
                 capabilities,
-                controller_address: Url::parse(&controller_address)
-                    .expect("Failed to parse already parsed url :)"),
+                controller,
                 allocations: Mutex::new(vec![]),
                 servers: Mutex::new(vec![]),
             }),
@@ -234,7 +232,7 @@ pub struct PterodactylNode {
     pub id: u32,
     pub name: String,
     pub capabilities: Capabilities,
-    pub controller_address: Url,
+    pub controller: RemoteController,
 
     /* Dynamic Resources */
     pub allocations: Mutex<Vec<BAllocation>>,

@@ -9,7 +9,9 @@ use std::{
 
 use crate::{
     error,
-    exports::node::driver::bridge::{Address, Capabilities, GuestGenericNode, RemoteController, Retention, Server},
+    exports::node::driver::bridge::{
+        Address, Capabilities, GuestGenericNode, RemoteController, Retention, Server,
+    },
     info,
 };
 

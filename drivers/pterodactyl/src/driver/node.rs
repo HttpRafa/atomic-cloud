@@ -6,6 +6,7 @@ use std::{
     sync::{Mutex, MutexGuard},
     vec,
 };
+use url::Url;
 
 use crate::{
     error,
@@ -30,6 +31,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         name: String,
         id: Option<u32>,
         capabilities: Capabilities,
+        controller_address: String,
     ) -> Self {
         Self {
             inner: Rc::new(PterodactylNode {
@@ -38,6 +40,8 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 id: id.unwrap(),
                 name,
                 capabilities,
+                controller_address: Url::parse(&controller_address)
+                    .expect("Failed to parse already parsed url :)"),
                 allocations: Mutex::new(vec![]),
                 servers: Mutex::new(vec![]),
             }),
@@ -150,8 +154,8 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             // Create a new server
             if let Some(server) = self.get_backend().create_server(
                 &name,
-                self.inner.id,
-                &server.allocation,
+                &server,
+                self,
                 &allocations,
                 BServerEgg {
                     id: egg.unwrap(),
@@ -230,6 +234,7 @@ pub struct PterodactylNode {
     pub id: u32,
     pub name: String,
     pub capabilities: Capabilities,
+    pub controller_address: Url,
 
     /* Dynamic Resources */
     pub allocations: Mutex<Vec<BAllocation>>,

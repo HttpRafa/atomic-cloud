@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     path::Path,
     sync::{Arc, Mutex},
@@ -11,15 +12,15 @@ use uuid::Uuid;
 
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
-use super::server::ServerHandle;
+use super::server::{ServerHandle, WeakServerHandle};
 
 const AUTH_DIRECTORY: &str = "auth";
 const USERS_DIRECTORY: &str = "users";
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
-type AuthUserHandle = Arc<AuthUser>;
-type AuthServerHandle = Arc<AuthServer>;
+pub type AuthUserHandle = Arc<AuthUser>;
+pub type AuthServerHandle = Arc<AuthServer>;
 
 pub struct AuthUser {
     pub username: String,
@@ -27,20 +28,20 @@ pub struct AuthUser {
 }
 
 pub struct AuthServer {
-    pub server: ServerHandle,
+    pub server: WeakServerHandle,
     pub token: String,
 }
 
 pub struct Auth {
-    pub users: Mutex<Vec<AuthUserHandle>>,
-    pub servers: Mutex<Vec<AuthServerHandle>>,
+    pub users: Mutex<HashMap<String, AuthUserHandle>>,
+    pub servers: Mutex<HashMap<String, AuthServerHandle>>,
 }
 
 impl Auth {
-    pub fn new(users: Vec<AuthUserHandle>) -> Self {
+    pub fn new(users: HashMap<String, AuthUserHandle>) -> Self {
         Auth {
             users: Mutex::new(users),
-            servers: Mutex::new(Vec::new()),
+            servers: Mutex::new(HashMap::new()),
         }
     }
 
@@ -54,7 +55,7 @@ impl Auth {
             }
         }
 
-        let mut users = Vec::new();
+        let mut users = HashMap::new();
         let entries = match fs::read_dir(&users_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -101,13 +102,13 @@ impl Auth {
                 token: user.token,
             };
             if users
-                .iter()
+                .values()
                 .any(|u| u.username.eq_ignore_ascii_case(&user.username))
             {
                 error!("User with the name {} already exists", &name.red());
                 continue;
             }
-            users.push(Arc::new(user));
+            users.insert(user.token.clone(), Arc::new(user));
             info!("Loaded user {}", &name.blue());
         }
 
@@ -134,19 +135,14 @@ impl Auth {
     }
 
     pub fn get_user(&self, token: &str) -> Option<AuthUserHandle> {
-        self.users
-            .lock()
-            .unwrap()
-            .iter()
-            .find(|user| user.token == token)
-            .cloned()
+        self.users.lock().unwrap().get(token).cloned()
     }
 
-    pub fn get_server(&self, _token: &str) -> Option<AuthServerHandle> {
-        None
+    pub fn get_server(&self, token: &str) -> Option<AuthServerHandle> {
+        self.servers.lock().unwrap().get(token).cloned()
     }
 
-    pub fn register_server(&self, server: ServerHandle) -> Option<AuthServerHandle> {
+    pub fn register_server(&self, server: WeakServerHandle) -> AuthServerHandle {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),
@@ -155,18 +151,24 @@ impl Auth {
 
         let server = Arc::new(AuthServer {
             server,
-            token: token.to_string(),
+            token: token.clone(),
         });
-        self.servers.lock().unwrap().push(server.clone());
-
-        Some(server)
-    }
-
-    pub fn unregister_server(&self, server: &ServerHandle) {
         self.servers
             .lock()
             .unwrap()
-            .retain(|s| Arc::ptr_eq(&s.server, server))
+            .insert(token.clone(), server.clone());
+
+        server
+    }
+
+    pub fn unregister_server(&self, server: &ServerHandle) {
+        self.servers.lock().unwrap().retain(|_, value| {
+            if let Some(ref_server) = value.server.upgrade() {
+                Arc::ptr_eq(&ref_server, server)
+            } else {
+                false
+            }
+        })
     }
 
     pub fn register_user(&self, username: &str) -> Option<AuthUserHandle> {
@@ -192,9 +194,12 @@ impl Auth {
 
         let user = Arc::new(AuthUser {
             username: username.to_string(),
-            token: token.to_string(),
+            token: token.clone(),
         });
-        self.users.lock().unwrap().push(user.clone());
+        self.users
+            .lock()
+            .unwrap()
+            .insert(token.clone(), user.clone());
 
         Some(user)
     }

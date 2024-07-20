@@ -10,6 +10,7 @@ use colored::Colorize;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use stored::StoredNode;
+use url::Url;
 
 use super::{
     driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver},
@@ -122,6 +123,7 @@ impl Nodes {
         name: &str,
         driver: Arc<dyn GenericDriver>,
         capabilities: Capabilities,
+        controller: RemoteController,
     ) -> Result<CreationResult> {
         if self.nodes.iter().any(|node| node.name == name) {
             return Ok(CreationResult::AlreadyExists);
@@ -130,6 +132,7 @@ impl Nodes {
         let stored_node = StoredNode {
             driver: driver.name().to_string(),
             capabilities,
+            controller,
         };
         let node = Node::from(name, &stored_node, driver);
 
@@ -170,8 +173,12 @@ impl Allocation {
 }
 
 pub struct Node {
+    /* Settings */
     pub name: String,
     pub capabilities: Capabilities,
+
+    /* Controller */
+    pub controller: RemoteController,
 
     /* Driver handles */
     pub driver: DriverHandle,
@@ -186,6 +193,7 @@ impl Node {
         Self {
             name: name.to_string(),
             capabilities: stored_node.capabilities.clone(),
+            controller: stored_node.controller.clone(),
             driver,
             inner: None,
             allocations: Mutex::new(Vec::new()),
@@ -289,15 +297,24 @@ pub struct Capabilities {
     pub sub_node: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RemoteController {
+    pub address: Url,
+}
+
 mod stored {
-    use super::Capabilities;
+    use super::{Capabilities, RemoteController};
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredNode {
+        /* Settings */
         pub driver: String,
         pub capabilities: Capabilities,
+
+        /* Controller */
+        pub controller: RemoteController,
     }
 
     impl LoadFromTomlFile for StoredNode {}

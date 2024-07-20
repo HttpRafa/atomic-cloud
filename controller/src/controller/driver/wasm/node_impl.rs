@@ -9,6 +9,7 @@ use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
 use crate::controller::{
+    auth::AuthServer,
     driver::GenericNode,
     node::Allocation,
     server::{Deployment, KeyValue, Resources, Retention, Server, ServerHandle},
@@ -167,6 +168,14 @@ impl From<Arc<Allocation>> for bridge::Allocation {
     }
 }
 
+impl From<Arc<AuthServer>> for bridge::Auth {
+    fn from(val: Arc<AuthServer>) -> Self {
+        bridge::Auth {
+            token: val.token.clone(),
+        }
+    }
+}
+
 impl From<&Arc<Server>> for bridge::Server {
     fn from(val: &Arc<Server>) -> Self {
         let group = val
@@ -178,6 +187,7 @@ impl From<&Arc<Server>> for bridge::Server {
             uuid: val.uuid.to_string(),
             group: group.name.clone(),
             allocation: val.allocation.clone().into(),
+            auth: val.auth.clone().into(),
         }
     }
 }

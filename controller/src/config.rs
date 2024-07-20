@@ -20,6 +20,11 @@ const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 12892;
 
 #[derive(Deserialize, Serialize, Default)]
+pub struct NetworkConfig {
+    pub bind: Option<SocketAddr>,
+}
+
+#[derive(Deserialize, Serialize, Default)]
 pub struct Timings {
     pub startup: Option<Duration>,
     pub restart: Option<Duration>,
@@ -32,7 +37,7 @@ pub struct Config {
     pub identifier: Option<String>,
 
     /* Network */
-    pub listener: Option<SocketAddr>,
+    pub network: NetworkConfig,
 
     /* Timings */
     pub timings: Timings,
@@ -58,8 +63,8 @@ impl Config {
             config.identifier = Some(Uuid::new_v4().to_string());
             save = true;
         }
-        if config.listener.is_none() {
-            config.listener = Some(SocketAddr::new(
+        if config.network.bind.is_none() {
+            config.network.bind = Some(SocketAddr::new(
                 DEFAULT_BIND_ADDRESS.parse().unwrap(),
                 DEFAULT_BIND_PORT,
             ));
@@ -90,7 +95,7 @@ impl Config {
         }
         if let Ok(address) = std::env::var("BIND_ADDRESS") {
             if let Ok(address) = address.parse() {
-                config.listener.replace(address);
+                config.network.bind.replace(address);
             } else {
                 error!("Failed to parse BIND_ADDRESS environment variable");
             }

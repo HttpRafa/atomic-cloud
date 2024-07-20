@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, env, path::Path};
 
 use allocation::BAllocation;
 use anyhow::Result;
@@ -7,17 +7,21 @@ use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server::{BCServer, BCServerAllocation, BServer, BServerEgg, BServerFeatureLimits, BSignal};
+use url::Url;
 use user::BUser;
 
 use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
-    exports::node::driver::bridge::Allocation,
+    exports::node::driver::bridge::{Allocation, Auth, Server},
     node::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
 
-use super::node::server::{PanelServer, ServerName};
+use super::{
+    node::server::{PanelServer, ServerName},
+    PterodactylNodeWrapper,
+};
 
 pub mod allocation;
 mod common;
@@ -45,7 +49,7 @@ pub struct Backend {
 
 #[derive(Deserialize, Serialize)]
 pub struct Application {
-    pub url: Option<String>,
+    pub url: Option<Url>,
     pub token: Option<String>,
 }
 
@@ -79,7 +83,7 @@ impl Backend {
     fn new_empty() -> Self {
         Self {
             application: Application {
-                url: Some("".to_string()),
+                url: Url::parse("http:///tmp/foo").ok(),
                 token: Some("".to_string()),
             },
             client: Client {
@@ -114,7 +118,16 @@ impl Backend {
 
         // Check config values are overridden by environment variables
         if let Ok(url) = std::env::var("PTERODACTYL_URL") {
-            backend.application.url = Some(url);
+            backend.application.url = match Url::parse(url.trim_end_matches('/')) {
+                Ok(url) => Some(url),
+                Err(error) => {
+                    error!(
+                        "Failed to parse PTERODACTYL_URL environment variable: {}",
+                        error
+                    );
+                    None
+                }
+            };
         }
         if let Ok(user) = std::env::var("PTERODACTYL_USER") {
             backend.client.username = Some(user);
@@ -127,7 +140,8 @@ impl Backend {
         }
 
         let mut missing = vec![];
-        if backend.application.url.is_none() || backend.application.url.as_ref().unwrap().is_empty()
+        if backend.application.url.is_none()
+            || backend.application.url.as_ref().unwrap().is_special()
         {
             missing.push("application.url");
         }
@@ -197,26 +211,36 @@ impl Backend {
     pub fn create_server(
         &self,
         name: &ServerName,
-        node: u32,
-        allocation: &Allocation,
+        server: &Server,
+        node: &PterodactylNodeWrapper,
         allocations: &[BAllocation],
         egg: BServerEgg,
         features: BServerFeatureLimits,
     ) -> Option<BServer> {
+        let mut environment = server
+            .allocation
+            .deployment
+            .environment
+            .iter()
+            .map(|value| (value.key.clone(), value.value.clone()))
+            .collect::<HashMap<_, _>>();
+
+        // Add required values to the server object
+        environment.insert(
+            "CONTROLLER_ADDRESS".to_string(),
+            node.inner.controller_address.to_string(),
+        );
+        environment.insert("SERVER_TOKEN".to_string(), server.auth.token.clone());
+
         let backend_server = BCServer {
             name: name.generate(),
-            node,
+            node: node.inner.id,
             user: self.resolved.as_ref().unwrap().user,
             egg: egg.id,
-            docker_image: allocation.deployment.image.clone(),
+            docker_image: server.allocation.deployment.image.clone(),
             startup: egg.startup.to_owned(),
-            environment: allocation
-                .deployment
-                .environment
-                .iter()
-                .map(|value| (value.key.clone(), value.value.clone()))
-                .collect(),
-            limits: allocation.resources.into(),
+            environment,
+            limits: server.allocation.resources.into(),
             feature_limits: features,
             allocation: BCServerAllocation::from(allocations),
             start_on_completion: true,
@@ -370,7 +394,7 @@ impl Backend {
     ) -> bool {
         let mut url = format!(
             "{}{}/{}",
-            &self.application.url.as_ref().unwrap(),
+            self.application.url.as_ref().unwrap().as_str(),
             match endpoint {
                 Endpoint::Application => APPLICATION_ENDPOINT,
                 Endpoint::Client => CLIENT_ENDPOINT,
@@ -422,7 +446,7 @@ impl Backend {
     ) -> Option<T> {
         let mut url = format!(
             "{}{}/{}",
-            &self.application.url.as_ref().unwrap(),
+            self.application.url.as_ref().unwrap().as_str(),
             match endpoint {
                 Endpoint::Application => APPLICATION_ENDPOINT,
                 Endpoint::Client => CLIENT_ENDPOINT,

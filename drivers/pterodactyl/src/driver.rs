@@ -60,7 +60,12 @@ impl GuestGenericDriver for Pterodactyl {
         }
     }
 
-    fn init_node(&self, name: String, capabilities: Capabilities) -> Result<GenericNode, String> {
+    fn init_node(
+        &self,
+        name: String,
+        capabilities: Capabilities,
+        controller_address: String,
+    ) -> Result<GenericNode, String> {
         if let Some(value) = capabilities.sub_node.as_ref() {
             if let Some(node) = self.get_backend().get_node_by_name(value) {
                 let wrapper = PterodactylNodeWrapper::new(
@@ -68,6 +73,7 @@ impl GuestGenericDriver for Pterodactyl {
                     name.clone(),
                     Some(node.id),
                     capabilities,
+                    controller_address.clone(),
                 );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add node to nodes

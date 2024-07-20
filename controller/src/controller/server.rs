@@ -1,22 +1,25 @@
 use std::{
+    borrow::Borrow,
     collections::VecDeque,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
     time::{Duration, Instant},
 };
 
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::controller::{ControllerHandle, WeakControllerHandle};
 
 use super::{
+    auth::AuthServerHandle,
     group::WeakGroupHandle,
     node::{AllocationHandle, NodeHandle, WeakNodeHandle},
 };
 
 pub type ServerHandle = Arc<Server>;
+pub type WeakServerHandle = Weak<Server>;
 pub type StartRequestHandle = Arc<StartRequest>;
 
 pub struct Servers {
@@ -232,6 +235,24 @@ impl Servers {
         }
     }
 
+    pub fn handle_heart_beat(&self, server: &ServerHandle) {
+        debug!("Received heartbeat from server {}", &server.name);
+
+        // Reset health
+        server.health.lock().unwrap().reset();
+
+        // Check were the server is in the state machine
+        let mut state = server.state.lock().unwrap();
+        if *state == State::Starting {
+            *state = State::Preparing;
+            debug!(
+                "Server {} is now in state {}",
+                &server.name,
+                "Preparing".yellow()
+            );
+        }
+    }
+
     fn start_server(
         &self,
         request: &StartRequestHandle,
@@ -250,25 +271,32 @@ impl Servers {
             node.name.blue(),
             allocation.primary_address().to_string().blue()
         );
-        let server = Arc::new(Server {
-            name: request.name.clone(),
-            uuid: Uuid::new_v4(),
-            group: request.group.clone(),
-            node: Arc::downgrade(node),
-            allocation,
-            health: Mutex::new(Health::new(
-                controller.configuration.timings.startup.unwrap(),
-                controller.configuration.timings.healthbeat.unwrap(),
-            )),
-            state: Mutex::new(State::Starting),
+        let server = Arc::new_cyclic(|handle| {
+            // Create a token for the server
+            let auth = self
+                .controller
+                .upgrade()
+                .expect("WAIT. We are creating a server while the controller is dead?")
+                .get_auth()
+                .register_server(handle.clone());
+
+            Server {
+                name: request.name.clone(),
+                uuid: Uuid::new_v4(),
+                group: request.group.clone(),
+                node: Arc::downgrade(node),
+                allocation,
+                auth,
+                health: Mutex::new(Health::new(
+                    controller.configuration.timings.startup.unwrap(),
+                    controller.configuration.timings.healthbeat.unwrap(),
+                )),
+                state: Mutex::new(State::Starting),
+            }
         });
 
         if let Some(group) = request.group.upgrade() {
             group.set_active(server.clone(), request);
-        }
-        // Create a token for the server
-        if let Some(controller) = self.controller.upgrade() {
-            controller.get_auth().register_server(server.clone());
         }
         self.servers.lock().unwrap().push(server.clone());
 
@@ -306,9 +334,12 @@ pub struct Server {
     pub node: WeakNodeHandle,
     pub allocation: AllocationHandle,
 
+    /* Auth */
+    pub auth: AuthServerHandle,
+
     /* Health and State of the server */
-    health: Mutex<Health>,
-    state: Mutex<State>,
+    pub health: Mutex<Health>,
+    pub state: Mutex<State>,
 }
 
 pub struct Health {
@@ -346,8 +377,10 @@ pub struct StopRequest {
     pub server: ServerHandle,
 }
 
+#[derive(PartialEq)]
 pub enum State {
     Starting,
+    Preparing,
     Restarting,
     Running,
     Stopping,

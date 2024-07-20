@@ -48,8 +48,9 @@ impl NetworkStack {
         async fn run(controller: Arc<Controller>, mut shutdown: Receiver<bool>) -> Result<()> {
             let address = controller
                 .configuration
-                .listener
-                .expect("No listener address found in the config");
+                .network
+                .bind
+                .expect("No bind address found in the config");
 
             let admin_service = AdminServiceImpl {
                 controller: Arc::clone(&controller),

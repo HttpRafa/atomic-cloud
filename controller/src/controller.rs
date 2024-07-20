@@ -15,7 +15,7 @@ use crate::controller::group::Groups;
 use crate::controller::node::Nodes;
 use crate::network::NetworkStack;
 
-mod auth;
+pub mod auth;
 pub mod driver;
 pub mod group;
 pub mod node;

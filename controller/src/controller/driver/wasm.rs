@@ -197,8 +197,13 @@ impl GenericDriver for WasmDriver {
             .bindings
             .node_driver_bridge()
             .generic_driver()
-            .call_init_node(store, resource, &node.name, &(&node.capabilities).into())?
-        {
+            .call_init_node(
+                store,
+                resource,
+                &node.name,
+                &(&node.capabilities).into(),
+                &node.controller.address.as_str(),
+            )? {
             Ok(node) => Ok(Arc::new(WasmNode {
                 handle: self.own.clone(),
                 resource: node,

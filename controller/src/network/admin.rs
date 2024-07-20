@@ -1,12 +1,11 @@
 use proto::{admin_service_server::AdminService, Group, GroupList, Node, NodeList};
-use std::sync::Arc;
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::controller::{
     group::ScalingPolicy,
-    node::Capabilities,
+    node::{Capabilities, RemoteController},
     server::{Deployment, KeyValue, Resources, Retention},
-    Controller, CreationResult,
+    Controller, ControllerHandle, CreationResult,
 };
 
 #[allow(clippy::all)]
@@ -17,7 +16,7 @@ pub mod proto {
 }
 
 pub struct AdminServiceImpl {
-    pub controller: Arc<Controller>,
+    pub controller: ControllerHandle,
 }
 
 #[async_trait]
@@ -38,13 +37,19 @@ impl AdminService for AdminServiceImpl {
             sub_node: node.sub_node,
         };
 
+        let controller = RemoteController {
+            address: node.controller_address.parse().map_err(|_| {
+                Status::invalid_argument("The controller address is not a valid URL")
+            })?,
+        };
+
         let driver = match self.controller.drivers.find_by_name(driver) {
             Some(driver) => driver,
             None => return Err(Status::invalid_argument("The driver does not exist")),
         };
 
         let mut nodes = self.controller.lock_nodes();
-        match nodes.create_node(name, driver, capabilities) {
+        match nodes.create_node(name, driver, capabilities, controller) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
@@ -74,6 +79,7 @@ impl AdminService for AdminServiceImpl {
             memory: node.capabilities.memory,
             max_allocations: node.capabilities.max_allocations,
             sub_node: node.capabilities.sub_node.clone(),
+            controller_address: node.controller.address.to_string(),
         }))
     }
 

@@ -31,8 +31,11 @@ message Node {
 
     // Capabilities
     optional uint32 memory = 3;
-    optional uint32 maxAllocations = 5;
-    optional string subNode = 6;
+    optional uint32 maxAllocations = 4;
+    optional string subNode = 5;
+
+    // Remote Controller
+    string controllerAddress = 6;
 }
 
 message GroupList {

@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     collections::VecDeque,
     sync::{Arc, Mutex, Weak},
     time::{Duration, Instant},

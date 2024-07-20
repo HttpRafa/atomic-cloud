@@ -5,7 +5,7 @@ use crate::controller::{
     group::ScalingPolicy,
     node::{Capabilities, RemoteController},
     server::{Deployment, KeyValue, Resources, Retention},
-    Controller, ControllerHandle, CreationResult,
+    ControllerHandle, CreationResult,
 };
 
 #[allow(clippy::all)]

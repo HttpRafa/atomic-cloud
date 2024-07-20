@@ -21,23 +21,18 @@ pub const VERSION: Version = Version {
 };
 
 fn main() {
-    CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
     CloudInit::init_logging();
+    CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let start_time = Instant::now();
     info!(
-        "{} cluster system version {}...",
-        "Starting".green(),
+        "Starting cluster system version {}...",
         format!("v{}", VERSION).blue()
     );
     info!("{} configuration...", "Loading".green());
 
     let configuration = Config::new_filled();
     let controller = Controller::new(configuration);
-    info!(
-        "{} cluster system in {:.2?}",
-        "Loaded".green(),
-        start_time.elapsed()
-    );
+    info!("Loaded cluster system in {:.2?}", start_time.elapsed());
     controller.start();
 }

@@ -32,8 +32,8 @@ mod user;
 const BACKEND_FILE: &str = "backend.toml";
 
 /* Endpoints */
-const APPLICATION_ENDPOINT: &str = "/api/application";
-const CLIENT_ENDPOINT: &str = "/api/client";
+const APPLICATION_ENDPOINT: &str = "api/application";
+const CLIENT_ENDPOINT: &str = "api/client";
 
 #[derive(Deserialize, Serialize)]
 pub struct ResolvedValues {
@@ -118,7 +118,7 @@ impl Backend {
 
         // Check config values are overridden by environment variables
         if let Ok(url) = std::env::var("PTERODACTYL_URL") {
-            backend.application.url = match Url::parse(url.trim_end_matches('/')) {
+            backend.application.url = match Url::parse(&url) {
                 Ok(url) => Some(url),
                 Err(error) => {
                     error!(
@@ -140,9 +140,7 @@ impl Backend {
         }
 
         let mut missing = vec![];
-        if backend.application.url.is_none()
-            || backend.application.url.as_ref().unwrap().is_special()
-        {
+        if backend.application.url.is_none() {
             missing.push("application.url");
         }
         if backend.client.username.is_none() || backend.client.username.as_ref().unwrap().is_empty()

@@ -18,8 +18,8 @@ pub const VERSION: Version = Version {
 
 #[tokio::main]
 async fn main() {
-    CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
     CloudInit::init_logging();
+    CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
 
     info!("{} wrapper...", "Starting".green());
     let mut wrapper = Wrapper::new().await;

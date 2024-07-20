@@ -99,15 +99,15 @@ impl Controller {
         }
 
         // Stop all servers
-        info!("{} all servers...", "Stopping".yellow());
+        info!("Stopping all servers...");
         self.servers.stop_all();
 
         // Stop network stack
-        info!("{} network stack...", "Stopping".yellow());
+        info!("Stopping network stack...");
         network_handle.shutdown();
 
         // Wait for all tokio task to finish
-        info!("{} async runtime...", "Stopping".yellow());
+        info!("Stopping async runtime...");
         (*self.runtime.lock().unwrap())
             .take()
             .unwrap()

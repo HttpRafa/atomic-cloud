@@ -13,7 +13,7 @@ impl ManagedProcess {
         info!("{} child process...", "Starting".green());
         info!("-> {} {}", program.blue(), args.join(" "));
         Self {
-            process: match Command::new(&program)
+            process: match Command::new(program)
                 .args(args)
                 .stdin(Stdio::inherit())
                 .spawn()

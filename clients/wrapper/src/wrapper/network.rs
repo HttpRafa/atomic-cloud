@@ -1,6 +1,8 @@
+use std::process::exit;
+
 use anyhow::Result;
 use log::error;
-use std::{net::SocketAddr, process::exit};
+use url::Url;
 
 use proto::server_service_client::ServerServiceClient;
 use tonic::{transport::Channel, Request};
@@ -14,7 +16,7 @@ pub mod proto {
 
 pub struct CloudConnection {
     /* Data */
-    address: SocketAddr,
+    address: Url,
     token: String,
 
     /* TLS */
@@ -31,7 +33,7 @@ impl CloudConnection {
         let tls_config;
 
         if let Ok(value) = std::env::var("CONTROLLER_ADDRESS") {
-            if let Ok(value) = value.parse::<SocketAddr>() {
+            if let Ok(value) = Url::parse(&value) {
                 address = Some(value);
             } else {
                 error!("Failed to parse CONTROLLER_ADDRESS environment variable");
@@ -58,7 +60,7 @@ impl CloudConnection {
         Self::new(address.unwrap(), token.unwrap(), tls_config)
     }
 
-    pub fn new(address: SocketAddr, token: String, tls_config: Option<String>) -> Self {
+    pub fn new(address: Url, token: String, tls_config: Option<String>) -> Self {
         Self {
             address,
             token,
@@ -68,18 +70,7 @@ impl CloudConnection {
     }
 
     pub async fn connect(&mut self) -> Result<()> {
-        self.client = Some(
-            ServerServiceClient::connect(format!(
-                "{}://{}",
-                if self.tls_config.is_some() {
-                    "https"
-                } else {
-                    "http"
-                },
-                self.address
-            ))
-            .await?,
-        );
+        self.client = Some(ServerServiceClient::connect(self.address.to_string()).await?);
         Ok(())
     }
 

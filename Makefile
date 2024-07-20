@@ -20,6 +20,11 @@ clean:
 	rm -rf $(RUN_DIR)
 	cargo clean
 
+## Fix target
+fix:
+	cargo fmt
+	cargo clippy --fix --allow-dirty --all-targets --all-features -- -D warnings
+
 ## Build target
 build: build-controller build-wrapper build-drivers create-components
 

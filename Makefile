@@ -1,4 +1,4 @@
-.PHONY: run run-controller build-drivers create-components clean
+.PHONY: run run-controller build build-controller build-wrapper build-drivers create-components clean fix
 
 # Configuration
 WASM_RUSTFLAGS = -Z wasi-exec-model=reactor
@@ -8,16 +8,31 @@ WASM_ADAPT_COMPONENT = drivers/files/wasi_snapshot_preview1.reactor.wasm
 
 # Directories
 RUN_DIR = run
+OLD_RUN_DIR = run.old
 DRIVER_DIR = $(RUN_DIR)/drivers/wasm
 
 # Arguments
 CONTROLLER_ARGS = ""
 
+# OS detection
+ifeq ($(OS),Windows_NT)
+    RM = cmd /C del /S /Q
+    MKDIR = mkdir
+    CP = xcopy /E /I /Y
+    SEP = &
+else
+    RM = rm -rf
+    MKDIR = mkdir -p
+    CP = cp -r
+    SEP = ;
+endif
+
 # Targets
 
 ## Clean target
 clean:
-	rm -rf $(RUN_DIR)
+	$(CP) $(RUN_DIR) $(OLD_RUN_DIR)
+	$(RM) $(RUN_DIR)
 	cargo clean
 
 ## Fix target
@@ -29,11 +44,11 @@ fix:
 build: build-controller build-wrapper build-drivers create-components
 
 ## Run target
-run: build-drivers create-components run-controller
+run: build run-controller
 
 ## Run controller
 run-controller:
-	(cd $(RUN_DIR); cargo run -p controller --all-features -- $(CONTROLLER_ARGS))
+	$(MKDIR) $(RUN_DIR)$(SEP) cd $(RUN_DIR)$(SEP) cargo run -p controller --all-features -- $(CONTROLLER_ARGS)
 
 ## Build controller target
 build-controller:
@@ -48,13 +63,9 @@ build-drivers:
 	RUSTFLAGS="$(WASM_RUSTFLAGS)" cargo +nightly build -p pterodactyl --target $(WASM_TARGET) --release
 
 ## Component target
-create-components: $(DRIVER_DIR)-directory
+create-components: $(DRIVER_DIR)
 	wasm-tools component new $(WASM_COMPONENT) -o $(DRIVER_DIR)/pterodactyl.wasm --adapt $(WASM_ADAPT_COMPONENT)
 
-# Create run directory if it doesn't exist
-$(RUN_DIR)-directory:
-	mkdir -p $(RUN_DIR)
-
 # Create driver directory if it doesn't exist
-$(DRIVER_DIR)-directory:
-	mkdir -p $(DRIVER_DIR)
+$(DRIVER_DIR):
+	$(MKDIR) $(DRIVER_DIR)

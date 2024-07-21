@@ -244,10 +244,10 @@ impl Servers {
         let mut state = server.state.lock().unwrap();
         if *state == State::Starting {
             *state = State::Preparing;
-            debug!(
-                "Server {} is now in state {}",
-                &server.name,
-                "Preparing".yellow()
+            info!(
+                "Server {} marked itself as {}",
+                server.name.blue(),
+                "loading".yellow()
             );
         }
     }
@@ -264,8 +264,8 @@ impl Servers {
             .expect("Failed to upgrade controller");
 
         info!(
-            "{} server {} on node {} listening on {}",
-            "Starting".green(),
+            "{} server {} on node {} listening on port {}",
+            "Spinning up".green(),
             request.name.blue(),
             node.name.blue(),
             allocation.primary_address().to_string().blue()

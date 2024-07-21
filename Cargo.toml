@@ -1,9 +1,17 @@
 [workspace]
 resolver = "2"
 members = [
+    # Common
     "common",
+
+    # Controller
     "controller",
+
+    # Drivers
     "drivers/pterodactyl",
+
+    # Clients
+    "cli",
     "clients/wrapper",
 ]
 

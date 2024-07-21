@@ -20,11 +20,13 @@ ifeq ($(OS),Windows_NT)
     MKDIR = mkdir
     CP = xcopy /E /I /Y
     SEP = &
+	SETENV = set
 else
     RM = rm -rf
     MKDIR = mkdir -p
     CP = cp -r
     SEP = ;
+	SETENV = export
 endif
 
 # Targets
@@ -48,7 +50,7 @@ run: build run-controller
 
 ## Run controller
 run-controller:
-	$(MKDIR) $(RUN_DIR)$(SEP) cd $(RUN_DIR)$(SEP) cargo run -p controller --all-features -- $(CONTROLLER_ARGS)
+	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p controller --all-features -- $(CONTROLLER_ARGS)
 
 ## Build controller target
 build-controller:
@@ -60,7 +62,8 @@ build-wrapper:
 
 ## Build drivers target
 build-drivers:
-	RUSTFLAGS="$(WASM_RUSTFLAGS)" cargo +nightly build -p pterodactyl --target $(WASM_TARGET) --release
+	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
+	cargo +nightly build -p pterodactyl --target $(WASM_TARGET) --release
 
 ## Component target
 create-components: $(DRIVER_DIR)

@@ -1,0 +1,57 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - /cli/**
+name: Publish CLI
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        target:
+          - name: linux
+            platform: x86_64-unknown-linux-gnu
+            extension: ""
+          - name: windows
+            platform: x86_64-pc-windows-gnu
+            extension: ".exe"
+
+    steps:
+      - uses: josStorer/get-current-time@v2
+        id: current-time
+        with:
+          format: DD-MM-YYYY-hh-mm-ss
+          utcOffset: "+02:00"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target.platform }}
+
+      - name: Install Protobuf and MinGW (for Windows build)
+        run: |
+          sudo apt update
+          sudo apt install protobuf-compiler gcc-mingw-w64 -y
+
+      - name: Build CLI
+        run: cargo build -p cli --release --target ${{ matrix.target.platform }}
+
+      - name: Copy Executable
+        if: success()
+        run: |
+          mv ./target/${{ matrix.target.platform }}/release/cli${{ matrix.target.extension }} cli-${{ matrix.target.name }}${{ matrix.target.extension }}
+
+      - name: Upload file to Github
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target.name }}
+          path: |
+            cli-${{ matrix.target.name }}${{ matrix.target.extension }}
+            LICENSE

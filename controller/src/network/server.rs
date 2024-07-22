@@ -28,4 +28,17 @@ impl ServerService for ServerServiceImpl {
             Err(Status::not_found("The authenticated server does not exist"))
         }
     }
+
+    async fn mark_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            self.controller.get_servers().mark_ready(&server);
+            Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
 }

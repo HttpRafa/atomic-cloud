@@ -8,5 +8,10 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
 service ServerService {
+    // Server Lifecycle
+    /// Heartbeat
     rpc BeatHeart(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    /// State
+    rpc MarkReady(google.protobuf.Empty) returns (google.protobuf.Empty);
 }

@@ -4,8 +4,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use colored::Colorize;
@@ -13,6 +12,7 @@ use heart::Heart;
 use log::{error, info};
 use network::CloudConnection;
 use process::ManagedProcess;
+use tokio::{select, time::interval};
 
 mod heart;
 mod network;
@@ -82,20 +82,17 @@ impl Wrapper {
         // Start child process
         self.start_child();
 
-        let tick_duration = Duration::from_millis(1000 / TICK_RATE);
+        let mut tick_interval = interval(Duration::from_millis(1000 / TICK_RATE));
         while self.running.load(Ordering::Relaxed) {
-            let start_time = Instant::now();
-            self.tick().await;
-
-            let elapsed_time = start_time.elapsed();
-            if elapsed_time < tick_duration {
-                thread::sleep(tick_duration - elapsed_time);
+            select! {
+                _ = tick_interval.tick() => self.tick().await,
+                _ = self.process.as_mut().unwrap().stdout_tick() => {},
             }
         }
 
         // Kill child process
         if let Some(mut process) = self.process.take() {
-            process.kill_if_running();
+            process.kill_if_running().await;
         }
 
         info!("All {}! Bye :)", "done".green());

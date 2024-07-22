@@ -19,7 +19,7 @@ anyhow = "1.0.86"
 ctrlc = "3.4.4"
 
 # Async runtime
-tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 url = "2.5.2"

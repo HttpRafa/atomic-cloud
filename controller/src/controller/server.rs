@@ -252,6 +252,23 @@ impl Servers {
         }
     }
 
+    pub fn mark_ready(&self, server: &ServerHandle) {
+        let mut state = server.state.lock().unwrap();
+        match *state {
+            State::Preparing => {
+                info!(
+                    "Server {} marked itself as {}",
+                    server.name.blue(),
+                    "ready".green()
+                );
+                *state = State::Running;
+            }
+            _ => {
+                debug!("Server {} reported itself as ready but was ignored because he is already ready", server.name);
+            }
+        }
+    }
+
     fn start_server(
         &self,
         request: &StartRequestHandle,

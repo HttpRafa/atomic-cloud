@@ -3,7 +3,7 @@ on:
     branches:
       - main
     paths:
-      - /cli/**
+      - cli/**
 name: Publish CLI
 
 jobs:

@@ -75,12 +75,12 @@ impl ManagedProcess {
         let mut buffer = String::new();
         if self.stdout.read_line(&mut buffer).await.unwrap() > 0 {
             let line = buffer.trim();
+            println!("{} {}", "#".blue(), line);
             if self.state == State::Starting && self.detector.is_started(line) {
                 self.handle_state_change(State::Running).await;
             } else if self.state == State::Running && self.detector.is_stopping(line) {
                 self.handle_state_change(State::Stopping).await;
             }
-            println!("{} {}", "#".blue(), line);
         }
     }
 

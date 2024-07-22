@@ -242,7 +242,7 @@ impl Servers {
 
         // Check were the server is in the state machine
         let mut state = server.state.lock().unwrap();
-        if *state == State::Starting {
+        if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
                 "Server {} marked itself as {}",

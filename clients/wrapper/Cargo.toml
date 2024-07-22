@@ -18,13 +18,16 @@ anyhow = "1.0.86"
 # Signal handling
 ctrlc = "3.4.4"
 
+# Regex parsing
+regex = "1.10.5"
+
 # Async runtime
-tokio = { version = "1.38.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.38.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 url = "2.5.2"
 prost = "0.13.1"
-tonic = "0.12.0"
+tonic = "0.12.1"
 
 [build-dependencies]
-tonic-build = "0.12.0"
+tonic-build = "0.12.1"

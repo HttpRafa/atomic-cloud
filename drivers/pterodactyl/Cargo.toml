@@ -7,9 +7,6 @@ edition = "2021"
 # Wasm plugin
 wit-bindgen = "0.28.0"
 
-# Server system
-# uuid = { version = "1.9.1", features = ["v4"] }
-
 # Error handling
 anyhow = "1.0.86"
 
@@ -18,7 +15,7 @@ colored = "2.1.0"
 
 # Configuration
 serde = { version = "1.0.204", features = ["derive"] }
-toml = "0.8.14"
+toml = "0.8.15"
 
 # Pelican API
 url = { version = "2.5.2", features = ["serde"] }

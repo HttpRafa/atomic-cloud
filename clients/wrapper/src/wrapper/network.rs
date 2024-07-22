@@ -1,4 +1,4 @@
-use std::process::exit;
+use std::{process::exit, sync::{Arc, Mutex}};
 
 use anyhow::Result;
 use log::error;
@@ -23,11 +23,11 @@ pub struct CloudConnection {
     tls_config: Option<String>,
 
     /* Client */
-    client: Option<ServerServiceClient<Channel>>,
+    client: Mutex<Option<ServerServiceClient<Channel>>>,
 }
 
 impl CloudConnection {
-    pub fn from_env() -> Self {
+    pub fn from_env() -> Arc<Self> {
         let address;
         let token;
         let tls_config;
@@ -57,7 +57,7 @@ impl CloudConnection {
             tls_config = None;
         }
 
-        Self::new(address.unwrap(), token.unwrap(), tls_config)
+        Arc::new(Self::new(address.unwrap(), token.unwrap(), tls_config))
     }
 
     pub fn new(address: Url, token: String, tls_config: Option<String>) -> Self {
@@ -65,12 +65,12 @@ impl CloudConnection {
             address,
             token,
             tls_config,
-            client: None,
+            client: Mutex::new(None),
         }
     }
 
-    pub async fn connect(&mut self) -> Result<()> {
-        self.client = Some(ServerServiceClient::connect(self.address.to_string()).await?);
+    pub async fn connect(&self) -> Result<()> {
+        *self.client.lock().unwrap() = Some(ServerServiceClient::connect(self.address.to_string()).await?);
         Ok(())
     }
 
@@ -85,10 +85,17 @@ impl CloudConnection {
         request
     }
 
-    pub async fn beat_heart(&mut self) -> Result<()> {
+    pub async fn beat_heart(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.as_mut().unwrap().beat_heart(request).await?;
+        self.client.lock().unwrap().as_mut().unwrap().beat_heart(request).await?;
+        Ok(())
+    }
+
+    pub async fn mark_ready(&self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client.lock().unwrap().as_mut().unwrap().mark_ready(request).await?;
         Ok(())
     }
 }

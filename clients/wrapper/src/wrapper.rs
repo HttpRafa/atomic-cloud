@@ -8,6 +8,7 @@ use std::{
 };
 
 use colored::Colorize;
+use detection::RegexDetector;
 use heart::Heart;
 use log::{error, info};
 use network::CloudConnection;
@@ -16,6 +17,7 @@ use tokio::{select, time::interval};
 
 mod heart;
 mod network;
+mod detection;
 mod process;
 
 const TICK_RATE: u64 = 1;
@@ -34,7 +36,7 @@ pub struct Wrapper {
 
     /* Accessed frequently */
     heart: Heart,
-    connection: CloudConnection,
+    connection: Arc<CloudConnection>,
 }
 
 impl Wrapper {
@@ -52,7 +54,7 @@ impl Wrapper {
         let mut args = args.skip(1);
         let program = args.next().unwrap();
 
-        let mut connection = CloudConnection::from_env();
+        let connection = CloudConnection::from_env();
         if let Err(error) = connection.connect().await {
             error!("Failed to connect to cloud: {}", error);
             exit(1);
@@ -63,7 +65,7 @@ impl Wrapper {
             args: args.collect(),
             running: Arc::new(AtomicBool::new(true)),
             process: None,
-            heart: Heart::new(BEAT_INTERVAL),
+            heart: Heart::new(BEAT_INTERVAL, connection.clone()),
             connection,
         }
     }
@@ -105,17 +107,17 @@ impl Wrapper {
 
     async fn tick(&mut self) {
         // Heartbeat
-        self.heart.tick(&mut self.connection).await;
+        self.heart.tick().await;
 
         // Request stop when child process stopped
         if let Some(process) = &mut self.process {
-            if process.tick() {
+            if process.tick().await {
                 self.request_stop();
             }
         }
     }
 
     fn start_child(&mut self) {
-        self.process = Some(ManagedProcess::start(&self.program, &self.args));
+        self.process = Some(ManagedProcess::start(&self.program, &self.args, RegexDetector::from_env(), self.connection.clone()));
     }
 }

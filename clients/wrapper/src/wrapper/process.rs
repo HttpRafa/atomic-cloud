@@ -100,7 +100,10 @@ impl ManagedProcess {
     }
 
     async fn handle_state_change(&mut self, state: State) {
-        self.state = state;
+        if self.state == state {
+            return;
+        }
+        
         match self.state {
             State::Running => {
                 info!("The child process has {} successfully", "started".green());
@@ -123,5 +126,6 @@ impl ManagedProcess {
                 /* Do nothing */    
             }
         }
+        self.state = state;
     }
 }

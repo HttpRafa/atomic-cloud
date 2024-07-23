@@ -186,7 +186,7 @@ impl Servers {
             .push_back(StopRequest { when: None, server });
     }
 
-    pub fn stop_server(&self, when: Instant, server: ServerHandle) {
+    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
         self.stop_requests.lock().unwrap().push_back(StopRequest {
             when: Some(when),
             server,
@@ -289,13 +289,15 @@ impl Servers {
     }
 
     pub fn mark_stopped(&self, server: &ServerHandle) {
-        match *server.state.lock().unwrap() {
+        let mut state = server.state.lock().unwrap();
+        match *state {
             State::Stopping => {
                 info!(
                     "Server {} marked itself as {}",
                     server.name.blue(),
                     "stopped".red()
                 );
+                *state = State::Stopped;
                 self.stop_server_now(server.clone())
             }
             _ => {
@@ -435,6 +437,7 @@ pub enum State {
     Restarting,
     Running,
     Stopping,
+    Stopped,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

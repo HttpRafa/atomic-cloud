@@ -12,7 +12,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
     major: 0,
     minor: 1,
-    patch: 0,
+    patch: 1,
     stage: Stage::Alpha,
 };
 

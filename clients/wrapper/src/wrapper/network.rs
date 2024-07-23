@@ -98,4 +98,18 @@ impl CloudConnection {
         self.client.lock().unwrap().as_mut().unwrap().mark_ready(request).await?;
         Ok(())
     }
+
+    pub async fn mark_stopping(&self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client.lock().unwrap().as_mut().unwrap().mark_stopping(request).await?;
+        Ok(())
+    }
+
+    pub async fn mark_stopped(&self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client.lock().unwrap().as_mut().unwrap().mark_stopped(request).await?;
+        Ok(())
+    }
 }

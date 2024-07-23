@@ -110,8 +110,18 @@ impl ManagedProcess {
             }
             State::Stopping => {
                 info!("The child process is {}", "stopping".red());
+                if let Err(error) = self.connection.mark_stopping().await {
+                    error!("Failed to report not ready state to controller: {}", error);
+                }
             }
-            _ => {}
+            State::Stopped => {
+                if let Err(error) = self.connection.mark_stopped().await {
+                    error!("Failed to report stopped state to controller: {}", error);
+                }
+            }
+            _ => {
+                /* Do nothing */    
+            }
         }
     }
 }

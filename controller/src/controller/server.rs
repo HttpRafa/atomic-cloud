@@ -186,7 +186,7 @@ impl Servers {
             .push_back(StopRequest { when: None, server });
     }
 
-    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
+    pub fn stop_server(&self, when: Instant, server: ServerHandle) {
         self.stop_requests.lock().unwrap().push_back(StopRequest {
             when: Some(when),
             server,
@@ -264,7 +264,42 @@ impl Servers {
                 *state = State::Running;
             }
             _ => {
-                debug!("Server {} reported itself as ready but was ignored because he is already ready", server.name);
+                debug!("Server {} reported itself as ready but was ignored because he is already ready or in a invalid state", server.name);
+            }
+        }
+    }
+
+    pub fn mark_stopping(&self, server: &ServerHandle) {
+        let mut state = server.state.lock().unwrap();
+        match *state {
+            State::Running => {
+                info!(
+                    "Server {} marked itself as {}",
+                    server.name.blue(),
+                    "stopping".yellow()
+                );
+                *state = State::Stopping;
+
+                // TODO: Move all players to a different server
+            }
+            _ => {
+                debug!("Server {} reported itself as not ready but was ignored because he is already not ready or in a invalid state", server.name);
+            }
+        }
+    }
+
+    pub fn mark_stopped(&self, server: &ServerHandle) {
+        match *server.state.lock().unwrap() {
+            State::Stopping => {
+                info!(
+                    "Server {} marked itself as {}",
+                    server.name.blue(),
+                    "stopped".red()
+                );
+                self.stop_server_now(server.clone())
+            }
+            _ => {
+                debug!("Server {} reported itself as stopped but was ignored because he is already stopped or in a invalid state", server.name);
             }
         }
     }

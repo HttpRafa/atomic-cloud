@@ -12,8 +12,12 @@ service ServerService {
     /// Heartbeat
     rpc BeatHeart(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    /// State
+    /// Ready
     rpc MarkReady(google.protobuf.Empty) returns (google.protobuf.Empty);
-    rpc MarkStopping(google.protobuf.Empty) returns (google.protobuf.Empty);
-    rpc MarkStopped(google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc MarkNotReady(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    /// Health
+    rpc MarkRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc RequestSoftStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
+    rpc RequestHardStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
 }

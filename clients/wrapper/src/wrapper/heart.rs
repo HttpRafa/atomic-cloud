@@ -6,7 +6,7 @@ use super::network::CloudConnection;
 pub struct Heart {
     /* Timings */
     pub interval: Duration,
-    pub last_beat: Instant,
+    pub next_beat: Instant,
 
     /* Network */
     connection: Arc<CloudConnection>,
@@ -16,19 +16,19 @@ impl Heart {
     pub fn new(interval: Duration, connection: Arc<CloudConnection>) -> Self {
         Self {
             interval,
-            last_beat: Instant::now(),
+            next_beat: Instant::now(),
             connection,
         }
     }
 
     pub async fn tick(&mut self) {
-        if self.last_beat.elapsed() > self.interval {
+        if self.next_beat < Instant::now() {
             self.beat().await;
         }
     }
 
     pub async fn beat(&mut self) {
-        self.last_beat = Instant::now();
+        self.next_beat = Instant::now() + self.interval;
         if let Err(error) = self.connection.beat_heart().await {
             error!("Failed to report health to controller: {}", error);
         }

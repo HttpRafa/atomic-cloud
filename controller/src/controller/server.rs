@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    sync::{Arc, Mutex, Weak},
+    sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex, Weak},
     time::{Duration, Instant},
 };
 
@@ -82,7 +82,7 @@ impl Servers {
                     }
                 }
 
-                self.stop_server_nolock(request, &mut self.servers.lock().unwrap());
+                self.hard_stop_server_nolock(request, &mut self.servers.lock().unwrap());
                 false
             });
         }
@@ -129,14 +129,14 @@ impl Servers {
         arc
     }
 
-    pub fn stop_all(&self) {
+    pub fn hard_stop_all(&self) {
         let mut servers = self.servers.lock().unwrap();
         while let Some(server) = servers.pop() {
-            self.stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
+            self.hard_stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
         }
     }
 
-    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
+    fn hard_stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
         let server = &request.server;
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
@@ -179,14 +179,14 @@ impl Servers {
         }
     }
 
-    pub fn stop_server_now(&self, server: ServerHandle) {
+    pub fn hard_stop_server_now(&self, server: ServerHandle) {
         self.stop_requests
             .lock()
             .unwrap()
             .push_back(StopRequest { when: None, server });
     }
 
-    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
+    pub fn _hard_stop_server(&self, when: Instant, server: ServerHandle) {
         self.stop_requests.lock().unwrap().push_back(StopRequest {
             when: Some(when),
             server,
@@ -228,7 +228,7 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server_now(server);
+                    controller.get_servers().hard_stop_server_now(server);
                 }
             }
         }
@@ -245,7 +245,7 @@ impl Servers {
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
-                "Server {} marked itself as {}",
+                "The server {} has self-reported as {}",
                 server.name.blue(),
                 "loading".yellow()
             );
@@ -253,56 +253,50 @@ impl Servers {
     }
 
     pub fn mark_ready(&self, server: &ServerHandle) {
-        let mut state = server.state.lock().unwrap();
-        match *state {
-            State::Preparing => {
-                info!(
-                    "Server {} marked itself as {}",
-                    server.name.blue(),
-                    "ready".green()
-                );
-                *state = State::Running;
-            }
-            _ => {
-                debug!("Server {} reported itself as ready but was ignored because he is already ready or in a invalid state", server.name);
-            }
+        if !server.rediness.load(Ordering::Relaxed) {
+            info!("Server {} is {}", server.name, "ready".green());
+            server.rediness.store(true, Ordering::Relaxed);
         }
     }
 
-    pub fn mark_stopping(&self, server: &ServerHandle) {
-        let mut state = server.state.lock().unwrap();
-        match *state {
-            State::Running => {
-                info!(
-                    "Server {} marked itself as {}",
-                    server.name.blue(),
-                    "stopping".yellow()
-                );
-                *state = State::Stopping;
-
-                // TODO: Move all players to a different server
-            }
-            _ => {
-                debug!("Server {} reported itself as not ready but was ignored because he is already not ready or in a invalid state", server.name);
-            }
+    pub fn mark_not_ready(&self, server: &ServerHandle) {
+        if server.rediness.load(Ordering::Relaxed) {
+            info!("Server {} is {} ready", server.name, "no longer".red());
+            server.rediness.store(false, Ordering::Relaxed);
         }
     }
 
-    pub fn mark_stopped(&self, server: &ServerHandle) {
+    pub fn mark_running(&self, server: &ServerHandle) {
         let mut state = server.state.lock().unwrap();
-        match *state {
-            State::Stopping => {
-                info!(
-                    "Server {} marked itself as {}",
-                    server.name.blue(),
-                    "stopped".red()
-                );
-                *state = State::Stopped;
-                self.stop_server_now(server.clone())
-            }
-            _ => {
-                debug!("Server {} reported itself as stopped but was ignored because he is already stopped or in a invalid state", server.name);
-            }
+        if *state == State::Preparing {
+            info!(
+                "The server {} is now {}",
+                server.name.blue(),
+                "running".green()
+            );
+            *state = State::Running;
+        }
+    }
+
+    pub fn soft_stop_server(&self, server: &ServerHandle) {
+        // A soft stop is a request to stop the server as soon as possible, but not immediately
+        // This is useful for stopping a server with player on it, so they can be moved to another server
+        let mut state = server.state.lock().unwrap();
+        if *state == State::Running {
+            self.mark_not_ready(server);
+            info!("{} server {}", "Soft stopping".yellow(), server.name.blue());
+            *state = State::SoftStopping;
+
+            // TODO: Send transfer requests to server
+        }
+    }
+
+    pub fn checked_hard_stop_server(&self, server: &ServerHandle) {
+        let mut state = server.state.lock().unwrap();
+        if *state == State::Running {
+            self.mark_not_ready(server);
+            *state = State::HardStopping;
+            self.hard_stop_server_now(server.clone());
         }
     }
 
@@ -345,6 +339,7 @@ impl Servers {
                     controller.configuration.timings.healthbeat.unwrap(),
                 )),
                 state: Mutex::new(State::Starting),
+                rediness: AtomicBool::new(false),
             }
         });
 
@@ -373,11 +368,15 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server_now(server);
+                    controller.get_servers().hard_stop_server_now(server);
                 }
             }
         }
     }
+}
+
+impl Servers {
+    
 }
 
 pub struct Server {
@@ -393,6 +392,7 @@ pub struct Server {
     /* Health and State of the server */
     pub health: Mutex<Health>,
     pub state: Mutex<State>,
+    pub rediness: AtomicBool,
 }
 
 pub struct Health {
@@ -436,8 +436,9 @@ pub enum State {
     Preparing,
     Restarting,
     Running,
-    Stopping,
-    Stopped,
+
+    SoftStopping,
+    HardStopping,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

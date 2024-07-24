@@ -42,26 +42,52 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    async fn mark_stopping(&self, request: Request<()>) -> Result<Response<()>, Status> {
+    async fn mark_not_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
-            self.controller.get_servers().mark_stopping(&server);
+            self.controller.get_servers().mark_not_ready(&server);
             Ok(Response::new(()))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
     }
 
-    async fn mark_stopped(&self, request: Request<()>) -> Result<Response<()>, Status> {
+    async fn mark_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
-            self.controller.get_servers().mark_stopped(&server);
+            self.controller.get_servers().mark_running(&server);
+            Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn request_soft_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            self.controller.get_servers().soft_stop_server(&server);
+            Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn request_hard_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            self.controller.get_servers().checked_hard_stop_server(&server);
             Ok(Response::new(()))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))

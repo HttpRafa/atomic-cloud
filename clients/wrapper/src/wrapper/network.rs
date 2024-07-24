@@ -74,17 +74,6 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub fn create_request<T>(&self, data: T) -> Request<T> {
-        let mut request = Request::new(data);
-
-        // Add the token to the metadata
-        request
-            .metadata_mut()
-            .insert("authorization", self.token.parse().unwrap());
-
-        request
-    }
-
     pub async fn beat_heart(&self) -> Result<()> {
         let request = self.create_request(());
 
@@ -99,17 +88,42 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn mark_stopping(&self) -> Result<()> {
+    pub async fn _mark_not_ready(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().mark_stopping(request).await?;
+        self.client.lock().unwrap().as_mut().unwrap().mark_not_ready(request).await?;
         Ok(())
     }
 
-    pub async fn mark_stopped(&self) -> Result<()> {
+    pub async fn mark_running(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().mark_stopped(request).await?;
+        self.client.lock().unwrap().as_mut().unwrap().mark_running(request).await?;
         Ok(())
+    }
+
+    pub async fn request_soft_stop(&self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client.lock().unwrap().as_mut().unwrap().request_soft_stop(request).await?;
+        Ok(())
+    }
+
+    pub async fn request_hard_stop(&self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client.lock().unwrap().as_mut().unwrap().request_hard_stop(request).await?;
+        Ok(())
+    }
+    
+    fn create_request<T>(&self, data: T) -> Request<T> {
+        let mut request = Request::new(data);
+
+        // Add the token to the metadata
+        request
+            .metadata_mut()
+            .insert("authorization", self.token.parse().unwrap());
+
+        request
     }
 }

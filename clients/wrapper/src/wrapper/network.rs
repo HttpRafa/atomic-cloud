@@ -1,7 +1,8 @@
-use std::{process::exit, sync::{Arc, Mutex}};
+use std::{process::exit, sync::Arc};
 
 use anyhow::Result;
 use log::error;
+use tokio::sync::Mutex;
 use url::Url;
 
 use proto::server_service_client::ServerServiceClient;
@@ -70,52 +71,90 @@ impl CloudConnection {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        *self.client.lock().unwrap() = Some(ServerServiceClient::connect(self.address.to_string()).await?);
+        *self.client.lock().await =
+            Some(ServerServiceClient::connect(self.address.to_string()).await?);
         Ok(())
     }
 
     pub async fn beat_heart(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().beat_heart(request).await?;
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .beat_heart(request)
+            .await?;
         Ok(())
     }
 
     pub async fn mark_ready(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().mark_ready(request).await?;
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .mark_ready(request)
+            .await?;
         Ok(())
     }
 
-    pub async fn _mark_not_ready(&self) -> Result<()> {
+    pub async fn mark_not_ready(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().mark_not_ready(request).await?;
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .mark_not_ready(request)
+            .await?;
         Ok(())
     }
 
     pub async fn mark_running(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().mark_running(request).await?;
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .mark_running(request)
+            .await?;
         Ok(())
     }
 
-    pub async fn request_soft_stop(&self) -> Result<()> {
+    pub async fn transfer_all_players(&self) -> Result<u32> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().request_soft_stop(request).await?;
-        Ok(())
+        Ok(*self
+            .client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .transfer_all_players(request)
+            .await?
+            .get_ref())
     }
 
     pub async fn request_hard_stop(&self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client.lock().unwrap().as_mut().unwrap().request_hard_stop(request).await?;
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .request_hard_stop(request)
+            .await?;
         Ok(())
     }
-    
+
     fn create_request<T>(&self, data: T) -> Request<T> {
         let mut request = Request::new(data);
 

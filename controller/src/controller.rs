@@ -100,7 +100,7 @@ impl Controller {
 
         // Stop all servers
         info!("Stopping all servers...");
-        self.servers.hard_stop_all();
+        self.servers.stop_all();
 
         // Stop network stack
         info!("Stopping network stack...");

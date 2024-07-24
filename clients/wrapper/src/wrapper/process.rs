@@ -1,4 +1,7 @@
-use std::{process::{exit, Stdio}, sync::Arc};
+use std::{
+    process::{exit, Stdio},
+    sync::Arc,
+};
 
 use colored::Colorize;
 use log::{error, info};
@@ -31,7 +34,12 @@ pub struct ManagedProcess {
 }
 
 impl ManagedProcess {
-    pub fn start(program: &str, args: &[String], detector: RegexDetector, connection: Arc<CloudConnection>) -> Self {
+    pub fn start(
+        program: &str,
+        args: &[String],
+        detector: RegexDetector,
+        connection: Arc<CloudConnection>,
+    ) -> Self {
         info!("{} child process...", "Starting".green());
         info!("-> {} {}", program.blue(), args.join(" "));
 
@@ -55,7 +63,13 @@ impl ManagedProcess {
                 .expect("Failed to open stdout of child"),
         );
 
-        Self { process, state: State::Starting, detector, connection, stdout }
+        Self {
+            process,
+            state: State::Starting,
+            detector,
+            connection,
+            stdout,
+        }
     }
 
     pub async fn tick(&mut self) -> bool {
@@ -103,21 +117,27 @@ impl ManagedProcess {
         if self.state == state {
             return;
         }
-        
+
         match state {
             State::Running => {
                 info!("The child process has {} successfully", "started".green());
                 if let Err(error) = self.connection.mark_running().await {
-                    error!("Failed to report running state to controller: {}", error);
+                    error!("Failed to report state to controller: {}", error);
                 }
                 if let Err(error) = self.connection.mark_ready().await {
-                    error!("Failed to report ready state to controller: {}", error);
+                    error!("Failed to report state to controller: {}", error);
                 }
             }
             State::Stopping => {
                 info!("The child process is {}", "stopping".red());
-                if let Err(error) = self.connection.request_soft_stop().await {
-                    error!("Failed to request soft from controller: {}", error);
+                if let Err(error) = self.connection.mark_not_ready().await {
+                    error!("Failed to report state to controller: {}", error);
+                }
+                if let Err(error) = self.connection.transfer_all_players().await {
+                    error!(
+                        "Failed to request player transfers from controller: {}",
+                        error
+                    );
                 }
             }
             State::Stopped => {
@@ -125,9 +145,7 @@ impl ManagedProcess {
                     error!("Failed to request hard from controller: {}", error);
                 }
             }
-            _ => {
-                /* Do nothing */    
-            }
+            _ => { /* Do nothing */ }
         }
         self.state = state;
     }

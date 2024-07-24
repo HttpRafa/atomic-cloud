@@ -1,5 +1,8 @@
 use log::error;
-use std::{sync::Arc, time::{Duration, Instant}};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use super::network::CloudConnection;
 

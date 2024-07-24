@@ -18,6 +18,8 @@ service ServerService {
 
     /// Health
     rpc MarkRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
-    rpc RequestSoftStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
     rpc RequestHardStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
+
+    /// Transfers
+    rpc TransferAllPlayers(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 }

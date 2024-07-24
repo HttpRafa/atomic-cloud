@@ -1,6 +1,9 @@
 use std::{
     collections::VecDeque,
-    sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex, Weak},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, Weak,
+    },
     time::{Duration, Instant},
 };
 
@@ -82,7 +85,7 @@ impl Servers {
                     }
                 }
 
-                self.hard_stop_server_nolock(request, &mut self.servers.lock().unwrap());
+                self.stop_server_nolock(request, &mut self.servers.lock().unwrap());
                 false
             });
         }
@@ -129,14 +132,14 @@ impl Servers {
         arc
     }
 
-    pub fn hard_stop_all(&self) {
+    pub fn stop_all(&self) {
         let mut servers = self.servers.lock().unwrap();
         while let Some(server) = servers.pop() {
-            self.hard_stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
+            self.stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
         }
     }
 
-    fn hard_stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
+    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
         let server = &request.server;
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
@@ -179,14 +182,14 @@ impl Servers {
         }
     }
 
-    pub fn hard_stop_server_now(&self, server: ServerHandle) {
+    pub fn stop_server_now(&self, server: ServerHandle) {
         self.stop_requests
             .lock()
             .unwrap()
             .push_back(StopRequest { when: None, server });
     }
 
-    pub fn _hard_stop_server(&self, when: Instant, server: ServerHandle) {
+    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
         self.stop_requests.lock().unwrap().push_back(StopRequest {
             when: Some(when),
             server,
@@ -228,7 +231,7 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().hard_stop_server_now(server);
+                    controller.get_servers().stop_server_now(server);
                 }
             }
         }
@@ -254,14 +257,18 @@ impl Servers {
 
     pub fn mark_ready(&self, server: &ServerHandle) {
         if !server.rediness.load(Ordering::Relaxed) {
-            info!("Server {} is {}", server.name, "ready".green());
+            info!("The server {} is {}", server.name.blue(), "ready".green());
             server.rediness.store(true, Ordering::Relaxed);
         }
     }
 
     pub fn mark_not_ready(&self, server: &ServerHandle) {
         if server.rediness.load(Ordering::Relaxed) {
-            info!("Server {} is {} ready", server.name, "no longer".red());
+            info!(
+                "The server {} is {} ready",
+                server.name.blue(),
+                "no longer".red()
+            );
             server.rediness.store(false, Ordering::Relaxed);
         }
     }
@@ -278,26 +285,18 @@ impl Servers {
         }
     }
 
-    pub fn soft_stop_server(&self, server: &ServerHandle) {
-        // A soft stop is a request to stop the server as soon as possible, but not immediately
-        // This is useful for stopping a server with player on it, so they can be moved to another server
+    pub fn checked_stop_server(&self, server: &ServerHandle) {
         let mut state = server.state.lock().unwrap();
         if *state == State::Running {
             self.mark_not_ready(server);
-            info!("{} server {}", "Soft stopping".yellow(), server.name.blue());
-            *state = State::SoftStopping;
-
-            // TODO: Send transfer requests to server
+            *state = State::Stopping;
+            self.stop_server_now(server.clone());
         }
     }
 
-    pub fn checked_hard_stop_server(&self, server: &ServerHandle) {
-        let mut state = server.state.lock().unwrap();
-        if *state == State::Running {
-            self.mark_not_ready(server);
-            *state = State::HardStopping;
-            self.hard_stop_server_now(server.clone());
-        }
+    pub fn transfer_all_players(&self, _server: &ServerHandle) -> u32 {
+        // TODO: Move all players from server to another server
+        0
     }
 
     fn start_server(
@@ -368,16 +367,14 @@ impl Servers {
                         server.name.red(),
                         error
                     );
-                    controller.get_servers().hard_stop_server_now(server);
+                    controller.get_servers().stop_server_now(server);
                 }
             }
         }
     }
 }
 
-impl Servers {
-    
-}
+impl Servers {}
 
 pub struct Server {
     pub name: String,
@@ -436,9 +433,7 @@ pub enum State {
     Preparing,
     Restarting,
     Running,
-
-    SoftStopping,
-    HardStopping,
+    Stopping,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

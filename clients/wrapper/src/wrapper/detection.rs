@@ -50,7 +50,7 @@ impl RegexDetector {
     }
 
     pub fn is_started(&self, line: &str) -> bool {
-        return self.started_regex.is_match(line);
+        self.started_regex.is_match(line)
     }
 
     pub fn is_stopping(&self, line: &str) -> bool {

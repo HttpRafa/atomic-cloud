@@ -16,7 +16,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const VERSION: Version = Version {
     major: 0,
     minor: 1,
-    patch: 1,
+    patch: 2,
     stage: Stage::Alpha,
 };
 
@@ -29,7 +29,7 @@ fn main() {
         "Starting cluster system version {}...",
         format!("v{}", VERSION).blue()
     );
-    info!("{} configuration...", "Loading".green());
+    info!("Loading configuration...");
 
     let configuration = Config::new_filled();
     let controller = Controller::new(configuration);

@@ -15,9 +15,9 @@ use network::CloudConnection;
 use process::ManagedProcess;
 use tokio::{select, time::interval};
 
+mod detection;
 mod heart;
 mod network;
-mod detection;
 mod process;
 
 const TICK_RATE: u64 = 1;
@@ -118,6 +118,11 @@ impl Wrapper {
     }
 
     fn start_child(&mut self) {
-        self.process = Some(ManagedProcess::start(&self.program, &self.args, RegexDetector::from_env(), self.connection.clone()));
+        self.process = Some(ManagedProcess::start(
+            &self.program,
+            &self.args,
+            RegexDetector::from_env(),
+            self.connection.clone(),
+        ));
     }
 }

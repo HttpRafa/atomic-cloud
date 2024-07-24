@@ -68,14 +68,15 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    async fn request_soft_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
+    async fn transfer_all_players(&self, request: Request<()>) -> Result<Response<u32>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
-            self.controller.get_servers().soft_stop_server(&server);
-            Ok(Response::new(()))
+            Ok(Response::new(
+                self.controller.get_servers().transfer_all_players(&server),
+            ))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
@@ -87,7 +88,7 @@ impl ServerService for ServerServiceImpl {
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
-            self.controller.get_servers().checked_hard_stop_server(&server);
+            self.controller.get_servers().checked_stop_server(&server);
             Ok(Response::new(()))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))

@@ -128,20 +128,6 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn transfer_all_players(&self) -> Result<u32> {
-        let request = self.create_request(());
-
-        Ok(*self
-            .client
-            .lock()
-            .await
-            .as_mut()
-            .unwrap()
-            .transfer_all_players(request)
-            .await?
-            .get_ref())
-    }
-
     pub async fn request_hard_stop(&self) -> Result<()> {
         let request = self.create_request(());
 

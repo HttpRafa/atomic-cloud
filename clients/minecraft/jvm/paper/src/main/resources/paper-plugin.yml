@@ -1,7 +1,9 @@
 name: "atomic-cloud"
 version: "0.1.0"
+author: "HttpRafa"
 main: "de.rafael.atomic.cloud.CloudPlugin"
+folia-supported: true
 description: "This plugin establishes a connection with the cloud and provides an API"
 api-version: "1.21"
-bootstrapper: "de.rafael.atomic.cloud.CloudPluginBootstrapper"
+bootstrapper: "de.rafael.atomic.cloud.CloudPluginBootstrap"
 loader: "de.rafael.atomic.cloud.CloudPluginLoader"

@@ -133,12 +133,6 @@ impl ManagedProcess {
                 if let Err(error) = self.connection.mark_not_ready().await {
                     error!("Failed to report state to controller: {}", error);
                 }
-                if let Err(error) = self.connection.transfer_all_players().await {
-                    error!(
-                        "Failed to request player transfers from controller: {}",
-                        error
-                    );
-                }
             }
             State::Stopped => {
                 if let Err(error) = self.connection.request_hard_stop().await {

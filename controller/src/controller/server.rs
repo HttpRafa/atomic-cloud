@@ -248,7 +248,7 @@ impl Servers {
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
-                "The server {} has self-reported as {}",
+                "The server {} is now {}",
                 server.name.blue(),
                 "loading".yellow()
             );
@@ -257,14 +257,14 @@ impl Servers {
 
     pub fn mark_ready(&self, server: &ServerHandle) {
         if !server.rediness.load(Ordering::Relaxed) {
-            info!("The server {} is {}", server.name.blue(), "ready".green());
+            debug!("The server {} is {}", server.name.blue(), "ready".green());
             server.rediness.store(true, Ordering::Relaxed);
         }
     }
 
     pub fn mark_not_ready(&self, server: &ServerHandle) {
         if server.rediness.load(Ordering::Relaxed) {
-            info!(
+            debug!(
                 "The server {} is {} ready",
                 server.name.blue(),
                 "no longer".red()

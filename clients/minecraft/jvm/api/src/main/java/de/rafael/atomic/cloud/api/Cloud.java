@@ -4,32 +4,35 @@ import java.util.concurrent.CompletableFuture;
 
 public class Cloud {
 
-  private static CloudInterface INSTANCE;
+    private static CloudInterface INSTANCE;
 
-  public static void setup(CloudInterface instance) {
-    if (Cloud.INSTANCE != null) throw new IllegalStateException();
-    Cloud.INSTANCE = instance;
-  }
+    public static void setup(CloudInterface instance) {
+        if (Cloud.INSTANCE != null) throw new IllegalStateException();
+        Cloud.INSTANCE = instance;
+    }
 
-  public void disableAutoReady() {
-    Cloud.INSTANCE.disableAutoReady();
-  }
+    public void disableAutoReady() {
+        Cloud.INSTANCE.disableAutoReady();
+    }
 
-  public static CompletableFuture<Void> markReady() {
-    return Cloud.INSTANCE.markReady();
-  }
+    public static CompletableFuture<Void> markReady() {
+        return Cloud.INSTANCE.markReady();
+    }
 
-  public static CompletableFuture<Void> markNotReady() {
-    return Cloud.INSTANCE.markNotReady();
-  }
+    public static CompletableFuture<Void> markNotReady() {
+        return Cloud.INSTANCE.markNotReady();
+    }
 
-  public interface CloudInterface {
-    // Settings
-    void disableAutoReady();
+    public interface CloudInterface {
+        // Server control
+        CompletableFuture<Void> shutdown();
 
-    // Network
-    CompletableFuture<Void> markReady();
+        // Network
+        CompletableFuture<Void> markReady();
 
-    CompletableFuture<Void> markNotReady();
-  }
+        CompletableFuture<Void> markNotReady();
+
+        // Settings
+        void disableAutoReady();
+    }
 }

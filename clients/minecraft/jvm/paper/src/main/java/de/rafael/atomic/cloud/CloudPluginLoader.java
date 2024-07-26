@@ -12,24 +12,26 @@ import org.jetbrains.annotations.NotNull;
 @ApiStatus.Experimental
 public class CloudPluginLoader implements PluginLoader {
 
-  private static final String GRPC_VERSION = "1.65.0";
-  private static final String PROTOBUF_VERSION = "4.27.2";
+    private static final String GRPC_VERSION = "1.65.0";
+    private static final String PROTOBUF_VERSION = "4.27.2";
 
-  @Override
-  public void classloader(@NotNull PluginClasspathBuilder pluginClasspathBuilder) {
-    var resolver = new MavenLibraryResolver();
-    addDependency(resolver, "io.grpc:grpc-protobuf:" + GRPC_VERSION);
-    addDependency(resolver, "io.grpc:grpc-stub:" + GRPC_VERSION);
-    addDependency(resolver, "io.grpc:grpc-netty-shaded:" + GRPC_VERSION);
-    addDependency(resolver, "com.google.protobuf:protobuf-java:" + PROTOBUF_VERSION);
-    addRepository(resolver, "https://repo.papermc.io/repository/maven-public/");
-  }
+    @Override
+    public void classloader(@NotNull PluginClasspathBuilder builder) {
+        var resolver = new MavenLibraryResolver();
+        addDependency(resolver, "io.grpc:grpc-protobuf:" + GRPC_VERSION);
+        addDependency(resolver, "io.grpc:grpc-stub:" + GRPC_VERSION);
+        addDependency(resolver, "io.grpc:grpc-netty-shaded:" + GRPC_VERSION);
+        addDependency(resolver, "com.google.protobuf:protobuf-java:" + PROTOBUF_VERSION);
+        addRepository(resolver, "https://repo.papermc.io/repository/maven-public/");
 
-  private void addRepository(@NotNull MavenLibraryResolver resolver, String url) {
-    resolver.addRepository(new RemoteRepository.Builder("paper", "default", url).build());
-  }
+        builder.addLibrary(resolver);
+    }
 
-  private void addDependency(@NotNull MavenLibraryResolver resolver, String dependency) {
-    resolver.addDependency(new Dependency(new DefaultArtifact(dependency), null));
-  }
+    private void addRepository(@NotNull MavenLibraryResolver resolver, String url) {
+        resolver.addRepository(new RemoteRepository.Builder("paper", "default", url).build());
+    }
+
+    private void addDependency(@NotNull MavenLibraryResolver resolver, String dependency) {
+        resolver.addDependency(new Dependency(new DefaultArtifact(dependency), null));
+    }
 }

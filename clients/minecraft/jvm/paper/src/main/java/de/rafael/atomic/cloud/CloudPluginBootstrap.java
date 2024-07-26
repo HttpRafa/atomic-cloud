@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
 @ApiStatus.Experimental
 public class CloudPluginBootstrap implements PluginBootstrap {
 
-  @Override
-  public void bootstrap(@NotNull BootstrapContext bootstrapContext) {}
+    @Override
+    public void bootstrap(@NotNull BootstrapContext bootstrapContext) {}
 
-  @Override
-  public @NotNull JavaPlugin createPlugin(@NotNull PluginProviderContext context) {
-    return CloudPlugin.INSTANCE;
-  }
+    @Override
+    public @NotNull JavaPlugin createPlugin(@NotNull PluginProviderContext context) {
+        return CloudPlugin.INSTANCE;
+    }
 }

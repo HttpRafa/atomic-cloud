@@ -46,9 +46,10 @@ allprojects {
     // Common spotless config
     spotless {
         java {
-            googleJavaFormat()
             trimTrailingWhitespace()
             indentWithSpaces()
+            removeUnusedImports()
+            palantirJavaFormat()
         }
     }
 

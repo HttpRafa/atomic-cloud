@@ -164,9 +164,9 @@ impl Auth {
     pub fn unregister_server(&self, server: &ServerHandle) {
         self.servers.lock().unwrap().retain(|_, value| {
             if let Some(ref_server) = value.server.upgrade() {
-                Arc::ptr_eq(&ref_server, server)
+                !Arc::ptr_eq(&ref_server, server)
             } else {
-                false
+                true
             }
         })
     }

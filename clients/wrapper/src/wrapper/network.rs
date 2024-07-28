@@ -128,7 +128,7 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn request_hard_stop(&self) -> Result<()> {
+    pub async fn request_stop(&self) -> Result<()> {
         let request = self.create_request(());
 
         self.client
@@ -136,7 +136,7 @@ impl CloudConnection {
             .await
             .as_mut()
             .unwrap()
-            .request_hard_stop(request)
+            .request_stop(request)
             .await?;
         Ok(())
     }

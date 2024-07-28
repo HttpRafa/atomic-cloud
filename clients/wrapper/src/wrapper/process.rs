@@ -135,7 +135,7 @@ impl ManagedProcess {
                 }
             }
             State::Stopped => {
-                if let Err(error) = self.connection.request_hard_stop().await {
+                if let Err(error) = self.connection.request_stop().await {
                     error!("Failed to request hard from controller: {}", error);
                 }
             }

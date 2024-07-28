@@ -11,11 +11,8 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: josStorer/get-current-time@v2
-        id: current-time
-        with:
-          format: DD-MM-YYYY-hh-mm-ss
-          utcOffset: "+02:00"
+      - id: commit
+        uses: prompt/actions-commit-hash@v3
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -40,6 +37,9 @@ jobs:
           cargo +nightly build -p pterodactyl --target wasm32-wasip1 --release
           ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pterodactyl.wasm \
               -o ./pterodactyl.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
+        env:
+          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Upload file to Github
         if: success()

@@ -18,8 +18,22 @@ service ServerService {
 
     /// Health
     rpc MarkRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
-    rpc RequestHardStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
+    rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
+
+    /// Users
+    rpc UserJoined(User) returns (google.protobuf.Empty);
+    rpc UserLeft(User) returns (google.protobuf.Empty);
 
     /// Transfers
-    rpc TransferAllPlayers(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
+    rpc TransferAllUsers(TransferTarget) returns (google.protobuf.UInt32Value);
+}
+
+message User {
+    string name = 1;
+    string uuid = 2;
+}
+
+message TransferTarget {
+    optional string server = 1;
+    optional string group = 2;
 }

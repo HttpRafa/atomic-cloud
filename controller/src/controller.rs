@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::{Builder, Runtime};
+use user::Users;
 
 use crate::config::Config;
 use crate::controller::driver::Drivers;
@@ -20,6 +21,7 @@ pub mod driver;
 pub mod group;
 pub mod node;
 pub mod server;
+pub mod user;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
@@ -49,6 +51,7 @@ pub struct Controller {
 
     /* Accessed frequently */
     servers: Servers,
+    users: Users,
 }
 
 impl Controller {
@@ -59,6 +62,7 @@ impl Controller {
             let nodes = Nodes::load_all(&drivers);
             let groups = Groups::load_all(&nodes);
             let servers = Servers::new(handle.clone());
+            let users = Users::new(handle.clone());
             Self {
                 handle: handle.clone(),
                 configuration,
@@ -74,6 +78,7 @@ impl Controller {
                 nodes: Mutex::new(nodes),
                 groups: Mutex::new(groups),
                 servers,
+                users,
             }
         })
     }
@@ -135,17 +140,23 @@ impl Controller {
         &self.servers
     }
 
+    pub fn get_users(&self) -> &Users {
+        &self.users
+    }
+
     pub fn get_runtime(&self) -> MutexGuard<Option<Runtime>> {
         self.runtime.lock().expect("Failed to get lock to runtime")
     }
 
     fn tick(&self) {
-        let servers = self.get_servers();
         // Check if all groups have started there servers etc..
-        self.lock_groups().tick(servers);
+        self.lock_groups().tick(&self.servers);
 
         // Check if all servers have sent their heartbeats and start requested server if we can
-        servers.tick();
+        self.servers.tick();
+
+        // Check state of all users
+        self.users.tick();
     }
 
     fn setup_interrupts(&self) {

@@ -3,18 +3,15 @@ on:
     branches:
       - main
     paths:
-      - clients/minecraft/jvm/paper/**
+      - clients/jvm/paper/**
 name: Publish paper plugin
 
 jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: josStorer/get-current-time@v2
-        id: current-time
-        with:
-          format: DD-MM-YYYY-hh-mm-ss
-          utcOffset: "+02:00"
+      - id: commit
+        uses: prompt/actions-commit-hash@v3
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -25,19 +22,24 @@ jobs:
           java-version: "21"
 
       - name: Build plugin
-        working-directory: clients/minecraft/jvm
-        run: ./gradlew paper:build
+        working-directory: clients/jvm
+        run: |
+          chmod +x gradlew
+          ./gradlew paper:build
+        env:
+          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Copy jar file
         if: success()
         run: |
-          mv $(find ./clients/minecraft/jvm/paper/build -name "*-all.jar") cloud-paper-client.jar
+          mv $(find ./clients/jvm/paper/build -name "*-all.jar") cloud-paper-client.jar
 
       - name: Upload file to Github
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: paper-plugin
+          name: paper-client
           path: |
             cloud-paper-client.jar
             LICENSE

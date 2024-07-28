@@ -1,5 +1,8 @@
-use proto::server_service_server::ServerService;
+use std::str::FromStr;
+
+use proto::{server_service_server::ServerService, TransferTarget, User};
 use tonic::{async_trait, Request, Response, Status};
+use uuid::Uuid;
 
 use crate::controller::{auth::AuthServerHandle, ControllerHandle};
 
@@ -68,21 +71,7 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    async fn transfer_all_players(&self, request: Request<()>) -> Result<Response<u32>, Status> {
-        let server = request
-            .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?");
-        if let Some(server) = server.server.upgrade() {
-            Ok(Response::new(
-                self.controller.get_servers().transfer_all_players(&server),
-            ))
-        } else {
-            Err(Status::not_found("The authenticated server does not exist"))
-        }
-    }
-
-    async fn request_hard_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
+    async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -90,6 +79,74 @@ impl ServerService for ServerServiceImpl {
         if let Some(server) = server.server.upgrade() {
             self.controller.get_servers().checked_stop_server(&server);
             Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn user_joined(&self, request: Request<User>) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            let user = request.into_inner();
+            self.controller.get_users().user_joined(
+                server,
+                user.name,
+                match Uuid::from_str(&user.uuid) {
+                    Ok(uuid) => uuid,
+                    Err(error) => {
+                        return Err(Status::invalid_argument(format!(
+                            "Failed to parse UUID: {}",
+                            error
+                        )))
+                    }
+                },
+            );
+            Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn user_left(&self, request: Request<User>) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            let user = request.into_inner();
+            self.controller.get_users().user_left(
+                server,
+                match Uuid::from_str(&user.uuid) {
+                    Ok(uuid) => uuid,
+                    Err(error) => {
+                        return Err(Status::invalid_argument(format!(
+                            "Failed to parse UUID: {}",
+                            error
+                        )))
+                    }
+                },
+            );
+            Ok(Response::new(()))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn transfer_all_users(
+        &self,
+        request: Request<TransferTarget>,
+    ) -> Result<Response<u32>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(server) = server.server.upgrade() {
+            Ok(Response::new(
+                self.controller.get_servers().transfer_all_users(&server),
+            ))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }

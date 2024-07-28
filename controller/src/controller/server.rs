@@ -294,7 +294,7 @@ impl Servers {
         }
     }
 
-    pub fn transfer_all_players(&self, _server: &ServerHandle) -> u32 {
+    pub fn transfer_all_users(&self, _server: &ServerHandle) -> u32 {
         // TODO: Move all players from server to another server
         0
     }
@@ -373,8 +373,6 @@ impl Servers {
         }
     }
 }
-
-impl Servers {}
 
 pub struct Server {
     pub name: String,

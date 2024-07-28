@@ -20,6 +20,8 @@ pub struct Version {
     pub major: u16,
     pub minor: u16,
     pub patch: u16,
+    pub build: u16,
+    pub commit: &'static str,
     pub stage: Stage,
 }
 
@@ -27,8 +29,8 @@ impl Display for Version {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             formatter,
-            "{}.{}.{}-{}",
-            self.major, self.minor, self.patch, self.stage
+            "{}.{}.{}-{}.{}+build.{}",
+            self.major, self.minor, self.patch, self.stage, self.commit, self.build
         )
     }
 }

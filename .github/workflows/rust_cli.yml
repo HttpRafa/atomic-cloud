@@ -20,11 +20,8 @@ jobs:
             extension: ".exe"
 
     steps:
-      - uses: josStorer/get-current-time@v2
-        id: current-time
-        with:
-          format: DD-MM-YYYY-hh-mm-ss
-          utcOffset: "+02:00"
+      - id: commit
+        uses: prompt/actions-commit-hash@v3
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -41,6 +38,9 @@ jobs:
 
       - name: Build CLI
         run: cargo build -p cli --release --target ${{ matrix.target.platform }}
+        env:
+          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Copy Executable
         if: success()

@@ -18,11 +18,11 @@ colored = "2.1.0"
 
 # Configuration
 serde = { version = "1.0.204", features = ["derive"] }
-toml = "0.8.15"
+toml = "0.8.16"
 
 # Pelican API
 url = { version = "2.5.2", features = ["serde"] }
-serde_json = "1.0.120"
+serde_json = "1.0.121"
 
 [build-dependencies]
 toml = "0.8.16"

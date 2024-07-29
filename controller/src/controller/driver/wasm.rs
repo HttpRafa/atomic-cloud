@@ -277,7 +277,7 @@ impl WasmDriver {
                 table,
             },
         );
-        let (bindings, _) = Driver::instantiate(&mut store, &component, &linker)?;
+        let bindings = Driver::instantiate(&mut store, &component, &linker)?;
         let driver = Arc::new_cyclic(|handle| {
             store.data_mut().handle = handle.clone();
             WasmDriver {

@@ -22,7 +22,7 @@ ctrlc = "3.4.4"
 regex = "1.10.5"
 
 # Async runtime
-tokio = { version = "1.38.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.39.2", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 url = "2.5.2"

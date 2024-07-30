@@ -44,16 +44,10 @@ pub struct Wrapper {
 impl Wrapper {
     pub async fn new(args: Args) -> Wrapper {
         let mut args = args.command.into_iter();
-        if args.len() < 2 {
-            error!(
-                "Usage: {} <{}> [{}]",
-                args.next().unwrap().blue(),
-                "program".blue(),
-                "args...".blue()
-            );
+        if args.len() == 0 {
+            error!("No program specified. Use --help for more information.");
             exit(1);
         }
-        let mut args = args.skip(1);
         let program = args.next().unwrap();
 
         let connection = CloudConnection::from_env();

@@ -51,6 +51,12 @@ pub struct BSignal {
     pub signal: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct BKeyValue {
+    pub key: String,
+    pub value: String,
+}
+
 #[derive(Deserialize, Clone)]
 pub struct BServer {
     pub id: u32,

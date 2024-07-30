@@ -83,23 +83,27 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         );
 
         // Check if a server with the same name is already exists
-        if let Some(server) = self.get_backend().get_server_by_name(&name) {
+        if let Some(backend_server) = self.get_backend().get_server_by_name(&name) {
             if deployment.disk_retention == Retention::Temporary {
                 error!(
                     "Server {} already exists on the panel, but the disk retention is temporary",
-                    server.name
+                    server.name.blue()
                 );
                 return;
             }
             // Just use the existing server and change its settings
             info!(
                 "Server {} already exists on the panel, updating settings and starting...",
-                server.name
+                server.name.blue()
             );
-            self.get_backend().start_server(&server.identifier);
-            self.inner
-                .get_servers()
-                .push(PanelServer::new(server.id, server.identifier, name));
+            self.get_backend()
+                .update_settings(&backend_server.identifier, self, &server);
+            self.get_backend().start_server(&backend_server.identifier);
+            self.inner.get_servers().push(PanelServer::new(
+                backend_server.id,
+                backend_server.identifier,
+                name,
+            ));
         } else {
             let allocations = server
                 .allocation

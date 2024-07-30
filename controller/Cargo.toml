@@ -21,6 +21,9 @@ ctrlc = "3.4.4"
 # Server system
 uuid = { version = "1.10.0", features = ["v4"] }
 
+# Command line arguments
+clap = { version = "4.5.11", features = ["derive"] }
+
 # Configuration
 serde = { version = "1.0.204", features = ["derive"] }
 toml = "0.8.16"

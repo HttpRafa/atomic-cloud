@@ -6,7 +6,9 @@ use colored::Colorize;
 use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use server::{BCServer, BCServerAllocation, BServer, BServerEgg, BServerFeatureLimits, BSignal};
+use server::{
+    BCServer, BCServerAllocation, BKeyValue, BServer, BServerEgg, BServerFeatureLimits, BSignal,
+};
 use url::Url;
 use user::BUser;
 
@@ -34,6 +36,10 @@ const BACKEND_FILE: &str = "backend.toml";
 /* Endpoints */
 const APPLICATION_ENDPOINT: &str = "api/application";
 const CLIENT_ENDPOINT: &str = "api/client";
+
+/* Variables */
+const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
+const SERVER_TOKEN: &str = "SERVER_TOKEN";
 
 #[derive(Deserialize, Serialize)]
 pub struct ResolvedValues {
@@ -175,6 +181,37 @@ impl Backend {
         Ok(backend)
     }
 
+    pub fn update_settings(
+        &self,
+        identifier: &str,
+        node: &PterodactylNodeWrapper,
+        server: &Server,
+    ) {
+        // Update the server token and controller address
+        self.update_variable(
+            identifier,
+            CONTROLLER_ADDRESS,
+            &node.inner.controller.address,
+        );
+        self.update_variable(identifier, SERVER_TOKEN, &server.auth.token);
+    }
+
+    pub fn update_variable(&self, identifier: &str, key: &str, value: &str) -> bool {
+        let value = serde_json::to_vec(&BKeyValue {
+            key: key.to_string(),
+            value: value.to_string(),
+        })
+        .ok();
+        self.send_to_api(
+            Method::Put,
+            &Endpoint::Client,
+            &format!("servers/{}/startup/variable", &identifier),
+            200,
+            value.as_deref(),
+            None,
+        )
+    }
+
     pub fn start_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "start")
     }
@@ -225,10 +262,10 @@ impl Backend {
 
         // Add required values to the server object
         environment.insert(
-            "CONTROLLER_ADDRESS".to_string(),
+            CONTROLLER_ADDRESS.to_string(),
             node.inner.controller.address.clone(),
         );
-        environment.insert("SERVER_TOKEN".to_string(), server.auth.token.clone());
+        environment.insert(SERVER_TOKEN.to_string(), server.auth.token.clone());
 
         let backend_server = BCServer {
             name: name.generate(),

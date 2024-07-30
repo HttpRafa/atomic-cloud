@@ -7,28 +7,26 @@ use crate::version::Version;
 pub struct CloudInit;
 
 impl CloudInit {
-    #[cfg(debug_assertions)]
-    pub fn init_logging() {
-        TermLogger::init(
-            LevelFilter::Debug,
-            ConfigBuilder::new()
-                .set_location_level(LevelFilter::Error)
-                .build(),
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        )
-        .expect("Failed to init logging crate");
-    }
-
-    #[cfg(not(debug_assertions))]
-    pub fn init_logging() {
-        TermLogger::init(
-            LevelFilter::Info,
-            ConfigBuilder::new().build(),
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        )
-        .expect("Failed to init logging crate");
+    pub fn init_logging(debug: bool) {
+        if debug {
+            TermLogger::init(
+                LevelFilter::Debug,
+                ConfigBuilder::new()
+                    .set_location_level(LevelFilter::Error)
+                    .build(),
+                TerminalMode::Mixed,
+                ColorChoice::Auto,
+            )
+            .expect("Failed to init logging crate");
+        } else {
+            TermLogger::init(
+                LevelFilter::Info,
+                ConfigBuilder::new().build(),
+                TerminalMode::Mixed,
+                ColorChoice::Auto,
+            )
+            .expect("Failed to init logging crate");
+        }
     }
 
     pub fn print_ascii_art(application: &str, version: &Version, authors: &[&str]) {

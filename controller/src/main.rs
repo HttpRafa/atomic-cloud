@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use args::Args;
+use clap::Parser;
 use colored::Colorize;
 use common::init::CloudInit;
 use log::info;
@@ -7,6 +9,7 @@ use log::info;
 use crate::config::Config;
 use crate::controller::Controller;
 
+mod args;
 mod config;
 mod controller;
 mod network;
@@ -17,7 +20,8 @@ include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 fn main() {
-    CloudInit::init_logging();
+    let args = Args::parse();
+    CloudInit::init_logging(args.debug);
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let start_time = Instant::now();

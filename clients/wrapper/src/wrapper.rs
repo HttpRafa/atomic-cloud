@@ -15,6 +15,8 @@ use network::CloudConnection;
 use process::ManagedProcess;
 use tokio::{select, time::interval};
 
+use crate::args::Args;
+
 mod detection;
 mod heart;
 mod network;
@@ -40,8 +42,8 @@ pub struct Wrapper {
 }
 
 impl Wrapper {
-    pub async fn new() -> Wrapper {
-        let mut args = std::env::args();
+    pub async fn new(args: Args) -> Wrapper {
+        let mut args = args.command.into_iter();
         if args.len() < 2 {
             error!(
                 "Usage: {} <{}> [{}]",

@@ -196,10 +196,7 @@ impl Auth {
             username: username.to_string(),
             token: token.clone(),
         });
-        self.users
-            .lock()
-            .unwrap()
-            .insert(token.clone(), user.clone());
+        self.users.lock().unwrap().insert(token, user.clone());
 
         Some(user)
     }

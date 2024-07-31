@@ -49,49 +49,49 @@ public class CloudConnection {
     public CompletableFuture<Empty> beatHeart() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.beatHeart(Empty.getDefaultInstance(), observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
     public CompletableFuture<Empty> markRunning() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.markRunning(Empty.getDefaultInstance(), observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
     public CompletableFuture<Empty> requestStop() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.requestStop(Empty.getDefaultInstance(), observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
     public CompletableFuture<Empty> markReady() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.markReady(Empty.getDefaultInstance(), observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
     public CompletableFuture<Empty> markNotReady() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.markNotReady(Empty.getDefaultInstance(), observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
-    public CompletableFuture<Empty> userJoined(User user) {
+    public CompletableFuture<Empty> userConnected(User user) {
         var observer = new StreamObserverImpl<Empty>();
-        this.client.userJoined(user, observer);
-        return observer.getFuture();
+        this.client.userConnected(user, observer);
+        return observer.future();
     }
 
-    public CompletableFuture<Empty> userLeft(User user) {
+    public CompletableFuture<Empty> userDisconnected(User user) {
         var observer = new StreamObserverImpl<Empty>();
-        this.client.userLeft(user, observer);
-        return observer.getFuture();
+        this.client.userDisconnected(user, observer);
+        return observer.future();
     }
 
     public CompletableFuture<UInt32Value> transferAllPlayers(TransferTarget target) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
-        return observer.getFuture();
+        return observer.future();
     }
 
     @Contract(" -> new")

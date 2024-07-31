@@ -14,6 +14,7 @@ use log::{error, info};
 use network::CloudConnection;
 use process::ManagedProcess;
 use tokio::{select, time::interval};
+use user::Users;
 
 use crate::args::Args;
 
@@ -21,6 +22,7 @@ mod detection;
 mod heart;
 mod network;
 mod process;
+mod user;
 
 const TICK_RATE: u64 = 1;
 
@@ -38,6 +40,7 @@ pub struct Wrapper {
 
     /* Accessed frequently */
     heart: Heart,
+    users: Users,
     connection: Arc<CloudConnection>,
 }
 
@@ -62,6 +65,7 @@ impl Wrapper {
             running: Arc::new(AtomicBool::new(true)),
             process: None,
             heart: Heart::new(BEAT_INTERVAL, connection.clone()),
+            users: Users::new(connection.clone()),
             connection,
         }
     }
@@ -84,7 +88,7 @@ impl Wrapper {
         while self.running.load(Ordering::Relaxed) {
             select! {
                 _ = tick_interval.tick() => self.tick().await,
-                _ = self.process.as_mut().unwrap().stdout_tick() => {},
+                _ = self.process.as_mut().unwrap().stdout_tick(&mut self.users) => {},
             }
         }
 

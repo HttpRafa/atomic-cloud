@@ -1,7 +1,4 @@
-use std::{
-    process::{exit, Stdio},
-    sync::Arc,
-};
+use std::process::{exit, Stdio};
 
 use colored::Colorize;
 use log::{error, info};
@@ -10,7 +7,13 @@ use tokio::{
     process::{Child, ChildStdout, Command},
 };
 
-use super::{detection::RegexDetector, network::CloudConnection};
+use crate::wrapper::detection::Detection;
+
+use super::{
+    detection::RegexDetector,
+    network::CloudConnectionHandle,
+    user::Users,
+};
 
 #[derive(PartialEq)]
 pub enum State {
@@ -27,7 +30,7 @@ pub struct ManagedProcess {
 
     /* Detection and Network */
     detector: RegexDetector,
-    connection: Arc<CloudConnection>,
+    connection: CloudConnectionHandle,
 
     /* StdOut Reader */
     stdout: BufReader<ChildStdout>,
@@ -38,7 +41,7 @@ impl ManagedProcess {
         program: &str,
         args: &[String],
         detector: RegexDetector,
-        connection: Arc<CloudConnection>,
+        connection: CloudConnectionHandle,
     ) -> Self {
         info!("{} child process...", "Starting".green());
         info!("-> {} {}", program.blue(), args.join(" "));
@@ -85,15 +88,33 @@ impl ManagedProcess {
         false
     }
 
-    pub async fn stdout_tick(&mut self) {
+    pub async fn stdout_tick(&mut self, users: &mut Users) {
         let mut buffer = String::new();
         if self.stdout.read_line(&mut buffer).await.unwrap() > 0 {
             let line = buffer.trim();
             println!("{} {}", "#".blue(), line);
-            if self.state == State::Starting && self.detector.is_started(line) {
-                self.handle_state_change(State::Running).await;
-            } else if self.state == State::Running && self.detector.is_stopping(line) {
-                self.handle_state_change(State::Stopping).await;
+            match self.detector.detect(line) {
+                Detection::Started => {
+                    self.handle_state_change(State::Running).await;
+                }
+                Detection::Stopping => {
+                    self.handle_state_change(State::Stopping).await;
+                }
+                Detection::UserConnected(user) => {
+                    if user.name.is_none() || user.uuid.is_none() {
+                        return;
+                    }
+                    users
+                        .handle_connect(user.name.unwrap(), user.uuid.unwrap())
+                        .await;
+                }
+                Detection::UserDisconnected(user) => {
+                    if user.name.is_none() {
+                        return;
+                    }
+                    users.handle_disconnect(user.name.unwrap()).await;
+                }
+                Detection::None => { /* Do nothing */ }
             }
         }
     }

@@ -4,9 +4,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class Cloud {
 
-    private static CloudInterface INSTANCE;
+    private static CloudAPI INSTANCE;
 
-    public static void setup(CloudInterface instance) {
+    public static void setup(CloudAPI instance) {
         if (Cloud.INSTANCE != null) throw new IllegalStateException();
         Cloud.INSTANCE = instance;
     }
@@ -27,16 +27,33 @@ public class Cloud {
         Cloud.INSTANCE.disableAutoReady();
     }
 
-    public interface CloudInterface {
-        // Server control
+    public interface CloudAPI {
+        /**
+         * Shut down this server instance.
+         * This will stop the server and transfer all players to a different server.
+         * How the server is shutdown depends on the disk retention policy.
+         * If the server is marked as permanent, it will not be deleted.
+         * If the server is not marked as permanent, it will be killed and deleted.
+         * @return a future to be completed once the server has been shut down
+         */
         CompletableFuture<Void> shutdown();
 
-        // Network
+        /**
+         * Mark this server as ready
+         * @return a future to be completed once the server has been marked as ready
+         */
         CompletableFuture<Void> markReady();
 
+        /**
+         * Mark this server as not ready
+         * @return a future to be completed once the server has been marked as not ready
+         */
         CompletableFuture<Void> markNotReady();
 
-        // Settings
+        /**
+         * The server marks itself ready when it is started. This method disables this behavior.
+         * This is useful if you want to control when the server is ready yourself.
+         */
         void disableAutoReady();
     }
 }

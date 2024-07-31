@@ -34,4 +34,5 @@ public class CloudPluginLoader implements PluginLoader {
     private void addDependency(@NotNull MavenLibraryResolver resolver, String dependency) {
         resolver.addDependency(new Dependency(new DefaultArtifact(dependency), null));
     }
+
 }

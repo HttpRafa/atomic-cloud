@@ -17,4 +17,5 @@ public class CloudPluginBootstrap implements PluginBootstrap {
     public @NotNull JavaPlugin createPlugin(@NotNull PluginProviderContext context) {
         return CloudPlugin.INSTANCE;
     }
+
 }

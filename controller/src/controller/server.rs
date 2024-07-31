@@ -150,7 +150,11 @@ impl Servers {
 
         // Send start request to node
         // We do this async because the driver chould be running blocking code like network requests
-        if let Some(controller) = self.controller.upgrade() {
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("The controller is dead while still running code that requires it");
+        {
             let server = server.clone();
             controller
                 .get_runtime()
@@ -167,6 +171,9 @@ impl Servers {
             controller.get_auth().unregister_server(server);
         }
         servers.retain(|handle| !Arc::ptr_eq(handle, server));
+
+        // Remove users connected to the server
+        controller.get_users().cleanup_users(server);
 
         fn stop_thread(server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {

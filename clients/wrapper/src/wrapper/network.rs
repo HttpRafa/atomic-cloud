@@ -5,7 +5,7 @@ use log::error;
 use tokio::sync::Mutex;
 use url::Url;
 
-use proto::server_service_client::ServerServiceClient;
+use proto::{server_service_client::ServerServiceClient, User};
 use tonic::{transport::Channel, Request};
 
 #[allow(clippy::all)]
@@ -14,6 +14,8 @@ pub mod proto {
 
     include_proto!("server");
 }
+
+pub type CloudConnectionHandle = Arc<CloudConnection>;
 
 pub struct CloudConnection {
     /* Data */
@@ -137,6 +139,32 @@ impl CloudConnection {
             .as_mut()
             .unwrap()
             .request_stop(request)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn user_connected(&self, name: String, uuid: String) -> Result<()> {
+        let request = self.create_request(User { name, uuid });
+
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .user_connected(request)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn user_disconnected(&self, name: String, uuid: String) -> Result<()> {
+        let request = self.create_request(User { name, uuid });
+
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .user_disconnected(request)
             .await?;
         Ok(())
     }

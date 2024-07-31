@@ -4,8 +4,7 @@ import de.rafael.atomic.cloud.api.Cloud;
 import de.rafael.atomic.cloud.api.CloudImpl;
 import de.rafael.atomic.cloud.common.connection.CloudConnection;
 import de.rafael.atomic.cloud.common.health.Heart;
-import de.rafael.atomic.cloud.listener.PlayerJoinListener;
-import de.rafael.atomic.cloud.listener.PlayerLeftListener;
+import de.rafael.atomic.cloud.listener.PlayerEventsListener;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,7 +45,7 @@ public class CloudPlugin extends JavaPlugin {
 
         // Mark server as running
         connection.markRunning();
-        if (settings.isAutoReady()) {
+        if (settings.autoReady()) {
             connection.markReady();
         }
     }
@@ -62,8 +61,7 @@ public class CloudPlugin extends JavaPlugin {
 
     private void registerListeners() {
         var pluginManager = getServer().getPluginManager();
-        pluginManager.registerEvents(new PlayerJoinListener(), this);
-        pluginManager.registerEvents(new PlayerLeftListener(), this);
+        pluginManager.registerEvents(new PlayerEventsListener(), this);
     }
 
     public CompletableFuture<Void> shutdown() {

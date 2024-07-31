@@ -84,14 +84,14 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    async fn user_joined(&self, request: Request<User>) -> Result<Response<()>, Status> {
+    async fn user_connected(&self, request: Request<User>) -> Result<Response<()>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
             let user = request.into_inner();
-            self.controller.get_users().user_joined(
+            self.controller.get_users().handle_user_connected(
                 server,
                 user.name,
                 match Uuid::from_str(&user.uuid) {
@@ -110,14 +110,14 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    async fn user_left(&self, request: Request<User>) -> Result<Response<()>, Status> {
+    async fn user_disconnected(&self, request: Request<User>) -> Result<Response<()>, Status> {
         let server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
             let user = request.into_inner();
-            self.controller.get_users().user_left(
+            self.controller.get_users().handle_user_disconnected(
                 server,
                 match Uuid::from_str(&user.uuid) {
                     Ok(uuid) => uuid,

@@ -21,8 +21,8 @@ service ServerService {
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
 
     /// Users
-    rpc UserJoined(User) returns (google.protobuf.Empty);
-    rpc UserLeft(User) returns (google.protobuf.Empty);
+    rpc UserConnected(User) returns (google.protobuf.Empty);
+    rpc UserDisconnected(User) returns (google.protobuf.Empty);
 
     /// Transfers
     rpc TransferAllUsers(TransferTarget) returns (google.protobuf.UInt32Value);

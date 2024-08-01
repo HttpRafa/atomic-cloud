@@ -62,7 +62,7 @@ impl Servers {
                             warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
                         }
                         _ => {
-                            warn!("Server {} has not checked in for {}, indicating a potential failure.", server.name.red(), format!("{:.2?}", health.timeout).blue());
+                            warn!("Server {} has not checked in for {}, indicating a potential failure.", server.name.blue(), format!("{:.2?}", health.timeout).blue());
                         }
                     }
                     true

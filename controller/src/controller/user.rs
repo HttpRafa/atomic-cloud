@@ -39,7 +39,14 @@ impl Users {
         if let Some(_user) = users.get(&uuid) {
             // TODO: Handle user transfers
         } else {
-            self.register_user(&mut users, name, uuid, &server);
+            info!(
+                "User {}[{}] {} to server {}",
+                name.blue(),
+                uuid.to_string().blue(),
+                "connected".green(),
+                server.name.blue()
+            );
+            users.insert(uuid, self.create_user(name, uuid, &server));
         }
     }
 
@@ -50,7 +57,14 @@ impl Users {
                 if let Some(strong_server) = weak_server.upgrade() {
                     // Verify if the user is connected to the server that is saying he is disconnecting
                     if Arc::ptr_eq(&strong_server, &server) {
-                        self.unregister_user(&mut users, &user);
+                        info!(
+                            "User {}[{}] {} from server {}",
+                            user.name.blue(),
+                            user.uuid.to_string().blue(),
+                            "disconnect".red(),
+                            strong_server.name.blue(),
+                        );
+                        users.remove(&user.uuid);
                     }
                 }
             }
@@ -64,9 +78,11 @@ impl Users {
                 if let Some(server) = weak_server.upgrade() {
                     if Arc::ptr_eq(&server, dead_server) {
                         info!(
-                            "User {}[{}] disconnect from server",
+                            "User {}[{}] {} from server {}",
                             user.name.blue(),
-                            user.uuid.to_string().blue()
+                            user.uuid.to_string().blue(),
+                            "disconnect".red(),
+                            server.name.blue(),
                         );
                         amount += 1;
                         return false;
@@ -86,31 +102,12 @@ impl Users {
         amount
     }
 
-    fn register_user(&self, users: &mut UsersMap, name: String, uuid: Uuid, server: &ServerHandle) -> Option<UserHandle> {
-        info!(
-            "User {}[{}] connect to server {}",
-            name.blue(),
-            uuid.to_string().blue(),
-            server.name.blue()
-        );
-
-        let user = Arc::new(User {
+    fn create_user(&self, name: String, uuid: Uuid, server: &ServerHandle) -> UserHandle {
+        Arc::new(User {
             name,
             uuid,
             server: CurrentServer::Connected(Arc::downgrade(server)),
-        });
-        users.insert(uuid, user.clone());
-
-        Some(user)
-    }
-
-    fn unregister_user(&self, users: &mut UsersMap, user: &UserHandle) {
-        info!(
-            "User {}[{}] disconnect from server",
-            user.name.blue(),
-            user.uuid.to_string().blue()
-        );
-        users.remove(&user.uuid);
+        })
     }
 }
 

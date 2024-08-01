@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "de.rafael.atomic.cloud.grpc.server";
+option java_package = "io.atomic.cloud.grpc.server";
 
 package server;
 import "google/protobuf/empty.proto";

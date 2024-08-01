@@ -1,10 +1,10 @@
-package de.rafael.atomic.cloud.common.connection;
+package io.atomic.cloud.common.connection;
 
 import com.google.protobuf.Empty;
 import com.google.protobuf.UInt32Value;
-import de.rafael.atomic.cloud.grpc.server.ServerServiceGrpc;
-import de.rafael.atomic.cloud.grpc.server.TransferTarget;
-import de.rafael.atomic.cloud.grpc.server.User;
+import io.atomic.cloud.grpc.server.ServerServiceGrpc;
+import io.atomic.cloud.grpc.server.TransferTarget;
+import io.atomic.cloud.grpc.server.User;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;

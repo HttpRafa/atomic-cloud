@@ -1,4 +1,4 @@
-package de.rafael.atomic.cloud;
+package io.atomic.cloud.paper;
 
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
@@ -17,5 +17,4 @@ public class CloudPluginBootstrap implements PluginBootstrap {
     public @NotNull JavaPlugin createPlugin(@NotNull PluginProviderContext context) {
         return CloudPlugin.INSTANCE;
     }
-
 }

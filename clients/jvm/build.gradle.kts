@@ -20,9 +20,9 @@ allprojects {
 
     dependencies {
         // gRPC
-        compileOnly("io.grpc:grpc-protobuf:${project.properties["grpc_version"]}")
-        compileOnly("io.grpc:grpc-stub:${project.properties["grpc_version"]}")
-        compileOnly("com.google.protobuf:protobuf-java:${project.properties["protobuf_version"]}")
+        implementation("io.grpc:grpc-protobuf:${project.properties["grpc_version"]}")
+        implementation("io.grpc:grpc-stub:${project.properties["grpc_version"]}")
+        implementation("com.google.protobuf:protobuf-java:${project.properties["protobuf_version"]}")
         runtimeOnly("io.grpc:grpc-netty-shaded:${project.properties["grpc_version"]}")
 
         // Jetbrains annotations
@@ -39,7 +39,8 @@ allprojects {
         }
 
         withType<JavaCompile> {
-            options.release.set(21)
+            // TODO: Update to 21 if shadow is updated to support Java 21
+            options.release.set(17)
         }
     }
 

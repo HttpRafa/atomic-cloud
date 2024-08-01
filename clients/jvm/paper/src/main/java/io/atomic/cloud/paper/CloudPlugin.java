@@ -1,10 +1,10 @@
-package de.rafael.atomic.cloud;
+package io.atomic.cloud.paper;
 
-import de.rafael.atomic.cloud.api.Cloud;
-import de.rafael.atomic.cloud.api.CloudImpl;
-import de.rafael.atomic.cloud.common.connection.CloudConnection;
-import de.rafael.atomic.cloud.common.health.Heart;
-import de.rafael.atomic.cloud.listener.PlayerEventsListener;
+import io.atomic.cloud.api.Cloud;
+import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.health.Heart;
+import io.atomic.cloud.paper.api.CloudImpl;
+import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

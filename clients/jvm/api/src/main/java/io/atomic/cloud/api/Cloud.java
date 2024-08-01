@@ -1,4 +1,4 @@
-package de.rafael.atomic.cloud.api;
+package io.atomic.cloud.api;
 
 import java.util.concurrent.CompletableFuture;
 

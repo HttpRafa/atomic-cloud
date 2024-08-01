@@ -1,6 +1,7 @@
-package de.rafael.atomic.cloud.api;
+package io.atomic.cloud.paper.api;
 
-import de.rafael.atomic.cloud.CloudPlugin;
+import io.atomic.cloud.api.Cloud;
+import io.atomic.cloud.paper.CloudPlugin;
 import java.util.concurrent.CompletableFuture;
 
 public class CloudImpl implements Cloud.CloudAPI {
@@ -24,5 +25,4 @@ public class CloudImpl implements Cloud.CloudAPI {
     public CompletableFuture<Void> markNotReady() {
         return CloudPlugin.INSTANCE.connection().markNotReady().thenApply(empty -> null);
     }
-
 }

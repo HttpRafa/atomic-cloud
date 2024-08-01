@@ -1,6 +1,6 @@
-package de.rafael.atomic.cloud.common.health;
+package io.atomic.cloud.common.health;
 
-import de.rafael.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.CloudConnection;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;

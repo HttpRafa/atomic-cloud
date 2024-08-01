@@ -1,3 +1,12 @@
+/*buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.guardsquare:proguard-gradle:7.5.0")
+    }
+}*/
+
 plugins {
     // Paper
     id("io.papermc.paperweight.userdev") version "1.7.1"
@@ -26,16 +35,29 @@ tasks {
     }
 
     shadowJar {
-        dependencies {
-            exclude(".*:.*")
-            include(project(":api"))
-            include(project(":common"))
-        }
+        mergeServiceFiles()
+
+        relocate("com.google", "io.atomic.cloud.dependencies.google")
+        relocate("io.grpc", "io.atomic.cloud.dependencies.grpc")
     }
 
     assemble {
         dependsOn(shadowJar)
+        //dependsOn("proguard")
     }
+
+    /*
+    TODO: Add in the future to reduce the size of the jar
+    register<ProGuardTask>("proguard") {
+        dependsOn(shadowJar)
+        configuration("proguard.pro")
+        verbose()
+
+        val inputFile = shadowJar.get().archiveFile.get().asFile
+        val outputFile = File(inputFile.parentFile, inputFile.nameWithoutExtension + "-min.jar")
+        injars(inputFile)
+        outjars(outputFile)
+    }*/
 }
 
 fun getFullVersion(): String {

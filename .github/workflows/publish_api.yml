@@ -9,6 +9,9 @@ name: Publish api to maven repository
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - id: commit
         uses: prompt/actions-commit-hash@v3
@@ -29,5 +32,4 @@ jobs:
         env:
           CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
           CURRENT_BUILD: ${{ github.run_number }}
-          ORG_GRADLE_PROJECT_rafaRepositoryUsername: ${{ secrets.REPO_USERNAME }}
-          ORG_GRADLE_PROJECT_rafaRepositoryPassword: ${{ secrets.REPO_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

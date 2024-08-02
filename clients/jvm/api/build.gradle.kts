@@ -4,16 +4,19 @@ plugins {
 
 publishing {
     publications {
-        create<MavenPublication>("mavenCommon") {
+        register<MavenPublication>("gpr") {
             from(components["java"])
         }
     }
 
     repositories {
         maven {
-            url = uri("https://repo.external.rafa.run/snapshots")
-            name = "rafaRepository"
-            credentials(PasswordCredentials::class)
+            url = uri("https://maven.pkg.github.com/HttpRafa/atomic-cloud")
+            name = "GitHubPackages"
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
         }
     }
 }

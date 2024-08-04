@@ -1,7 +1,9 @@
 package io.atomic.cloud.common.connection;
 
 import com.google.protobuf.Empty;
+import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
+import io.atomic.cloud.grpc.server.ChannelMessage;
 import io.atomic.cloud.grpc.server.ServerServiceGrpc;
 import io.atomic.cloud.grpc.server.TransferTarget;
 import io.atomic.cloud.grpc.server.User;
@@ -92,6 +94,22 @@ public class CloudConnection {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
         return observer.future();
+    }
+
+    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelMessage message) {
+        var observer = new StreamObserverImpl<UInt32Value>();
+        this.client.sendMessageToChannel(message, observer);
+        return observer.future();
+    }
+
+    public CompletableFuture<Empty> unsubscribeFromChannel(String channel) {
+        var observer = new StreamObserverImpl<Empty>();
+        this.client.unsubscribeFromChannel(StringValue.of(channel), observer);
+        return observer.future();
+    }
+
+    public void subscribeToChannel(String channel, StreamObserver<ChannelMessage> observer) {
+        this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 
     @Contract(" -> new")

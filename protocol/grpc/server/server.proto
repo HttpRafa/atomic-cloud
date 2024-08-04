@@ -7,25 +7,29 @@ package server;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
-service ServerService {
-    // Server Lifecycle
-    /// Heartbeat
+service ServerService {    
+    // Heartbeat
     rpc BeatHeart(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    /// Ready
+    // Ready
     rpc MarkReady(google.protobuf.Empty) returns (google.protobuf.Empty);
     rpc MarkNotReady(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    /// Health
+    // Health
     rpc MarkRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
 
-    /// Users
+    // Users
     rpc UserConnected(User) returns (google.protobuf.Empty);
     rpc UserDisconnected(User) returns (google.protobuf.Empty);
 
-    /// Transfers
+    // Transfers
     rpc TransferAllUsers(TransferTarget) returns (google.protobuf.UInt32Value);
+
+    // Channels
+    rpc SendMessageToChannel(ChannelMessage) returns (google.protobuf.UInt32Value);
+    rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
+    rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessage);
 }
 
 message User {
@@ -36,4 +40,11 @@ message User {
 message TransferTarget {
     optional string server = 1;
     optional string group = 2;
+}
+
+message ChannelMessage {
+    string channel = 1;
+    uint32 type = 2;
+    string data = 3;
+    uint64 timestamp = 4;
 }

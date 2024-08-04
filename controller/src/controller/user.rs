@@ -13,7 +13,7 @@ use super::{
 };
 
 pub type UserHandle = Arc<User>;
-pub type WeakUserHandle = Weak<User>;
+//pub type WeakUserHandle = Weak<User>;
 
 type UsersMap = HashMap<Uuid, UserHandle>;
 

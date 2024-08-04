@@ -1,54 +1,57 @@
 package io.atomic.cloud.api;
 
-import java.util.concurrent.CompletableFuture;
+import io.atomic.cloud.api.channel.Channels;
+import io.atomic.cloud.api.server.CloudServer;
 
 public class Cloud {
 
     private static CloudAPI INSTANCE;
 
+    /**
+     * Set up the Cloud API | Do not call this method
+     * @param instance the Cloud API instance
+     */
     public static void setup(CloudAPI instance) {
         if (Cloud.INSTANCE != null) throw new IllegalStateException();
         Cloud.INSTANCE = instance;
     }
 
-    public static CompletableFuture<Void> shutdown() {
-        return Cloud.INSTANCE.shutdown();
+    /**
+     * Get the current server instance
+     * @return the current server instance
+     */
+    public static CloudServer self() {
+        return Cloud.INSTANCE.self();
     }
 
-    public static CompletableFuture<Void> markReady() {
-        return Cloud.INSTANCE.markReady();
+    /**
+     * The channels API
+     * @return the channels API
+     */
+    public static Channels channels() {
+        return Cloud.INSTANCE.channels();
     }
 
-    public static CompletableFuture<Void> markNotReady() {
-        return Cloud.INSTANCE.markNotReady();
-    }
-
+    /**
+     * The server marks itself ready when it is started. This method disables this behavior.
+     * This is useful if you want to control when the server is ready yourself.
+     */
     public static void disableAutoReady() {
         Cloud.INSTANCE.disableAutoReady();
     }
 
     public interface CloudAPI {
         /**
-         * Shut down this server instance.
-         * This will stop the server and transfer all players to a different server.
-         * How the server is shutdown depends on the disk retention policy.
-         * If the server is marked as permanent, it will not be deleted.
-         * If the server is not marked as permanent, it will be killed and deleted.
-         * @return a future to be completed once the server has been shut down
+         * Get the current server instance
+         * @return the current server instance
          */
-        CompletableFuture<Void> shutdown();
+        CloudServer self();
 
         /**
-         * Mark this server as ready
-         * @return a future to be completed once the server has been marked as ready
+         * The channels API
+         * @return the channels API
          */
-        CompletableFuture<Void> markReady();
-
-        /**
-         * Mark this server as not ready
-         * @return a future to be completed once the server has been marked as not ready
-         */
-        CompletableFuture<Void> markNotReady();
+        Channels channels();
 
         /**
          * The server marks itself ready when it is started. This method disables this behavior.

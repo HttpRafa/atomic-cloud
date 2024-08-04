@@ -1,6 +1,8 @@
-use std::str::FromStr;
+use std::{pin::Pin, str::FromStr};
 
-use proto::{server_service_server::ServerService, TransferTarget, User};
+use proto::{server_service_server::ServerService, ChannelMessage, TransferTarget, User};
+use tokio::sync::mpsc::channel;
+use tokio_stream::{wrappers::ReceiverStream, Stream};
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
@@ -147,6 +149,54 @@ impl ServerService for ServerServiceImpl {
             Ok(Response::new(
                 self.controller.get_servers().transfer_all_users(&server),
             ))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn send_message_to_channel(
+        &self,
+        request: Request<ChannelMessage>,
+    ) -> Result<Response<u32>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(_server) = server.server.upgrade() {
+            Err(Status::unimplemented("Not implemented"))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn unsubscribe_from_channel(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<()>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(_server) = server.server.upgrade() {
+            Err(Status::unimplemented("Not implemented"))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    type SubscribeToChannelStream = ReceiverStream<Result<ChannelMessage, Status>>;
+
+    async fn subscribe_to_channel(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<Self::SubscribeToChannelStream>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(_server) = server.server.upgrade() {
+            let (mut _transfer, receiver) = channel(4);
+            Ok(Response::new(ReceiverStream::new(receiver)))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }

@@ -37,11 +37,14 @@ allprojects {
         named<ProcessResources>("processResources") {
             dependsOn("spotlessApply")
         }
+    }
 
-        withType<JavaCompile> {
-            // TODO: Update to 21 if shadow is updated to support Java 21
-            options.release.set(17)
-        }
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+
+        // Enable sources jar
+        withSourcesJar()
     }
 
     // Common spotless config

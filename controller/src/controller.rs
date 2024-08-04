@@ -22,6 +22,7 @@ pub mod group;
 pub mod node;
 pub mod server;
 pub mod user;
+pub mod channel;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);

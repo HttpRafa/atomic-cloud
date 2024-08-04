@@ -1,11 +1,12 @@
 package io.atomic.cloud.paper;
 
 import io.atomic.cloud.api.Cloud;
+import io.atomic.cloud.common.channel.ChannelManager;
 import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.common.health.Heart;
+import io.atomic.cloud.common.server.SimpleCloudServer;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.Getter;
@@ -24,19 +25,22 @@ public class CloudPlugin extends JavaPlugin {
     public static final Logger LOGGER = LoggerFactory.getLogger("atomic-cloud");
 
     private final Settings settings = new Settings();
+    private final ChannelManager channels = new ChannelManager();
     private Heart heart;
     private CloudConnection connection;
+    private SimpleCloudServer self;
 
     @Override
     public void onLoad() {
         Cloud.setup(new CloudImpl());
 
-        connection = CloudConnection.createFromEnv();
-        heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
+        this.connection = CloudConnection.createFromEnv();
+        this.self = new SimpleCloudServer(this.connection);
+        this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
 
         LOGGER.info("Connecting to controller...");
-        connection.connect();
-        heart.start();
+        this.connection.connect();
+        this.heart.start();
     }
 
     @Override
@@ -44,16 +48,19 @@ public class CloudPlugin extends JavaPlugin {
         registerListeners();
 
         // Mark server as running
-        connection.markRunning();
-        if (settings.autoReady()) {
-            connection.markReady();
+        this.connection.markRunning();
+        if (this.settings.autoReady()) {
+            this.connection.markReady();
         }
     }
 
     @Override
     public void onDisable() {
+        // Cleanup
+        this.channels.cleanup();
+
         try {
-            shutdown().thenRun(heart::stop).join();
+            this.self.shutdown().thenRun(heart::stop).join();
         } catch (Throwable throwable) {
             LOGGER.error("Error while shutting down", throwable);
         }
@@ -62,10 +69,6 @@ public class CloudPlugin extends JavaPlugin {
     private void registerListeners() {
         var pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerEventsListener(), this);
-    }
-
-    public CompletableFuture<Void> shutdown() {
-        return connection.requestStop().thenApply(empty -> null);
     }
 
     @Getter

@@ -1,12 +1,12 @@
-use std::{pin::Pin, str::FromStr};
+use std::{str::FromStr, sync::Arc};
 
 use proto::{server_service_server::ServerService, ChannelMessage, TransferTarget, User};
 use tokio::sync::mpsc::channel;
-use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
-use crate::controller::{auth::AuthServerHandle, ControllerHandle};
+use crate::controller::{auth::AuthServerHandle, channel::ChannelSubscriber, ControllerHandle};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -163,7 +163,14 @@ impl ServerService for ServerServiceImpl {
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(_server) = server.server.upgrade() {
-            Err(Status::unimplemented("Not implemented"))
+            // Broadcast to the channel
+            let count = self
+                .controller
+                .get_channels()
+                .broadcast_to_channel(request.into_inner())
+                .await;
+
+            Ok(Response::new(count))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
@@ -177,8 +184,14 @@ impl ServerService for ServerServiceImpl {
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
-        if let Some(_server) = server.server.upgrade() {
-            Err(Status::unimplemented("Not implemented"))
+        if let Some(server) = server.server.upgrade() {
+            // Unsubscribe from the channel
+            self.controller
+                .get_channels()
+                .unsubscribe_from_channel(&request.into_inner(), &server)
+                .await;
+
+            Ok(Response::new(()))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
@@ -194,8 +207,17 @@ impl ServerService for ServerServiceImpl {
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
-        if let Some(_server) = server.server.upgrade() {
-            let (mut _transfer, receiver) = channel(4);
+        if let Some(server) = server.server.upgrade() {
+            let channel_name = &request.into_inner();
+
+            // Create a stream and register it with the channel
+            let (transfer, receiver) = channel(4);
+            let subscriber = ChannelSubscriber::new(Arc::downgrade(&server), transfer);
+            self.controller
+                .get_channels()
+                .subscribe_to_channel(channel_name, subscriber)
+                .await;
+
             Ok(Response::new(ReceiverStream::new(receiver)))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))

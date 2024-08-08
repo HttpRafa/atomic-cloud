@@ -1,16 +1,13 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Mutex},
 };
 
 use colored::Colorize;
 use log::{debug, info};
 use uuid::Uuid;
 
-use super::{
-    server::{ServerHandle, WeakServerHandle},
-    WeakControllerHandle,
-};
+use super::server::{ServerHandle, WeakServerHandle};
 
 pub type UserHandle = Arc<User>;
 //pub type WeakUserHandle = Weak<User>;
@@ -18,16 +15,16 @@ pub type UserHandle = Arc<User>;
 type UsersMap = HashMap<Uuid, UserHandle>;
 
 pub struct Users {
-    controller: WeakControllerHandle,
+    //controller: WeakControllerHandle,
 
     /* Users that joined some started server */
     users: Mutex<UsersMap>,
 }
 
 impl Users {
-    pub fn new(controller: WeakControllerHandle) -> Self {
+    pub fn new(/*controller: WeakControllerHandle*/) -> Self {
         Self {
-            controller,
+            //controller,
             users: Mutex::new(HashMap::new()),
         }
     }

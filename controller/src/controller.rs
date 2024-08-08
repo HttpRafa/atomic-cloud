@@ -1,5 +1,6 @@
 use anyhow::Error;
 use auth::Auth;
+use channel::Channels;
 use colored::Colorize;
 use log::info;
 use server::Servers;
@@ -17,12 +18,12 @@ use crate::controller::node::Nodes;
 use crate::network::NetworkStack;
 
 pub mod auth;
+pub mod channel;
 pub mod driver;
 pub mod group;
 pub mod node;
 pub mod server;
 pub mod user;
-pub mod channel;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
 static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
@@ -53,6 +54,7 @@ pub struct Controller {
     /* Accessed frequently */
     servers: Servers,
     users: Users,
+    channels: Channels,
 }
 
 impl Controller {
@@ -63,7 +65,8 @@ impl Controller {
             let nodes = Nodes::load_all(&drivers);
             let groups = Groups::load_all(&nodes);
             let servers = Servers::new(handle.clone());
-            let users = Users::new(handle.clone());
+            let users = Users::new(/*handle.clone()*/);
+            let channels = Channels::new(/*handle.clone()*/);
             Self {
                 handle: handle.clone(),
                 configuration,
@@ -80,6 +83,7 @@ impl Controller {
                 groups: Mutex::new(groups),
                 servers,
                 users,
+                channels,
             }
         })
     }
@@ -143,6 +147,10 @@ impl Controller {
 
     pub fn get_users(&self) -> &Users {
         &self.users
+    }
+
+    pub fn get_channels(&self) -> &Channels {
+        &self.channels
     }
 
     pub fn get_runtime(&self) -> MutexGuard<Option<Runtime>> {

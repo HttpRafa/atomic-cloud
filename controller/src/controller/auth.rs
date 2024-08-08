@@ -6,7 +6,7 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use stored::StoredUser;
 use uuid::Uuid;
 
@@ -153,6 +153,7 @@ impl Auth {
             server,
             token: token.clone(),
         });
+        debug!("Registered server with token {}", &token);
         self.servers
             .lock()
             .unwrap()

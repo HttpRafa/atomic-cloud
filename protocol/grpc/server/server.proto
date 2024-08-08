@@ -44,7 +44,7 @@ message TransferTarget {
 
 message ChannelMessage {
     string channel = 1;
-    uint32 type = 2;
+    uint32 id = 2;
     string data = 3;
     uint64 timestamp = 4;
 }

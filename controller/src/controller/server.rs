@@ -12,7 +12,7 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::controller::{ControllerHandle, WeakControllerHandle};
+use crate::controller::{channel::Channels, ControllerHandle, WeakControllerHandle};
 
 use super::{
     auth::AuthServerHandle,
@@ -174,6 +174,8 @@ impl Servers {
 
         // Remove users connected to the server
         controller.get_users().cleanup_users(server);
+        // Remove subscribers from channels
+        Channels::cleanup_subscribers(&controller, server);
 
         fn stop_thread(server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {

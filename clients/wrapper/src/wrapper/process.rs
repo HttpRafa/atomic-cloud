@@ -9,11 +9,7 @@ use tokio::{
 
 use crate::wrapper::detection::Detection;
 
-use super::{
-    detection::RegexDetector,
-    network::CloudConnectionHandle,
-    user::Users,
-};
+use super::{detection::RegexDetector, network::CloudConnectionHandle, user::Users};
 
 #[derive(PartialEq)]
 pub enum State {

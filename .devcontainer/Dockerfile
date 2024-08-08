@@ -13,7 +13,7 @@ RUN pacman -S protobuf --noconfirm
 # Rust
 RUN pacman -S rustup --noconfirm
 
-# Kotlin
+# Kotlin/Java
 RUN pacman -S jdk21-openjdk gradle --noconfirm
 
 # Install Rustup and set default toolchains

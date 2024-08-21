@@ -1,7 +1,7 @@
 use anyhow::Error;
 use auth::Auth;
-use channel::Channels;
 use colored::Colorize;
+use event::EventBus;
 use log::info;
 use server::Servers;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,8 +18,8 @@ use crate::controller::node::Nodes;
 use crate::network::NetworkStack;
 
 pub mod auth;
-pub mod channel;
 pub mod driver;
+pub mod event;
 pub mod group;
 pub mod node;
 pub mod server;
@@ -54,7 +54,9 @@ pub struct Controller {
     /* Accessed frequently */
     servers: Servers,
     users: Users,
-    channels: Channels,
+
+    /* Event Bus */
+    event_bus: EventBus,
 }
 
 impl Controller {
@@ -66,7 +68,7 @@ impl Controller {
             let groups = Groups::load_all(&nodes);
             let servers = Servers::new(handle.clone());
             let users = Users::new(/*handle.clone()*/);
-            let channels = Channels::new(/*handle.clone()*/);
+            let event_bus = EventBus::new(/*handle.clone()*/);
             Self {
                 handle: handle.clone(),
                 configuration,
@@ -83,7 +85,7 @@ impl Controller {
                 groups: Mutex::new(groups),
                 servers,
                 users,
-                channels,
+                event_bus,
             }
         })
     }
@@ -149,8 +151,8 @@ impl Controller {
         &self.users
     }
 
-    pub fn get_channels(&self) -> &Channels {
-        &self.channels
+    pub fn get_event_bus(&self) -> &EventBus {
+        &self.event_bus
     }
 
     pub fn get_runtime(&self) -> MutexGuard<Option<Runtime>> {

@@ -12,7 +12,7 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::controller::{channel::Channels, ControllerHandle, WeakControllerHandle};
+use crate::controller::{ControllerHandle, WeakControllerHandle};
 
 use super::{
     auth::AuthServerHandle,
@@ -112,6 +112,7 @@ impl Servers {
                     if let Ok(allocation) =
                         node.allocate(&request.resources, request.deployment.clone())
                     {
+                        // Start server on the node
                         self.start_server(request, allocation, &node);
                         return false;
                     }
@@ -175,7 +176,7 @@ impl Servers {
         // Remove users connected to the server
         controller.get_users().cleanup_users(server);
         // Remove subscribers from channels
-        Channels::cleanup_subscribers(&controller, server);
+        controller.get_event_bus().cleanup_server(server);
 
         fn stop_thread(server: ServerHandle) {
             if let Some(node) = server.node.upgrade() {
@@ -301,11 +302,6 @@ impl Servers {
             *state = State::Stopping;
             self.stop_server_now(server.clone());
         }
-    }
-
-    pub fn transfer_all_users(&self, _server: &ServerHandle) -> u32 {
-        // TODO: Move all players from server to another server
-        0
     }
 
     fn start_server(

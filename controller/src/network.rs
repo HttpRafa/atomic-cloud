@@ -16,6 +16,7 @@ use server::{proto::server_service_server::ServerServiceServer, ServerServiceImp
 mod admin;
 mod auth;
 pub mod server;
+mod stream;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,

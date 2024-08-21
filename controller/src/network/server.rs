@@ -1,12 +1,20 @@
-use std::{str::FromStr, sync::Arc};
+use std::{
+    str::FromStr,
+    sync::{mpsc::channel, Arc},
+};
 
-use proto::{server_service_server::ServerService, ChannelMessage, TransferTarget, User};
-use tokio::sync::mpsc::channel;
+use proto::{server_service_server::ServerService, ChannelMessage, Transfer, TransferTarget, User};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
-use crate::controller::{auth::AuthServerHandle, channel::ChannelSubscriber, ControllerHandle};
+use crate::controller::{
+    auth::AuthServerHandle,
+    event::{channel::ChannelMessageSended, EventKey},
+    ControllerHandle,
+};
+
+use super::stream::StdReceiverStream;
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -137,6 +145,26 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
+    type SubscribeToTransfersStream = ReceiverStream<Result<Transfer, Status>>;
+    async fn subscribe_to_transfers(
+        &self,
+        request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(_server) = server.server.upgrade() {
+            // Create a stream and register it with the user system
+            // let (_transfer, receiver) = channel(4);
+
+            // Ok(Response::new(ReceiverStream::new(receiver)))
+            Err(Status::unimplemented("Not yet implemented"))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
     async fn transfer_all_users(
         &self,
         request: Request<TransferTarget>,
@@ -147,8 +175,20 @@ impl ServerService for ServerServiceImpl {
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(server) = server.server.upgrade() {
             Ok(Response::new(
-                self.controller.get_servers().transfer_all_users(&server),
+                self.controller.get_users().transfer_all_users(&server),
             ))
+        } else {
+            Err(Status::not_found("The authenticated server does not exist"))
+        }
+    }
+
+    async fn transfer_user(&self, request: Request<Transfer>) -> Result<Response<bool>, Status> {
+        let server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?");
+        if let Some(_server) = server.server.upgrade() {
+            Err(Status::unimplemented("Not yet implemented"))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
@@ -166,9 +206,8 @@ impl ServerService for ServerServiceImpl {
             // Broadcast to the channel
             let count = self
                 .controller
-                .get_channels()
-                .broadcast_to_channel(request.into_inner())
-                .await;
+                .get_event_bus()
+                .post_channel_message(&request.into_inner());
 
             Ok(Response::new(count))
         } else {
@@ -187,9 +226,8 @@ impl ServerService for ServerServiceImpl {
         if let Some(server) = server.server.upgrade() {
             // Unsubscribe from the channel
             self.controller
-                .get_channels()
-                .unsubscribe_from_channel(&request.into_inner(), &server)
-                .await;
+                .get_event_bus()
+                .unregister_listener(EventKey::Channel(request.into_inner()), &server);
 
             Ok(Response::new(()))
         } else {
@@ -197,8 +235,7 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    type SubscribeToChannelStream = ReceiverStream<Result<ChannelMessage, Status>>;
-
+    type SubscribeToChannelStream = StdReceiverStream<Result<ChannelMessage, Status>>;
     async fn subscribe_to_channel(
         &self,
         request: Request<String>,
@@ -211,14 +248,20 @@ impl ServerService for ServerServiceImpl {
             let channel_name = &request.into_inner();
 
             // Create a stream and register it with the channel
-            let (transfer, receiver) = channel(4);
-            let subscriber = ChannelSubscriber::new(Arc::downgrade(&server), transfer);
+            let (transfer, receiver) = channel();
             self.controller
-                .get_channels()
-                .subscribe_to_channel(channel_name, subscriber)
-                .await;
+                .get_event_bus()
+                .register_listener_with_server(
+                    EventKey::Channel(channel_name.clone()),
+                    Arc::downgrade(&server),
+                    Box::new(move |event: &ChannelMessageSended| {
+                        transfer
+                            .send(Ok(event.message.clone()))
+                            .expect("Failed to send message to channel stream");
+                    }),
+                );
 
-            Ok(Response::new(ReceiverStream::new(receiver)))
+            Ok(Response::new(StdReceiverStream::new(receiver)))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }

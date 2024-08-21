@@ -1,16 +1,19 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
 };
 
 use colored::Colorize;
 use log::{debug, info};
+use transfer::Transfer;
 use uuid::Uuid;
 
 use super::server::{ServerHandle, WeakServerHandle};
 
+pub mod transfer;
+
 pub type UserHandle = Arc<User>;
-//pub type WeakUserHandle = Weak<User>;
+pub type WeakUserHandle = Weak<User>;
 
 type UsersMap = HashMap<Uuid, UserHandle>;
 
@@ -110,7 +113,7 @@ impl Users {
 
 pub enum CurrentServer {
     Connected(WeakServerHandle),
-    Transfering,
+    Transfering(Transfer),
 }
 
 pub struct User {

@@ -144,7 +144,7 @@ impl Auth {
 
     pub fn register_server(&self, server: WeakServerHandle) -> AuthServerHandle {
         let token = format!(
-            "actl_{}{}",
+            "sctl_{}{}",
             Uuid::new_v4().as_simple(),
             Uuid::new_v4().as_simple()
         );

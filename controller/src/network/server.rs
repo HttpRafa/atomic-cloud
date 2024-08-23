@@ -207,7 +207,7 @@ impl ServerService for ServerServiceImpl {
             let count = self
                 .controller
                 .get_event_bus()
-                .post_channel_message(&request.into_inner());
+                .dispatch_channel_message(request.into_inner());
 
             Ok(Response::new(count))
         } else {

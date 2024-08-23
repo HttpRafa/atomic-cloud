@@ -1,21 +1,27 @@
+use channel::ChannelMessageSended;
+use colored::Colorize;
+use log::debug;
+
 use super::server::{ServerHandle, WeakServerHandle};
 use crate::network::server::proto::ChannelMessage;
 
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
     sync::{Arc, Mutex},
 };
 
 pub mod channel;
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq)]
 pub enum EventKey {
     Channel(String),
     Custom(TypeId),
 }
 
-pub trait Event: Any + Send + Sync {}
+pub trait Event: Any + Send + Sync + Debug {}
 
 pub type EventListener<E> = Box<dyn Fn(&E) + Send + Sync>;
 
@@ -36,10 +42,9 @@ impl EventBus {
     }
 
     pub fn register_listener<E: Event>(&self, key: EventKey, listener: EventListener<E>) {
-        let listener = Box::new(listener);
         let registered_listener = RegisteredListener {
             server: None,
-            listener,
+            listener: Box::new(listener),
         };
         self.listeners
             .lock()
@@ -55,10 +60,9 @@ impl EventBus {
         server: WeakServerHandle,
         listener: EventListener<E>,
     ) {
-        let listener = Box::new(listener);
         let registered_listener = RegisteredListener {
             server: Some(server),
-            listener,
+            listener: Box::new(listener),
         };
         self.listeners
             .lock()
@@ -87,7 +91,6 @@ impl EventBus {
     }
 
     pub fn cleanup_server(&self, server: &ServerHandle) {
-        // Delete all listeners that are related to the server
         let mut listeners = self.listeners.lock().unwrap();
         for (_, registered_listeners) in listeners.iter_mut() {
             registered_listeners.retain(|registered_listener| {
@@ -105,7 +108,9 @@ impl EventBus {
         }
     }
 
-    pub fn post<E: Event>(&self, event: &E) -> u32 {
+    pub fn dispatch<E: Event>(&self, event: &E) -> u32 {
+        debug!("[{}] Dispatching event: {:?}", "EVENTS".blue(), event);
+
         let mut count = 0;
         let listeners = self.listeners.lock().unwrap();
         if let Some(registered_listeners) = listeners.get(&EventKey::Custom(TypeId::of::<E>())) {
@@ -122,22 +127,44 @@ impl EventBus {
         count
     }
 
-    pub fn post_channel_message(&self, message: &ChannelMessage) -> u32 {
+    pub fn dispatch_channel_message(&self, message: ChannelMessage) -> u32 {
+        debug!(
+            "[{}] Dispatching channel message: {:?}",
+            "EVENTS".blue(),
+            message
+        );
+
         let mut count = 0;
         let listeners = self.listeners.lock().unwrap();
         if let Some(registered_listeners) =
             listeners.get(&EventKey::Channel(message.channel.clone()))
         {
+            let event = ChannelMessageSended { message };
             for registered_listener in registered_listeners {
                 if let Some(listener) = registered_listener
                     .listener
-                    .downcast_ref::<EventListener<ChannelMessage>>()
+                    .downcast_ref::<EventListener<ChannelMessageSended>>()
                 {
-                    listener(message);
+                    listener(&event);
                     count += 1;
                 }
             }
         }
         count
+    }
+}
+
+impl Hash for EventKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            EventKey::Channel(channel) => {
+                state.write_u8(0);
+                channel.hash(state);
+            }
+            EventKey::Custom(type_id) => {
+                state.write_u8(1);
+                type_id.hash(state);
+            }
+        }
     }
 }

@@ -1,9 +1,8 @@
-use channel::ChannelMessageSended;
 use colored::Colorize;
 use log::debug;
+use uuid::Uuid;
 
 use super::server::{ServerHandle, WeakServerHandle};
-use crate::network::server::proto::ChannelMessage;
 
 use std::{
     any::{Any, TypeId},
@@ -14,10 +13,12 @@ use std::{
 };
 
 pub mod channel;
+pub mod transfer;
 
 #[derive(Eq, PartialEq)]
 pub enum EventKey {
     Channel(String),
+    Transfer(Uuid),
     Custom(TypeId),
 }
 
@@ -54,7 +55,7 @@ impl EventBus {
             .push(registered_listener);
     }
 
-    pub fn register_listener_with_server<E: Event>(
+    pub fn register_listener_under_server<E: Event>(
         &self,
         key: EventKey,
         server: WeakServerHandle,
@@ -108,12 +109,12 @@ impl EventBus {
         }
     }
 
-    pub fn dispatch<E: Event>(&self, event: &E) -> u32 {
+    pub fn dispatch<E: Event>(&self, key: &EventKey, event: &E) -> u32 {
         debug!("[{}] Dispatching event: {:?}", "EVENTS".blue(), event);
 
         let mut count = 0;
         let listeners = self.listeners.lock().unwrap();
-        if let Some(registered_listeners) = listeners.get(&EventKey::Custom(TypeId::of::<E>())) {
+        if let Some(registered_listeners) = listeners.get(key) {
             for registered_listener in registered_listeners {
                 if let Some(listener) = registered_listener
                     .listener
@@ -127,30 +128,8 @@ impl EventBus {
         count
     }
 
-    pub fn dispatch_channel_message(&self, message: ChannelMessage) -> u32 {
-        debug!(
-            "[{}] Dispatching channel message: {:?}",
-            "EVENTS".blue(),
-            message
-        );
-
-        let mut count = 0;
-        let listeners = self.listeners.lock().unwrap();
-        if let Some(registered_listeners) =
-            listeners.get(&EventKey::Channel(message.channel.clone()))
-        {
-            let event = ChannelMessageSended { message };
-            for registered_listener in registered_listeners {
-                if let Some(listener) = registered_listener
-                    .listener
-                    .downcast_ref::<EventListener<ChannelMessageSended>>()
-                {
-                    listener(&event);
-                    count += 1;
-                }
-            }
-        }
-        count
+    pub fn dispatch_custom<E: Event>(&self, event: &E) -> u32 {
+        self.dispatch(&EventKey::Custom(TypeId::of::<E>()), event)
     }
 }
 
@@ -161,8 +140,12 @@ impl Hash for EventKey {
                 state.write_u8(0);
                 channel.hash(state);
             }
-            EventKey::Custom(type_id) => {
+            EventKey::Transfer(server) => {
                 state.write_u8(1);
+                server.hash(state);
+            }
+            EventKey::Custom(type_id) => {
+                state.write_u8(2);
                 type_id.hash(state);
             }
         }

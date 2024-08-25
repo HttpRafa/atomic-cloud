@@ -234,6 +234,16 @@ impl Group {
                 true
             });
     }
+
+    pub fn get_free_server(&self) -> Option<ServerHandle> {
+        let servers = self.servers.lock().expect("Failed to lock servers");
+        for server in servers.iter() {
+            if let GroupedServer::Active(server) = server {
+                return Some(server.clone());
+            }
+        }
+        None
+    }
 }
 
 mod shared {

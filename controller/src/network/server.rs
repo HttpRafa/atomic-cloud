@@ -3,14 +3,16 @@ use std::{
     sync::{mpsc::channel, Arc},
 };
 
-use proto::{server_service_server::ServerService, ChannelMessage, Transfer, TransferTarget, User};
-use tokio_stream::wrappers::ReceiverStream;
+use proto::{
+    server_service_server::ServerService, ChannelMessage, ResolvedTransfer, Transfer,
+    TransferTarget, User,
+};
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use crate::controller::{
     auth::AuthServerHandle,
-    event::{channel::ChannelMessageSended, EventKey},
+    event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
     ControllerHandle,
 };
 
@@ -145,7 +147,7 @@ impl ServerService for ServerServiceImpl {
         }
     }
 
-    type SubscribeToTransfersStream = ReceiverStream<Result<Transfer, Status>>;
+    type SubscribeToTransfersStream = StdReceiverStream<Result<ResolvedTransfer, Status>>;
     async fn subscribe_to_transfers(
         &self,
         request: Request<()>,
@@ -154,12 +156,36 @@ impl ServerService for ServerServiceImpl {
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
-        if let Some(_server) = server.server.upgrade() {
+        if let Some(server) = server.server.upgrade() {
             // Create a stream and register it with the user system
-            // let (_transfer, receiver) = channel(4);
+            let (sender, receiver) = channel();
+            self.controller
+                .get_event_bus()
+                .register_listener_under_server(
+                    EventKey::Transfer(server.uuid),
+                    Arc::downgrade(&server),
+                    Box::new(move |event: &UserTransferRequested| {
+                        let transfer = &event.transfer;
+                        if let Some((user, _, to)) = transfer.get_strong() {
+                            let user = User {
+                                name: user.name.clone(),
+                                uuid: user.uuid.to_string(),
+                            };
+                            let address = to.allocation.primary_address();
 
-            // Ok(Response::new(ReceiverStream::new(receiver)))
-            Err(Status::unimplemented("Not yet implemented"))
+                            let transfer = ResolvedTransfer {
+                                user: Some(user),
+                                host: address.ip().to_string(),
+                                port: address.port() as u32,
+                            };
+                            sender
+                                .send(Ok(transfer))
+                                .expect("Failed to send message to transfer stream");
+                        }
+                    }),
+                );
+
+            Ok(Response::new(StdReceiverStream::new(receiver)))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
         }
@@ -203,12 +229,11 @@ impl ServerService for ServerServiceImpl {
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?");
         if let Some(_server) = server.server.upgrade() {
-            // Broadcast to the channel
-            let count = self
-                .controller
-                .get_event_bus()
-                .dispatch_channel_message(request.into_inner());
-
+            let message = request.into_inner();
+            let count = self.controller.get_event_bus().dispatch(
+                &EventKey::Channel(message.channel.clone()),
+                &ChannelMessageSended { message },
+            );
             Ok(Response::new(count))
         } else {
             Err(Status::not_found("The authenticated server does not exist"))
@@ -248,14 +273,14 @@ impl ServerService for ServerServiceImpl {
             let channel_name = &request.into_inner();
 
             // Create a stream and register it with the channel
-            let (transfer, receiver) = channel();
+            let (sender, receiver) = channel();
             self.controller
                 .get_event_bus()
-                .register_listener_with_server(
+                .register_listener_under_server(
                     EventKey::Channel(channel_name.clone()),
                     Arc::downgrade(&server),
                     Box::new(move |event: &ChannelMessageSended| {
-                        transfer
+                        sender
                             .send(Ok(event.message.clone()))
                             .expect("Failed to send message to channel stream");
                     }),

@@ -67,7 +67,7 @@ impl Controller {
             let nodes = Nodes::load_all(&drivers);
             let groups = Groups::load_all(&nodes);
             let servers = Servers::new(handle.clone());
-            let users = Users::new(/*handle.clone()*/);
+            let users = Users::new(handle.clone());
             let event_bus = EventBus::new(/*handle.clone()*/);
             Self {
                 handle: handle.clone(),

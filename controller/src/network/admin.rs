@@ -4,7 +4,7 @@ use tonic::{async_trait, Request, Response, Status};
 use crate::controller::{
     group::ScalingPolicy,
     node::{Capabilities, RemoteController},
-    server::{Deployment, KeyValue, Resources, Retention},
+    server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention},
     ControllerHandle, CreationResult,
 };
 
@@ -144,6 +144,12 @@ impl AdminService for AdminServiceImpl {
                 deployment.disk_retention = match value {
                     x if x == Retention::Permanent as i32 => Retention::Permanent,
                     _ => Retention::Temporary,
+                };
+            }
+            if let Some(value) = value.fallback {
+                deployment.fallback = FallbackPolicy {
+                    enabled: value.enabled,
+                    priority: value.priority,
                 };
             }
         }

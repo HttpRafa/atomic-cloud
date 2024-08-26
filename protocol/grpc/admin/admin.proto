@@ -69,6 +69,12 @@ message Group {
         repeated KeyValue settings = 2;
         repeated KeyValue environment = 3;
         optional Retention diskRetention = 4;
+        optional Fallback fallback = 5;
+
+        message Fallback {
+            bool enabled = 1;
+            int32 priority = 2;
+        }
 
         message KeyValue {
             string key = 1;

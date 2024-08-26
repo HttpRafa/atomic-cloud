@@ -304,6 +304,21 @@ impl Servers {
         }
     }
 
+    pub fn find_fallback_server(&self, excluded: &ServerHandle) -> Option<ServerHandle> {
+        // TODO: Also check if the server have free slots
+        self.servers
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|server| {
+                !Arc::ptr_eq(server, excluded)
+                    && server.allocation.deployment.fallback.enabled
+                    && *server.state.lock().unwrap() == State::Running
+            })
+            .max_by_key(|server| server.allocation.deployment.fallback.priority)
+            .cloned()
+    }
+
     fn start_server(
         &self,
         request: &StartRequestHandle,
@@ -458,6 +473,12 @@ pub enum Retention {
     Permanent,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct FallbackPolicy {
+    pub enabled: bool,
+    pub priority: i32,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct KeyValue {
     pub key: String,
@@ -470,4 +491,6 @@ pub struct Deployment {
     pub environment: Vec<KeyValue>,
     pub disk_retention: Retention,
     pub image: String,
+
+    pub fallback: FallbackPolicy,
 }

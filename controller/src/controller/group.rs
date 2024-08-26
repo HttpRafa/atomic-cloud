@@ -20,7 +20,7 @@ use super::{
 
 const GROUPS_DIRECTORY: &str = "groups";
 
-type GroupHandle = Arc<Group>;
+pub type GroupHandle = Arc<Group>;
 pub type WeakGroupHandle = Weak<Group>;
 
 pub struct Groups {

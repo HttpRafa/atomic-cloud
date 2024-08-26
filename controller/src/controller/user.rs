@@ -106,6 +106,23 @@ impl Users {
         amount
     }
 
+    pub fn get_users_on_server(&self, server: &ServerHandle) -> Vec<UserHandle> {
+        self.users
+            .lock()
+            .unwrap()
+            .values()
+            .filter(|user| {
+                if let CurrentServer::Connected(weak_server) = user.server.lock().unwrap().deref() {
+                    if let Some(strong_server) = weak_server.upgrade() {
+                        return Arc::ptr_eq(&strong_server, server);
+                    }
+                }
+                false
+            })
+            .cloned()
+            .collect()
+    }
+
     fn create_user(&self, name: String, uuid: Uuid, server: &ServerHandle) -> UserHandle {
         Arc::new(User {
             name,

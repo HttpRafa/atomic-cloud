@@ -16,35 +16,35 @@ colored = "2.1.0"
 anyhow = "1.0.86"
 
 # Signal handling
-ctrlc = "3.4.4"
+ctrlc = "3.4.5"
 
 # Server system
 uuid = { version = "1.10.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.11", features = ["derive"] }
+clap = { version = "4.5.16", features = ["derive"] }
 
 # Configuration
-serde = { version = "1.0.204", features = ["derive"] }
-toml = "0.8.16"
+serde = { version = "1.0.209", features = ["derive"] }
+toml = "0.8.19"
 
 # Async runtime
-tokio = { version = "1.39.2", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.39.3", features = ["rt", "rt-multi-thread", "macros"] }
 tokio-stream = "0.1.15"
 
 # API
 url = { version = "2.5.2", features = ["serde"] }
 prost = "0.13.1"
-tonic = "0.12.1"
+tonic = "0.12.2"
 
 # Drivers
-wasmtime = { version = "23.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
-wasmtime-wasi = { version = "23.0.1", optional = true }
+wasmtime = { version = "24.0.0", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime-wasi = { version = "24.0.0", optional = true }
 minreq = { version = "2.12.0", features = ["https-rustls"], optional = true }
 
 [build-dependencies]
-toml = "0.8.16"
-tonic-build = "0.12.1"
+toml = "0.8.19"
+tonic-build = "0.12.2"
 
 [features]
 wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]

@@ -29,6 +29,7 @@ jobs:
       - name: Set Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: nightly
           targets: ${{ matrix.target.platform }}
 
       - name: Install Protobuf and MinGW (for Windows build)

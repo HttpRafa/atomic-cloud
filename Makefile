@@ -1,10 +1,9 @@
-.PHONY: run run-controller build build-controller build-wrapper build-drivers create-components clean fix
+.PHONY: run run-controller build build-controller build-wrapper build-drivers clean fix
 
 # Configuration
 WASM_RUSTFLAGS = -Z wasi-exec-model=reactor
-WASM_TARGET = wasm32-wasip1
-WASM_COMPONENT = target/wasm32-wasip1/release/pterodactyl.wasm
-WASM_ADAPT_COMPONENT = drivers/files/wasi_snapshot_preview1.reactor.wasm
+WASM_TARGET = wasm32-wasip2
+WASM_COMPONENT = target/wasm32-wasip2/release/pterodactyl.wasm
 
 # Directories
 RUN_DIR = run
@@ -43,7 +42,7 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
 
 ## Build target
-build: build-controller build-wrapper build-drivers create-components
+build: build-controller build-wrapper build-drivers
 
 ## Run target
 run: build run-controller
@@ -63,11 +62,7 @@ build-wrapper:
 ## Build drivers target
 build-drivers:
 	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
-	cargo +nightly build -p pterodactyl --target $(WASM_TARGET) --release
-
-## Component target
-create-components: $(DRIVER_DIR)
-	wasm-tools component new $(WASM_COMPONENT) -o $(DRIVER_DIR)/pterodactyl.wasm --adapt $(WASM_ADAPT_COMPONENT)
+	cargo build -p pterodactyl --target $(WASM_TARGET) --release
 
 # Create driver directory if it doesn't exist
 $(DRIVER_DIR):

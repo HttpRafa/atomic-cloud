@@ -17,26 +17,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install wasi-sdk
+        run: |
+          mkdir tools/
+          cd tools/
+          wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.deb
+          sudo dpkg -i wasi-sdk-24.0-x86_64-linux.deb
+          
       - name: Set Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
-          targets: wasm32-wasip1
-
-      - name: Install wasm-tools
-        run: |
-          mkdir tools/
-          cd tools/
-          wget https://github.com/bytecodealliance/wasm-tools/releases/download/v1.209.0/wasm-tools-1.209.0-x86_64-linux.tar.gz
-          tar -xvf wasm-tools-1.209.0-x86_64-linux.tar.gz
-          mv wasm-tools-1.209.0-x86_64-linux/* .
+          targets: wasm32-wasip2
 
       - name: Build Driver
         run: |
           export RUSTFLAGS="-Z wasi-exec-model=reactor"
-          cargo +nightly build -p pterodactyl --target wasm32-wasip1 --release
-          ./tools/wasm-tools component new ./target/wasm32-wasip1/release/pterodactyl.wasm \
-              -o ./pterodactyl.wasm --adapt ./drivers/files/wasi_snapshot_preview1.reactor.wasm
+          cargo build -p pterodactyl --target wasm32-wasip2 --release
+          mv ./target/wasm32-wasip2/release/pterodactyl.wasm ./pterodactyl.wasm
         env:
           CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
           CURRENT_BUILD: ${{ github.run_number }}

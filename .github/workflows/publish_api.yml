@@ -1,10 +1,12 @@
+name: Publish API to Maven Repository
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - clients/jvm/api/**
-name: Publish api to maven repository
 
 jobs:
   build:
@@ -12,24 +14,34 @@ jobs:
     permissions:
       contents: read
       packages: write
-    steps:
-      - id: commit
-        uses: prompt/actions-commit-hash@v3
 
+    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Set Up Java
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "21"
 
-      - name: Publish api
+      - name: Cache Gradle Dependencies
+        id: cache-gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle-wrapper.jar') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Publish API
         working-directory: clients/jvm
         run: |
           chmod +x gradlew
-          ./gradlew publish
+          ./gradlew publish --no-daemon
         env:
-          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_COMMIT: ${{ github.sha }}
           CURRENT_BUILD: ${{ github.run_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

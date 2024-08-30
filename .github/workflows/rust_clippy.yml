@@ -1,14 +1,17 @@
+name: Clippy Check
+
 on:
+  workflow_dispatch:
   push:
     paths:
       - controller/**
       - clients/wrapper/**
       - drivers/pterodactyl/**
-name: Clippy check
 
 jobs:
   clippy_check:
     runs-on: ubuntu-24.04
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -18,6 +21,22 @@ jobs:
         with:
           toolchain: nightly
           components: clippy
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ runner.os }}-
+
+      - name: Cache Cargo Build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: cargo-build-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-build-${{ runner.os }}-
 
       - name: Install Protobuf
         run: |

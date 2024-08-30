@@ -1,10 +1,12 @@
+name: Publish Controller
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - controller/**
-name: Publish controller
 
 jobs:
   build:
@@ -23,9 +25,6 @@ jobs:
             file-name: wasm
 
     steps:
-      - id: commit
-        uses: prompt/actions-commit-hash@v3
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -35,27 +34,45 @@ jobs:
           toolchain: nightly
           targets: ${{ matrix.target.platform }}
 
-      - name: Install Protobuf and MinGW (for Windows build)
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ runner.os }}-
+
+      - name: Cache Cargo Build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: cargo-build-${{ runner.os }}-${{ matrix.target.platform }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-build-${{ runner.os }}-${{ matrix.target.platform }}-
+
+      - name: Install Protobuf Compiler
         run: |
           sudo apt update
-          sudo apt install protobuf-compiler gcc-mingw-w64 -y
+          sudo apt install protobuf-compiler -y
+      
+      - name: Install MinGW (for Windows build)
+        if: ${{ matrix.target.name == 'windows' }}
+        run: sudo apt install gcc-mingw-w64 -y  
 
       - name: Build Controller
         run: cargo build -p controller --release --target ${{ matrix.target.platform }} --features ${{ matrix.feature.name }}
         env:
-          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_COMMIT: ${{ github.sha }}
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Copy Executable
-        if: success()
+        if: ${{ success() }}
         run: |
           mv ./target/${{ matrix.target.platform }}/release/controller${{ matrix.target.extension }} controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
 
-      - name: Upload file to Github
-        if: success()
+      - name: Upload Executable to GitHub
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}
-          path: |
-            controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}
-            LICENSE
+          path: controller-${{ matrix.target.name }}-${{ matrix.feature.file-name }}${{ matrix.target.extension }}

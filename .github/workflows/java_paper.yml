@@ -1,45 +1,55 @@
+name: Publish Paper Plugin
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - clients/jvm/paper/**
-name: Publish paper plugin
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-    steps:
-      - id: commit
-        uses: prompt/actions-commit-hash@v3
 
+    steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Set Up Java
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "21"
 
-      - name: Build plugin
+      - name: Cache Gradle Dependencies
+        id: cache-gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle-wrapper.jar') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Build Plugin
         working-directory: clients/jvm
         run: |
           chmod +x gradlew
-          ./gradlew paper:build
+          ./gradlew paper:build --no-daemon
         env:
-          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_COMMIT: ${{ github.sha }}
           CURRENT_BUILD: ${{ github.run_number }}
 
-      - name: Copy jar file
-        if: success()
+      - name: Copy JAR File
+        if: ${{ success() }}
         run: |
           mv $(find ./clients/jvm/paper/build -name "*-all.jar") cloud-paper-client.jar
 
-      - name: Upload file to Github
-        if: success()
+      - name: Upload Artifact to GitHub
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: paper-client
-          path: |
-            cloud-paper-client.jar
-            LICENSE
+          path: cloud-paper-client.jar

@@ -1,34 +1,49 @@
+name: Publish Pterodactyl Driver
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - drivers/pterodactyl/**
-name: Publish pterodactyl driver
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - id: commit
-        uses: prompt/actions-commit-hash@v3
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Install wasi-sdk
         run: |
-          mkdir tools/
+          mkdir -p tools/
           cd tools/
           wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-24/wasi-sdk-24.0-x86_64-linux.deb
           sudo dpkg -i wasi-sdk-24.0-x86_64-linux.deb
-          
+
       - name: Set Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
           targets: wasm32-wasip2
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ runner.os }}-
+
+      - name: Cache Cargo Build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: cargo-build-${{ runner.os }}-wasm32-wasip2-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-build-${{ runner.os }}-wasm32-wasip2-
 
       - name: Build Driver
         run: |
@@ -36,14 +51,12 @@ jobs:
           cargo build -p pterodactyl --target wasm32-wasip2 --release
           mv ./target/wasm32-wasip2/release/pterodactyl.wasm ./pterodactyl.wasm
         env:
-          CURRENT_COMMIT: ${{ steps.commit.outputs.short }}
+          CURRENT_COMMIT: ${{ github.sha }}
           CURRENT_BUILD: ${{ github.run_number }}
 
-      - name: Upload file to Github
-        if: success()
+      - name: Upload WASM File to GitHub
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: pterodactyl
-          path: |
-            pterodactyl.wasm
-            LICENSE
+          path: pterodactyl.wasm

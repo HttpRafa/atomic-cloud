@@ -30,5 +30,4 @@ public class PlayerEventsListener implements Listener {
                 .build();
         CloudPlugin.INSTANCE.connection().userDisconnected(user);
     }
-
 }

@@ -21,5 +21,4 @@ public class CloudImpl implements Cloud.CloudAPI {
     public void disableAutoReady() {
         CloudPlugin.INSTANCE.settings().autoReady(false);
     }
-
 }

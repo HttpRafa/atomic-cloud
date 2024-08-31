@@ -153,7 +153,6 @@ impl Auth {
             server,
             token: token.clone(),
         });
-        debug!("Registered server with token {}", &token);
         self.servers
             .lock()
             .unwrap()

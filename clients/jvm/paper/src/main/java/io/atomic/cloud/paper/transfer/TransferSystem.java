@@ -14,6 +14,7 @@ public class TransferSystem implements StreamObserver<ResolvedTransfer> {
     private final CloudConnection cloudConnection;
 
     public void enable() {
+        CloudPlugin.LOGGER.info("Enabling transfer system...");
         this.cloudConnection.subscribeToTransfers(this);
     }
 

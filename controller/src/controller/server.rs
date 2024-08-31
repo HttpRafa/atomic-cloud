@@ -378,6 +378,14 @@ impl Servers {
             .unwrap()
             .insert(server.uuid, server.clone());
 
+        // Print server information to the console for debugging
+        debug!("{}", "-----------------------------------".red());
+        debug!("{}", "New server added to controller".red());
+        debug!("{}{}", "Name: ".red(), server.name.red());
+        debug!("{}{}", "UUID: ".red(), server.uuid.to_string().red());
+        debug!("{}{}", "Token: ".red(), server.auth.token.red());
+        debug!("{}", "-----------------------------------".red());
+
         // Send start request to node
         // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = self.controller.upgrade() {

@@ -1,7 +1,6 @@
 package io.atomic.cloud.api.channel;
 
 import io.atomic.cloud.api.channel.handler.ChannelHandler;
-
 import java.util.concurrent.CompletableFuture;
 
 public interface Channels {
@@ -34,5 +33,4 @@ public interface Channels {
      * @param handler the handler to register
      */
     void registerHandler(String channel, ChannelHandler handler);
-
 }

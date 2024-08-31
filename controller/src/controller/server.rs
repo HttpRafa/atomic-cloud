@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex, Weak,
@@ -28,7 +28,7 @@ pub struct Servers {
     controller: WeakControllerHandle,
 
     /* Servers started by this atomic cloud instance */
-    servers: Mutex<Vec<ServerHandle>>,
+    servers: Mutex<HashMap<Uuid, ServerHandle>>,
 
     /* Servers that should be started/stopped next controller tick */
     start_requests: Mutex<VecDeque<StartRequestHandle>>,
@@ -39,7 +39,7 @@ impl Servers {
     pub fn new(controller: WeakControllerHandle) -> Self {
         Self {
             controller,
-            servers: Mutex::new(Vec::new()),
+            servers: Mutex::new(HashMap::new()),
             start_requests: Mutex::new(VecDeque::new()),
             stop_requests: Mutex::new(VecDeque::new()),
         }
@@ -54,7 +54,7 @@ impl Servers {
 
         // Check health of servers
         {
-            let dead_servers = self.servers.lock().unwrap().iter().filter(|server| {
+            let dead_servers = self.servers.lock().unwrap().values().filter(|server| {
                 let health = server.health.lock().unwrap();
                 if health.is_dead() {
                     match *server.state.lock().unwrap() {
@@ -135,12 +135,17 @@ impl Servers {
 
     pub fn stop_all(&self) {
         let mut servers = self.servers.lock().unwrap();
-        while let Some(server) = servers.pop() {
-            self.stop_server_nolock(&StopRequest { when: None, server }, &mut servers);
-        }
+        servers.drain().for_each(|(_, server)| {
+            self.stop_server_internal(&StopRequest { when: None, server });
+        });
     }
 
-    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut Vec<ServerHandle>) {
+    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut HashMap<Uuid, ServerHandle>) {
+        self.stop_server_internal(request);
+        servers.remove(&request.server.uuid);
+    }
+
+    fn stop_server_internal(&self, request: &StopRequest) {
         let server = &request.server;
         info!("{} server {}", "Stopping".yellow(), server.name.blue());
 
@@ -171,7 +176,6 @@ impl Servers {
         if let Some(controller) = self.controller.upgrade() {
             controller.get_auth().unregister_server(server);
         }
-        servers.retain(|handle| !Arc::ptr_eq(handle, server));
 
         // Remove users connected to the server
         controller.get_users().cleanup_users(server);
@@ -309,7 +313,7 @@ impl Servers {
         self.servers
             .lock()
             .unwrap()
-            .iter()
+            .values()
             .filter(|server| {
                 !Arc::ptr_eq(server, excluded)
                     && server.allocation.deployment.fallback.enabled
@@ -317,6 +321,10 @@ impl Servers {
             })
             .max_by_key(|server| server.allocation.deployment.fallback.priority)
             .cloned()
+    }
+
+    pub fn get_server(&self, uuid: Uuid) -> Option<ServerHandle> {
+        self.servers.lock().unwrap().get(&uuid).cloned()
     }
 
     fn start_server(
@@ -365,7 +373,10 @@ impl Servers {
         if let Some(group) = request.group.upgrade() {
             group.set_active(server.clone(), request);
         }
-        self.servers.lock().unwrap().push(server.clone());
+        self.servers
+            .lock()
+            .unwrap()
+            .insert(server.uuid, server.clone());
 
         // Send start request to node
         // We do this async because the driver chould be running blocking code like network requests

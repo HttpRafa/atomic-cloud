@@ -25,5 +25,4 @@ public interface CloudServer {
      * @return a future to be completed once the server has been marked as not ready
      */
     CompletableFuture<Void> markNotReady();
-
 }

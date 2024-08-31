@@ -5,7 +5,7 @@ use log::error;
 use tokio::sync::Mutex;
 use url::Url;
 
-use proto::{server_service_client::ServerServiceClient, User};
+use proto::{server_service_client::ServerServiceClient, User, UserIdentifier};
 use tonic::{transport::Channel, Request};
 
 #[allow(clippy::all)]
@@ -156,8 +156,8 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn user_disconnected(&self, name: String, uuid: String) -> Result<()> {
-        let request = self.create_request(User { name, uuid });
+    pub async fn user_disconnected(&self, uuid: String) -> Result<()> {
+        let request = self.create_request(UserIdentifier { uuid });
 
         self.client
             .lock()

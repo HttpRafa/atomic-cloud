@@ -2,9 +2,8 @@ package io.atomic.cloud.common.server;
 
 import io.atomic.cloud.api.server.CloudServer;
 import io.atomic.cloud.common.connection.CloudConnection;
-import lombok.RequiredArgsConstructor;
-
 import java.util.concurrent.CompletableFuture;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class SimpleCloudServer implements CloudServer {
@@ -25,5 +24,4 @@ public class SimpleCloudServer implements CloudServer {
     public CompletableFuture<Void> markNotReady() {
         return this.connection.markNotReady().thenRun(() -> {});
     }
-
 }

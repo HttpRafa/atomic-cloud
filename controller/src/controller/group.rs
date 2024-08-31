@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     path::Path,
     sync::{Arc, Mutex, Weak},
@@ -24,7 +25,7 @@ pub type GroupHandle = Arc<Group>;
 pub type WeakGroupHandle = Weak<Group>;
 
 pub struct Groups {
-    groups: Vec<GroupHandle>,
+    groups: HashMap<String, GroupHandle>,
 }
 
 impl Groups {
@@ -38,7 +39,9 @@ impl Groups {
             }
         }
 
-        let mut groups = Self { groups: Vec::new() };
+        let mut groups = Self {
+            groups: HashMap::new(),
+        };
         let entries = match fs::read_dir(groups_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -97,7 +100,7 @@ impl Groups {
     }
 
     pub fn tick(&self, servers: &Servers) {
-        for group in &self.groups {
+        for group in self.groups.values() {
             group.tick(servers);
         }
     }
@@ -114,7 +117,7 @@ impl Groups {
             return Ok(CreationResult::Denied(anyhow!("No nodes provided")));
         }
 
-        if self.groups.iter().any(|group| group.name == name) {
+        if self.groups.contains_key(name) {
             return Ok(CreationResult::AlreadyExists);
         }
 
@@ -137,8 +140,12 @@ impl Groups {
         Ok(CreationResult::Created)
     }
 
+    pub fn get_group(&self, name: &str) -> Option<GroupHandle> {
+        self.groups.get(name).cloned()
+    }
+
     fn add_group(&mut self, group: GroupHandle) {
-        self.groups.push(group);
+        self.groups.insert(group.name.to_string(), group);
     }
 }
 

@@ -5,7 +5,7 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{debug, info};
+use log::{debug, info, warn};
 use transfer::Transfer;
 use uuid::Uuid;
 
@@ -19,13 +19,11 @@ pub mod transfer;
 pub type UserHandle = Arc<User>;
 pub type WeakUserHandle = Weak<User>;
 
-type UsersMap = HashMap<Uuid, UserHandle>;
-
 pub struct Users {
     controller: WeakControllerHandle,
 
     /* Users that joined some started server */
-    users: Mutex<UsersMap>,
+    users: Mutex<HashMap<Uuid, UserHandle>>,
 }
 
 impl Users {
@@ -40,8 +38,28 @@ impl Users {
 
     pub fn handle_user_connected(&self, server: ServerHandle, name: String, uuid: Uuid) {
         let mut users = self.users.lock().unwrap();
-        if let Some(_user) = users.get(&uuid) {
-            // TODO: Handle user transfers
+        if let Some(user) = users.get(&uuid) {
+            let mut current_server = user.server.lock().unwrap();
+            match current_server.deref() {
+                CurrentServer::Connected(_) => {
+                    *current_server = CurrentServer::Connected(Arc::downgrade(&server));
+                    warn!(
+                        "User {}[{}] was never flagged as transferring but switched to server {}",
+                        name.blue(),
+                        uuid.to_string().blue(),
+                        server.name.blue()
+                    );
+                }
+                CurrentServer::Transfering(_) => {
+                    *current_server = CurrentServer::Connected(Arc::downgrade(&server));
+                    info!(
+                        "User {}[{}] successfully transferred to server {}",
+                        name.blue(),
+                        uuid.to_string().blue(),
+                        server.name.blue()
+                    );
+                }
+            }
         } else {
             info!(
                 "User {}[{}] {} to server {}",
@@ -121,6 +139,10 @@ impl Users {
             })
             .cloned()
             .collect()
+    }
+
+    pub fn get_user(&self, uuid: Uuid) -> Option<UserHandle> {
+        self.users.lock().unwrap().get(&uuid).cloned()
     }
 
     fn create_user(&self, name: String, uuid: Uuid, server: &ServerHandle) -> UserHandle {

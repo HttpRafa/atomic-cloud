@@ -1,12 +1,10 @@
 package io.atomic.cloud.common.connection;
 
+import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.grpc.server.ChannelMessage;
-import io.atomic.cloud.grpc.server.ServerServiceGrpc;
-import io.atomic.cloud.grpc.server.TransferTarget;
-import io.atomic.cloud.grpc.server.User;
+import io.atomic.cloud.grpc.server.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -54,18 +52,6 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public CompletableFuture<Empty> markRunning() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.markRunning(Empty.getDefaultInstance(), observer);
-        return observer.future();
-    }
-
-    public CompletableFuture<Empty> requestStop() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.requestStop(Empty.getDefaultInstance(), observer);
-        return observer.future();
-    }
-
     public CompletableFuture<Empty> markReady() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.markReady(Empty.getDefaultInstance(), observer);
@@ -78,21 +64,43 @@ public class CloudConnection {
         return observer.future();
     }
 
+    public CompletableFuture<Empty> markRunning() {
+        var observer = new StreamObserverImpl<Empty>();
+        this.client.markRunning(Empty.getDefaultInstance(), observer);
+        return observer.future();
+    }
+
+    public CompletableFuture<Empty> requestStop() {
+        var observer = new StreamObserverImpl<Empty>();
+        this.client.requestStop(Empty.getDefaultInstance(), observer);
+        return observer.future();
+    }
+
     public CompletableFuture<Empty> userConnected(User user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userConnected(user, observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userDisconnected(User user) {
+    public CompletableFuture<Empty> userDisconnected(UserIdentifier user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userDisconnected(user, observer);
         return observer.future();
     }
 
-    public CompletableFuture<UInt32Value> transferAllPlayers(TransferTarget target) {
+    public void subscribeToTransfers(StreamObserver<ResolvedTransfer> observer) {
+        this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
+    }
+
+    public CompletableFuture<UInt32Value> transferAllUsers(TransferTarget target) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
+        return observer.future();
+    }
+
+    public CompletableFuture<BoolValue> transferUser(Transfer transfer) {
+        var observer = new StreamObserverImpl<BoolValue>();
+        this.client.transferUser(transfer, observer);
         return observer.future();
     }
 

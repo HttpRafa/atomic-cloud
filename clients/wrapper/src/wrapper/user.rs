@@ -42,7 +42,7 @@ impl Users {
 
             if let Err(error) = self
                 .connection
-                .user_disconnected(user.name, user.uuid.to_string())
+                .user_disconnected(user.uuid.to_string())
                 .await
             {
                 error!("Failed to notify controller that user connected: {}", error);

@@ -21,7 +21,7 @@ service ServerService {
 
     // Users
     rpc UserConnected(User) returns (google.protobuf.Empty);
-    rpc UserDisconnected(User) returns (google.protobuf.Empty);
+    rpc UserDisconnected(UserIdentifier) returns (google.protobuf.Empty);
 
     // Transfers
     rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream ResolvedTransfer);
@@ -32,6 +32,10 @@ service ServerService {
     rpc SendMessageToChannel(ChannelMessage) returns (google.protobuf.UInt32Value);
     rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
     rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessage);
+}
+
+message UserIdentifier {
+    string uuid = 1;
 }
 
 message User {
@@ -50,12 +54,12 @@ message TransferTarget {
 }
 
 message Transfer {
-    User user = 1;
+    UserIdentifier user = 1;
     TransferTarget target = 2;
 }
 
 message ResolvedTransfer {
-    User user = 1;
+    UserIdentifier user = 1;
     string host = 2;
     uint32 port = 3;
 }

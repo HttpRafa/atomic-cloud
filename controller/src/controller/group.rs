@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap, HashSet},
     fs,
     path::Path,
     sync::{Arc, Mutex, Weak},
@@ -15,7 +15,7 @@ use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
 use super::{
     node::{Nodes, WeakNodeHandle},
-    server::{Deployment, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle},
+    server::{Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle},
     CreationResult,
 };
 
@@ -168,6 +168,7 @@ pub struct Group {
     pub scaling: ScalingPolicy,
     pub resources: Resources,
     pub deployment: Deployment,
+    id_allocator: Mutex<IdAllocator>,
     servers: Mutex<Vec<GroupedServer>>,
 }
 
@@ -180,6 +181,7 @@ impl Group {
             scaling: stored_group.scaling,
             resources: stored_group.resources.clone(),
             deployment: stored_group.deployment.clone(),
+            id_allocator: Mutex::new(IdAllocator::new()),
             servers: Mutex::new(Vec::new()),
         })
     }
@@ -198,17 +200,22 @@ impl Group {
 
     fn tick(&self, servers: &Servers) {
         let mut group_servers = self.servers.lock().expect("Failed to lock servers");
+        let mut id_allocator = self.id_allocator.lock().expect("Failed to lock id allocator");
 
         for requested in 0..(self.scaling.minimum as usize).saturating_sub(group_servers.len()) {
             if (group_servers.len() + requested) >= self.scaling.maximum as usize {
                 break;
             }
 
+            let server_id = id_allocator.get_id();
             let request = servers.queue_server(StartRequest {
                 when: None,
-                name: format!("{}-{}", self.name, group_servers.len() + requested),
+                name: format!("{}-{}", self.name, server_id),
                 nodes: self.nodes.clone(),
-                group: self.handle.clone(),
+                group: Some(GroupInfo {
+                    server_id,
+                    group: self.handle.clone(),
+                }),
                 resources: self.resources.clone(),
                 deployment: self.deployment.clone(),
                 priority: self.scaling.priority,
@@ -240,6 +247,7 @@ impl Group {
                 }
                 true
             });
+        self.id_allocator.lock().expect("Failed to lock id allocator").release_id(server.group.as_ref().unwrap().server_id);
     }
 
     pub fn get_free_server(&self) -> Option<ServerHandle> {
@@ -250,6 +258,41 @@ impl Group {
             }
         }
         None
+    }
+}
+
+struct IdAllocator {
+    next_id: usize,
+    available_ids: BTreeSet<usize>,
+    active_ids: HashSet<usize>,
+}
+
+impl IdAllocator {
+    fn new() -> Self {
+        Self {
+            next_id: 1,
+            available_ids: BTreeSet::new(),
+            active_ids: HashSet::new(),
+        }
+    }
+
+    fn get_id(&mut self) -> usize {
+        if let Some(&id) = self.available_ids.iter().next() {
+            self.available_ids.remove(&id);
+            self.active_ids.insert(id);
+            id
+        } else {
+            let id = self.next_id;
+            self.next_id += 1;
+            self.active_ids.insert(id);
+            id
+        }
+    }
+
+    fn release_id(&mut self, id: usize) {
+        if self.active_ids.remove(&id) {
+            self.available_ids.insert(id);
+        }
     }
 }
 

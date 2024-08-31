@@ -3,8 +3,7 @@ use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use std::{
-    str::FromStr,
-    sync::{mpsc::channel, Arc},
+    ops::Deref, str::FromStr, sync::{mpsc::channel, Arc}
 };
 
 use proto::{
@@ -15,7 +14,7 @@ use proto::{
 use crate::controller::{
     auth::AuthServerHandle,
     event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
-    user::transfer::TransferTarget,
+    user::{transfer::TransferTarget, CurrentServer},
     ControllerHandle,
 };
 
@@ -33,7 +32,7 @@ pub struct ServerServiceImpl {
 #[async_trait]
 impl ServerService for ServerServiceImpl {
     async fn beat_heart(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -41,12 +40,12 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().handle_heart_beat(&server);
+        self.controller.get_servers().handle_heart_beat(&requesting_server);
         Ok(Response::new(()))
     }
 
     async fn mark_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -54,12 +53,12 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().mark_ready(&server);
+        self.controller.get_servers().mark_ready(&requesting_server);
         Ok(Response::new(()))
     }
 
     async fn mark_not_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -67,12 +66,12 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().mark_not_ready(&server);
+        self.controller.get_servers().mark_not_ready(&requesting_server);
         Ok(Response::new(()))
     }
 
     async fn mark_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -80,12 +79,12 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().mark_running(&server);
+        self.controller.get_servers().mark_running(&requesting_server);
         Ok(Response::new(()))
     }
 
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -93,12 +92,12 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().checked_stop_server(&server);
+        self.controller.get_servers().checked_stop_server(&requesting_server);
         Ok(Response::new(()))
     }
 
     async fn user_connected(&self, request: Request<User>) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -108,7 +107,7 @@ impl ServerService for ServerServiceImpl {
 
         let user = request.into_inner();
         self.controller.get_users().handle_user_connected(
-            server,
+            requesting_server,
             user.name,
             Uuid::from_str(&user.uuid).map_err(|error| {
                 Status::invalid_argument(format!("Failed to parse UUID: {}", error))
@@ -121,7 +120,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<UserIdentifier>,
     ) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -131,7 +130,7 @@ impl ServerService for ServerServiceImpl {
 
         let user = request.into_inner();
         self.controller.get_users().handle_user_disconnected(
-            server,
+            requesting_server,
             Uuid::from_str(&user.uuid).map_err(|error| {
                 Status::invalid_argument(format!("Failed to parse UUID: {}", error))
             })?,
@@ -144,7 +143,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<()>,
     ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -156,8 +155,8 @@ impl ServerService for ServerServiceImpl {
         self.controller
             .get_event_bus()
             .register_listener_under_server(
-                EventKey::Transfer(server.uuid),
-                Arc::downgrade(&server),
+                EventKey::Transfer(requesting_server.uuid),
+                Arc::downgrade(&requesting_server),
                 Box::new(move |event: &UserTransferRequested| {
                     let transfer = &event.transfer;
                     if let Some((user, _, to)) = transfer.get_strong() {
@@ -184,7 +183,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::TransferTarget>,
     ) -> Result<Response<u32>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -193,12 +192,12 @@ impl ServerService for ServerServiceImpl {
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
         Ok(Response::new(
-            self.controller.get_users().transfer_all_users(&server),
+            self.controller.get_users().transfer_all_users(&requesting_server),
         ))
     }
 
     async fn transfer_user(&self, request: Request<Transfer>) -> Result<Response<bool>, Status> {
-        let _server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -217,15 +216,25 @@ impl ServerService for ServerServiceImpl {
         let user_uuid = Uuid::from_str(&user.uuid).map_err(|error| {
             Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
         })?;
-        let target_uuid = Uuid::from_str(&target.target).map_err(|error| {
-            Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
-        })?;
 
         let user = self
             .controller
             .get_users()
             .get_user(user_uuid)
             .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
+
+        // Check if the user is connected to the server that requested the transfer
+        if let CurrentServer::Connected(server) = user.server.lock().unwrap().deref() {
+            if let Some(server) = server.upgrade() {
+                if !Arc::ptr_eq(&server, &requesting_server) {
+                    return Err(Status::permission_denied(
+                        "User is not connected to the requesting server",
+                    ));
+                }
+            }
+        } else {
+            return Err(Status::permission_denied("User is not connected to any server"));
+        }
 
         let target = match target.target_type {
             x if x == TargetType::Group as i32 => TransferTarget::Group(
@@ -237,7 +246,9 @@ impl ServerService for ServerServiceImpl {
             _ => TransferTarget::Server(
                 self.controller
                     .get_servers()
-                    .get_server(target_uuid)
+                    .get_server(Uuid::from_str(&target.target).map_err(|error| {
+                        Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
+                    })?)
                     .ok_or_else(|| Status::not_found("Server does not exist"))?,
             ),
         };
@@ -256,7 +267,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<ChannelMessage>,
     ) -> Result<Response<u32>, Status> {
-        let _server = request
+        let _requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -276,7 +287,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<()>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -286,7 +297,7 @@ impl ServerService for ServerServiceImpl {
 
         self.controller
             .get_event_bus()
-            .unregister_listener(EventKey::Channel(request.into_inner()), &server);
+            .unregister_listener(EventKey::Channel(request.into_inner()), &requesting_server);
 
         Ok(Response::new(()))
     }
@@ -296,7 +307,7 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<Self::SubscribeToChannelStream>, Status> {
-        let server = request
+        let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
             .expect("Failed to get server from extensions. Is tonic broken?")
@@ -311,7 +322,7 @@ impl ServerService for ServerServiceImpl {
             .get_event_bus()
             .register_listener_under_server(
                 EventKey::Channel(channel_name.clone()),
-                Arc::downgrade(&server),
+                Arc::downgrade(&requesting_server),
                 Box::new(move |event: &ChannelMessageSended| {
                     sender
                         .send(Ok(event.message.clone()))

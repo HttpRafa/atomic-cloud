@@ -15,6 +15,7 @@ const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(130);
 const DEFAULT_EXPECTED_RESTART_TIME: Duration = Duration::from_secs(120);
 const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
+const DEFAULT_TRANSFER_TIMEOUT: Duration = Duration::from_secs(10);
 
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 12892;
@@ -29,6 +30,7 @@ pub struct Timings {
     pub startup: Option<Duration>,
     pub restart: Option<Duration>,
     pub healthbeat: Option<Duration>,
+    pub transfer: Option<Duration>,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -80,6 +82,10 @@ impl Config {
         }
         if config.timings.healthbeat.is_none() {
             config.timings.healthbeat = Some(DEFAULT_HEALTH_CHECK_TIMEOUT);
+            save = true;
+        }
+        if config.timings.transfer.is_none() {
+            config.timings.transfer = Some(DEFAULT_TRANSFER_TIMEOUT);
             save = true;
         }
         if save {

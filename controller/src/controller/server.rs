@@ -170,7 +170,7 @@ impl Servers {
         }
 
         // Remove server from group and servers list
-        if let Some(group) = server.group.upgrade() {
+        if let Some(group) = &server.group {
             group.remove_server(server);
         }
         if let Some(controller) = self.controller.upgrade() {
@@ -370,7 +370,7 @@ impl Servers {
             }
         });
 
-        if let Some(group) = request.group.upgrade() {
+        if let Some(group) = &request.group {
             group.set_active(server.clone(), request);
         }
         self.servers
@@ -416,7 +416,7 @@ impl Servers {
 pub struct Server {
     pub name: String,
     pub uuid: Uuid,
-    pub group: WeakGroupHandle,
+    pub group: Option<GroupInfo>,
     pub node: WeakNodeHandle,
     pub allocation: AllocationHandle,
 
@@ -452,7 +452,7 @@ impl Health {
 pub struct StartRequest {
     pub when: Option<Instant>,
     pub name: String,
-    pub group: WeakGroupHandle,
+    pub group: Option<GroupInfo>,
     pub nodes: Vec<WeakNodeHandle>,
     pub resources: Resources,
     pub deployment: Deployment,
@@ -471,6 +471,26 @@ pub enum State {
     Restarting,
     Running,
     Stopping,
+}
+
+#[derive(Clone)]
+pub struct GroupInfo {
+    pub server_id: usize,
+    pub group: WeakGroupHandle,
+}
+
+impl GroupInfo {
+    pub fn remove_server(&self, server: &ServerHandle) {
+        if let Some(group) = self.group.upgrade() {
+            group.remove_server(server);
+        }
+    }
+
+    pub fn set_active(&self, server: ServerHandle, request: &StartRequestHandle) {
+        if let Some(group) = self.group.upgrade() {
+            group.set_active(server, request);
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]

@@ -178,14 +178,10 @@ impl From<Arc<AuthServer>> for bridge::Auth {
 
 impl From<&Arc<Server>> for bridge::Server {
     fn from(val: &Arc<Server>) -> Self {
-        let group = val
-            .group
-            .upgrade()
-            .expect("Failed to get group while trying to convert server to driver representation");
         bridge::Server {
             name: val.name.clone(),
             uuid: val.uuid.to_string(),
-            group: group.name.clone(),
+            group: val.group.as_ref().map(|group| group.group.upgrade().expect("Group dropped while servers of the group are still active").name.clone()),
             allocation: val.allocation.clone().into(),
             auth: val.auth.clone().into(),
         }

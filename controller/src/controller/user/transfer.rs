@@ -1,5 +1,7 @@
+use std::time::Instant;
 use std::{ops::Deref, sync::Arc};
 
+use colored::Colorize;
 use log::error;
 use log::info;
 use log::warn;
@@ -54,7 +56,7 @@ impl Users {
                             Arc::downgrade(&to),
                         ));
                     } else {
-                        warn!("Failed to find free server in group {} while resolving transfer of user {}", group.name, user.name);
+                        warn!("{} to find free server in group {} while resolving transfer of user {}", group.name, user.name, "Failed".red());
                     }
                 }
             }
@@ -67,7 +69,7 @@ impl Users {
         if let Some((user, from, to)) = transfer.get_strong() {
             info!(
                 "Transfering user {} from {} to server {}",
-                user.name, from.name, to.name
+                user.name.blue(), from.name.blue(), to.name.blue()
             );
 
             let controller = self
@@ -84,7 +86,7 @@ impl Users {
             *user.server.lock().unwrap() = CurrentServer::Transfering(transfer);
             return true;
         } else {
-            error!("Failed to transfer user because some required information is missing");
+            error!("{} to transfer user because some required information is missing", "Failed".red());
         }
 
         false
@@ -98,6 +100,7 @@ pub enum TransferTarget {
 
 #[derive(Clone, Debug)]
 pub struct Transfer {
+    pub timestamp: Instant,
     pub user: WeakUserHandle,
     pub from: WeakServerHandle,
     pub to: WeakServerHandle,
@@ -105,7 +108,7 @@ pub struct Transfer {
 
 impl Transfer {
     pub fn new(user: WeakUserHandle, from: WeakServerHandle, to: WeakServerHandle) -> Self {
-        Self { user, from, to }
+        Self { timestamp: Instant::now(), user, from, to }
     }
 
     pub fn get_strong(&self) -> Option<(UserHandle, ServerHandle, ServerHandle)> {

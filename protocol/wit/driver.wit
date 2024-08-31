@@ -107,7 +107,7 @@ interface bridge {
     record server {
         name: string,
         uuid: uuid,
-        group: string,
+        group: option<string>,
         allocation: allocation,
         auth: auth,
     }

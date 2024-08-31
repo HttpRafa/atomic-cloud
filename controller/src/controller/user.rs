@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     ops::Deref,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Mutex, Weak}, time::Instant,
 };
 
 use colored::Colorize;
@@ -34,7 +34,30 @@ impl Users {
         }
     }
 
-    pub fn tick(&self) {}
+    pub fn tick(&self) {
+        let controller = self
+        .controller
+        .upgrade()
+        .expect("Failed to upgrade controller");
+
+        let mut users = self.users.lock().unwrap();
+        users.retain(|_, user| {
+            if let CurrentServer::Transfering(transfer) = user.server.lock().unwrap().deref() {
+                if Instant::now().duration_since(transfer.timestamp) > controller.configuration.timings.transfer.unwrap() {
+                    if let Some(to) = transfer.to.upgrade() {
+                        warn!(
+                            "User {}[{}] failed to transfer to server {} in time",
+                            user.name.blue(),
+                            user.uuid.to_string().blue(),
+                            to.name.blue()
+                        );
+                    }
+                    return false;
+                }
+            }
+            true
+        });
+    }
 
     pub fn handle_user_connected(&self, server: ServerHandle, name: String, uuid: Uuid) {
         let mut users = self.users.lock().unwrap();

@@ -33,8 +33,11 @@ service ServerService {
     rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
     rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessage);
 
-    // Reset
+    // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    // Information
+    rpc GetControllerVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 }
 
 message UserIdentifier {

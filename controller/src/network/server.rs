@@ -13,12 +13,12 @@ use proto::{
     ResolvedTransfer, Transfer, User, UserIdentifier,
 };
 
-use crate::controller::{
+use crate::{controller::{
     auth::AuthServerHandle,
     event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
     user::{transfer::TransferTarget, CurrentServer},
     ControllerHandle,
-};
+}, VERSION};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -362,4 +362,9 @@ impl ServerService for ServerServiceImpl {
 
         Ok(Response::new(()))
     }
+
+    async fn get_controller_version(&self, _request: Request<()>) -> Result<Response<String>, Status> {
+        Ok(Response::new(VERSION.to_string()))
+    }
+
 }

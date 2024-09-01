@@ -7,10 +7,9 @@ import io.atomic.cloud.common.health.Heart;
 import io.atomic.cloud.common.server.SimpleCloudServer;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
+import io.atomic.cloud.paper.transfer.TransferHandler;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
-import io.atomic.cloud.paper.transfer.TransferHandler;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +50,7 @@ public class CloudPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Register listeners
         registerListeners();
 
         // Mark server as running

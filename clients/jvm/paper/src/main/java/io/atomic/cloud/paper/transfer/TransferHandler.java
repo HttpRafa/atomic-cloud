@@ -4,9 +4,8 @@ import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.grpc.server.ResolvedTransfer;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
-
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class TransferHandler implements StreamObserver<ResolvedTransfer> {
@@ -32,7 +31,10 @@ public class TransferHandler implements StreamObserver<ResolvedTransfer> {
 
             player.transfer(resolvedTransfer.getHost(), resolvedTransfer.getPort());
             CloudPlugin.LOGGER.info(
-                    "Transferred user {} to {}:{}", player.getName(), resolvedTransfer.getHost(), resolvedTransfer.getPort());
+                    "Transferred user {} to {}:{}",
+                    player.getName(),
+                    resolvedTransfer.getHost(),
+                    resolvedTransfer.getPort());
         } catch (Throwable throwable) {
             CloudPlugin.LOGGER.error(
                     "Failed to handle transfer request for user {}: {}",

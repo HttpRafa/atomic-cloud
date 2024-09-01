@@ -28,6 +28,9 @@ public class CloudConnection {
 
     private ServerServiceGrpc.ServerServiceStub client;
 
+    // Cache values
+    private String controllerVersion;
+
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
         if (this.address.getProtocol().equals("https")) {
@@ -123,6 +126,15 @@ public class CloudConnection {
     public CompletableFuture<Empty> sendReset() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.reset(Empty.getDefaultInstance(), observer);
+        return observer.future();
+    }
+
+    public CompletableFuture<StringValue> getControllerVersion() {
+        if (this.controllerVersion != null) {
+            return CompletableFuture.completedFuture(StringValue.of(this.controllerVersion));
+        }
+        var observer = new StreamObserverImpl<StringValue>();
+        this.client.getControllerVersion(Empty.getDefaultInstance(), observer);
         return observer.future();
     }
 

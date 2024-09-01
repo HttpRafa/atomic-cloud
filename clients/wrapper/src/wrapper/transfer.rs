@@ -67,7 +67,9 @@ impl Transfers {
                             let command = self
                                 .command
                                 .replace("%NAME%", &user.name)
-                                .replace("%UUID%", &user.uuid.to_string());
+                                .replace("%UUID%", &user.uuid.to_string())
+                                .replace("%HOST%", &transfer.host)
+                                .replace("%PORT%", &transfer.port.to_string());
                             process.write_to_stdin(&command).await;
                         } else {
                             error!("Received transfer from unknown user: {}", user.uuid);

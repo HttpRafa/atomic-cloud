@@ -181,7 +181,14 @@ impl From<&Arc<Server>> for bridge::Server {
         bridge::Server {
             name: val.name.clone(),
             uuid: val.uuid.to_string(),
-            group: val.group.as_ref().map(|group| group.group.upgrade().expect("Group dropped while servers of the group are still active").name.clone()),
+            group: val.group.as_ref().map(|group| {
+                group
+                    .group
+                    .upgrade()
+                    .expect("Group dropped while servers of the group are still active")
+                    .name
+                    .clone()
+            }),
             allocation: val.allocation.clone().into(),
             auth: val.auth.clone().into(),
         }

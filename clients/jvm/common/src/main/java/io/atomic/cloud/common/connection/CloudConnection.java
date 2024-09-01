@@ -120,6 +120,12 @@ public class CloudConnection {
         this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 
+    public CompletableFuture<Empty> sendReset() {
+        var observer = new StreamObserverImpl<Empty>();
+        this.client.reset(Empty.getDefaultInstance(), observer);
+        return observer.future();
+    }
+
     @Contract(" -> new")
     public static @NotNull CloudConnection createFromEnv() {
         var address = System.getenv("CONTROLLER_ADDRESS");

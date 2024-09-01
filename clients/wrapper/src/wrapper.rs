@@ -14,6 +14,7 @@ use log::{error, info};
 use network::CloudConnection;
 use process::ManagedProcess;
 use tokio::{select, time::interval};
+use transfer::Transfers;
 use user::Users;
 
 use crate::args::Args;
@@ -22,6 +23,7 @@ mod detection;
 mod heart;
 mod network;
 mod process;
+mod transfer;
 mod user;
 
 const TICK_RATE: u64 = 1;
@@ -41,6 +43,7 @@ pub struct Wrapper {
     /* Accessed frequently */
     heart: Heart,
     users: Users,
+    transfers: Transfers,
     connection: Arc<CloudConnection>,
 }
 
@@ -66,6 +69,7 @@ impl Wrapper {
             process: None,
             heart: Heart::new(BEAT_INTERVAL, connection.clone()),
             users: Users::new(connection.clone()),
+            transfers: Transfers::from_env(connection.clone()),
             connection,
         }
     }
@@ -81,8 +85,14 @@ impl Wrapper {
         })
         .expect("Failed to set Ctrl+C handler");
 
+        // Tell the controller we are a new client
+        self.connection.send_reset().await;
+
         // Start child process
         self.start_child();
+
+        // Subscribe to network events
+        self.transfers.subscribe().await;
 
         let mut tick_interval = interval(Duration::from_millis(1000 / TICK_RATE));
         while self.running.load(Ordering::Relaxed) {
@@ -109,8 +119,11 @@ impl Wrapper {
         // Heartbeat
         self.heart.tick().await;
 
-        // Request stop when child process stopped
         if let Some(process) = &mut self.process {
+            // Process transfers
+            self.transfers.tick(process, &self.users).await;
+
+            // Request stop when child process stopped
             if process.tick().await {
                 self.request_stop();
             }

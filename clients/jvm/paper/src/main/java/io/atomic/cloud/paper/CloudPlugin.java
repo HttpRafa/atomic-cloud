@@ -10,7 +10,7 @@ import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import io.atomic.cloud.paper.transfer.TransferSystem;
+import io.atomic.cloud.paper.transfer.TransferHandler;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -32,7 +32,7 @@ public class CloudPlugin extends JavaPlugin {
     private CloudConnection connection;
     private SimpleCloudServer self;
 
-    private TransferSystem transferSystem;
+    private TransferHandler transferHandler;
 
     @Override
     public void onLoad() {
@@ -41,10 +41,11 @@ public class CloudPlugin extends JavaPlugin {
         this.connection = CloudConnection.createFromEnv();
         this.self = new SimpleCloudServer(this.connection);
         this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
-        this.transferSystem = new TransferSystem(this.connection);
+        this.transferHandler = new TransferHandler(this.connection);
 
         LOGGER.info("Connecting to controller...");
         this.connection.connect();
+        this.connection.sendReset();
         this.heart.start();
     }
 
@@ -59,7 +60,7 @@ public class CloudPlugin extends JavaPlugin {
         }
 
         // Enable transfer system
-        this.transferSystem.enable();
+        this.transferHandler.enable();
     }
 
     @Override

@@ -49,6 +49,10 @@ impl Users {
             }
         }
     }
+
+    pub async fn get_user_from_uuid(&self, uuid: Uuid) -> Option<&User> {
+        self.users.values().find(|user| user.uuid == uuid)
+    }
 }
 
 pub struct User {

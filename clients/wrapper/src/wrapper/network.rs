@@ -5,8 +5,8 @@ use log::error;
 use tokio::sync::Mutex;
 use url::Url;
 
-use proto::{server_service_client::ServerServiceClient, User, UserIdentifier};
-use tonic::{transport::Channel, Request};
+use proto::{server_service_client::ServerServiceClient, ResolvedTransfer, User, UserIdentifier};
+use tonic::{transport::Channel, Request, Response, Status, Streaming};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -167,6 +167,33 @@ impl CloudConnection {
             .user_disconnected(request)
             .await?;
         Ok(())
+    }
+
+    pub async fn subscribe_to_transfers(
+        &self,
+    ) -> Result<Response<Streaming<ResolvedTransfer>>, Status> {
+        let request = self.create_request(());
+
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .subscribe_to_transfers(request)
+            .await
+    }
+
+    pub async fn send_reset(&self) {
+        let request = self.create_request(());
+
+        self.client
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .reset(request)
+            .await
+            .unwrap();
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {

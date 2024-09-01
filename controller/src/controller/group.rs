@@ -15,7 +15,9 @@ use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
 use super::{
     node::{Nodes, WeakNodeHandle},
-    server::{Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle},
+    server::{
+        Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle,
+    },
     CreationResult,
 };
 
@@ -200,7 +202,10 @@ impl Group {
 
     fn tick(&self, servers: &Servers) {
         let mut group_servers = self.servers.lock().expect("Failed to lock servers");
-        let mut id_allocator = self.id_allocator.lock().expect("Failed to lock id allocator");
+        let mut id_allocator = self
+            .id_allocator
+            .lock()
+            .expect("Failed to lock id allocator");
 
         for requested in 0..(self.scaling.minimum as usize).saturating_sub(group_servers.len()) {
             if (group_servers.len() + requested) >= self.scaling.maximum as usize {
@@ -247,7 +252,10 @@ impl Group {
                 }
                 true
             });
-        self.id_allocator.lock().expect("Failed to lock id allocator").release_id(server.group.as_ref().unwrap().server_id);
+        self.id_allocator
+            .lock()
+            .expect("Failed to lock id allocator")
+            .release_id(server.group.as_ref().unwrap().server_id);
     }
 
     pub fn get_free_server(&self) -> Option<ServerHandle> {

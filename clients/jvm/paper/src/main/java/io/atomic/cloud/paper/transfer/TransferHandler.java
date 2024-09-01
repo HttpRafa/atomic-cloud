@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-public class TransferSystem implements StreamObserver<ResolvedTransfer> {
+public class TransferHandler implements StreamObserver<ResolvedTransfer> {
 
     private final CloudConnection cloudConnection;
 

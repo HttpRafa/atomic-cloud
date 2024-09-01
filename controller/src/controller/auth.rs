@@ -6,7 +6,7 @@ use std::{
 };
 
 use colored::Colorize;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use stored::StoredUser;
 use uuid::Uuid;
 

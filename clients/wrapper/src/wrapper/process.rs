@@ -3,8 +3,8 @@ use std::process::{exit, Stdio};
 use colored::Colorize;
 use log::{error, info};
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    process::{Child, ChildStdout, Command},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
+    process::{Child, ChildStdin, ChildStdout, Command},
 };
 
 use crate::wrapper::detection::Detection;
@@ -30,6 +30,9 @@ pub struct ManagedProcess {
 
     /* StdOut Reader */
     stdout: BufReader<ChildStdout>,
+
+    /* StdIn Writer */
+    stdin: BufWriter<ChildStdin>,
 }
 
 impl ManagedProcess {
@@ -61,6 +64,7 @@ impl ManagedProcess {
                 .take()
                 .expect("Failed to open stdout of child"),
         );
+        let stdin = BufWriter::new(process.stdin.take().expect("Failed to open stdin of child"));
 
         Self {
             process,
@@ -68,6 +72,7 @@ impl ManagedProcess {
             detector,
             connection,
             stdout,
+            stdin,
         }
     }
 
@@ -128,6 +133,11 @@ impl ManagedProcess {
                 .expect("Failed to wait for child process");
         }
         self.handle_state_change(State::Stopped).await;
+    }
+
+    pub async fn write_to_stdin(&mut self, message: &str) {
+        self.stdin.write_all(message.as_bytes()).await.unwrap();
+        self.stdin.flush().await.unwrap();
     }
 
     async fn handle_state_change(&mut self, state: State) {

@@ -3,7 +3,9 @@ use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use std::{
-    ops::Deref, str::FromStr, sync::{mpsc::channel, Arc}
+    ops::Deref,
+    str::FromStr,
+    sync::{mpsc::channel, Arc},
 };
 
 use proto::{
@@ -40,7 +42,9 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().handle_heart_beat(&requesting_server);
+        self.controller
+            .get_servers()
+            .handle_heart_beat(&requesting_server);
         Ok(Response::new(()))
     }
 
@@ -66,7 +70,9 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().mark_not_ready(&requesting_server);
+        self.controller
+            .get_servers()
+            .mark_not_ready(&requesting_server);
         Ok(Response::new(()))
     }
 
@@ -79,7 +85,9 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().mark_running(&requesting_server);
+        self.controller
+            .get_servers()
+            .mark_running(&requesting_server);
         Ok(Response::new(()))
     }
 
@@ -92,7 +100,9 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
-        self.controller.get_servers().checked_stop_server(&requesting_server);
+        self.controller
+            .get_servers()
+            .checked_stop_server(&requesting_server);
         Ok(Response::new(()))
     }
 
@@ -192,7 +202,9 @@ impl ServerService for ServerServiceImpl {
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
         Ok(Response::new(
-            self.controller.get_users().transfer_all_users(&requesting_server),
+            self.controller
+                .get_users()
+                .transfer_all_users(&requesting_server),
         ))
     }
 
@@ -233,7 +245,9 @@ impl ServerService for ServerServiceImpl {
                 }
             }
         } else {
-            return Err(Status::permission_denied("User is not connected to any server"));
+            return Err(Status::permission_denied(
+                "User is not connected to any server",
+            ));
         }
 
         let target = match target.target_type {
@@ -331,5 +345,21 @@ impl ServerService for ServerServiceImpl {
             );
 
         Ok(Response::new(StdReceiverStream::new(receiver)))
+    }
+
+    async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {
+        let requesting_server = request
+            .extensions()
+            .get::<AuthServerHandle>()
+            .expect("Failed to get server from extensions. Is tonic broken?")
+            .server
+            .upgrade()
+            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+
+        self.controller
+            .get_event_bus()
+            .cleanup_server(&requesting_server);
+
+        Ok(Response::new(()))
     }
 }

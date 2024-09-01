@@ -69,7 +69,9 @@ impl Users {
         if let Some((user, from, to)) = transfer.get_strong() {
             info!(
                 "Transfering user {} from {} to server {}",
-                user.name.blue(), from.name.blue(), to.name.blue()
+                user.name.blue(),
+                from.name.blue(),
+                to.name.blue()
             );
 
             let controller = self
@@ -86,7 +88,10 @@ impl Users {
             *user.server.lock().unwrap() = CurrentServer::Transfering(transfer);
             return true;
         } else {
-            error!("{} to transfer user because some required information is missing", "Failed".red());
+            error!(
+                "{} to transfer user because some required information is missing",
+                "Failed".red()
+            );
         }
 
         false
@@ -108,7 +113,12 @@ pub struct Transfer {
 
 impl Transfer {
     pub fn new(user: WeakUserHandle, from: WeakServerHandle, to: WeakServerHandle) -> Self {
-        Self { timestamp: Instant::now(), user, from, to }
+        Self {
+            timestamp: Instant::now(),
+            user,
+            from,
+            to,
+        }
     }
 
     pub fn get_strong(&self) -> Option<(UserHandle, ServerHandle, ServerHandle)> {

@@ -10,4 +10,4 @@ simplelog = "0.12.2"
 colored = "2.1.0"
 
 # Command line arguments
-clap = { version = "4.5.16", features = ["derive"] }
+clap = { version = "4.5.18", features = ["derive"] }

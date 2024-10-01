@@ -13,7 +13,7 @@ simplelog = "0.12.2"
 colored = "2.1.0"
 
 # Error handling
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 
 # Signal handling
 ctrlc = "3.4.5"
@@ -22,19 +22,19 @@ ctrlc = "3.4.5"
 uuid = { version = "1.10.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.16", features = ["derive"] }
+clap = { version = "4.5.18", features = ["derive"] }
 
 # Regex parsing
-regex = "1.10.6"
+regex = "1.11.0"
 
 # Async runtime
-tokio = { version = "1.39.3", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.40.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 url = "2.5.2"
-prost = "0.13.1"
-tonic = "0.12.2"
+prost = "0.13.3"
+tonic = "0.12.3"
 
 [build-dependencies]
 toml = "0.8.19"
-tonic-build = "0.12.2"
+tonic-build = "0.12.3"

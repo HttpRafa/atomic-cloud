@@ -53,7 +53,7 @@ fn get_version_info() -> Result<(u16, u16, u16), Box<dyn std::error::Error>> {
 }
 
 fn generate_grpc_code() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::configure().build_server(false).compile(
+    tonic_build::configure().build_server(false).compile_protos(
         &[format!("{}/admin/admin.proto", PROTO_PATH)],
         &[PROTO_PATH],
     )?;

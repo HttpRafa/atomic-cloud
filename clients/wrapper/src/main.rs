@@ -21,5 +21,5 @@ async fn main() {
 
     info!("{} wrapper...", "Starting".green());
     let mut wrapper = Wrapper::new(args).await;
-    wrapper.start().await;
+    wrapper.start().await
 }

@@ -204,7 +204,7 @@ impl AdminService for AdminServiceImpl {
                 cpu: group.resources.cpu,
                 io: group.resources.io,
                 disk: group.resources.disk,
-                addresses: group.resources.addresses.clone(),
+                addresses: group.resources.addresses,
             }),
             deployment: Some(proto::group::Deployment {
                 image: group.deployment.image.clone(),
@@ -228,7 +228,7 @@ impl AdminService for AdminServiceImpl {
     async fn get_groups(&self, _request: Request<()>) -> Result<Response<proto::GroupList>, Status> {
         let handle = self.controller.lock_groups();
         let mut groups = Vec::with_capacity(handle.get_amount());
-        for (name, _) in handle.get_groups() {
+        for name in handle.get_groups().keys() {
             groups.push(name.clone());
         }
 

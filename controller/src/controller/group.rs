@@ -146,7 +146,7 @@ impl Groups {
             resources,
             deployment,
         };
-        let group = Group::from(name, &stored_group, node_handles.iter().map(|node| Arc::downgrade(&node)).collect());
+        let group = Group::from(name, &stored_group, node_handles.iter().map(|node| Arc::downgrade(node)).collect());
 
         self.add_group(group);
         stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;

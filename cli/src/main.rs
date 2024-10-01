@@ -18,5 +18,5 @@ async fn main() {
     CloudInit::print_ascii_art("Atomic Cloud CLI", &VERSION, &AUTHORS);
 
     let mut cli = Cli::new().await;
-    cli.start().await;
+    cli.start().await
 }

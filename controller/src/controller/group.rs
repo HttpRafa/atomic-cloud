@@ -14,7 +14,7 @@ use shared::StoredGroup;
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
 use super::{
-    node::{Nodes, WeakNodeHandle},
+    node::{NodeHandle, Nodes, WeakNodeHandle},
     server::{
         Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle,
     },
@@ -101,16 +101,28 @@ impl Groups {
         groups
     }
 
+    pub fn get_amount(&self) -> usize {
+        self.groups.len()
+    }
+
+    pub fn get_groups(&self) -> &HashMap<String, GroupHandle> {
+        &self.groups
+    }
+
     pub fn tick(&self, servers: &Servers) {
         for group in self.groups.values() {
             group.tick(servers);
         }
     }
 
+    pub fn delete_group(&mut self, _group: &GroupHandle) -> Result<()> {
+        Ok(())
+    }
+
     pub fn create_group(
         &mut self,
         name: &str,
-        node_handles: Vec<WeakNodeHandle>,
+        node_handles: Vec<NodeHandle>,
         scaling: ScalingPolicy,
         resources: Resources,
         deployment: Deployment,
@@ -125,7 +137,7 @@ impl Groups {
 
         let nodes: Vec<String> = node_handles
             .iter()
-            .filter_map(|node| node.upgrade().map(|n| n.name.clone()))
+            .map(|node| node.name.clone())
             .collect();
 
         let stored_group = StoredGroup {
@@ -134,7 +146,7 @@ impl Groups {
             resources,
             deployment,
         };
-        let group = Group::from(name, &stored_group, node_handles);
+        let group = Group::from(name, &stored_group, node_handles.iter().map(|node| Arc::downgrade(&node)).collect());
 
         self.add_group(group);
         stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
@@ -142,7 +154,7 @@ impl Groups {
         Ok(CreationResult::Created)
     }
 
-    pub fn get_group(&self, name: &str) -> Option<GroupHandle> {
+    pub fn find_by_name(&self, name: &str) -> Option<GroupHandle> {
         self.groups.get(name).cloned()
     }
 
@@ -192,7 +204,7 @@ impl Group {
         let node_handles: Vec<WeakNodeHandle> = stored_group
             .nodes
             .iter()
-            .filter_map(|node_name| nodes.find_by_name(node_name))
+            .filter_map(|node_name| nodes.find_by_name(node_name).map(|handle| Arc::downgrade(&handle)))
             .collect();
         if node_handles.is_empty() {
             return None;

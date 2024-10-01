@@ -109,13 +109,17 @@ impl Nodes {
         &self.nodes
     }
 
-    pub fn find_by_name(&self, name: &str) -> Option<WeakNodeHandle> {
+    pub fn find_by_name(&self, name: &str) -> Option<NodeHandle> {
         for node in &self.nodes {
             if node.name.eq_ignore_ascii_case(name) {
-                return Some(Arc::downgrade(node));
+                return Some(node.clone());
             }
         }
         None
+    }
+
+    pub fn delete_node(&mut self, _node: &NodeHandle) -> Result<()> {
+        Ok(())
     }
 
     pub fn create_node(

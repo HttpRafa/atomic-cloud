@@ -1,4 +1,7 @@
+use crate::{controller::{auth::AuthServerHandle, event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey}, user::{transfer::TransferTarget, CurrentServer}, ControllerHandle}, VERSION};
+
 use super::stream::StdReceiverStream;
+use proto::server_service_server::ServerService;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
@@ -7,18 +10,6 @@ use std::{
     str::FromStr,
     sync::{mpsc::channel, Arc},
 };
-
-use proto::{
-    server_service_server::ServerService, transfer_target::TargetType, ChannelMessage,
-    ResolvedTransfer, Transfer, User, UserIdentifier,
-};
-
-use crate::{controller::{
-    auth::AuthServerHandle,
-    event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
-    user::{transfer::TransferTarget, CurrentServer},
-    ControllerHandle,
-}, VERSION};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -106,7 +97,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn user_connected(&self, request: Request<User>) -> Result<Response<()>, Status> {
+    async fn user_connected(&self, request: Request<proto::User>) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -128,7 +119,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn user_disconnected(
         &self,
-        request: Request<UserIdentifier>,
+        request: Request<proto::UserIdentifier>,
     ) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
@@ -148,7 +139,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToTransfersStream = StdReceiverStream<Result<ResolvedTransfer, Status>>;
+    type SubscribeToTransfersStream = StdReceiverStream<Result<proto::ResolvedTransfer, Status>>;
     async fn subscribe_to_transfers(
         &self,
         request: Request<()>,
@@ -172,8 +163,8 @@ impl ServerService for ServerServiceImpl {
                     if let Some((user, _, to)) = transfer.get_strong() {
                         let address = to.allocation.primary_address();
 
-                        let transfer = ResolvedTransfer {
-                            user: Some(UserIdentifier {
+                        let transfer = proto::ResolvedTransfer {
+                            user: Some(proto::UserIdentifier {
                                 uuid: user.uuid.to_string(),
                             }),
                             host: address.ip().to_string(),
@@ -208,7 +199,7 @@ impl ServerService for ServerServiceImpl {
         ))
     }
 
-    async fn transfer_user(&self, request: Request<Transfer>) -> Result<Response<bool>, Status> {
+    async fn transfer_user(&self, request: Request<proto::Transfer>) -> Result<Response<bool>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -251,10 +242,10 @@ impl ServerService for ServerServiceImpl {
         }
 
         let target = match target.target_type {
-            x if x == TargetType::Group as i32 => TransferTarget::Group(
+            x if x == proto::transfer_target::TargetType::Group as i32 => TransferTarget::Group(
                 self.controller
                     .lock_groups()
-                    .get_group(&target.target)
+                    .find_by_name(&target.target)
                     .ok_or_else(|| Status::not_found("Group does not exist"))?,
             ),
             _ => TransferTarget::Server(
@@ -279,7 +270,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn send_message_to_channel(
         &self,
-        request: Request<ChannelMessage>,
+        request: Request<proto::ChannelMessage>,
     ) -> Result<Response<u32>, Status> {
         let _requesting_server = request
             .extensions()
@@ -316,7 +307,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToChannelStream = StdReceiverStream<Result<ChannelMessage, Status>>;
+    type SubscribeToChannelStream = StdReceiverStream<Result<proto::ChannelMessage, Status>>;
     async fn subscribe_to_channel(
         &self,
         request: Request<String>,

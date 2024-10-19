@@ -91,3 +91,14 @@ impl From<Resources> for BServerLimits {
         }
     }
 }
+
+#[derive(Serialize, Clone)]
+pub struct BUpdateBuild {
+    pub allocation: u32,
+    pub memory: u32,
+    pub swap: u32,
+    pub disk: u32,
+    pub io: u32,
+    pub cpu: u32,
+    pub feature_limits: BServerFeatureLimits,
+}

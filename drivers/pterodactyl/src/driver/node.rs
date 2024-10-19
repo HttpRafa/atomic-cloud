@@ -82,6 +82,22 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             &deployment.disk_retention,
         );
 
+        let allocations = server
+            .allocation
+            .addresses
+            .iter()
+            .map_while(|address| match self.inner.find_allocation(address) {
+                Some(allocation) => Some(allocation),
+                None => {
+                    error!(
+                        "Allocation({:?}) not found for server {}",
+                        &server.allocation.addresses[0], server.name
+                    );
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
         // Check if a server with the same name is already exists
         if let Some(backend_server) = self.get_backend().get_server_by_name(&name) {
             if deployment.disk_retention == Retention::Temporary {
@@ -97,7 +113,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 server.name.blue()
             );
             self.get_backend()
-                .update_settings(&backend_server.identifier, self, &server);
+                .update_settings(&allocations, &backend_server, self, &server);
             self.get_backend().start_server(&backend_server.identifier);
             self.inner.get_servers_mut().push(PanelServer::new(
                 backend_server.id,
@@ -105,22 +121,6 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 name,
             ));
         } else {
-            let allocations = server
-                .allocation
-                .addresses
-                .iter()
-                .map_while(|address| match self.inner.find_allocation(address) {
-                    Some(allocation) => Some(allocation),
-                    None => {
-                        error!(
-                            "Allocation({:?}) not found for server {}",
-                            &server.allocation.addresses[0], server.name
-                        );
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-
             let mut egg = None;
             let mut startup = None;
             for value in deployment.settings.iter() {

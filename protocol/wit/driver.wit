@@ -13,6 +13,7 @@ interface log {
 interface http {
     variant method {
         get,
+        patch,
         post,
         put,
         delete,

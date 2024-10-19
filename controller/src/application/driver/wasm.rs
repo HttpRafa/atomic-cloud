@@ -101,6 +101,7 @@ impl driver::http::Host for WasmDriverState {
         let driver = self.handle.upgrade().unwrap();
         let mut request = match method {
             Method::Get => minreq::get(url),
+            Method::Patch => minreq::patch(url),
             Method::Post => minreq::post(url),
             Method::Put => minreq::put(url),
             Method::Delete => minreq::delete(url),

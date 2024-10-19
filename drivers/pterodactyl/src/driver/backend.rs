@@ -8,6 +8,7 @@ use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server::{
     BCServer, BCServerAllocation, BKeyValue, BServer, BServerEgg, BServerFeatureLimits, BSignal,
+    BUpdateBuild,
 };
 use url::Url;
 use user::BUser;
@@ -183,17 +184,33 @@ impl Backend {
 
     pub fn update_settings(
         &self,
-        identifier: &str,
+        allocations: &[BAllocation],
+        backend_server: &BServer,
         node: &PterodactylNodeWrapper,
         server: &Server,
     ) {
         // Update the server token and controller address
         self.update_variable(
-            identifier,
+            &backend_server.identifier,
             CONTROLLER_ADDRESS,
             &node.inner.controller.address,
         );
-        self.update_variable(identifier, SERVER_TOKEN, &server.auth.token);
+        self.update_variable(&backend_server.identifier, SERVER_TOKEN, &server.auth.token);
+        self.update_build_configuration(
+            backend_server.id,
+            BUpdateBuild {
+                allocation: allocations[0].id,
+                memory: server.allocation.resources.memory,
+                swap: server.allocation.resources.swap,
+                disk: server.allocation.resources.disk,
+                io: server.allocation.resources.io,
+                cpu: server.allocation.resources.cpu,
+                feature_limits: BServerFeatureLimits {
+                    databases: 0,
+                    backups: 0,
+                },
+            },
+        );
     }
 
     pub fn update_variable(&self, identifier: &str, key: &str, value: &str) -> bool {
@@ -206,6 +223,18 @@ impl Backend {
             Method::Put,
             &Endpoint::Client,
             &format!("servers/{}/startup/variable", &identifier),
+            200,
+            value.as_deref(),
+            None,
+        )
+    }
+
+    pub fn update_build_configuration(&self, id: u32, update_build: BUpdateBuild) -> bool {
+        let value = serde_json::to_vec(&update_build).ok();
+        self.send_to_api(
+            Method::Patch,
+            &Endpoint::Application,
+            &format!("servers/{}/build", &id),
             200,
             value.as_deref(),
             None,

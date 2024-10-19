@@ -6,8 +6,8 @@ use log::error;
 use log::info;
 use log::warn;
 
-use crate::controller::group::GroupHandle;
-use crate::controller::{
+use crate::application::group::GroupHandle;
+use crate::application::{
     event::{transfer::UserTransferRequested, EventKey},
     server::{ServerHandle, WeakServerHandle},
 };

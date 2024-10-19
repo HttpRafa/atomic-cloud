@@ -1,4 +1,4 @@
-use crate::controller::user::transfer::Transfer;
+use crate::application::user::transfer::Transfer;
 
 use super::Event;
 

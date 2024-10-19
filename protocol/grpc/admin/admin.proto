@@ -10,22 +10,41 @@ import "google/protobuf/wrappers.proto";
 service AdminService {
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    rpc CreateNode(Node) returns (google.protobuf.Empty);
-    rpc DeleteNode(google.protobuf.StringValue) returns (google.protobuf.Empty);
-    rpc GetNode(google.protobuf.StringValue) returns (Node);
-    rpc GetNodes(google.protobuf.Empty) returns (NodeList);
+    // Resource Management
+    rpc DeleteResource(DeleteResourceRequest) returns (google.protobuf.Empty);
 
-    rpc CreateGroup(Group) returns (google.protobuf.Empty);
-    rpc DeleteGroup(google.protobuf.StringValue) returns (google.protobuf.Empty);
-    rpc GetGroup(google.protobuf.StringValue) returns (Group);
-    rpc GetGroups(google.protobuf.Empty) returns (GroupList);
+    // Node Management
+    rpc CreateNode(NodeValue) returns (google.protobuf.Empty);
+    rpc GetNode(google.protobuf.StringValue) returns (NodeValue);
+    rpc GetNodes(google.protobuf.Empty) returns (NodeListResponse);
+
+    // Group Management
+    rpc CreateGroup(GroupValue) returns (google.protobuf.Empty);
+    rpc GetGroup(google.protobuf.StringValue) returns (GroupValue);
+    rpc GetGroups(google.protobuf.Empty) returns (GroupListResponse);
+
+    // Server Management
+    rpc GetServers(google.protobuf.Empty) returns (ServerListResponse);
 }
 
-message NodeList {
+// Resource Management
+message DeleteResourceRequest {
+    ResourceType type = 1;
+    string id = 2;
+
+    enum ResourceType {
+        NODE = 0;
+        GROUP = 1;
+        SERVER = 2;
+    }
+}
+
+// Node Management
+message NodeListResponse {
     repeated string nodes = 1;
 }
 
-message Node {
+message NodeValue {
     string name = 1;
     string driver = 2;
 
@@ -38,11 +57,12 @@ message Node {
     string controllerAddress = 6;
 }
 
-message GroupList {
+// Group Management
+message GroupListResponse {
     repeated string groups = 1;
 }
 
-message Group {
+message GroupValue {
     string name = 1;
     repeated string nodes = 2;
     Scaling scaling = 3;
@@ -86,4 +106,9 @@ message Group {
             PERMANEMT = 1;
         } 
     }
+}
+
+// Server Management
+message ServerListResponse {
+    repeated string servers = 1;
 }

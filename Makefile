@@ -11,7 +11,7 @@ OLD_RUN_DIR = run.old
 DRIVER_DIR = $(RUN_DIR)/drivers/wasm
 
 # Arguments
-CONTROLLER_ARGS = ""
+CONTROLLER_ARGS = "--debug"
 
 # OS detection
 ifeq ($(OS),Windows_NT)
@@ -45,7 +45,7 @@ fix:
 build: build-controller build-wrapper build-drivers
 
 ## Run target
-run: build run-controller
+run: run-controller
 
 ## Run controller
 run-controller:

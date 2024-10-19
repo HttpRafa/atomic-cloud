@@ -14,7 +14,7 @@ use shared::StoredGroup;
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
 use super::{
-    node::{NodeHandle, Nodes, WeakNodeHandle},
+    node::{LifecycleStatus, NodeHandle, Nodes, WeakNodeHandle},
     server::{
         Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle,
     },
@@ -115,6 +115,10 @@ impl Groups {
         }
     }
 
+    pub fn find_by_name(&self, name: &str) -> Option<GroupHandle> {
+        self.groups.get(name).cloned()
+    }
+
     pub fn delete_group(&mut self, _group: &GroupHandle) -> Result<()> {
         Ok(())
     }
@@ -141,6 +145,7 @@ impl Groups {
             .collect();
 
         let stored_group = StoredGroup {
+            status: LifecycleStatus::Retired,
             nodes,
             scaling,
             resources,
@@ -152,10 +157,6 @@ impl Groups {
         stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
         info!("Created group {}", name.blue());
         Ok(CreationResult::Created)
-    }
-
-    pub fn find_by_name(&self, name: &str) -> Option<GroupHandle> {
-        self.groups.get(name).cloned()
     }
 
     fn add_group(&mut self, group: GroupHandle) {
@@ -177,11 +178,20 @@ pub enum GroupedServer {
 
 pub struct Group {
     handle: WeakGroupHandle,
+
+    /* Settings */
     pub name: String,
+    pub status: LifecycleStatus,
+
+    /* Where? */
     pub nodes: Vec<WeakNodeHandle>,
     pub scaling: ScalingPolicy,
+    
+    /* How? */
     pub resources: Resources,
     pub deployment: Deployment,
+    
+    /* What do i need to know? */
     id_allocator: Mutex<IdAllocator>,
     servers: Mutex<Vec<GroupedServer>>,
 }
@@ -191,6 +201,7 @@ impl Group {
         Arc::new_cyclic(|handle| Self {
             handle: handle.clone(),
             name: name.to_string(),
+            status: stored_group.status.clone(),
             nodes,
             scaling: stored_group.scaling,
             resources: stored_group.resources.clone(),
@@ -213,6 +224,11 @@ impl Group {
     }
 
     fn tick(&self, servers: &Servers) {
+        if self.status == LifecycleStatus::Retired {
+            // Do not tick this group because it is retired
+            return;
+        }
+
         let mut group_servers = self.servers.lock().expect("Failed to lock servers");
         let mut id_allocator = self
             .id_allocator
@@ -320,16 +336,21 @@ mod shared {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        config::{LoadFromTomlFile, SaveToTomlFile},
-        controller::server::{Deployment, Resources},
+        application::{node::LifecycleStatus, server::{Deployment, Resources}}, config::{LoadFromTomlFile, SaveToTomlFile}
     };
 
     use super::ScalingPolicy;
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredGroup {
+        /* Settings */
+        pub status: LifecycleStatus,
+        
+        /* Where? */
         pub nodes: Vec<String>,
         pub scaling: ScalingPolicy,
+
+        /* How? */
         pub resources: Resources,
         pub deployment: Deployment,
     }

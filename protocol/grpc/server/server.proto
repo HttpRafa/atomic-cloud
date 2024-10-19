@@ -20,18 +20,18 @@ service ServerService {
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
 
     // Users
-    rpc UserConnected(User) returns (google.protobuf.Empty);
-    rpc UserDisconnected(UserIdentifier) returns (google.protobuf.Empty);
+    rpc UserConnected(UserConnectedRequest) returns (google.protobuf.Empty);
+    rpc UserDisconnected(UserDisconnectedRequest) returns (google.protobuf.Empty);
 
     // Transfers
-    rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream ResolvedTransfer);
-    rpc TransferAllUsers(TransferTarget) returns (google.protobuf.UInt32Value);
-    rpc TransferUser(Transfer) returns (google.protobuf.BoolValue);
+    rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream ResolvedTransferResponse);
+    rpc TransferAllUsers(TransferTargetValue) returns (google.protobuf.UInt32Value);
+    rpc TransferUser(TransferRequest) returns (google.protobuf.BoolValue);
 
     // Channels
-    rpc SendMessageToChannel(ChannelMessage) returns (google.protobuf.UInt32Value);
+    rpc SendMessageToChannel(ChannelMessageValue) returns (google.protobuf.UInt32Value);
     rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
-    rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessage);
+    rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessageValue);
 
     // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
@@ -40,16 +40,16 @@ service ServerService {
     rpc GetControllerVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 }
 
-message UserIdentifier {
+message UserDisconnectedRequest {
     string uuid = 1;
 }
 
-message User {
+message UserConnectedRequest {
     string name = 1;
     string uuid = 2;
 }
 
-message TransferTarget {
+message TransferTargetValue {
     string target = 1;
     TargetType targetType = 2;
 
@@ -59,18 +59,18 @@ message TransferTarget {
     }
 }
 
-message Transfer {
-    UserIdentifier user = 1;
-    TransferTarget target = 2;
+message TransferRequest {
+    string userUuid = 1;
+    TransferTargetValue target = 2;
 }
 
-message ResolvedTransfer {
-    UserIdentifier user = 1;
+message ResolvedTransferResponse {
+    string userUuid = 1;
     string host = 2;
     uint32 port = 3;
 }
 
-message ChannelMessage {
+message ChannelMessageValue {
     string channel = 1;
     uint32 id = 2;
     string data = 3;

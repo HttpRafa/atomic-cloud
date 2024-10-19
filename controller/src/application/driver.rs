@@ -4,11 +4,11 @@ use log::info;
 use std::{net::SocketAddr, sync::Arc};
 use tonic::async_trait;
 
-use crate::controller::node::Node;
-use crate::controller::server::ServerHandle;
+use crate::application::node::Node;
+use crate::application::server::ServerHandle;
 
 #[cfg(feature = "wasm-drivers")]
-use crate::controller::driver::wasm::WasmDriver;
+use crate::application::driver::wasm::WasmDriver;
 
 #[cfg(feature = "wasm-drivers")]
 mod wasm;

@@ -1,20 +1,20 @@
 use anyhow::Error;
 use auth::Auth;
 use colored::Colorize;
+use driver::Drivers;
 use event::EventBus;
+use group::Groups;
 use log::info;
+use node::Nodes;
 use server::Servers;
+use user::Users;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::{Builder, Runtime};
-use user::Users;
 
 use crate::config::Config;
-use crate::controller::driver::Drivers;
-use crate::controller::group::Groups;
-use crate::controller::node::Nodes;
 use crate::network::NetworkStack;
 
 pub mod auth;

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tonic::{service::Interceptor, Request, Status};
 
-use crate::controller::Controller;
+use crate::application::Controller;
 
 #[derive(Clone)]
 pub struct AdminInterceptor {

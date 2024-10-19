@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
-use crate::controller::{
+use crate::application::{
     auth::AuthServer,
     driver::GenericNode,
     node::Allocation,

@@ -5,7 +5,7 @@ use log::error;
 use tokio::sync::Mutex;
 use url::Url;
 
-use proto::{server_service_client::ServerServiceClient, ResolvedTransfer, User, UserIdentifier};
+use proto::{server_service_client::ServerServiceClient, ResolvedTransferResponse, UserConnectedRequest, UserDisconnectedRequest};
 use tonic::{transport::Channel, Request, Response, Status, Streaming};
 
 #[allow(clippy::all)]
@@ -144,7 +144,7 @@ impl CloudConnection {
     }
 
     pub async fn user_connected(&self, name: String, uuid: String) -> Result<()> {
-        let request = self.create_request(User { name, uuid });
+        let request = self.create_request(UserConnectedRequest { name, uuid });
 
         self.client
             .lock()
@@ -157,7 +157,7 @@ impl CloudConnection {
     }
 
     pub async fn user_disconnected(&self, uuid: String) -> Result<()> {
-        let request = self.create_request(UserIdentifier { uuid });
+        let request = self.create_request(UserDisconnectedRequest { uuid });
 
         self.client
             .lock()
@@ -171,7 +171,7 @@ impl CloudConnection {
 
     pub async fn subscribe_to_transfers(
         &self,
-    ) -> Result<Response<Streaming<ResolvedTransfer>>, Status> {
+    ) -> Result<Response<Streaming<ResolvedTransferResponse>>, Status> {
         let request = self.create_request(());
 
         self.client

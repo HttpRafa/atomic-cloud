@@ -1,7 +1,7 @@
 use proto::admin_service_server::AdminService;
 use tonic::{async_trait, Request, Response, Status};
 
-use crate::controller::{group::ScalingPolicy, node::{Capabilities, RemoteController}, server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention}, ControllerHandle, CreationResult};
+use crate::application::{group::ScalingPolicy, node::{Capabilities, RemoteController}, server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention}, ControllerHandle, CreationResult};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -21,7 +21,11 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn create_node(&self, request: Request<proto::Node>) -> Result<Response<()>, Status> {
+    async fn delete_resource(&self, _request: Request<proto::DeleteResourceRequest>) -> Result<Response<()>, Status> {
+        Err(Status::unimplemented("Delete resource is not implemented"))
+    }
+
+    async fn create_node(&self, request: Request<proto::NodeValue>) -> Result<Response<()>, Status> {
         let node = request.into_inner();
         let name = &node.name;
         let driver = &node.driver;
@@ -56,21 +60,11 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn delete_node(&self, request: Request<String>) -> Result<Response<()>, Status> {
-        let mut handle = self.controller.lock_nodes();
-        let node = handle.find_by_name(&request.into_inner()).ok_or(Status::not_found("Node not found"))?;
-
-        match handle.delete_node(&node) {
-            Ok(()) => Ok(Response::new(())),
-            Err(error) => Err(Status::internal(error.to_string())),
-        }
-    }
-
-    async fn get_node(&self, request: Request<String>) -> Result<Response<proto::Node>, Status> {
+    async fn get_node(&self, request: Request<String>) -> Result<Response<proto::NodeValue>, Status> {
         let handle = self.controller.lock_nodes();
         let node = handle.find_by_name(&request.into_inner()).ok_or(Status::not_found("Node not found"))?;
 
-        Ok(Response::new(proto::Node {
+        Ok(Response::new(proto::NodeValue {
             name: node.name.to_owned(),
             driver: node.driver.name().to_owned(),
             memory: node.capabilities.memory,
@@ -80,17 +74,17 @@ impl AdminService for AdminServiceImpl {
         }))
     }
 
-    async fn get_nodes(&self, _request: Request<()>) -> Result<Response<proto::NodeList>, Status> {
+    async fn get_nodes(&self, _request: Request<()>) -> Result<Response<proto::NodeListResponse>, Status> {
         let handle = self.controller.lock_nodes();
         let mut nodes = Vec::with_capacity(handle.get_amount());
         for node in handle.get_nodes() {
             nodes.push(node.name.clone());
         }
 
-        Ok(Response::new(proto::NodeList { nodes }))
+        Ok(Response::new(proto::NodeListResponse { nodes }))
     }
 
-    async fn create_group(&self, request: Request<proto::Group>) -> Result<Response<()>, Status> {
+    async fn create_group(&self, request: Request<proto::GroupValue>) -> Result<Response<()>, Status> {
         let group = request.into_inner();
         let name = &group.name;
 
@@ -181,24 +175,19 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn delete_group(&self, _request: Request<String>) -> Result<Response<()>, Status> {
-        // TODO: Implement
-        Err(Status::unimplemented("Not implemented"))
-    }
-
-    async fn get_group(&self, request: Request<String>) -> Result<Response<proto::Group>, Status> {
+    async fn get_group(&self, request: Request<String>) -> Result<Response<proto::GroupValue>, Status> {
         let handle = self.controller.lock_groups();
         let group = handle.find_by_name(&request.into_inner()).ok_or(Status::not_found("Group not found"))?;
 
-        Ok(Response::new(proto::Group {
+        Ok(Response::new(proto::GroupValue {
             name: group.name.to_owned(),
             nodes: group.nodes.iter().filter_map(|node| node.upgrade().map(|node| node.name.clone())).collect(),
-            scaling: Some(proto::group::Scaling {
+            scaling: Some(proto::group_value::Scaling {
                 minimum: group.scaling.minimum,
                 maximum: group.scaling.maximum,
                 priority: group.scaling.priority,
             }),
-            resources: Some(proto::group::Resources {
+            resources: Some(proto::group_value::Resources {
                 memory: group.resources.memory,
                 swap: group.resources.swap,
                 cpu: group.resources.cpu,
@@ -206,18 +195,18 @@ impl AdminService for AdminServiceImpl {
                 disk: group.resources.disk,
                 addresses: group.resources.addresses,
             }),
-            deployment: Some(proto::group::Deployment {
+            deployment: Some(proto::group_value::Deployment {
                 image: group.deployment.image.clone(),
-                settings: group.deployment.settings.iter().map(|setting| proto::group::deployment::KeyValue {
+                settings: group.deployment.settings.iter().map(|setting| proto::group_value::deployment::KeyValue {
                     key: setting.key.clone(),
                     value: setting.value.clone(),
                 }).collect(),
-                environment: group.deployment.environment.iter().map(|setting| proto::group::deployment::KeyValue {
+                environment: group.deployment.environment.iter().map(|setting| proto::group_value::deployment::KeyValue {
                     key: setting.key.clone(),
                     value: setting.value.clone(),
                 }).collect(),
                 disk_retention: Some(group.deployment.disk_retention.clone() as i32),
-                fallback: Some(proto::group::deployment::Fallback {
+                fallback: Some(proto::group_value::deployment::Fallback {
                     enabled: group.deployment.fallback.enabled,
                     priority: group.deployment.fallback.priority,
                 }),
@@ -225,13 +214,17 @@ impl AdminService for AdminServiceImpl {
         }))
     }
 
-    async fn get_groups(&self, _request: Request<()>) -> Result<Response<proto::GroupList>, Status> {
+    async fn get_groups(&self, _request: Request<()>) -> Result<Response<proto::GroupListResponse>, Status> {
         let handle = self.controller.lock_groups();
         let mut groups = Vec::with_capacity(handle.get_amount());
         for name in handle.get_groups().keys() {
             groups.push(name.clone());
         }
 
-        Ok(Response::new(proto::GroupList { groups }))
+        Ok(Response::new(proto::GroupListResponse { groups }))
+    }
+
+    async fn get_servers(&self, _request: Request<()>) -> Result<Response<proto::ServerListResponse>, Status> {
+        Err(Status::unimplemented("Get servers is not implemented"))
     }
 }

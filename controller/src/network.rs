@@ -9,7 +9,7 @@ use tokio::{
 };
 use tonic::transport::Server;
 
-use crate::controller::{Controller, WeakControllerHandle};
+use crate::application::{Controller, WeakControllerHandle};
 use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
 use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
 

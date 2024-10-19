@@ -1,4 +1,4 @@
-use crate::{controller::{auth::AuthServerHandle, event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey}, user::{transfer::TransferTarget, CurrentServer}, ControllerHandle}, VERSION};
+use crate::{application::{auth::AuthServerHandle, event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey}, user::{transfer::TransferTarget, CurrentServer}, ControllerHandle}, VERSION};
 
 use super::stream::StdReceiverStream;
 use proto::server_service_server::ServerService;
@@ -97,7 +97,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn user_connected(&self, request: Request<proto::User>) -> Result<Response<()>, Status> {
+    async fn user_connected(&self, request: Request<proto::UserConnectedRequest>) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -119,7 +119,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn user_disconnected(
         &self,
-        request: Request<proto::UserIdentifier>,
+        request: Request<proto::UserDisconnectedRequest>,
     ) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
@@ -139,7 +139,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToTransfersStream = StdReceiverStream<Result<proto::ResolvedTransfer, Status>>;
+    type SubscribeToTransfersStream = StdReceiverStream<Result<proto::ResolvedTransferResponse, Status>>;
     async fn subscribe_to_transfers(
         &self,
         request: Request<()>,
@@ -163,10 +163,8 @@ impl ServerService for ServerServiceImpl {
                     if let Some((user, _, to)) = transfer.get_strong() {
                         let address = to.allocation.primary_address();
 
-                        let transfer = proto::ResolvedTransfer {
-                            user: Some(proto::UserIdentifier {
-                                uuid: user.uuid.to_string(),
-                            }),
+                        let transfer = proto::ResolvedTransferResponse {
+                            user_uuid: user.uuid.to_string(),
                             host: address.ip().to_string(),
                             port: address.port() as u32,
                         };
@@ -182,7 +180,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn transfer_all_users(
         &self,
-        request: Request<proto::TransferTarget>,
+        request: Request<proto::TransferTargetValue>,
     ) -> Result<Response<u32>, Status> {
         let requesting_server = request
             .extensions()
@@ -199,7 +197,7 @@ impl ServerService for ServerServiceImpl {
         ))
     }
 
-    async fn transfer_user(&self, request: Request<proto::Transfer>) -> Result<Response<bool>, Status> {
+    async fn transfer_user(&self, request: Request<proto::TransferRequest>) -> Result<Response<bool>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -209,14 +207,12 @@ impl ServerService for ServerServiceImpl {
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
         let transfer = request.into_inner();
-        let user = transfer
-            .user
-            .ok_or_else(|| Status::invalid_argument("User must be provided"))?;
+        let user_uuid = transfer.user_uuid;
         let target = transfer
             .target
             .ok_or_else(|| Status::invalid_argument("Target must be provided"))?;
 
-        let user_uuid = Uuid::from_str(&user.uuid).map_err(|error| {
+        let user_uuid = Uuid::from_str(&user_uuid).map_err(|error| {
             Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
         })?;
 
@@ -242,7 +238,7 @@ impl ServerService for ServerServiceImpl {
         }
 
         let target = match target.target_type {
-            x if x == proto::transfer_target::TargetType::Group as i32 => TransferTarget::Group(
+            x if x == proto::transfer_target_value::TargetType::Group as i32 => TransferTarget::Group(
                 self.controller
                     .lock_groups()
                     .find_by_name(&target.target)
@@ -270,7 +266,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn send_message_to_channel(
         &self,
-        request: Request<proto::ChannelMessage>,
+        request: Request<proto::ChannelMessageValue>,
     ) -> Result<Response<u32>, Status> {
         let _requesting_server = request
             .extensions()
@@ -307,7 +303,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToChannelStream = StdReceiverStream<Result<proto::ChannelMessage, Status>>;
+    type SubscribeToChannelStream = StdReceiverStream<Result<proto::ChannelMessageValue, Status>>;
     async fn subscribe_to_channel(
         &self,
         request: Request<String>,

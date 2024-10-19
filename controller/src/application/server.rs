@@ -12,12 +12,10 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::controller::{ControllerHandle, WeakControllerHandle};
-
 use super::{
     auth::AuthServerHandle,
     group::WeakGroupHandle,
-    node::{AllocationHandle, NodeHandle, WeakNodeHandle},
+    node::{AllocationHandle, NodeHandle, WeakNodeHandle}, ControllerHandle, WeakControllerHandle,
 };
 
 pub type ServerHandle = Arc<Server>;

@@ -1,10 +1,10 @@
-use crate::network::server::proto::ChannelMessage;
+use crate::network::server::proto::ChannelMessageValue;
 
 use super::Event;
 
 #[derive(Debug)]
 pub struct ChannelMessageSended {
-    pub message: ChannelMessage,
+    pub message: ChannelMessageValue,
 }
 
 impl Event for ChannelMessageSended {}

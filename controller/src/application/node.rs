@@ -1,8 +1,5 @@
 use std::{
-    fs,
-    net::SocketAddr,
-    path::Path,
-    sync::{Arc, Mutex, Weak},
+    fs, net::SocketAddr, path::Path, sync::{Arc, Mutex, Weak}
 };
 
 use anyhow::{anyhow, Result};
@@ -118,7 +115,9 @@ impl Nodes {
         None
     }
 
-    pub fn delete_node(&mut self, _node: &NodeHandle) -> Result<()> {
+    pub fn delete_node(&mut self, node: &NodeHandle) -> Result<()> {
+        self.remove_node(node);
+        info!("Deleted node {}", node.name.blue());
         Ok(())
     }
 
@@ -136,6 +135,7 @@ impl Nodes {
         let stored_node = StoredNode {
             driver: driver.name().to_string(),
             capabilities,
+            status: LifecycleStatus::Retired,
             controller,
         };
         let node = Node::from(name, &stored_node, driver);
@@ -160,6 +160,10 @@ impl Nodes {
             Err(error) => Err(error),
         }
     }
+
+    fn remove_node(&mut self, node: &NodeHandle) {
+        self.nodes.retain(|n| !Arc::ptr_eq(n, node));
+    }
 }
 
 pub type AllocationHandle = Arc<Allocation>;
@@ -180,6 +184,7 @@ pub struct Node {
     /* Settings */
     pub name: String,
     pub capabilities: Capabilities,
+    pub status: LifecycleStatus,
 
     /* Controller */
     pub controller: RemoteController,
@@ -197,6 +202,7 @@ impl Node {
         Self {
             name: name.to_string(),
             capabilities: stored_node.capabilities.clone(),
+            status: stored_node.status.clone(),
             controller: stored_node.controller.clone(),
             driver,
             inner: None,
@@ -234,6 +240,11 @@ impl Node {
         resources: &Resources,
         deployment: Deployment,
     ) -> Result<AllocationHandle> {
+        if self.status == LifecycleStatus::Retired {
+            warn!("Attempted to allocate resources on {} node {}", "retired".red(), self.name.blue());
+            return Err(anyhow!("Can not allocate resources on retired node"));
+        }
+
         let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
 
         if let Some(max_memory) = self.capabilities.memory {
@@ -301,13 +312,22 @@ pub struct Capabilities {
     pub sub_node: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default, PartialEq)]
+pub enum LifecycleStatus {
+    #[serde(rename = "retired")]
+    #[default]
+    Retired,
+    #[serde(rename = "active")]
+    Active,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RemoteController {
     pub address: Url,
 }
 
 mod stored {
-    use super::{Capabilities, RemoteController};
+    use super::{Capabilities, RemoteController, LifecycleStatus};
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 
@@ -316,6 +336,7 @@ mod stored {
         /* Settings */
         pub driver: String,
         pub capabilities: Capabilities,
+        pub status: LifecycleStatus,
 
         /* Controller */
         pub controller: RemoteController,

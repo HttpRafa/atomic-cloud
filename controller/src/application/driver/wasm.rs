@@ -19,7 +19,7 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 use super::source::Source;
 use super::{DriverNodeHandle, GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
 use crate::config::CONFIG_DIRECTORY;
-use crate::controller::node::{Capabilities, Node, RemoteController};
+use crate::application::node::{Capabilities, Node, RemoteController};
 
 mod node_impl;
 

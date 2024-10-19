@@ -192,7 +192,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn transfer_all_users(
         &self,
-        request: Request<proto::TransferTargetValue>,
+        request: Request<proto::TransferAllUsersRequest>,
     ) -> Result<Response<u32>, Status> {
         let requesting_server = request
             .extensions()
@@ -202,16 +202,42 @@ impl ServerService for ServerServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
+        let transfer = request.into_inner();
+        let target = match transfer.target {
+            Some(target) => Some(
+                match proto::transfer_target_value::TargetType::try_from(target.target_type) {
+                    Ok(proto::transfer_target_value::TargetType::Group) => TransferTarget::Group(
+                        self.controller
+                            .lock_groups()
+                            .find_by_name(&target.target)
+                            .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                    ),
+                    _ => TransferTarget::Server(
+                        self.controller
+                            .get_servers()
+                            .get_server(Uuid::from_str(&target.target).map_err(|error| {
+                                Status::invalid_argument(format!(
+                                    "Failed to parse target UUID: {}",
+                                    error
+                                ))
+                            })?)
+                            .ok_or_else(|| Status::not_found("Server does not exist"))?,
+                    ),
+                },
+            ),
+            None => None,
+        };
+
         Ok(Response::new(
             self.controller
                 .get_users()
-                .transfer_all_users(&requesting_server),
+                .transfer_all_users(&requesting_server, target),
         ))
     }
 
     async fn transfer_user(
         &self,
-        request: Request<proto::TransferRequest>,
+        request: Request<proto::TransferUserRequest>,
     ) -> Result<Response<bool>, Status> {
         let requesting_server = request
             .extensions()
@@ -222,12 +248,11 @@ impl ServerService for ServerServiceImpl {
             .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
 
         let transfer = request.into_inner();
-        let user_uuid = transfer.user_uuid;
         let target = transfer
             .target
             .ok_or_else(|| Status::invalid_argument("Target must be provided"))?;
 
-        let user_uuid = Uuid::from_str(&user_uuid).map_err(|error| {
+        let user_uuid = Uuid::from_str(&transfer.user_uuid).map_err(|error| {
             Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
         })?;
 
@@ -252,15 +277,13 @@ impl ServerService for ServerServiceImpl {
             ));
         }
 
-        let target = match target.target_type {
-            x if x == proto::transfer_target_value::TargetType::Group as i32 => {
-                TransferTarget::Group(
-                    self.controller
-                        .lock_groups()
-                        .find_by_name(&target.target)
-                        .ok_or_else(|| Status::not_found("Group does not exist"))?,
-                )
-            }
+        let target = match proto::transfer_target_value::TargetType::try_from(target.target_type) {
+            Ok(proto::transfer_target_value::TargetType::Group) => TransferTarget::Group(
+                self.controller
+                    .lock_groups()
+                    .find_by_name(&target.target)
+                    .ok_or_else(|| Status::not_found("Group does not exist"))?,
+            ),
             _ => TransferTarget::Server(
                 self.controller
                     .get_servers()

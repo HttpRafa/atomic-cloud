@@ -25,8 +25,8 @@ service ServerService {
 
     // Transfers
     rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream ResolvedTransferResponse);
-    rpc TransferAllUsers(TransferTargetValue) returns (google.protobuf.UInt32Value);
-    rpc TransferUser(TransferRequest) returns (google.protobuf.BoolValue);
+    rpc TransferAllUsers(TransferAllUsersRequest) returns (google.protobuf.UInt32Value);
+    rpc TransferUser(TransferUserRequest) returns (google.protobuf.BoolValue);
 
     // Channels
     rpc SendMessageToChannel(ChannelMessageValue) returns (google.protobuf.UInt32Value);
@@ -49,6 +49,10 @@ message UserConnectedRequest {
     string uuid = 2;
 }
 
+message TransferAllUsersRequest {
+    optional TransferTargetValue target = 1;
+}
+
 message TransferTargetValue {
     string target = 1;
     TargetType targetType = 2;
@@ -59,7 +63,7 @@ message TransferTargetValue {
     }
 }
 
-message TransferRequest {
+message TransferUserRequest {
     string userUuid = 1;
     TransferTargetValue target = 2;
 }

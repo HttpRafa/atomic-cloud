@@ -15,7 +15,11 @@ use crate::application::{
 use super::{CurrentServer, UserHandle, Users, WeakUserHandle};
 
 impl Users {
-    pub fn transfer_all_users(&self, server: &ServerHandle) -> u32 {
+    pub fn transfer_all_users(
+        &self,
+        server: &ServerHandle,
+        possible_target: Option<TransferTarget>,
+    ) -> u32 {
         let controller = self
             .controller
             .upgrade()
@@ -23,11 +27,13 @@ impl Users {
         let users = self.get_users_on_server(server);
         let mut count = 0;
 
-        for user in &users {
-            if let Some(fallback_server) = controller.get_servers().find_fallback_server(server) {
-                if let Some(transfer) =
-                    self.resolve_transfer(user, &TransferTarget::Server(fallback_server))
-                {
+        let target = possible_target.or(controller
+            .get_servers()
+            .find_fallback_server(server)
+            .map(TransferTarget::Server));
+        if let Some(target) = target {
+            for user in &users {
+                if let Some(transfer) = self.resolve_transfer(user, &target) {
                     if self.transfer_user(transfer) {
                         count += 1;
                     }

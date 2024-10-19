@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock, Weak,
@@ -53,7 +53,7 @@ impl Groups {
             }
         }
 
-        let mut groups = Groups::new(controller);
+        let mut groups = Self::new(controller);
         let entries = match fs::read_dir(groups_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -129,8 +129,23 @@ impl Groups {
         self.groups.get(name).cloned()
     }
 
-    pub fn retire_group(&mut self, group: &GroupHandle) -> Result<()> {
-        *group.status.write().unwrap() = LifecycleStatus::Retired;
+    pub fn set_group_status(&mut self, group: &GroupHandle, status: LifecycleStatus) -> Result<()> {
+        match status {
+            LifecycleStatus::Retired => {
+                self.retire_group(group);
+                info!("Retired group {}", group.name.blue());
+            }
+            LifecycleStatus::Active => {
+                self.activate_group(group);
+                info!("Activated group {}", group.name.blue());
+            }
+        }
+        *group.status.write().unwrap() = status;
+        group.mark_dirty()?;
+        Ok(())
+    }
+
+    fn retire_group(&mut self, group: &GroupHandle) {
         let controller = self
             .controller
             .upgrade()
@@ -147,14 +162,29 @@ impl Groups {
             }
             servers.clear();
         }
-        group.save_to_file()?;
-        Ok(())
     }
 
+    fn activate_group(&mut self, _group: &GroupHandle) {}
+
     pub fn delete_group(&mut self, group: &GroupHandle) -> Result<()> {
-        if *group.status.read().unwrap() != LifecycleStatus::Retired {
+        if *group.status.read().expect("Failed to lock status of group") != LifecycleStatus::Retired
+        {
             return Err(anyhow!("Group is not retired"));
         }
+        self.retire_group(group); // Make sure all servers are stopped
+        group.delete_file()?;
+        self.remove_group(group);
+
+        let ref_count = Arc::strong_count(group);
+        if ref_count > 1 {
+            warn!(
+                "Group {} still has strong references[{}] this chould indicate a memory leak!",
+                group.name.blue(),
+                format!("{}", ref_count).red()
+            );
+        }
+
+        info!("Deleted group {}", group.name.blue());
         Ok(())
     }
 
@@ -195,8 +225,28 @@ impl Groups {
         Ok(CreationResult::Created)
     }
 
+    pub fn search_and_remove_node(&self, node: &NodeHandle) {
+        for group in self.groups.values() {
+            group
+                .nodes
+                .write()
+                .expect("Failed to lock nodes list of group")
+                .retain(|handle| {
+                    if let Some(strong_node) = handle.upgrade() {
+                        return !Arc::ptr_eq(&strong_node, node);
+                    }
+                    false
+                });
+            group.mark_dirty().expect("Failed to mark group as dirty");
+        }
+    }
+
     fn add_group(&mut self, group: GroupHandle) {
         self.groups.insert(group.name.to_string(), group);
+    }
+
+    fn remove_group(&mut self, group: &GroupHandle) {
+        self.groups.remove(&group.name);
     }
 }
 
@@ -220,7 +270,7 @@ pub struct Group {
     pub status: RwLock<LifecycleStatus>,
 
     /* Where? */
-    pub nodes: Vec<WeakNodeHandle>,
+    pub nodes: RwLock<Vec<WeakNodeHandle>>,
     pub scaling: ScalingPolicy,
 
     /* How? */
@@ -238,7 +288,7 @@ impl Group {
             handle: handle.clone(),
             name: name.to_string(),
             status: RwLock::new(stored_group.status.clone()),
-            nodes,
+            nodes: RwLock::new(nodes),
             scaling: stored_group.scaling,
             resources: stored_group.resources.clone(),
             deployment: stored_group.deployment.clone(),
@@ -285,7 +335,7 @@ impl Group {
                 canceled: AtomicBool::new(false),
                 when: None,
                 name: format!("{}-{}", self.name, server_id),
-                nodes: self.nodes.clone(),
+                nodes: self.nodes.read().unwrap().clone(),
                 group: Some(GroupInfo {
                     server_id,
                     group: self.handle.clone(),
@@ -337,15 +387,37 @@ impl Group {
         None
     }
 
+    pub fn mark_dirty(&self) -> Result<()> {
+        self.save_to_file()
+    }
+
+    fn delete_file(&self) -> Result<()> {
+        let file_path = self.get_file_path();
+        if file_path.exists() {
+            fs::remove_file(file_path)?;
+        }
+        Ok(())
+    }
+
     fn save_to_file(&self) -> Result<()> {
         let stored_group = StoredGroup {
             status: self.status.read().unwrap().clone(),
-            nodes: self.nodes.iter().map(|node| node.upgrade().unwrap().name.clone()).collect(),
+            nodes: self
+                .nodes
+                .read()
+                .unwrap()
+                .iter()
+                .map(|node| node.upgrade().unwrap().name.clone())
+                .collect(),
             scaling: self.scaling,
             resources: self.resources.clone(),
             deployment: self.deployment.clone(),
         };
-        stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", self.name)))
+        stored_group.save_to_file(&self.get_file_path())
+    }
+
+    fn get_file_path(&self) -> PathBuf {
+        Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", self.name))
     }
 }
 

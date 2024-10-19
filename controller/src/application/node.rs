@@ -1,7 +1,8 @@
 use std::{
+    collections::HashMap,
     fs,
     net::SocketAddr,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, RwLock, Weak},
 };
 
@@ -15,7 +16,7 @@ use url::Url;
 use super::{
     driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver},
     server::{Deployment, Resources},
-    CreationResult,
+    CreationResult, WeakControllerHandle,
 };
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
 
@@ -25,11 +26,20 @@ pub type NodeHandle = Arc<Node>;
 pub type WeakNodeHandle = Weak<Node>;
 
 pub struct Nodes {
-    nodes: Vec<NodeHandle>,
+    controller: WeakControllerHandle,
+
+    nodes: HashMap<String, NodeHandle>,
 }
 
 impl Nodes {
-    pub fn load_all(drivers: &Drivers) -> Self {
+    pub fn new(controller: WeakControllerHandle) -> Self {
+        Self {
+            controller,
+            nodes: HashMap::new(),
+        }
+    }
+
+    pub fn load_all(controller: WeakControllerHandle, drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
         let nodes_directory = Path::new(NODES_DIRECTORY);
@@ -39,7 +49,7 @@ impl Nodes {
             }
         }
 
-        let mut nodes = Self { nodes: Vec::new() };
+        let mut nodes = Self::new(controller);
         let entries = match fs::read_dir(nodes_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -105,21 +115,60 @@ impl Nodes {
         self.nodes.len()
     }
 
-    pub fn get_nodes(&self) -> &Vec<NodeHandle> {
-        &self.nodes
+    pub fn get_nodes(&self) -> Vec<NodeHandle> {
+        self.nodes.values().cloned().collect()
     }
 
     pub fn find_by_name(&self, name: &str) -> Option<NodeHandle> {
-        for node in &self.nodes {
-            if node.name.eq_ignore_ascii_case(name) {
-                return Some(node.clone());
-            }
-        }
-        None
+        self.nodes.get(name).cloned()
     }
 
+    pub fn set_node_status(&mut self, node: &NodeHandle, status: LifecycleStatus) -> Result<()> {
+        match status {
+            LifecycleStatus::Retired => {
+                self.retire_node(node);
+                info!("Retired node {}", node.name.blue());
+            }
+            LifecycleStatus::Active => {
+                self.activate_node(node);
+                info!("Activated node {}", node.name.blue());
+            }
+        }
+        *node.status.write().unwrap() = status;
+        node.mark_dirty()?;
+        Ok(())
+    }
+
+    fn retire_node(&mut self, node: &NodeHandle) {
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("The controller is dead while still running code that requires it");
+        {
+            controller.lock_groups().search_and_remove_node(node);
+            controller.get_servers().stop_all_on_node(node);
+        }
+    }
+
+    fn activate_node(&mut self, _node: &NodeHandle) {}
+
     pub fn delete_node(&mut self, node: &NodeHandle) -> Result<()> {
+        if *node.status.read().expect("Failed to lock status of node") != LifecycleStatus::Retired {
+            return Err(anyhow!("Node is not retired"));
+        }
+        self.retire_node(node); // Just to be sure
+        node.delete_file()?;
         self.remove_node(node);
+
+        let ref_count = Arc::strong_count(node);
+        if ref_count > 1 {
+            warn!(
+                "Node {} still has strong references[{}] this chould indicate a memory leak!",
+                node.name.blue(),
+                format!("{}", ref_count).red()
+            );
+        }
+
         info!("Deleted node {}", node.name.blue());
         Ok(())
     }
@@ -131,7 +180,7 @@ impl Nodes {
         capabilities: Capabilities,
         controller: RemoteController,
     ) -> Result<CreationResult> {
-        if self.nodes.iter().any(|node| node.name == name) {
+        if self.nodes.contains_key(name) {
             return Ok(CreationResult::AlreadyExists);
         }
 
@@ -157,7 +206,7 @@ impl Nodes {
     fn add_node(&mut self, mut node: Node) -> Result<()> {
         match node.init() {
             Ok(_) => {
-                self.nodes.push(Arc::new(node));
+                self.nodes.insert(node.name.clone(), Arc::new(node));
                 Ok(())
             }
             Err(error) => Err(error),
@@ -165,7 +214,7 @@ impl Nodes {
     }
 
     fn remove_node(&mut self, node: &NodeHandle) {
-        self.nodes.retain(|n| !Arc::ptr_eq(n, node));
+        self.nodes.remove(&node.name);
     }
 }
 
@@ -236,11 +285,6 @@ impl Node {
             }
             Err(error) => Err(error),
         }
-    }
-
-    pub fn retire(&self) -> Result<()> {
-        *self.status.write().unwrap() = LifecycleStatus::Retired;
-        Ok(())
     }
 
     pub fn allocate(
@@ -317,6 +361,32 @@ impl Node {
 
     pub fn get_inner(&self) -> &DriverNodeHandle {
         self.inner.as_ref().unwrap()
+    }
+
+    pub fn mark_dirty(&self) -> Result<()> {
+        self.save_to_file()
+    }
+
+    fn delete_file(&self) -> Result<()> {
+        let file_path = self.get_file_path();
+        if file_path.exists() {
+            fs::remove_file(file_path)?;
+        }
+        Ok(())
+    }
+
+    fn save_to_file(&self) -> Result<()> {
+        let stored_node = StoredNode {
+            driver: self.driver.name().to_string(),
+            capabilities: self.capabilities.clone(),
+            status: self.status.read().unwrap().clone(),
+            controller: self.controller.clone(),
+        };
+        stored_node.save_to_file(&self.get_file_path())
+    }
+
+    fn get_file_path(&self) -> PathBuf {
+        Path::new(NODES_DIRECTORY).join(format!("{}.toml", self.name))
     }
 }
 

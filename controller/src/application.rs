@@ -64,7 +64,7 @@ impl Controller {
         Arc::new_cyclic(move |handle| {
             let auth = Auth::load_all();
             let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
-            let nodes = Nodes::load_all(&drivers);
+            let nodes = Nodes::load_all(handle.clone(), &drivers);
             let groups = Groups::load_all(handle.clone(), &nodes);
             let servers = Servers::new(handle.clone());
             let users = Users::new(handle.clone());
@@ -112,7 +112,7 @@ impl Controller {
 
         // Stop all servers
         info!("Stopping all servers...");
-        self.servers.stop_all();
+        self.servers.stop_all_instant();
 
         // Stop network stack
         info!("Stopping network stack...");

@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::application::{
     group::ScalingPolicy,
-    node::{Capabilities, RemoteController},
+    node::{Capabilities, LifecycleStatus, RemoteController},
     server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention},
     ControllerHandle, CreationResult,
 };
@@ -29,28 +29,38 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn retire_resource(
+    async fn set_resource_status(
         &self,
-        request: Request<proto::RetireResourceRequest>,
+        request: Request<proto::SetResourceStatusRequest>,
     ) -> Result<Response<()>, Status> {
         let resource = request.into_inner();
-        match proto::retire_resource_request::ResourceCategory::try_from(resource.category) {
-            Ok(proto::retire_resource_request::ResourceCategory::Node) => {
-                let handle = self.controller.lock_nodes_mut();
+        let status =
+            match proto::set_resource_status_request::ResourceStatus::try_from(resource.status) {
+                Ok(proto::set_resource_status_request::ResourceStatus::Active) => {
+                    LifecycleStatus::Active
+                }
+                Ok(proto::set_resource_status_request::ResourceStatus::Retired) => {
+                    LifecycleStatus::Retired
+                }
+                _ => return Err(Status::invalid_argument("Invalid resource status")),
+            };
+        match proto::set_resource_status_request::ResourceCategory::try_from(resource.category) {
+            Ok(proto::set_resource_status_request::ResourceCategory::Node) => {
+                let mut handle = self.controller.lock_nodes_mut();
                 let node = handle
                     .find_by_name(&resource.id)
                     .ok_or(Status::not_found("Node not found"))?;
-                match node.retire() {
+                match handle.set_node_status(&node, status) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
             }
-            Ok(proto::retire_resource_request::ResourceCategory::Group) => {
+            Ok(proto::set_resource_status_request::ResourceCategory::Group) => {
                 let mut handle = self.controller.lock_groups_mut();
                 let group: std::sync::Arc<crate::application::group::Group> = handle
                     .find_by_name(&resource.id)
                     .ok_or(Status::not_found("Group not found"))?;
-                match handle.retire_group(&group) {
+                match handle.set_group_status(&group, status) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
@@ -275,14 +285,17 @@ impl AdminService for AdminServiceImpl {
         let group = handle
             .find_by_name(&request.into_inner())
             .ok_or(Status::not_found("Group not found"))?;
+        let nodes = group
+            .nodes
+            .read()
+            .unwrap()
+            .iter()
+            .filter_map(|node| node.upgrade().map(|node| node.name.clone()))
+            .collect();
 
         Ok(Response::new(proto::GroupValue {
             name: group.name.to_owned(),
-            nodes: group
-                .nodes
-                .iter()
-                .filter_map(|node| node.upgrade().map(|node| node.name.clone()))
-                .collect(),
+            nodes,
             scaling: Some(proto::group_value::Scaling {
                 minimum: group.scaling.minimum,
                 maximum: group.scaling.maximum,

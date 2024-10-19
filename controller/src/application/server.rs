@@ -113,6 +113,15 @@ impl Servers {
                     }
                 }
 
+                if request.nodes.is_empty() {
+                    warn!(
+                        "{} to allocate resources for server {} because no nodes were specified",
+                        "Failed".red(),
+                        request.name.red()
+                    );
+                    return true;
+                }
+
                 // Collect and sort nodes by the number of allocations
                 for node in &request.nodes {
                     let node = node.upgrade().unwrap();
@@ -141,13 +150,24 @@ impl Servers {
         arc
     }
 
-    pub fn stop_all(&self) {
+    pub fn stop_all_instant(&self) {
         self.servers
             .write()
             .unwrap()
             .drain()
             .for_each(|(_, server)| {
                 self.stop_server_internal(&StopRequest { when: None, server });
+            });
+    }
+
+    pub fn stop_all_on_node(&self, node: &NodeHandle) {
+        self.servers
+            .read()
+            .unwrap()
+            .values()
+            .filter(|server| Arc::ptr_eq(&server.node.upgrade().unwrap(), node))
+            .for_each(|server| {
+                self.stop_server_now(server.clone());
             });
     }
 
@@ -312,7 +332,7 @@ impl Servers {
 
     pub fn checked_stop_server(&self, server: &ServerHandle) {
         let mut state = server.state.write().unwrap();
-        if *state == State::Running {
+        if *state != State::Stopping {
             self.mark_not_ready(server);
             *state = State::Stopping;
             self.stop_server_now(server.clone());

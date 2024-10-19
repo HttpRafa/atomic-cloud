@@ -1,14 +1,14 @@
 package io.atomic.cloud.paper.transfer;
 
 import io.atomic.cloud.common.connection.CloudConnection;
-import io.atomic.cloud.grpc.server.ResolvedTransfer;
+import io.atomic.cloud.grpc.server.ResolvedTransferResponse;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TransferHandler implements StreamObserver<ResolvedTransfer> {
+public class TransferHandler implements StreamObserver<ResolvedTransferResponse> {
 
     private final CloudConnection cloudConnection;
 
@@ -18,14 +18,14 @@ public class TransferHandler implements StreamObserver<ResolvedTransfer> {
     }
 
     @Override
-    public void onNext(ResolvedTransfer resolvedTransfer) {
+    public void onNext(ResolvedTransferResponse resolvedTransfer) {
         try {
-            var uuid = UUID.fromString(resolvedTransfer.getUser().getUuid());
+            var uuid = UUID.fromString(resolvedTransfer.getUserUuid());
             var player = CloudPlugin.INSTANCE.getServer().getPlayer(uuid);
             if (player == null) {
                 CloudPlugin.LOGGER.error(
                         "Failed to handle transfer request for user {}: Player not found",
-                        resolvedTransfer.getUser().getUuid());
+                        resolvedTransfer.getUserUuid());
                 return;
             }
 
@@ -37,9 +37,7 @@ public class TransferHandler implements StreamObserver<ResolvedTransfer> {
                     resolvedTransfer.getPort());
         } catch (Throwable throwable) {
             CloudPlugin.LOGGER.error(
-                    "Failed to handle transfer request for user {}: {}",
-                    resolvedTransfer.getUser().getUuid(),
-                    throwable);
+                    "Failed to handle transfer request for user {}: {}", resolvedTransfer.getUserUuid(), throwable);
         }
     }
 

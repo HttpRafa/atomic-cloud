@@ -79,35 +79,35 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userConnected(User user) {
+    public CompletableFuture<Empty> userConnected(UserConnectedRequest user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userConnected(user, observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userDisconnected(UserIdentifier user) {
+    public CompletableFuture<Empty> userDisconnected(UserDisconnectedRequest user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userDisconnected(user, observer);
         return observer.future();
     }
 
-    public void subscribeToTransfers(StreamObserver<ResolvedTransfer> observer) {
+    public void subscribeToTransfers(StreamObserver<ResolvedTransferResponse> observer) {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferAllUsers(TransferTarget target) {
+    public CompletableFuture<UInt32Value> transferAllUsers(TransferTargetValue target) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
         return observer.future();
     }
 
-    public CompletableFuture<BoolValue> transferUser(Transfer transfer) {
+    public CompletableFuture<BoolValue> transferUser(TransferRequest transfer) {
         var observer = new StreamObserverImpl<BoolValue>();
         this.client.transferUser(transfer, observer);
         return observer.future();
     }
 
-    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelMessage message) {
+    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelMessageValue message) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.sendMessageToChannel(message, observer);
         return observer.future();
@@ -119,7 +119,7 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public void subscribeToChannel(String channel, StreamObserver<ChannelMessage> observer) {
+    public void subscribeToChannel(String channel, StreamObserver<ChannelMessageValue> observer) {
         this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 

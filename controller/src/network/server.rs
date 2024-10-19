@@ -1,4 +1,12 @@
-use crate::{application::{auth::AuthServerHandle, event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey}, user::{transfer::TransferTarget, CurrentServer}, ControllerHandle}, VERSION};
+use crate::{
+    application::{
+        auth::AuthServerHandle,
+        event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
+        user::{transfer::TransferTarget, CurrentServer},
+        ControllerHandle,
+    },
+    VERSION,
+};
 
 use super::stream::StdReceiverStream;
 use proto::server_service_server::ServerService;
@@ -97,7 +105,10 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn user_connected(&self, request: Request<proto::UserConnectedRequest>) -> Result<Response<()>, Status> {
+    async fn user_connected(
+        &self,
+        request: Request<proto::UserConnectedRequest>,
+    ) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -139,7 +150,8 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToTransfersStream = StdReceiverStream<Result<proto::ResolvedTransferResponse, Status>>;
+    type SubscribeToTransfersStream =
+        StdReceiverStream<Result<proto::ResolvedTransferResponse, Status>>;
     async fn subscribe_to_transfers(
         &self,
         request: Request<()>,
@@ -197,7 +209,10 @@ impl ServerService for ServerServiceImpl {
         ))
     }
 
-    async fn transfer_user(&self, request: Request<proto::TransferRequest>) -> Result<Response<bool>, Status> {
+    async fn transfer_user(
+        &self,
+        request: Request<proto::TransferRequest>,
+    ) -> Result<Response<bool>, Status> {
         let requesting_server = request
             .extensions()
             .get::<AuthServerHandle>()
@@ -223,7 +238,7 @@ impl ServerService for ServerServiceImpl {
             .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
 
         // Check if the user is connected to the server that requested the transfer
-        if let CurrentServer::Connected(server) = user.server.lock().unwrap().deref() {
+        if let CurrentServer::Connected(server) = user.server.read().unwrap().deref() {
             if let Some(server) = server.upgrade() {
                 if !Arc::ptr_eq(&server, &requesting_server) {
                     return Err(Status::permission_denied(
@@ -238,12 +253,14 @@ impl ServerService for ServerServiceImpl {
         }
 
         let target = match target.target_type {
-            x if x == proto::transfer_target_value::TargetType::Group as i32 => TransferTarget::Group(
-                self.controller
-                    .lock_groups()
-                    .find_by_name(&target.target)
-                    .ok_or_else(|| Status::not_found("Group does not exist"))?,
-            ),
+            x if x == proto::transfer_target_value::TargetType::Group as i32 => {
+                TransferTarget::Group(
+                    self.controller
+                        .lock_groups()
+                        .find_by_name(&target.target)
+                        .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                )
+            }
             _ => TransferTarget::Server(
                 self.controller
                     .get_servers()
@@ -350,8 +367,10 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn get_controller_version(&self, _request: Request<()>) -> Result<Response<String>, Status> {
+    async fn get_controller_version(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<String>, Status> {
         Ok(Response::new(VERSION.to_string()))
     }
-
 }

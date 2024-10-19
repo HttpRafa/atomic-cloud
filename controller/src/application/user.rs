@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     ops::Deref,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, RwLock, Weak},
     time::Instant,
 };
 
@@ -24,14 +24,14 @@ pub struct Users {
     controller: WeakControllerHandle,
 
     /* Users that joined some started server */
-    users: Mutex<HashMap<Uuid, UserHandle>>,
+    users: RwLock<HashMap<Uuid, UserHandle>>,
 }
 
 impl Users {
     pub fn new(controller: WeakControllerHandle) -> Self {
         Self {
             controller,
-            users: Mutex::new(HashMap::new()),
+            users: RwLock::new(HashMap::new()),
         }
     }
 
@@ -41,9 +41,9 @@ impl Users {
             .upgrade()
             .expect("Failed to upgrade controller");
 
-        let mut users = self.users.lock().unwrap();
+        let mut users = self.users.write().unwrap();
         users.retain(|_, user| {
-            if let CurrentServer::Transfering(transfer) = user.server.lock().unwrap().deref() {
+            if let CurrentServer::Transfering(transfer) = user.server.read().unwrap().deref() {
                 if Instant::now().duration_since(transfer.timestamp)
                     > controller.configuration.timings.transfer.unwrap()
                 {
@@ -63,9 +63,9 @@ impl Users {
     }
 
     pub fn handle_user_connected(&self, server: ServerHandle, name: String, uuid: Uuid) {
-        let mut users = self.users.lock().unwrap();
+        let mut users = self.users.write().unwrap();
         if let Some(user) = users.get(&uuid) {
-            let mut current_server = user.server.lock().unwrap();
+            let mut current_server = user.server.write().unwrap();
             match current_server.deref() {
                 CurrentServer::Connected(_) => {
                     *current_server = CurrentServer::Connected(Arc::downgrade(&server));
@@ -99,9 +99,9 @@ impl Users {
     }
 
     pub fn handle_user_disconnected(&self, server: ServerHandle, uuid: Uuid) {
-        let mut users = self.users.lock().unwrap();
+        let mut users = self.users.write().unwrap();
         if let Some(user) = users.get(&uuid).cloned() {
-            if let CurrentServer::Connected(weak_server) = user.server.lock().unwrap().deref() {
+            if let CurrentServer::Connected(weak_server) = user.server.read().unwrap().deref() {
                 if let Some(strong_server) = weak_server.upgrade() {
                     // Verify if the user is connected to the server that is saying he is disconnecting
                     if Arc::ptr_eq(&strong_server, &server) {
@@ -121,8 +121,8 @@ impl Users {
 
     pub fn cleanup_users(&self, dead_server: &ServerHandle) -> u32 {
         let mut amount = 0;
-        self.users.lock().unwrap().retain(|_, user| {
-            if let CurrentServer::Connected(weak_server) = user.server.lock().unwrap().deref() {
+        self.users.write().unwrap().retain(|_, user| {
+            if let CurrentServer::Connected(weak_server) = user.server.read().unwrap().deref() {
                 if let Some(server) = weak_server.upgrade() {
                     if Arc::ptr_eq(&server, dead_server) {
                         info!(
@@ -152,11 +152,11 @@ impl Users {
 
     pub fn get_users_on_server(&self, server: &ServerHandle) -> Vec<UserHandle> {
         self.users
-            .lock()
+            .read()
             .unwrap()
             .values()
             .filter(|user| {
-                if let CurrentServer::Connected(weak_server) = user.server.lock().unwrap().deref() {
+                if let CurrentServer::Connected(weak_server) = user.server.read().unwrap().deref() {
                     if let Some(strong_server) = weak_server.upgrade() {
                         return Arc::ptr_eq(&strong_server, server);
                     }
@@ -168,14 +168,14 @@ impl Users {
     }
 
     pub fn get_user(&self, uuid: Uuid) -> Option<UserHandle> {
-        self.users.lock().unwrap().get(&uuid).cloned()
+        self.users.read().unwrap().get(&uuid).cloned()
     }
 
     fn create_user(&self, name: String, uuid: Uuid, server: &ServerHandle) -> UserHandle {
         Arc::new(User {
             name,
             uuid,
-            server: Mutex::new(CurrentServer::Connected(Arc::downgrade(server))),
+            server: RwLock::new(CurrentServer::Connected(Arc::downgrade(server))),
         })
     }
 }
@@ -188,5 +188,5 @@ pub enum CurrentServer {
 pub struct User {
     pub name: String,
     pub uuid: Uuid,
-    pub server: Mutex<CurrentServer>,
+    pub server: RwLock<CurrentServer>,
 }

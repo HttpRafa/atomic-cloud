@@ -71,7 +71,10 @@ impl Transfers {
                             .replace("%PORT%", &transfer.port.to_string());
                         process.write_to_stdin(&command).await;
                     } else {
-                        error!("Received transfer from unknown user: {}", transfer.user_uuid);
+                        error!(
+                            "Received transfer from unknown user: {}",
+                            transfer.user_uuid
+                        );
                     }
                 } else {
                     error!("Failed to parse uuid: {}", transfer.user_uuid);

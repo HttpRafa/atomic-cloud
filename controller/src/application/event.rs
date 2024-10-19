@@ -9,7 +9,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 pub mod channel;
@@ -32,13 +32,13 @@ struct RegisteredListener {
 }
 
 pub struct EventBus {
-    listeners: Mutex<HashMap<EventKey, Vec<RegisteredListener>>>,
+    listeners: RwLock<HashMap<EventKey, Vec<RegisteredListener>>>,
 }
 
 impl EventBus {
     pub fn new() -> Self {
         Self {
-            listeners: Mutex::new(HashMap::new()),
+            listeners: RwLock::new(HashMap::new()),
         }
     }
 
@@ -48,7 +48,7 @@ impl EventBus {
             listener: Box::new(listener),
         };
         self.listeners
-            .lock()
+            .write()
             .unwrap()
             .entry(key)
             .or_default()
@@ -66,7 +66,7 @@ impl EventBus {
             listener: Box::new(listener),
         };
         self.listeners
-            .lock()
+            .write()
             .unwrap()
             .entry(key)
             .or_default()
@@ -74,7 +74,7 @@ impl EventBus {
     }
 
     pub fn unregister_listener(&self, key: EventKey, server: &ServerHandle) {
-        let mut listeners = self.listeners.lock().unwrap();
+        let mut listeners = self.listeners.write().unwrap();
         if let Some(registered_listeners) = listeners.get_mut(&key) {
             registered_listeners.retain(|registered_listener| {
                 if let Some(weak_server) = &registered_listener.server {
@@ -92,7 +92,7 @@ impl EventBus {
     }
 
     pub fn cleanup_server(&self, server: &ServerHandle) {
-        let mut listeners = self.listeners.lock().unwrap();
+        let mut listeners = self.listeners.write().unwrap();
         for (_, registered_listeners) in listeners.iter_mut() {
             registered_listeners.retain(|registered_listener| {
                 if let Some(weak_server) = &registered_listener.server {
@@ -113,7 +113,7 @@ impl EventBus {
         debug!("[{}] Dispatching event: {:?}", "EVENTS".blue(), event);
 
         let mut count = 0;
-        let listeners = self.listeners.lock().unwrap();
+        let listeners = self.listeners.read().unwrap();
         if let Some(registered_listeners) = listeners.get(key) {
             for registered_listener in registered_listeners {
                 if let Some(listener) = registered_listener

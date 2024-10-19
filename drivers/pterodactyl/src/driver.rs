@@ -3,7 +3,7 @@ use colored::Colorize;
 use node::PterodactylNode;
 use std::cell::UnsafeCell;
 use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use crate::exports::node::driver::bridge::{
     Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information, RemoteController,
@@ -27,7 +27,7 @@ pub struct Pterodactyl {
     backend: UnsafeCell<Option<Rc<Backend>>>,
 
     /* Nodes that this driver handles */
-    nodes: Mutex<Vec<Rc<PterodactylNode>>>,
+    nodes: RwLock<Vec<Rc<PterodactylNode>>>,
 }
 
 impl Pterodactyl {
@@ -42,7 +42,7 @@ impl GuestGenericDriver for Pterodactyl {
         Self {
             cloud_identifier,
             backend: UnsafeCell::new(None),
-            nodes: Mutex::new(Vec::new()),
+            nodes: RwLock::new(Vec::new()),
         }
     }
 
@@ -79,7 +79,7 @@ impl GuestGenericDriver for Pterodactyl {
                 );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add node to nodes
-                let mut nodes = self.nodes.lock().expect("Failed to get lock on nodes");
+                let mut nodes = self.nodes.write().expect("Failed to get lock on nodes");
                 nodes.push(wrapper.inner.clone());
                 info!(
                     "Node {}[{}] was {}",

@@ -5,7 +5,10 @@ use log::error;
 use tokio::sync::Mutex;
 use url::Url;
 
-use proto::{server_service_client::ServerServiceClient, ResolvedTransferResponse, UserConnectedRequest, UserDisconnectedRequest};
+use proto::{
+    server_service_client::ServerServiceClient, ResolvedTransferResponse, UserConnectedRequest,
+    UserDisconnectedRequest,
+};
 use tonic::{transport::Channel, Request, Response, Status, Streaming};
 
 #[allow(clippy::all)]

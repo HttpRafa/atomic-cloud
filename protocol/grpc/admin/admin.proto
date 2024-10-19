@@ -11,6 +11,7 @@ service AdminService {
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
     // Resource Management
+    rpc RetireResource(RetireResourceRequest) returns (google.protobuf.Empty);
     rpc DeleteResource(DeleteResourceRequest) returns (google.protobuf.Empty);
 
     // Node Management
@@ -28,11 +29,21 @@ service AdminService {
 }
 
 // Resource Management
-message DeleteResourceRequest {
-    ResourceType type = 1;
+message RetireResourceRequest {
+    ResourceCategory category = 1;
     string id = 2;
 
-    enum ResourceType {
+    enum ResourceCategory {
+        NODE = 0;
+        GROUP = 1;
+    }
+}
+
+message DeleteResourceRequest {
+    ResourceCategory category = 1;
+    string id = 2;
+
+    enum ResourceCategory {
         NODE = 0;
         GROUP = 1;
         SERVER = 2;

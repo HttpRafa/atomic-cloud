@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::Path,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 use colored::Colorize;
@@ -33,15 +33,15 @@ pub struct AuthServer {
 }
 
 pub struct Auth {
-    pub users: Mutex<HashMap<String, AuthUserHandle>>,
-    pub servers: Mutex<HashMap<String, AuthServerHandle>>,
+    pub users: RwLock<HashMap<String, AuthUserHandle>>,
+    pub servers: RwLock<HashMap<String, AuthServerHandle>>,
 }
 
 impl Auth {
     pub fn new(users: HashMap<String, AuthUserHandle>) -> Self {
         Auth {
-            users: Mutex::new(users),
-            servers: Mutex::new(HashMap::new()),
+            users: RwLock::new(users),
+            servers: RwLock::new(HashMap::new()),
         }
     }
 
@@ -135,11 +135,11 @@ impl Auth {
     }
 
     pub fn get_user(&self, token: &str) -> Option<AuthUserHandle> {
-        self.users.lock().unwrap().get(token).cloned()
+        self.users.read().unwrap().get(token).cloned()
     }
 
     pub fn get_server(&self, token: &str) -> Option<AuthServerHandle> {
-        self.servers.lock().unwrap().get(token).cloned()
+        self.servers.read().unwrap().get(token).cloned()
     }
 
     pub fn register_server(&self, server: WeakServerHandle) -> AuthServerHandle {
@@ -154,7 +154,7 @@ impl Auth {
             token: token.clone(),
         });
         self.servers
-            .lock()
+            .write()
             .unwrap()
             .insert(token.clone(), server.clone());
 
@@ -162,7 +162,7 @@ impl Auth {
     }
 
     pub fn unregister_server(&self, server: &ServerHandle) {
-        self.servers.lock().unwrap().retain(|_, value| {
+        self.servers.write().unwrap().retain(|_, value| {
             if let Some(ref_server) = value.server.upgrade() {
                 !Arc::ptr_eq(&ref_server, server)
             } else {
@@ -196,7 +196,7 @@ impl Auth {
             username: username.to_string(),
             token: token.clone(),
         });
-        self.users.lock().unwrap().insert(token, user.clone());
+        self.users.write().unwrap().insert(token, user.clone());
 
         Some(user)
     }

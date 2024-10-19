@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, Weak,
+        Arc, RwLock, Weak,
     },
     time::{Duration, Instant},
 };
@@ -15,7 +15,8 @@ use uuid::Uuid;
 use super::{
     auth::AuthServerHandle,
     group::WeakGroupHandle,
-    node::{AllocationHandle, NodeHandle, WeakNodeHandle}, ControllerHandle, WeakControllerHandle,
+    node::{AllocationHandle, NodeHandle, WeakNodeHandle},
+    ControllerHandle, WeakControllerHandle,
 };
 
 pub type ServerHandle = Arc<Server>;
@@ -26,20 +27,20 @@ pub struct Servers {
     controller: WeakControllerHandle,
 
     /* Servers started by this atomic cloud instance */
-    servers: Mutex<HashMap<Uuid, ServerHandle>>,
+    servers: RwLock<HashMap<Uuid, ServerHandle>>,
 
     /* Servers that should be started/stopped next controller tick */
-    start_requests: Mutex<VecDeque<StartRequestHandle>>,
-    stop_requests: Mutex<VecDeque<StopRequest>>,
+    start_requests: RwLock<VecDeque<StartRequestHandle>>,
+    stop_requests: RwLock<VecDeque<StopRequest>>,
 }
 
 impl Servers {
     pub fn new(controller: WeakControllerHandle) -> Self {
         Self {
             controller,
-            servers: Mutex::new(HashMap::new()),
-            start_requests: Mutex::new(VecDeque::new()),
-            stop_requests: Mutex::new(VecDeque::new()),
+            servers: RwLock::new(HashMap::new()),
+            start_requests: RwLock::new(VecDeque::new()),
+            stop_requests: RwLock::new(VecDeque::new()),
         }
     }
 
@@ -52,10 +53,10 @@ impl Servers {
 
         // Check health of servers
         {
-            let dead_servers = self.servers.lock().unwrap().values().filter(|server| {
-                let health = server.health.lock().unwrap();
+            let dead_servers = self.servers.read().unwrap().values().filter(|server| {
+                let health = server.health.read().unwrap();
                 if health.is_dead() {
-                    match *server.state.lock().unwrap() {
+                    match *server.state.read().unwrap() {
                         State::Starting | State::Restarting => {
                             warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
                         }
@@ -75,7 +76,7 @@ impl Servers {
 
         // Stop all servers that have to be stopped
         {
-            let mut requests = self.stop_requests.lock().unwrap();
+            let mut requests = self.stop_requests.write().unwrap();
             requests.retain(|request| {
                 if let Some(when) = request.when {
                     if when > Instant::now() {
@@ -83,20 +84,29 @@ impl Servers {
                     }
                 }
 
-                self.stop_server_nolock(request, &mut self.servers.lock().unwrap());
+                self.stop_server_nolock(request, &mut self.servers.write().unwrap());
                 false
             });
         }
 
         // Sort requests by priority and process them
         {
-            let mut requests = self.start_requests.lock().unwrap();
+            let mut requests = self.start_requests.write().unwrap();
             {
                 let contiguous = requests.make_contiguous();
                 contiguous.sort_unstable_by_key(|req| req.priority);
                 contiguous.reverse();
             }
             requests.retain(|request| {
+                if request.canceled.load(Ordering::Relaxed) {
+                    debug!(
+                        "{} start of server {}",
+                        "Canceled".yellow(),
+                        request.name.blue()
+                    );
+                    return false;
+                }
+
                 if let Some(when) = request.when {
                     if when > Instant::now() {
                         return true;
@@ -127,15 +137,18 @@ impl Servers {
 
     pub fn queue_server(&self, request: StartRequest) -> StartRequestHandle {
         let arc = Arc::new(request);
-        self.start_requests.lock().unwrap().push_back(arc.clone());
+        self.start_requests.write().unwrap().push_back(arc.clone());
         arc
     }
 
     pub fn stop_all(&self) {
-        let mut servers = self.servers.lock().unwrap();
-        servers.drain().for_each(|(_, server)| {
-            self.stop_server_internal(&StopRequest { when: None, server });
-        });
+        self.servers
+            .write()
+            .unwrap()
+            .drain()
+            .for_each(|(_, server)| {
+                self.stop_server_internal(&StopRequest { when: None, server });
+            });
     }
 
     fn stop_server_nolock(&self, request: &StopRequest, servers: &mut HashMap<Uuid, ServerHandle>) {
@@ -196,13 +209,13 @@ impl Servers {
 
     pub fn stop_server_now(&self, server: ServerHandle) {
         self.stop_requests
-            .lock()
+            .write()
             .unwrap()
             .push_back(StopRequest { when: None, server });
     }
 
     pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
-        self.stop_requests.lock().unwrap().push_back(StopRequest {
+        self.stop_requests.write().unwrap().push_back(StopRequest {
             when: Some(when),
             server,
         });
@@ -216,8 +229,8 @@ impl Servers {
             .upgrade()
             .expect("Failed to upgrade controller");
 
-        *server.state.lock().unwrap() = State::Restarting;
-        *server.health.lock().unwrap() = Health::new(
+        *server.state.write().unwrap() = State::Restarting;
+        *server.health.write().unwrap() = Health::new(
             controller.configuration.timings.restart.unwrap(),
             controller.configuration.timings.healthbeat.unwrap(),
         );
@@ -253,10 +266,10 @@ impl Servers {
         debug!("Received heartbeat from server {}", &server.name);
 
         // Reset health
-        server.health.lock().unwrap().reset();
+        server.health.write().unwrap().reset();
 
         // Check were the server is in the state machine
-        let mut state = server.state.lock().unwrap();
+        let mut state = server.state.write().unwrap();
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
@@ -286,7 +299,7 @@ impl Servers {
     }
 
     pub fn mark_running(&self, server: &ServerHandle) {
-        let mut state = server.state.lock().unwrap();
+        let mut state = server.state.write().unwrap();
         if *state == State::Preparing {
             info!(
                 "The server {} is now {}",
@@ -298,7 +311,7 @@ impl Servers {
     }
 
     pub fn checked_stop_server(&self, server: &ServerHandle) {
-        let mut state = server.state.lock().unwrap();
+        let mut state = server.state.write().unwrap();
         if *state == State::Running {
             self.mark_not_ready(server);
             *state = State::Stopping;
@@ -309,20 +322,20 @@ impl Servers {
     pub fn find_fallback_server(&self, excluded: &ServerHandle) -> Option<ServerHandle> {
         // TODO: Also check if the server have free slots
         self.servers
-            .lock()
+            .read()
             .unwrap()
             .values()
             .filter(|server| {
                 !Arc::ptr_eq(server, excluded)
                     && server.allocation.deployment.fallback.enabled
-                    && *server.state.lock().unwrap() == State::Running
+                    && *server.state.read().unwrap() == State::Running
             })
             .max_by_key(|server| server.allocation.deployment.fallback.priority)
             .cloned()
     }
 
     pub fn get_server(&self, uuid: Uuid) -> Option<ServerHandle> {
-        self.servers.lock().unwrap().get(&uuid).cloned()
+        self.servers.read().unwrap().get(&uuid).cloned()
     }
 
     fn start_server(
@@ -359,11 +372,11 @@ impl Servers {
                 node: Arc::downgrade(node),
                 allocation,
                 auth,
-                health: Mutex::new(Health::new(
+                health: RwLock::new(Health::new(
                     controller.configuration.timings.startup.unwrap(),
                     controller.configuration.timings.healthbeat.unwrap(),
                 )),
-                state: Mutex::new(State::Starting),
+                state: RwLock::new(State::Starting),
                 rediness: AtomicBool::new(false),
             }
         });
@@ -372,7 +385,7 @@ impl Servers {
             group.set_active(server.clone(), request);
         }
         self.servers
-            .lock()
+            .write()
             .unwrap()
             .insert(server.uuid, server.clone());
 
@@ -422,8 +435,8 @@ pub struct Server {
     pub auth: AuthServerHandle,
 
     /* Health and State of the server */
-    pub health: Mutex<Health>,
-    pub state: Mutex<State>,
+    pub health: RwLock<Health>,
+    pub state: RwLock<State>,
     pub rediness: AtomicBool,
 }
 
@@ -448,6 +461,7 @@ impl Health {
 }
 
 pub struct StartRequest {
+    pub canceled: AtomicBool,
     pub when: Option<Instant>,
     pub name: String,
     pub group: Option<GroupInfo>,
@@ -486,7 +500,7 @@ impl GroupInfo {
 
     pub fn set_active(&self, server: ServerHandle, request: &StartRequestHandle) {
         if let Some(group) = self.group.upgrade() {
-            group.set_active(server, request);
+            group.set_server_active(server, request);
         }
     }
 }

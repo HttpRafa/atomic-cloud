@@ -3,7 +3,7 @@ use server::{PanelServer, ServerName};
 use std::{
     cell::UnsafeCell,
     rc::Rc,
-    sync::{Mutex, MutexGuard},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec,
 };
 
@@ -42,15 +42,15 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 name,
                 capabilities,
                 controller,
-                allocations: Mutex::new(vec![]),
-                servers: Mutex::new(vec![]),
+                allocations: RwLock::new(vec![]),
+                servers: RwLock::new(vec![]),
             }),
         }
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
     fn allocate_addresses(&self, amount: u32) -> Result<Vec<Address>, String> {
-        let mut used = self.inner.get_allocations();
+        let mut used = self.inner.get_allocations_mut();
         let allocations = self
             .get_backend()
             .get_free_allocations(&used, self.inner.id, amount)
@@ -67,7 +67,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
     }
 
     fn deallocate_addresses(&self, addresses: Vec<Address>) {
-        self.inner.get_allocations().retain(|x| {
+        self.inner.get_allocations_mut().retain(|x| {
             !addresses
                 .iter()
                 .any(|address| *x.ip == address.ip && x.port == address.port)
@@ -99,7 +99,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             self.get_backend()
                 .update_settings(&backend_server.identifier, self, &server);
             self.get_backend().start_server(&backend_server.identifier);
-            self.inner.get_servers().push(PanelServer::new(
+            self.inner.get_servers_mut().push(PanelServer::new(
                 backend_server.id,
                 backend_server.identifier,
                 name,
@@ -175,9 +175,11 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                     server.name.blue(),
                     "created".green()
                 );
-                self.inner
-                    .get_servers()
-                    .push(PanelServer::new(server.id, server.identifier, name));
+                self.inner.get_servers_mut().push(PanelServer::new(
+                    server.id,
+                    server.identifier,
+                    name,
+                ));
             }
         }
     }
@@ -241,18 +243,26 @@ pub struct PterodactylNode {
     pub controller: RemoteController,
 
     /* Dynamic Resources */
-    pub allocations: Mutex<Vec<BAllocation>>,
-    pub servers: Mutex<Vec<PanelServer>>,
+    pub allocations: RwLock<Vec<BAllocation>>,
+    pub servers: RwLock<Vec<PanelServer>>,
 }
 
 impl PterodactylNode {
-    fn get_allocations(&self) -> MutexGuard<Vec<BAllocation>> {
+    fn get_allocations(&self) -> RwLockReadGuard<Vec<BAllocation>> {
         // Safe as we are only run on the same thread
-        self.allocations.lock().unwrap()
+        self.allocations.read().unwrap()
     }
-    fn get_servers(&self) -> MutexGuard<Vec<PanelServer>> {
+    fn get_allocations_mut(&self) -> RwLockWriteGuard<Vec<BAllocation>> {
         // Safe as we are only run on the same thread
-        self.servers.lock().unwrap()
+        self.allocations.write().unwrap()
+    }
+    fn get_servers(&self) -> RwLockReadGuard<Vec<PanelServer>> {
+        // Safe as we are only run on the same thread
+        self.servers.read().unwrap()
+    }
+    fn get_servers_mut(&self) -> RwLockWriteGuard<Vec<PanelServer>> {
+        // Safe as we are only run on the same thread
+        self.servers.write().unwrap()
     }
 
     fn find_allocation(&self, address: &Address) -> Option<BAllocation> {
@@ -268,6 +278,6 @@ impl PterodactylNode {
             .cloned()
     }
     fn delete_server(&self, id: u32) {
-        self.get_servers().retain(|server| server.id != id);
+        self.get_servers_mut().retain(|server| server.id != id);
     }
 }

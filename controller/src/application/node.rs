@@ -1,5 +1,8 @@
 use std::{
-    fs, net::SocketAddr, path::Path, sync::{Arc, Mutex, Weak}
+    fs,
+    net::SocketAddr,
+    path::Path,
+    sync::{Arc, RwLock, Weak},
 };
 
 use anyhow::{anyhow, Result};
@@ -184,7 +187,7 @@ pub struct Node {
     /* Settings */
     pub name: String,
     pub capabilities: Capabilities,
-    pub status: LifecycleStatus,
+    pub status: RwLock<LifecycleStatus>,
 
     /* Controller */
     pub controller: RemoteController,
@@ -194,7 +197,7 @@ pub struct Node {
     inner: Option<DriverNodeHandle>,
 
     /* Allocations made on this node */
-    pub allocations: Mutex<Vec<AllocationHandle>>,
+    pub allocations: RwLock<Vec<AllocationHandle>>,
 }
 
 impl Node {
@@ -202,11 +205,11 @@ impl Node {
         Self {
             name: name.to_string(),
             capabilities: stored_node.capabilities.clone(),
-            status: stored_node.status.clone(),
+            status: RwLock::new(stored_node.status.clone()),
             controller: stored_node.controller.clone(),
             driver,
             inner: None,
-            allocations: Mutex::new(Vec::new()),
+            allocations: RwLock::new(Vec::new()),
         }
     }
 
@@ -235,17 +238,29 @@ impl Node {
         }
     }
 
+    pub fn retire(&self) -> Result<()> {
+        *self.status.write().unwrap() = LifecycleStatus::Retired;
+        Ok(())
+    }
+
     pub fn allocate(
         &self,
         resources: &Resources,
         deployment: Deployment,
     ) -> Result<AllocationHandle> {
-        if self.status == LifecycleStatus::Retired {
-            warn!("Attempted to allocate resources on {} node {}", "retired".red(), self.name.blue());
+        if *self.status.read().unwrap() == LifecycleStatus::Retired {
+            warn!(
+                "Attempted to allocate resources on {} node {}",
+                "retired".red(),
+                self.name.blue()
+            );
             return Err(anyhow!("Can not allocate resources on retired node"));
         }
 
-        let mut allocations = self.allocations.lock().expect("Failed to lock allocations");
+        let mut allocations = self
+            .allocations
+            .write()
+            .expect("Failed to lock allocations");
 
         if let Some(max_memory) = self.capabilities.memory {
             let used_memory: u32 = allocations
@@ -295,7 +310,7 @@ impl Node {
             error!("{} to deallocate addresses: {}", "Failed".red(), &error);
         }
         self.allocations
-            .lock()
+            .write()
             .expect("Failed to lock allocations")
             .retain(|alloc| !Arc::ptr_eq(alloc, allocation));
     }
@@ -327,7 +342,7 @@ pub struct RemoteController {
 }
 
 mod stored {
-    use super::{Capabilities, RemoteController, LifecycleStatus};
+    use super::{Capabilities, LifecycleStatus, RemoteController};
     use crate::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 

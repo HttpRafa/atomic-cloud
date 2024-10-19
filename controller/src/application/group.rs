@@ -2,7 +2,10 @@ use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
     path::Path,
-    sync::{Arc, Mutex, Weak},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, RwLock, Weak,
+    },
 };
 
 use anyhow::{anyhow, Result};
@@ -18,7 +21,7 @@ use super::{
     server::{
         Deployment, GroupInfo, Resources, ServerHandle, Servers, StartRequest, StartRequestHandle,
     },
-    CreationResult,
+    CreationResult, WeakControllerHandle,
 };
 
 const GROUPS_DIRECTORY: &str = "groups";
@@ -27,11 +30,20 @@ pub type GroupHandle = Arc<Group>;
 pub type WeakGroupHandle = Weak<Group>;
 
 pub struct Groups {
+    controller: WeakControllerHandle,
+
     groups: HashMap<String, GroupHandle>,
 }
 
 impl Groups {
-    pub fn load_all(nodes: &Nodes) -> Self {
+    pub fn new(controller: WeakControllerHandle) -> Self {
+        Self {
+            controller,
+            groups: HashMap::new(),
+        }
+    }
+
+    pub fn load_all(controller: WeakControllerHandle, nodes: &Nodes) -> Self {
         info!("Loading groups...");
 
         let groups_directory = Path::new(GROUPS_DIRECTORY);
@@ -41,9 +53,7 @@ impl Groups {
             }
         }
 
-        let mut groups = Self {
-            groups: HashMap::new(),
-        };
+        let mut groups = Groups::new(controller);
         let entries = match fs::read_dir(groups_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -119,7 +129,32 @@ impl Groups {
         self.groups.get(name).cloned()
     }
 
-    pub fn delete_group(&mut self, _group: &GroupHandle) -> Result<()> {
+    pub fn retire_group(&mut self, group: &GroupHandle) -> Result<()> {
+        *group.status.write().unwrap() = LifecycleStatus::Retired;
+        let controller = self
+            .controller
+            .upgrade()
+            .expect("The controller is dead while still running code that requires it");
+        {
+            let server_manager = controller.get_servers();
+            let mut servers = group.servers.write().unwrap();
+            for server in servers.iter() {
+                if let GroupedServer::Active(server) = server {
+                    server_manager.checked_stop_server(server);
+                } else if let GroupedServer::Queueing(request) = server {
+                    request.canceled.store(true, Ordering::Relaxed);
+                }
+            }
+            servers.clear();
+        }
+        group.save_to_file()?;
+        Ok(())
+    }
+
+    pub fn delete_group(&mut self, group: &GroupHandle) -> Result<()> {
+        if *group.status.read().unwrap() != LifecycleStatus::Retired {
+            return Err(anyhow!("Group is not retired"));
+        }
         Ok(())
     }
 
@@ -139,10 +174,7 @@ impl Groups {
             return Ok(CreationResult::AlreadyExists);
         }
 
-        let nodes: Vec<String> = node_handles
-            .iter()
-            .map(|node| node.name.clone())
-            .collect();
+        let nodes: Vec<String> = node_handles.iter().map(|node| node.name.clone()).collect();
 
         let stored_group = StoredGroup {
             status: LifecycleStatus::Retired,
@@ -151,7 +183,11 @@ impl Groups {
             resources,
             deployment,
         };
-        let group = Group::from(name, &stored_group, node_handles.iter().map(|node| Arc::downgrade(node)).collect());
+        let group = Group::from(
+            name,
+            &stored_group,
+            node_handles.iter().map(Arc::downgrade).collect(),
+        );
 
         self.add_group(group);
         stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
@@ -181,19 +217,19 @@ pub struct Group {
 
     /* Settings */
     pub name: String,
-    pub status: LifecycleStatus,
+    pub status: RwLock<LifecycleStatus>,
 
     /* Where? */
     pub nodes: Vec<WeakNodeHandle>,
     pub scaling: ScalingPolicy,
-    
+
     /* How? */
     pub resources: Resources,
     pub deployment: Deployment,
-    
+
     /* What do i need to know? */
-    id_allocator: Mutex<IdAllocator>,
-    servers: Mutex<Vec<GroupedServer>>,
+    id_allocator: RwLock<IdAllocator>,
+    servers: RwLock<Vec<GroupedServer>>,
 }
 
 impl Group {
@@ -201,13 +237,13 @@ impl Group {
         Arc::new_cyclic(|handle| Self {
             handle: handle.clone(),
             name: name.to_string(),
-            status: stored_group.status.clone(),
+            status: RwLock::new(stored_group.status.clone()),
             nodes,
             scaling: stored_group.scaling,
             resources: stored_group.resources.clone(),
             deployment: stored_group.deployment.clone(),
-            id_allocator: Mutex::new(IdAllocator::new()),
-            servers: Mutex::new(Vec::new()),
+            id_allocator: RwLock::new(IdAllocator::new()),
+            servers: RwLock::new(Vec::new()),
         })
     }
 
@@ -215,7 +251,11 @@ impl Group {
         let node_handles: Vec<WeakNodeHandle> = stored_group
             .nodes
             .iter()
-            .filter_map(|node_name| nodes.find_by_name(node_name).map(|handle| Arc::downgrade(&handle)))
+            .filter_map(|node_name| {
+                nodes
+                    .find_by_name(node_name)
+                    .map(|handle| Arc::downgrade(&handle))
+            })
             .collect();
         if node_handles.is_empty() {
             return None;
@@ -224,15 +264,15 @@ impl Group {
     }
 
     fn tick(&self, servers: &Servers) {
-        if self.status == LifecycleStatus::Retired {
+        if *self.status.read().unwrap() == LifecycleStatus::Retired {
             // Do not tick this group because it is retired
             return;
         }
 
-        let mut group_servers = self.servers.lock().expect("Failed to lock servers");
+        let mut group_servers = self.servers.write().expect("Failed to lock servers");
         let mut id_allocator = self
             .id_allocator
-            .lock()
+            .write()
             .expect("Failed to lock id allocator");
 
         for requested in 0..(self.scaling.minimum as usize).saturating_sub(group_servers.len()) {
@@ -242,6 +282,7 @@ impl Group {
 
             let server_id = id_allocator.get_id();
             let request = servers.queue_server(StartRequest {
+                canceled: AtomicBool::new(false),
                 when: None,
                 name: format!("{}-{}", self.name, server_id),
                 nodes: self.nodes.clone(),
@@ -259,8 +300,8 @@ impl Group {
         }
     }
 
-    pub fn set_active(&self, server: ServerHandle, request: &StartRequestHandle) {
-        let mut servers = self.servers.lock().expect("Failed to lock servers");
+    pub fn set_server_active(&self, server: ServerHandle, request: &StartRequestHandle) {
+        let mut servers = self.servers.write().expect("Failed to lock servers");
         servers.retain(|grouped| {
             if let GroupedServer::Queueing(start_request) = grouped {
                 return !Arc::ptr_eq(start_request, request);
@@ -272,7 +313,7 @@ impl Group {
 
     pub fn remove_server(&self, server: &ServerHandle) {
         self.servers
-            .lock()
+            .write()
             .expect("Failed to lock servers")
             .retain(|handle| {
                 if let GroupedServer::Active(s) = handle {
@@ -281,19 +322,30 @@ impl Group {
                 true
             });
         self.id_allocator
-            .lock()
+            .write()
             .expect("Failed to lock id allocator")
             .release_id(server.group.as_ref().unwrap().server_id);
     }
 
     pub fn get_free_server(&self) -> Option<ServerHandle> {
-        let servers = self.servers.lock().expect("Failed to lock servers");
+        let servers = self.servers.read().expect("Failed to lock servers");
         for server in servers.iter() {
             if let GroupedServer::Active(server) = server {
                 return Some(server.clone());
             }
         }
         None
+    }
+
+    fn save_to_file(&self) -> Result<()> {
+        let stored_group = StoredGroup {
+            status: self.status.read().unwrap().clone(),
+            nodes: self.nodes.iter().map(|node| node.upgrade().unwrap().name.clone()).collect(),
+            scaling: self.scaling,
+            resources: self.resources.clone(),
+            deployment: self.deployment.clone(),
+        };
+        stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", self.name)))
     }
 }
 
@@ -336,7 +388,11 @@ mod shared {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        application::{node::LifecycleStatus, server::{Deployment, Resources}}, config::{LoadFromTomlFile, SaveToTomlFile}
+        application::{
+            node::LifecycleStatus,
+            server::{Deployment, Resources},
+        },
+        config::{LoadFromTomlFile, SaveToTomlFile},
     };
 
     use super::ScalingPolicy;
@@ -345,7 +401,7 @@ mod shared {
     pub struct StoredGroup {
         /* Settings */
         pub status: LifecycleStatus,
-        
+
         /* Where? */
         pub nodes: Vec<String>,
         pub scaling: ScalingPolicy,

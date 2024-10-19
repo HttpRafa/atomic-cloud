@@ -1,7 +1,15 @@
+use std::str::FromStr;
+
 use proto::admin_service_server::AdminService;
 use tonic::{async_trait, Request, Response, Status};
+use uuid::Uuid;
 
-use crate::application::{group::ScalingPolicy, node::{Capabilities, RemoteController}, server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention}, ControllerHandle, CreationResult};
+use crate::application::{
+    group::ScalingPolicy,
+    node::{Capabilities, RemoteController},
+    server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention},
+    ControllerHandle, CreationResult,
+};
 
 #[allow(clippy::all)]
 pub mod proto {
@@ -21,11 +29,81 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(()))
     }
 
-    async fn delete_resource(&self, _request: Request<proto::DeleteResourceRequest>) -> Result<Response<()>, Status> {
-        Err(Status::unimplemented("Delete resource is not implemented"))
+    async fn retire_resource(
+        &self,
+        request: Request<proto::RetireResourceRequest>,
+    ) -> Result<Response<()>, Status> {
+        let resource = request.into_inner();
+        match proto::retire_resource_request::ResourceCategory::try_from(resource.category) {
+            Ok(proto::retire_resource_request::ResourceCategory::Node) => {
+                let handle = self.controller.lock_nodes_mut();
+                let node = handle
+                    .find_by_name(&resource.id)
+                    .ok_or(Status::not_found("Node not found"))?;
+                match node.retire() {
+                    Ok(()) => Ok(Response::new(())),
+                    Err(error) => Err(Status::internal(error.to_string())),
+                }
+            }
+            Ok(proto::retire_resource_request::ResourceCategory::Group) => {
+                let mut handle = self.controller.lock_groups_mut();
+                let group: std::sync::Arc<crate::application::group::Group> = handle
+                    .find_by_name(&resource.id)
+                    .ok_or(Status::not_found("Group not found"))?;
+                match handle.retire_group(&group) {
+                    Ok(()) => Ok(Response::new(())),
+                    Err(error) => Err(Status::internal(error.to_string())),
+                }
+            }
+            Err(_) => Err(Status::not_found("Invalid resource category")),
+        }
     }
 
-    async fn create_node(&self, request: Request<proto::NodeValue>) -> Result<Response<()>, Status> {
+    async fn delete_resource(
+        &self,
+        request: Request<proto::DeleteResourceRequest>,
+    ) -> Result<Response<()>, Status> {
+        let resource = request.into_inner();
+        match proto::delete_resource_request::ResourceCategory::try_from(resource.category) {
+            Ok(proto::delete_resource_request::ResourceCategory::Node) => {
+                let mut handle = self.controller.lock_nodes_mut();
+                let node = handle
+                    .find_by_name(&resource.id)
+                    .ok_or(Status::not_found("Node not found"))?;
+                match handle.delete_node(&node) {
+                    Ok(()) => Ok(Response::new(())),
+                    Err(error) => Err(Status::internal(error.to_string())),
+                }
+            }
+            Ok(proto::delete_resource_request::ResourceCategory::Group) => {
+                let mut handle = self.controller.lock_groups_mut();
+                let group: std::sync::Arc<crate::application::group::Group> = handle
+                    .find_by_name(&resource.id)
+                    .ok_or(Status::not_found("Group not found"))?;
+                match handle.delete_group(&group) {
+                    Ok(()) => Ok(Response::new(())),
+                    Err(error) => Err(Status::internal(error.to_string())),
+                }
+            }
+            Ok(proto::delete_resource_request::ResourceCategory::Server) => {
+                let uuid = Uuid::from_str(&resource.id).map_err(|error| {
+                    Status::invalid_argument(format!("Failed to parse UUID of server: {}", error))
+                })?;
+                let servers = self.controller.get_servers();
+                let server = servers
+                    .get_server(uuid)
+                    .ok_or(Status::not_found("Server not found"))?;
+                servers.checked_stop_server(&server);
+                Ok(Response::new(()))
+            }
+            Err(_) => Err(Status::not_found("Invalid resource category")),
+        }
+    }
+
+    async fn create_node(
+        &self,
+        request: Request<proto::NodeValue>,
+    ) -> Result<Response<()>, Status> {
         let node = request.into_inner();
         let name = &node.name;
         let driver = &node.driver;
@@ -47,7 +125,7 @@ impl AdminService for AdminServiceImpl {
             None => return Err(Status::invalid_argument("The driver does not exist")),
         };
 
-        let mut nodes = self.controller.lock_nodes();
+        let mut nodes = self.controller.lock_nodes_mut();
         match nodes.create_node(name, driver, capabilities, controller) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
@@ -60,9 +138,14 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn get_node(&self, request: Request<String>) -> Result<Response<proto::NodeValue>, Status> {
+    async fn get_node(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<proto::NodeValue>, Status> {
         let handle = self.controller.lock_nodes();
-        let node = handle.find_by_name(&request.into_inner()).ok_or(Status::not_found("Node not found"))?;
+        let node = handle
+            .find_by_name(&request.into_inner())
+            .ok_or(Status::not_found("Node not found"))?;
 
         Ok(Response::new(proto::NodeValue {
             name: node.name.to_owned(),
@@ -74,7 +157,10 @@ impl AdminService for AdminServiceImpl {
         }))
     }
 
-    async fn get_nodes(&self, _request: Request<()>) -> Result<Response<proto::NodeListResponse>, Status> {
+    async fn get_nodes(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::NodeListResponse>, Status> {
         let handle = self.controller.lock_nodes();
         let mut nodes = Vec::with_capacity(handle.get_amount());
         for node in handle.get_nodes() {
@@ -84,7 +170,10 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(proto::NodeListResponse { nodes }))
     }
 
-    async fn create_group(&self, request: Request<proto::GroupValue>) -> Result<Response<()>, Status> {
+    async fn create_group(
+        &self,
+        request: Request<proto::GroupValue>,
+    ) -> Result<Response<()>, Status> {
         let group = request.into_inner();
         let name = &group.name;
 
@@ -132,10 +221,13 @@ impl AdminService for AdminServiceImpl {
                 })
                 .collect();
             if let Some(value) = value.disk_retention {
-                deployment.disk_retention = match value {
-                    x if x == Retention::Permanent as i32 => Retention::Permanent,
-                    _ => Retention::Temporary,
-                };
+                deployment.disk_retention =
+                    match proto::group_value::deployment::Retention::try_from(value) {
+                        Ok(proto::group_value::deployment::Retention::Permanemt) => {
+                            Retention::Permanent
+                        }
+                        _ => Retention::Temporary,
+                    };
             }
             if let Some(value) = value.fallback {
                 deployment.fallback = FallbackPolicy {
@@ -160,7 +252,7 @@ impl AdminService for AdminServiceImpl {
             node_handles.push(node);
         }
 
-        let mut groups = self.controller.lock_groups();
+        let mut groups = self.controller.lock_groups_mut();
         match groups.create_group(name, node_handles, scaling, resources, deployment) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
@@ -175,13 +267,22 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn get_group(&self, request: Request<String>) -> Result<Response<proto::GroupValue>, Status> {
+    async fn get_group(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<proto::GroupValue>, Status> {
         let handle = self.controller.lock_groups();
-        let group = handle.find_by_name(&request.into_inner()).ok_or(Status::not_found("Group not found"))?;
+        let group = handle
+            .find_by_name(&request.into_inner())
+            .ok_or(Status::not_found("Group not found"))?;
 
         Ok(Response::new(proto::GroupValue {
             name: group.name.to_owned(),
-            nodes: group.nodes.iter().filter_map(|node| node.upgrade().map(|node| node.name.clone())).collect(),
+            nodes: group
+                .nodes
+                .iter()
+                .filter_map(|node| node.upgrade().map(|node| node.name.clone()))
+                .collect(),
             scaling: Some(proto::group_value::Scaling {
                 minimum: group.scaling.minimum,
                 maximum: group.scaling.maximum,
@@ -197,14 +298,24 @@ impl AdminService for AdminServiceImpl {
             }),
             deployment: Some(proto::group_value::Deployment {
                 image: group.deployment.image.clone(),
-                settings: group.deployment.settings.iter().map(|setting| proto::group_value::deployment::KeyValue {
-                    key: setting.key.clone(),
-                    value: setting.value.clone(),
-                }).collect(),
-                environment: group.deployment.environment.iter().map(|setting| proto::group_value::deployment::KeyValue {
-                    key: setting.key.clone(),
-                    value: setting.value.clone(),
-                }).collect(),
+                settings: group
+                    .deployment
+                    .settings
+                    .iter()
+                    .map(|setting| proto::group_value::deployment::KeyValue {
+                        key: setting.key.clone(),
+                        value: setting.value.clone(),
+                    })
+                    .collect(),
+                environment: group
+                    .deployment
+                    .environment
+                    .iter()
+                    .map(|setting| proto::group_value::deployment::KeyValue {
+                        key: setting.key.clone(),
+                        value: setting.value.clone(),
+                    })
+                    .collect(),
                 disk_retention: Some(group.deployment.disk_retention.clone() as i32),
                 fallback: Some(proto::group_value::deployment::Fallback {
                     enabled: group.deployment.fallback.enabled,
@@ -214,7 +325,10 @@ impl AdminService for AdminServiceImpl {
         }))
     }
 
-    async fn get_groups(&self, _request: Request<()>) -> Result<Response<proto::GroupListResponse>, Status> {
+    async fn get_groups(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::GroupListResponse>, Status> {
         let handle = self.controller.lock_groups();
         let mut groups = Vec::with_capacity(handle.get_amount());
         for name in handle.get_groups().keys() {
@@ -224,7 +338,10 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(proto::GroupListResponse { groups }))
     }
 
-    async fn get_servers(&self, _request: Request<()>) -> Result<Response<proto::ServerListResponse>, Status> {
+    async fn get_servers(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::ServerListResponse>, Status> {
         Err(Status::unimplemented("Get servers is not implemented"))
     }
 }

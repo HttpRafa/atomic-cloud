@@ -39,7 +39,7 @@ impl Users {
     }
 
     pub fn resolve_transfer(&self, user: &UserHandle, target: &TransferTarget) -> Option<Transfer> {
-        if let CurrentServer::Connected(from) = user.server.lock().unwrap().deref() {
+        if let CurrentServer::Connected(from) = user.server.read().unwrap().deref() {
             match target {
                 TransferTarget::Server(to) => {
                     return Some(Transfer::new(
@@ -85,7 +85,7 @@ impl Users {
                 },
             );
 
-            *user.server.lock().unwrap() = CurrentServer::Transfering(transfer);
+            *user.server.write().unwrap() = CurrentServer::Transfering(transfer);
             return true;
         } else {
             error!(

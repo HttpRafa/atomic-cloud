@@ -95,13 +95,13 @@ public class CloudConnection {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferAllUsers(TransferTargetValue target) {
+    public CompletableFuture<UInt32Value> transferAllUsers(TransferAllUsersRequest target) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
         return observer.future();
     }
 
-    public CompletableFuture<BoolValue> transferUser(TransferRequest transfer) {
+    public CompletableFuture<BoolValue> transferUser(TransferUserRequest transfer) {
         var observer = new StreamObserverImpl<BoolValue>();
         this.client.transferUser(transfer, observer);
         return observer.future();

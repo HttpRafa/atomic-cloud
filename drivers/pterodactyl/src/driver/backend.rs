@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use allocation::BAllocation;
+use allocation::{BAllocation, BCAllocation};
 use anyhow::Result;
 use colored::Colorize;
 use common::{BBody, BList, BObject};
@@ -184,9 +184,9 @@ impl Backend {
 
     pub fn update_settings(
         &self,
-        allocations: &[BAllocation],
-        backend_server: &BServer,
         node: &PterodactylNodeWrapper,
+        primary_allocation: u32,
+        backend_server: &BServer,
         server: &Server,
     ) {
         // Update the server token and controller address
@@ -199,12 +199,13 @@ impl Backend {
         self.update_build_configuration(
             backend_server.id,
             BUpdateBuild {
-                allocation: allocations[0].id,
+                allocation: primary_allocation,
                 memory: server.allocation.resources.memory,
                 swap: server.allocation.resources.swap,
                 disk: server.allocation.resources.disk,
                 io: server.allocation.resources.io,
                 cpu: server.allocation.resources.cpu,
+                threads: None,
                 feature_limits: BServerFeatureLimits {
                     databases: 0,
                     backups: 0,
@@ -329,6 +330,30 @@ impl Backend {
                     .find(|server| server.attributes.name == name.generate())
                     .map(|server| server.attributes.clone())
             },
+        )
+    }
+
+    pub fn get_allocations_by_server(&self, identifier: &str) -> (BCAllocation, Vec<BCAllocation>) {
+        let mut default_allocation = None;
+        let mut allocations = Vec::new();
+        self.for_each_on_pages::<BCAllocation>(
+            Method::Get,
+            &Endpoint::Client,
+            format!("servers/{}/network/allocations", &identifier).as_str(),
+            |response| {
+                for allocation in &response.data {
+                    if allocation.attributes.is_default {
+                        default_allocation = Some(allocation.attributes.clone());
+                        continue;
+                    }
+                    allocations.push(allocation.attributes.clone());
+                }
+                false
+            },
+        );
+        (
+            default_allocation.expect("Expected that the server has min one is_default allocation"),
+            allocations,
         )
     }
 

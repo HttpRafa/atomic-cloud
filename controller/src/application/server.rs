@@ -126,9 +126,7 @@ impl Servers {
                 for node in &request.nodes {
                     let node = node.upgrade().unwrap();
                     // Try to allocate resources on nodes
-                    if let Ok(allocation) =
-                        node.allocate(&request.resources, request.deployment.clone())
-                    {
+                    if let Ok(allocation) = node.allocate(request) {
                         // Start server on the node
                         self.start_server(request, allocation, &node);
                         return false;

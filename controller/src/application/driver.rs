@@ -10,6 +10,8 @@ use crate::application::server::ServerHandle;
 #[cfg(feature = "wasm-drivers")]
 use crate::application::driver::wasm::WasmDriver;
 
+use super::server::StartRequestHandle;
+
 #[cfg(feature = "wasm-drivers")]
 mod wasm;
 
@@ -32,7 +34,7 @@ pub trait GenericDriver: Send + Sync {
 #[async_trait]
 pub trait GenericNode: Send + Sync {
     /* Prepare */
-    fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>>;
+    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>>;
     fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
 
     /* Servers */

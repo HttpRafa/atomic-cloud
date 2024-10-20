@@ -11,8 +11,9 @@ use crate::{
     error,
     exports::node::driver::bridge::{
         Address, Capabilities, GuestGenericNode, RemoteController, Retention, Server,
+        ServerProposal,
     },
-    info,
+    info, warn,
 };
 
 use super::{
@@ -49,7 +50,33 @@ impl GuestGenericNode for PterodactylNodeWrapper {
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
-    fn allocate_addresses(&self, amount: u32) -> Result<Vec<Address>, String> {
+    fn allocate_addresses(&self, server: ServerProposal) -> Result<Vec<Address>, String> {
+        let amount = server.resources.addresses;
+
+        if server.deployment.disk_retention == Retention::Permanent {
+            let name = ServerName::new(
+                &self.inner.cloud_identifier,
+                &server.name,
+                &Retention::Permanent,
+            );
+
+            // Check if a server with the same name is already exists
+            if let Some(backend_server) = self.get_backend().get_server_by_name(&name) {
+                // Get the allocations that are already used by this server
+                let mut allocations = self
+                    .get_backend()
+                    .get_allocations_by_server(&backend_server.identifier);
+
+                if (allocations.1.len() + 1) as u32 != server.resources.addresses {
+                    warn!("The server {} has a different amount of addresses than the panel has allocated. This may cause issues.", server.name);
+                    // TODO: Add a way to fix this
+                }
+
+                allocations.1.insert(0, allocations.0); // Add primary allocation to the list
+                return Ok(allocations.1.into_iter().map(|x| x.into()).collect());
+            }
+        }
+
         let mut used = self.inner.get_allocations_mut();
         let allocations = self
             .get_backend()
@@ -113,7 +140,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 server.name.blue()
             );
             self.get_backend()
-                .update_settings(&allocations, &backend_server, self, &server);
+                .update_settings(self, allocations[0].id, &backend_server, &server);
             self.get_backend().start_server(&backend_server.identifier);
             self.inner.get_servers_mut().push(PanelServer::new(
                 backend_server.id,

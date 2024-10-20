@@ -105,6 +105,13 @@ interface bridge {
         token: string,
     }
 
+    record server-proposal {
+        name: string,
+        group: option<string>,
+        resources: resources,
+        deployment: deployment,
+    }
+
     record server {
         name: string,
         uuid: uuid,
@@ -116,7 +123,7 @@ interface bridge {
 
     resource generic-node {
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
-        allocate-addresses: func(amount: u32) -> result<list<address>, string>;
+        allocate-addresses: func(server: server-proposal) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
         start-server: func(server: server);

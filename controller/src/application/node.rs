@@ -15,7 +15,7 @@ use url::Url;
 
 use super::{
     driver::{DriverHandle, DriverNodeHandle, Drivers, GenericDriver},
-    server::{Deployment, Resources},
+    server::{Deployment, Resources, StartRequestHandle},
     CreationResult, WeakControllerHandle,
 };
 use crate::config::{LoadFromTomlFile, SaveToTomlFile};
@@ -287,11 +287,7 @@ impl Node {
         }
     }
 
-    pub fn allocate(
-        &self,
-        resources: &Resources,
-        deployment: Deployment,
-    ) -> Result<AllocationHandle> {
+    pub fn allocate(&self, request: &StartRequestHandle) -> Result<AllocationHandle> {
         if *self.status.read().unwrap() == LifecycleStatus::Retired {
             warn!(
                 "Attempted to allocate resources on {} node {}",
@@ -324,12 +320,8 @@ impl Node {
             }
         }
 
-        let addresses = self
-            .inner
-            .as_ref()
-            .unwrap()
-            .allocate_addresses(resources.addresses)?;
-        if addresses.len() < resources.addresses as usize {
+        let addresses = self.inner.as_ref().unwrap().allocate_addresses(request)?;
+        if addresses.len() < request.resources.addresses as usize {
             return Err(anyhow!(
                 "Node did not allocate the required amount of addresses"
             ));
@@ -337,8 +329,8 @@ impl Node {
 
         let allocation = Arc::new(Allocation {
             addresses,
-            resources: resources.clone(),
-            deployment,
+            resources: request.resources.clone(),
+            deployment: request.deployment.clone(),
         });
         allocations.push(allocation.clone());
         Ok(allocation)

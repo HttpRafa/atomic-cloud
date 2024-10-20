@@ -12,7 +12,10 @@ use crate::application::{
     auth::AuthServer,
     driver::GenericNode,
     node::Allocation,
-    server::{Deployment, KeyValue, Resources, Retention, Server, ServerHandle},
+    server::{
+        Deployment, KeyValue, Resources, Retention, Server, ServerHandle, StartRequest,
+        StartRequestHandle,
+    },
 };
 
 use super::{
@@ -27,7 +30,7 @@ pub struct WasmNode {
 
 #[async_trait]
 impl GenericNode for WasmNode {
-    fn allocate_addresses(&self, amount: u32) -> Result<Vec<SocketAddr>> {
+    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
@@ -35,7 +38,7 @@ impl GenericNode for WasmNode {
                 .bindings
                 .node_driver_bridge()
                 .generic_node()
-                .call_allocate_addresses(store, self.resource, amount)
+                .call_allocate_addresses(store, self.resource, &(request.into()))
             {
                 Ok(Ok(addresses)) => addresses
                     .into_iter()
@@ -191,6 +194,24 @@ impl From<&Arc<Server>> for bridge::Server {
             }),
             allocation: val.allocation.clone().into(),
             auth: val.auth.clone().into(),
+        }
+    }
+}
+
+impl From<&Arc<StartRequest>> for bridge::ServerProposal {
+    fn from(val: &Arc<StartRequest>) -> Self {
+        bridge::ServerProposal {
+            name: val.name.clone(),
+            group: val.group.as_ref().map(|group| {
+                group
+                    .group
+                    .upgrade()
+                    .expect("Group dropped while servers of the group are still active")
+                    .name
+                    .clone()
+            }),
+            resources: val.resources.clone().into(),
+            deployment: (&val.deployment).into(),
         }
     }
 }

@@ -100,5 +100,6 @@ pub struct BUpdateBuild {
     pub disk: u32,
     pub io: u32,
     pub cpu: u32,
+    pub threads: Option<()>, // Used to generate null in the JSON
     pub feature_limits: BServerFeatureLimits,
 }

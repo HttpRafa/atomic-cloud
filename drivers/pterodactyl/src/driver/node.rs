@@ -53,6 +53,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
     fn allocate_addresses(&self, server: ServerProposal) -> Result<Vec<Address>, String> {
         let amount = server.resources.addresses;
 
+        let mut used = self.inner.get_allocations_mut();
         if server.deployment.disk_retention == Retention::Permanent {
             let name = ServerName::new(
                 &self.inner.cloud_identifier,
@@ -73,11 +74,11 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 }
 
                 allocations.1.insert(0, allocations.0); // Add primary allocation to the list
+                allocations.1.iter().for_each(|address| used.push(address.into()));
                 return Ok(allocations.1.into_iter().map(|x| x.into()).collect());
             }
         }
 
-        let mut used = self.inner.get_allocations_mut();
         let allocations = self
             .get_backend()
             .get_free_allocations(&used, self.inner.id, amount)

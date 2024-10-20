@@ -440,7 +440,7 @@ impl Backend {
                 if callback(&response) {
                     return;
                 }
-                if response.meta.pagination.total_pages <= page {
+                if response.meta.is_none() || response.meta.unwrap().pagination.total_pages <= page {
                     break;
                 }
                 page += 1;

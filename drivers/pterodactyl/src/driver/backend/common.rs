@@ -13,7 +13,7 @@ pub struct BPagination {
 #[derive(Deserialize)]
 pub struct BBody<T> {
     pub data: T,
-    pub meta: BMetadata,
+    pub meta: Option<BMetadata>,
 }
 
 #[derive(Deserialize, Serialize)]

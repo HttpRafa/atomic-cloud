@@ -6,11 +6,10 @@ use tonic::async_trait;
 
 use crate::application::node::Node;
 use crate::application::server::ServerHandle;
+use crate::application::server::StartRequestHandle;
 
 #[cfg(feature = "wasm-drivers")]
 use crate::application::driver::wasm::WasmDriver;
-
-use super::server::StartRequestHandle;
 
 #[cfg(feature = "wasm-drivers")]
 mod wasm;

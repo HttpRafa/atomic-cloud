@@ -26,3 +26,14 @@ impl From<BCAllocation> for Address {
         }
     }
 }
+
+impl From<&BCAllocation> for BAllocation {
+    fn from(val: &BCAllocation) -> Self {
+        BAllocation {
+            id: val.id,
+            ip: val.ip.clone(),
+            port: val.port,
+            assigned: true,
+        }
+    }
+}

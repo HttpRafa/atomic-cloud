@@ -425,39 +425,63 @@ impl AdminService for AdminServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::internal("Node is no longer usable"))?;
 
-        let state = (server.state.read().map_err(|_| Status::internal("Failed to lock server state"))?).clone() as i32;
+        let state = (server
+            .state
+            .read()
+            .map_err(|_| Status::internal("Failed to lock server state"))?)
+        .clone() as i32;
 
         Ok(Response::new(proto::server_management::ServerValue {
             name: server.name.clone(),
             uuid: server.uuid.to_string(),
-            group: server.group.as_ref().and_then(|g| g.group.upgrade().map(|grp| grp.name.clone())),
+            group: server
+                .group
+                .as_ref()
+                .and_then(|g| g.group.upgrade().map(|grp| grp.name.clone())),
             node: node.name.clone(),
             connected_users: server.connected_users.load(Ordering::Relaxed),
             rediness: server.rediness.load(Ordering::Relaxed),
             auth_token: server.auth.token.clone(),
             allocation: Some(proto::server_management::ServerAllocation {
-                addresses: server.allocation.addresses.iter().map(|addr| proto::common::Address {
-                    ip: addr.ip().to_string(),
-                    port: addr.port() as u32,
-                }).collect(),
+                addresses: server
+                    .allocation
+                    .addresses
+                    .iter()
+                    .map(|addr| proto::common::Address {
+                        ip: addr.ip().to_string(),
+                        port: addr.port() as u32,
+                    })
+                    .collect(),
                 resources: Some(proto::server_management::ServerResources {
                     memory: server.allocation.resources.memory,
                     swap: server.allocation.resources.swap,
                     cpu: server.allocation.resources.cpu,
                     io: server.allocation.resources.io,
                     disk: server.allocation.resources.disk,
-                    addresses: server.allocation.resources.addresses.clone(),
+                    addresses: server.allocation.resources.addresses,
                 }),
                 deployment: Some(proto::server_management::ServerDeployment {
                     image: server.allocation.deployment.image.clone(),
-                    settings: server.allocation.deployment.settings.iter().map(|kv| proto::common::KeyValue {
-                        key: kv.key.clone(),
-                        value: kv.value.clone(),
-                    }).collect(),
-                    environment: server.allocation.deployment.environment.iter().map(|kv| proto::common::KeyValue {
-                        key: kv.key.clone(),
-                        value: kv.value.clone(),
-                    }).collect(),
+                    settings: server
+                        .allocation
+                        .deployment
+                        .settings
+                        .iter()
+                        .map(|kv| proto::common::KeyValue {
+                            key: kv.key.clone(),
+                            value: kv.value.clone(),
+                        })
+                        .collect(),
+                    environment: server
+                        .allocation
+                        .deployment
+                        .environment
+                        .iter()
+                        .map(|kv| proto::common::KeyValue {
+                            key: kv.key.clone(),
+                            value: kv.value.clone(),
+                        })
+                        .collect(),
                     disk_retention: Some(server.allocation.deployment.disk_retention.clone() as i32),
                     fallback: Some(proto::server_management::server_deployment::Fallback {
                         enabled: server.allocation.deployment.fallback.enabled,

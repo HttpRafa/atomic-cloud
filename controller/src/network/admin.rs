@@ -5,7 +5,7 @@ use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use crate::application::{
-    group::ScalingPolicy,
+    group::{ScalingPolicy, StartConstraints},
     node::{Capabilities, LifecycleStatus, RemoteController},
     server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention},
     ControllerHandle, CreationResult,
@@ -187,12 +187,23 @@ impl AdminService for AdminServiceImpl {
         let group = request.into_inner();
         let name = &group.name;
 
+        /* Constraints */
+        let constraints = match &group.constraints {
+            Some(constraints) => StartConstraints {
+                minimum: constraints.minimum,
+                maximum: constraints.maximum,
+                priority: constraints.priority,
+            },
+            None => StartConstraints::default(),
+        };
+
         /* Scaling */
         let scaling = match &group.scaling {
             Some(scaling) => ScalingPolicy {
-                minimum: scaling.minimum,
-                maximum: scaling.maximum,
-                priority: scaling.priority,
+                enabled: true,
+                max_players: scaling.max_players,
+                start_threshold: scaling.start_threshold,
+                stop_empty_servers: scaling.stop_empty_servers,
             },
             None => ScalingPolicy::default(),
         };
@@ -263,7 +274,14 @@ impl AdminService for AdminServiceImpl {
         }
 
         let mut groups = self.controller.lock_groups_mut();
-        match groups.create_group(name, node_handles, scaling, resources, deployment) {
+        match groups.create_group(
+            name,
+            node_handles,
+            constraints,
+            scaling,
+            resources,
+            deployment,
+        ) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => {
@@ -296,10 +314,15 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(proto::GroupValue {
             name: group.name.to_owned(),
             nodes,
+            constraints: Some(proto::group_value::Constraints {
+                minimum: group.constraints.minimum,
+                maximum: group.constraints.maximum,
+                priority: group.constraints.priority,
+            }),
             scaling: Some(proto::group_value::Scaling {
-                minimum: group.scaling.minimum,
-                maximum: group.scaling.maximum,
-                priority: group.scaling.priority,
+                max_players: group.scaling.max_players,
+                start_threshold: group.scaling.start_threshold,
+                stop_empty_servers: group.scaling.stop_empty_servers,
             }),
             resources: Some(proto::group_value::Resources {
                 memory: group.resources.memory,

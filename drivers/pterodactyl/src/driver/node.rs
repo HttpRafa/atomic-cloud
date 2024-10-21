@@ -74,7 +74,10 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 }
 
                 allocations.1.insert(0, allocations.0); // Add primary allocation to the list
-                allocations.1.iter().for_each(|address| used.push(address.into()));
+                allocations
+                    .1
+                    .iter()
+                    .for_each(|address| used.push(address.into()));
                 return Ok(allocations.1.into_iter().map(|x| x.into()).collect());
             }
         }

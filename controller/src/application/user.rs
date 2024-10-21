@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     ops::Deref,
-    sync::{Arc, RwLock, Weak},
+    sync::{atomic::Ordering, Arc, RwLock, Weak},
     time::Instant,
 };
 
@@ -63,6 +63,10 @@ impl Users {
     }
 
     pub fn handle_user_connected(&self, server: ServerHandle, name: String, uuid: Uuid) {
+        // Update server that the user is connected to
+        server.connected_users.fetch_add(1, Ordering::Relaxed);
+
+        // Update internal user list
         let mut users = self.users.write().unwrap();
         if let Some(user) = users.get(&uuid) {
             let mut current_server = user.server.write().unwrap();
@@ -99,6 +103,10 @@ impl Users {
     }
 
     pub fn handle_user_disconnected(&self, server: ServerHandle, uuid: Uuid) {
+        // Update server that the user was connected to
+        server.connected_users.fetch_sub(1, Ordering::Relaxed);
+
+        // Update internal user list
         let mut users = self.users.write().unwrap();
         if let Some(user) = users.get(&uuid).cloned() {
             if let CurrentServer::Connected(weak_server) = user.server.read().unwrap().deref() {

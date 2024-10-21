@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, RwLock, Weak,
     },
     time::{Duration, Instant},
@@ -389,6 +389,7 @@ impl Servers {
                 group: request.group.clone(),
                 node: Arc::downgrade(node),
                 allocation,
+                connected_users: AtomicU32::new(0),
                 auth,
                 health: RwLock::new(Health::new(
                     controller.configuration.timings.startup.unwrap(),
@@ -396,6 +397,9 @@ impl Servers {
                 )),
                 state: RwLock::new(State::Starting),
                 rediness: AtomicBool::new(false),
+                flags: Flags {
+                    stop: RwLock::new(None),
+                },
             }
         });
 
@@ -449,13 +453,23 @@ pub struct Server {
     pub node: WeakNodeHandle,
     pub allocation: AllocationHandle,
 
+    /* Users */
+    pub connected_users: AtomicU32,
+
     /* Auth */
     pub auth: AuthServerHandle,
 
     /* Health and State of the server */
     pub health: RwLock<Health>,
     pub state: RwLock<State>,
+    pub flags: Flags,
     pub rediness: AtomicBool,
+}
+
+impl Server {
+    pub fn get_player_count(&self) -> u32 {
+        self.connected_users.load(Ordering::Relaxed)
+    }
 }
 
 pub struct Health {
@@ -501,6 +515,11 @@ pub enum State {
     Restarting,
     Running,
     Stopping,
+}
+
+pub struct Flags {
+    /* Required for the group system */
+    pub stop: RwLock<Option<Instant>>,
 }
 
 #[derive(Clone)]

@@ -6,6 +6,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock, Weak,
     },
+    time::Instant,
 };
 
 use anyhow::{anyhow, Result};
@@ -121,7 +122,7 @@ impl Groups {
 
     pub fn tick(&self, servers: &Servers) {
         for group in self.groups.values() {
-            group.tick(servers);
+            group.tick(&self.controller, servers);
         }
     }
 
@@ -192,6 +193,7 @@ impl Groups {
         &mut self,
         name: &str,
         node_handles: Vec<NodeHandle>,
+        constraints: StartConstraints,
         scaling: ScalingPolicy,
         resources: Resources,
         deployment: Deployment,
@@ -209,6 +211,7 @@ impl Groups {
         let stored_group = StoredGroup {
             status: LifecycleStatus::Retired,
             nodes,
+            constraints,
             scaling,
             resources,
             deployment,
@@ -251,10 +254,18 @@ impl Groups {
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Default)]
-pub struct ScalingPolicy {
+pub struct StartConstraints {
     pub minimum: u32,
     pub maximum: u32,
     pub priority: i32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Default)]
+pub struct ScalingPolicy {
+    pub enabled: bool,
+    pub max_players: u32,
+    pub start_threshold: f32,
+    pub stop_empty_servers: bool,
 }
 
 pub enum GroupedServer {
@@ -271,6 +282,7 @@ pub struct Group {
 
     /* Where? */
     pub nodes: RwLock<Vec<WeakNodeHandle>>,
+    pub constraints: StartConstraints,
     pub scaling: ScalingPolicy,
 
     /* How? */
@@ -289,6 +301,7 @@ impl Group {
             name: name.to_string(),
             status: RwLock::new(stored_group.status.clone()),
             nodes: RwLock::new(nodes),
+            constraints: stored_group.constraints,
             scaling: stored_group.scaling,
             resources: stored_group.resources.clone(),
             deployment: stored_group.deployment.clone(),
@@ -313,7 +326,7 @@ impl Group {
         Some(Self::from(name, stored_group, node_handles))
     }
 
-    fn tick(&self, servers: &Servers) {
+    fn tick(&self, controller: &WeakControllerHandle, servers: &Servers) {
         if *self.status.read().unwrap() == LifecycleStatus::Retired {
             // Do not tick this group because it is retired
             return;
@@ -324,9 +337,58 @@ impl Group {
             .id_allocator
             .write()
             .expect("Failed to lock id allocator");
+        let mut target_server_count = self.constraints.minimum;
 
-        for requested in 0..(self.scaling.minimum as usize).saturating_sub(group_servers.len()) {
-            if (group_servers.len() + requested) >= self.scaling.maximum as usize {
+        // Apply scaling policy
+        if self.scaling.enabled {
+            for server in group_servers.iter() {
+                if let GroupedServer::Active(server) = server {
+                    let player_ratio =
+                        server.get_player_count() as f32 / self.scaling.max_players as f32;
+                    if player_ratio >= self.scaling.start_threshold {
+                        target_server_count += 1; // Server has reached the threshold, start a new one
+                    }
+                }
+            }
+
+            if self.scaling.stop_empty_servers && group_servers.len() as u32 > target_server_count {
+                let mut amount_to_stop = group_servers.len() as u32 - target_server_count;
+
+                // We have more servers than needed
+                // Check if a server is empty and stop it after the configured timeout
+                if let Some(controller) = controller.upgrade() {
+                    for server in group_servers.iter() {
+                        if let GroupedServer::Active(server) = server {
+                            let mut stop_flag =
+                                server.flags.stop.write().expect("Failed to lock stop flag");
+                            if server.get_player_count() == 0 {
+                                if let Some(stop_time) = stop_flag.as_ref() {
+                                    if &Instant::now() > stop_time && amount_to_stop > 0 {
+                                        controller.get_servers().checked_stop_server(server);
+                                        amount_to_stop -= 1;
+                                    }
+                                } else {
+                                    stop_flag.replace(
+                                        Instant::now()
+                                            + controller
+                                                .configuration
+                                                .timings
+                                                .empty_server
+                                                .unwrap(),
+                                    );
+                                }
+                            } else if stop_flag.is_some() {
+                                stop_flag.take();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check if we need to start more servers
+        for requested in 0..(target_server_count as usize).saturating_sub(group_servers.len()) {
+            if (group_servers.len() + requested) >= target_server_count as usize {
                 break;
             }
 
@@ -342,7 +404,7 @@ impl Group {
                 }),
                 resources: self.resources.clone(),
                 deployment: self.deployment.clone(),
-                priority: self.scaling.priority,
+                priority: self.constraints.priority,
             });
 
             // Add queueing server to group
@@ -409,6 +471,7 @@ impl Group {
                 .iter()
                 .map(|node| node.upgrade().unwrap().name.clone())
                 .collect(),
+            constraints: self.constraints,
             scaling: self.scaling,
             resources: self.resources.clone(),
             deployment: self.deployment.clone(),
@@ -467,7 +530,7 @@ mod shared {
         config::{LoadFromTomlFile, SaveToTomlFile},
     };
 
-    use super::ScalingPolicy;
+    use super::{ScalingPolicy, StartConstraints};
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredGroup {
@@ -476,6 +539,7 @@ mod shared {
 
         /* Where? */
         pub nodes: Vec<String>,
+        pub constraints: StartConstraints,
         pub scaling: ScalingPolicy,
 
         /* How? */

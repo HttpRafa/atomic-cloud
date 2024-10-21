@@ -82,14 +82,21 @@ message GroupListResponse {
 message GroupValue {
     string name = 1;
     repeated string nodes = 2;
-    Scaling scaling = 3;
-    Resources resources = 4;
-    Deployment deployment = 5;
+    Constraints constraints = 3;
+    optional Scaling scaling = 4;
+    Resources resources = 5;
+    Deployment deployment = 6;
 
-    message Scaling {
+    message Constraints {
         uint32 minimum = 1;
         uint32 maximum = 2;
         int32 priority = 3;
+    }
+
+    message Scaling {
+        uint32 maxPlayers = 1;
+        float startThreshold = 2;
+        bool stopEmptyServers = 3;
     }
 
     message Resources {

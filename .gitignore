@@ -1,6 +1,9 @@
 # Secrets
 secrets.env
 
+# Do not include python virtual environments
+venv/
+
 # Do not include testing files
 run/
 run.old/

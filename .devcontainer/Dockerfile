@@ -4,21 +4,14 @@ FROM ghcr.io/greyltc-org/archlinux-aur:paru
 RUN pacman-key --init
 RUN pacman -Syu --noconfirm
 
-# Tools
-RUN pacman -S base-devel git openssh nano --noconfirm
+# Install required packages
+RUN pacman -S base-devel git openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
 
-# Protobuf
-RUN pacman -S protobuf --noconfirm
-
-# Rust
-RUN pacman -S rustup --noconfirm
-
-# Kotlin/Java
-RUN pacman -S jdk21-openjdk gradle --noconfirm
+# Install gRPC UI
+RUN aur-install grpcui-bin
 
 # Install Rustup and set default toolchains
-RUN rustup default stable
-RUN rustup toolchain install nightly
+RUN rustup default nightly
 
 # Install the wasm32-wasi target for nightly
 RUN rustup target add wasm32-wasip1 --toolchain nightly
@@ -31,6 +24,3 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install wasm-tools
 RUN cargo binstall wasm-tools --no-confirm
-
-# Install gRPC UI
-RUN aur-install grpcui-bin

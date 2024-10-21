@@ -6,8 +6,9 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use proto::{
-    server_service_client::ServerServiceClient, ResolvedTransferResponse, UserConnectedRequest,
-    UserDisconnectedRequest,
+    server_service_client::ServerServiceClient,
+    transfer_management::ResolvedTransferResponse,
+    user_management::{UserConnectedRequest, UserDisconnectedRequest},
 };
 use tonic::{transport::Channel, Request, Response, Status, Streaming};
 

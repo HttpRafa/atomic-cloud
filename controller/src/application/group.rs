@@ -11,7 +11,7 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredGroup;
 
@@ -364,10 +364,15 @@ impl Group {
                             if server.get_player_count() == 0 {
                                 if let Some(stop_time) = stop_flag.as_ref() {
                                     if &Instant::now() > stop_time && amount_to_stop > 0 {
+                                        debug!("Server {} is empty and reached the timeout, stopping...", server.name.blue());
                                         controller.get_servers().checked_stop_server(server);
                                         amount_to_stop -= 1;
                                     }
                                 } else {
+                                    debug!(
+                                        "Server {} is empty, starting stop timer...",
+                                        server.name.blue()
+                                    );
                                     stop_flag.replace(
                                         Instant::now()
                                             + controller
@@ -378,6 +383,10 @@ impl Group {
                                     );
                                 }
                             } else if stop_flag.is_some() {
+                                debug!(
+                                    "Server {} is no longer empty, clearing stop timer...",
+                                    server.name.blue()
+                                );
                                 stop_flag.take();
                             }
                         }

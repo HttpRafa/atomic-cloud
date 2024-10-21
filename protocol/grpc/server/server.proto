@@ -4,34 +4,36 @@ option java_multiple_files = true;
 option java_package = "io.atomic.cloud.grpc.server";
 
 package server;
+
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+// Server Service
 service ServerService {
-    // Heartbeat
+    // Heartbeat Management
     rpc BeatHeart(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    // Ready
+    // Ready State Management
     rpc MarkReady(google.protobuf.Empty) returns (google.protobuf.Empty);
     rpc MarkNotReady(google.protobuf.Empty) returns (google.protobuf.Empty);
 
-    // Health
+    // Health Management
     rpc MarkRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty); // Implies not ready
 
-    // Users
-    rpc UserConnected(UserConnectedRequest) returns (google.protobuf.Empty);
-    rpc UserDisconnected(UserDisconnectedRequest) returns (google.protobuf.Empty);
+    // User Management
+    rpc UserConnected(UserManagement.UserConnectedRequest) returns (google.protobuf.Empty);
+    rpc UserDisconnected(UserManagement.UserDisconnectedRequest) returns (google.protobuf.Empty);
 
-    // Transfers
-    rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream ResolvedTransferResponse);
-    rpc TransferAllUsers(TransferAllUsersRequest) returns (google.protobuf.UInt32Value);
-    rpc TransferUser(TransferUserRequest) returns (google.protobuf.BoolValue);
+    // Transfer Management
+    rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream TransferManagement.ResolvedTransferResponse);
+    rpc TransferAllUsers(TransferManagement.TransferAllUsersRequest) returns (google.protobuf.UInt32Value);
+    rpc TransferUser(TransferManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
 
-    // Channels
-    rpc SendMessageToChannel(ChannelMessageValue) returns (google.protobuf.UInt32Value);
+    // Channel Management
+    rpc SendMessageToChannel(ChannelManagement.ChannelMessageValue) returns (google.protobuf.UInt32Value);
     rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
-    rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelMessageValue);
+    rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelManagement.ChannelMessageValue);
 
     // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
@@ -40,43 +42,52 @@ service ServerService {
     rpc GetControllerVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 }
 
-message UserDisconnectedRequest {
-    string uuid = 1;
-}
+// User Management
+message UserManagement {
+    message UserConnectedRequest {
+        string name = 1;
+        string uuid = 2;
+    }
 
-message UserConnectedRequest {
-    string name = 1;
-    string uuid = 2;
-}
-
-message TransferAllUsersRequest {
-    optional TransferTargetValue target = 1;
-}
-
-message TransferTargetValue {
-    string target = 1;
-    TargetType targetType = 2;
-
-    enum TargetType {
-        SERVER = 0;
-        GROUP = 1;
+    message UserDisconnectedRequest {
+        string uuid = 1;
     }
 }
 
-message TransferUserRequest {
-    string userUuid = 1;
-    TransferTargetValue target = 2;
+// Transfer Management
+message TransferManagement {
+    message TransferTargetValue {
+        string target = 1;
+        TargetType targetType = 2;
+
+        enum TargetType {
+            SERVER = 0;
+            GROUP = 1;
+        }
+    }
+
+    message TransferAllUsersRequest {
+        optional TransferTargetValue target = 1;
+    }
+
+    message TransferUserRequest {
+        string userUuid = 1;
+        TransferTargetValue target = 2;
+    }
+
+    message ResolvedTransferResponse {
+        string userUuid = 1;
+        string host = 2;
+        uint32 port = 3;
+    }
 }
 
-message ResolvedTransferResponse {
-    string userUuid = 1;
-    string host = 2;
-    uint32 port = 3;
-}
-
-message ChannelMessageValue {
-    string channel = 1;
-    uint32 id = 2;
-    string data = 3;
-    uint64 timestamp = 4;
+// Channel Management
+message ChannelManagement {
+    message ChannelMessageValue {
+        string channel = 1;
+        uint32 id = 2;
+        string data = 3;
+        uint64 timestamp = 4;
+    }
 }

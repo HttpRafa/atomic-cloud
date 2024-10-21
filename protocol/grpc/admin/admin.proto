@@ -4,39 +4,53 @@ option java_multiple_files = true;
 option java_package = "io.atomic.cloud.grpc.admin";
 
 package admin;
+
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+// Admin Service
 service AdminService {
     rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
 
     // Resource Management
-    rpc SetResourceStatus(SetResourceStatusRequest) returns (google.protobuf.Empty);
-    rpc DeleteResource(DeleteResourceRequest) returns (google.protobuf.Empty);
+    rpc SetResourceStatus(ResourceManagement.SetResourceStatusRequest) returns (google.protobuf.Empty);
+    rpc DeleteResource(ResourceManagement.DeleteResourceRequest) returns (google.protobuf.Empty);
 
     // Node Management
-    rpc CreateNode(NodeValue) returns (google.protobuf.Empty);
-    rpc GetNode(google.protobuf.StringValue) returns (NodeValue);
-    rpc GetNodes(google.protobuf.Empty) returns (NodeListResponse);
+    rpc CreateNode(NodeManagement.NodeValue) returns (google.protobuf.Empty);
+    rpc GetNode(google.protobuf.StringValue) returns (NodeManagement.NodeValue);
+    rpc GetNodes(google.protobuf.Empty) returns (NodeManagement.NodeListResponse);
 
     // Group Management
-    rpc CreateGroup(GroupValue) returns (google.protobuf.Empty);
-    rpc GetGroup(google.protobuf.StringValue) returns (GroupValue);
-    rpc GetGroups(google.protobuf.Empty) returns (GroupListResponse);
+    rpc CreateGroup(GroupManagement.GroupValue) returns (google.protobuf.Empty);
+    rpc GetGroup(google.protobuf.StringValue) returns (GroupManagement.GroupValue);
+    rpc GetGroups(google.protobuf.Empty) returns (GroupManagement.GroupListResponse);
 
     // Server Management
-    rpc GetServers(google.protobuf.Empty) returns (ServerListResponse);
+    rpc GetServers(google.protobuf.Empty) returns (ServerManagement.ServerListResponse);
+    rpc GetServer(google.protobuf.StringValue) returns (ServerManagement.ServerValue);
+
+    // User Management
+    rpc TransferUser(UserManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
 }
 
 // Resource Management
-message SetResourceStatusRequest {
-    ResourceCategory category = 1;
-    string id = 2;
-    ResourceStatus status = 3;
+message ResourceManagement {
+    message SetResourceStatusRequest {
+        ResourceCategory category = 1;
+        string id = 2;
+        ResourceStatus status = 3;
+    }
+
+    message DeleteResourceRequest {
+        ResourceCategory category = 1;
+        string id = 2;
+    }
 
     enum ResourceCategory {
         NODE = 0;
         GROUP = 1;
+        SERVER = 2;
     }
 
     enum ResourceStatus {
@@ -45,61 +59,83 @@ message SetResourceStatusRequest {
     }
 }
 
-message DeleteResourceRequest {
-    ResourceCategory category = 1;
-    string id = 2;
-
-    enum ResourceCategory {
-        NODE = 0;
-        GROUP = 1;
-        SERVER = 2;
-    }
-}
-
 // Node Management
-message NodeListResponse {
-    repeated string nodes = 1;
-}
+message NodeManagement {
+    message NodeListResponse {
+        repeated string nodes = 1;
+    }
 
-message NodeValue {
-    string name = 1;
-    string driver = 2;
+    message NodeValue {
+        string name = 1;
+        string driver = 2;
 
-    // Capabilities
-    optional uint32 memory = 3;
-    optional uint32 maxAllocations = 4;
-    optional string subNode = 5;
-
-    // Remote Controller
-    string controllerAddress = 6;
+        optional uint32 memory = 3;
+        optional uint32 maxAllocations = 4;
+        optional string subNode = 5;
+        string controllerAddress = 6;
+    }
 }
 
 // Group Management
-message GroupListResponse {
-    repeated string groups = 1;
+message GroupManagement {
+    message GroupListResponse {
+        repeated string groups = 1;
+    }
+
+    message GroupValue {
+        string name = 1;
+        repeated string nodes = 2;
+        Constraints constraints = 3;
+        optional Scaling scaling = 4;
+        ServerManagement.ServerResources resources = 5;
+        ServerManagement.ServerDeployment deployment = 6;
+
+        message Constraints {
+            uint32 minimum = 1;
+            uint32 maximum = 2;
+            int32 priority = 3;
+        }
+
+        message Scaling {
+            uint32 maxPlayers = 1;
+            float startThreshold = 2;
+            bool stopEmptyServers = 3;
+        }
+    }
 }
 
-message GroupValue {
-    string name = 1;
-    repeated string nodes = 2;
-    Constraints constraints = 3;
-    optional Scaling scaling = 4;
-    Resources resources = 5;
-    Deployment deployment = 6;
-
-    message Constraints {
-        uint32 minimum = 1;
-        uint32 maximum = 2;
-        int32 priority = 3;
+// Server Management
+message ServerManagement {
+    message ServerListResponse {
+        repeated SimpleServerValue servers = 1;
     }
 
-    message Scaling {
-        uint32 maxPlayers = 1;
-        float startThreshold = 2;
-        bool stopEmptyServers = 3;
+    message SimpleServerValue {
+        string name = 1;
+        string uuid = 2;
+        optional string group = 3;
+        string node = 4;
     }
 
-    message Resources {
+    message ServerValue {
+        string name = 1;
+        string uuid = 2;
+        optional string group = 3;
+        string node = 4;
+        ServerAllocation allocation = 5;
+        uint32 connectedUsers = 6;
+        string authToken = 7;
+        ServerState state = 8;
+        bool rediness = 9;
+    }
+
+    message ServerAllocation {
+        repeated Common.Address addresses = 1;
+        ServerResources resources = 2;
+        ServerDeployment deployment = 3;
+    }
+
+    message ServerResources {
         uint32 memory = 1;
         uint32 swap = 2;
         uint32 cpu = 3;
@@ -108,10 +144,10 @@ message GroupValue {
         uint32 addresses = 6;
     }
 
-    message Deployment {
+    message ServerDeployment {
         string image = 1;
-        repeated KeyValue settings = 2;
-        repeated KeyValue environment = 3;
+        repeated Common.KeyValue settings = 2;
+        repeated Common.KeyValue environment = 3;
         optional Retention diskRetention = 4;
         optional Fallback fallback = 5;
 
@@ -120,19 +156,48 @@ message GroupValue {
             int32 priority = 2;
         }
 
-        message KeyValue {
-            string key = 1;
-            string value = 2;
-        }
-
         enum Retention {
             TEMPORARY = 0;
-            PERMANEMT = 1;
-        } 
+            PERMANENT = 1;
+        }
+    }
+
+    enum ServerState {
+        STARTING = 0;
+        PREPARING = 1;
+        RESTARTING = 2;
+        RUNNING = 3;
+        STOPPING = 4;
     }
 }
 
-// Server Management
-message ServerListResponse {
-    repeated string servers = 1;
+// User Management
+message UserManagement {
+    message TransferTargetValue {
+        string target = 1;
+        TargetType targetType = 2;
+
+        enum TargetType {
+            SERVER = 0;
+            GROUP = 1;
+        }
+    }
+
+    message TransferUserRequest {
+        string userUuid = 1;
+        TransferTargetValue target = 2;
+    }
+}
+
+// Common
+message Common {
+    message KeyValue {
+        string key = 1;
+        string value = 2;
+    }
+
+    message Address {
+        string ip = 1;
+        uint32 port = 2;
+    }
 }

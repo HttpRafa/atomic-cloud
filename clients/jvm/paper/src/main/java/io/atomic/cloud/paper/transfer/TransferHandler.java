@@ -1,14 +1,14 @@
 package io.atomic.cloud.paper.transfer;
 
 import io.atomic.cloud.common.connection.CloudConnection;
-import io.atomic.cloud.grpc.server.ResolvedTransferResponse;
+import io.atomic.cloud.grpc.server.TransferManagement;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TransferHandler implements StreamObserver<ResolvedTransferResponse> {
+public class TransferHandler implements StreamObserver<TransferManagement.ResolvedTransferResponse> {
 
     private final CloudConnection cloudConnection;
 
@@ -18,7 +18,7 @@ public class TransferHandler implements StreamObserver<ResolvedTransferResponse>
     }
 
     @Override
-    public void onNext(ResolvedTransferResponse resolvedTransfer) {
+    public void onNext(TransferManagement.ResolvedTransferResponse resolvedTransfer) {
         try {
             var uuid = UUID.fromString(resolvedTransfer.getUserUuid());
             var player = CloudPlugin.INSTANCE.getServer().getPlayer(uuid);

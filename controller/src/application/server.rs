@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, VecDeque},
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
-        Arc, RwLock, Weak,
+        Arc, RwLock, RwLockReadGuard, Weak,
     },
     time::{Duration, Instant},
 };
@@ -356,6 +356,10 @@ impl Servers {
         self.servers.read().unwrap().get(&uuid).cloned()
     }
 
+    pub fn get_servers(&self) -> RwLockReadGuard<HashMap<Uuid, ServerHandle>> {
+        self.servers.read().expect("Failed to lock servers")
+    }
+
     fn start_server(
         &self,
         request: &StartRequestHandle,
@@ -508,7 +512,7 @@ pub struct StopRequest {
     pub server: ServerHandle,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum State {
     Starting,
     Preparing,

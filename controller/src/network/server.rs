@@ -107,7 +107,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn user_connected(
         &self,
-        request: Request<proto::UserConnectedRequest>,
+        request: Request<proto::user_management::UserConnectedRequest>,
     ) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
@@ -130,7 +130,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn user_disconnected(
         &self,
-        request: Request<proto::UserDisconnectedRequest>,
+        request: Request<proto::user_management::UserDisconnectedRequest>,
     ) -> Result<Response<()>, Status> {
         let requesting_server = request
             .extensions()
@@ -151,7 +151,7 @@ impl ServerService for ServerServiceImpl {
     }
 
     type SubscribeToTransfersStream =
-        StdReceiverStream<Result<proto::ResolvedTransferResponse, Status>>;
+        StdReceiverStream<Result<proto::transfer_management::ResolvedTransferResponse, Status>>;
     async fn subscribe_to_transfers(
         &self,
         request: Request<()>,
@@ -175,7 +175,7 @@ impl ServerService for ServerServiceImpl {
                     if let Some((user, _, to)) = transfer.get_strong() {
                         let address = to.allocation.primary_address();
 
-                        let transfer = proto::ResolvedTransferResponse {
+                        let transfer = proto::transfer_management::ResolvedTransferResponse {
                             user_uuid: user.uuid.to_string(),
                             host: address.ip().to_string(),
                             port: address.port() as u32,
@@ -192,7 +192,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn transfer_all_users(
         &self,
-        request: Request<proto::TransferAllUsersRequest>,
+        request: Request<proto::transfer_management::TransferAllUsersRequest>,
     ) -> Result<Response<u32>, Status> {
         let requesting_server = request
             .extensions()
@@ -205,13 +205,17 @@ impl ServerService for ServerServiceImpl {
         let transfer = request.into_inner();
         let target = match transfer.target {
             Some(target) => Some(
-                match proto::transfer_target_value::TargetType::try_from(target.target_type) {
-                    Ok(proto::transfer_target_value::TargetType::Group) => TransferTarget::Group(
-                        self.controller
-                            .lock_groups()
-                            .find_by_name(&target.target)
-                            .ok_or_else(|| Status::not_found("Group does not exist"))?,
-                    ),
+                match proto::transfer_management::transfer_target_value::TargetType::try_from(
+                    target.target_type,
+                ) {
+                    Ok(proto::transfer_management::transfer_target_value::TargetType::Group) => {
+                        TransferTarget::Group(
+                            self.controller
+                                .lock_groups()
+                                .find_by_name(&target.target)
+                                .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                        )
+                    }
                     _ => TransferTarget::Server(
                         self.controller
                             .get_servers()
@@ -237,7 +241,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn transfer_user(
         &self,
-        request: Request<proto::TransferUserRequest>,
+        request: Request<proto::transfer_management::TransferUserRequest>,
     ) -> Result<Response<bool>, Status> {
         let requesting_server = request
             .extensions()
@@ -277,13 +281,17 @@ impl ServerService for ServerServiceImpl {
             ));
         }
 
-        let target = match proto::transfer_target_value::TargetType::try_from(target.target_type) {
-            Ok(proto::transfer_target_value::TargetType::Group) => TransferTarget::Group(
-                self.controller
-                    .lock_groups()
-                    .find_by_name(&target.target)
-                    .ok_or_else(|| Status::not_found("Group does not exist"))?,
-            ),
+        let target = match proto::transfer_management::transfer_target_value::TargetType::try_from(
+            target.target_type,
+        ) {
+            Ok(proto::transfer_management::transfer_target_value::TargetType::Group) => {
+                TransferTarget::Group(
+                    self.controller
+                        .lock_groups()
+                        .find_by_name(&target.target)
+                        .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                )
+            }
             _ => TransferTarget::Server(
                 self.controller
                     .get_servers()
@@ -306,7 +314,7 @@ impl ServerService for ServerServiceImpl {
 
     async fn send_message_to_channel(
         &self,
-        request: Request<proto::ChannelMessageValue>,
+        request: Request<proto::channel_management::ChannelMessageValue>,
     ) -> Result<Response<u32>, Status> {
         let _requesting_server = request
             .extensions()
@@ -343,7 +351,8 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(()))
     }
 
-    type SubscribeToChannelStream = StdReceiverStream<Result<proto::ChannelMessageValue, Status>>;
+    type SubscribeToChannelStream =
+        StdReceiverStream<Result<proto::channel_management::ChannelMessageValue, Status>>;
     async fn subscribe_to_channel(
         &self,
         request: Request<String>,

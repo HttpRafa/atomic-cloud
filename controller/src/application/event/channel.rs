@@ -1,4 +1,4 @@
-use crate::network::server::proto::ChannelMessageValue;
+use crate::network::server::proto::channel_management::ChannelMessageValue;
 
 use super::Event;
 

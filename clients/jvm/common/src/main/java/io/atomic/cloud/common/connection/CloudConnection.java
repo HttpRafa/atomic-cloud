@@ -79,35 +79,35 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userConnected(UserConnectedRequest user) {
+    public CompletableFuture<Empty> userConnected(UserManagement.UserConnectedRequest user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userConnected(user, observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userDisconnected(UserDisconnectedRequest user) {
+    public CompletableFuture<Empty> userDisconnected(UserManagement.UserDisconnectedRequest user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userDisconnected(user, observer);
         return observer.future();
     }
 
-    public void subscribeToTransfers(StreamObserver<ResolvedTransferResponse> observer) {
+    public void subscribeToTransfers(StreamObserver<TransferManagement.ResolvedTransferResponse> observer) {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferAllUsers(TransferAllUsersRequest target) {
+    public CompletableFuture<UInt32Value> transferAllUsers(TransferManagement.TransferAllUsersRequest target) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferAllUsers(target, observer);
         return observer.future();
     }
 
-    public CompletableFuture<BoolValue> transferUser(TransferUserRequest transfer) {
+    public CompletableFuture<BoolValue> transferUser(TransferManagement.TransferUserRequest transfer) {
         var observer = new StreamObserverImpl<BoolValue>();
         this.client.transferUser(transfer, observer);
         return observer.future();
     }
 
-    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelMessageValue message) {
+    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelManagement.ChannelMessageValue message) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.sendMessageToChannel(message, observer);
         return observer.future();
@@ -119,7 +119,7 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public void subscribeToChannel(String channel, StreamObserver<ChannelMessageValue> observer) {
+    public void subscribeToChannel(String channel, StreamObserver<ChannelManagement.ChannelMessageValue> observer) {
         this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 

@@ -7,7 +7,7 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
 };
 
-use crate::wrapper::detection::Detection;
+use crate::application::detection::Detection;
 
 use super::{detection::RegexDetector, network::CloudConnectionHandle, user::Users};
 

@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     fs,
     net::SocketAddr,
-    path::{Path, PathBuf},
     sync::{Arc, RwLock, Weak},
 };
 
@@ -18,9 +17,7 @@ use super::{
     server::{Deployment, Resources, StartRequestHandle},
     CreationResult, WeakControllerHandle,
 };
-use crate::config::{LoadFromTomlFile, SaveToTomlFile};
-
-const NODES_DIRECTORY: &str = "nodes";
+use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
 
 pub type NodeHandle = Arc<Node>;
 pub type WeakNodeHandle = Weak<Node>;
@@ -39,18 +36,21 @@ impl Nodes {
         }
     }
 
+    /// This will try to load all the nodes stored as toml files from the nodes directory
+    /// 
+    /// Any compilcations will be logged and the node will be skipped
     pub fn load_all(controller: WeakControllerHandle, drivers: &Drivers) -> Self {
         info!("Loading nodes...");
 
-        let nodes_directory = Path::new(NODES_DIRECTORY);
+        let nodes_directory = Storage::get_nodes_folder();
         if !nodes_directory.exists() {
-            if let Err(error) = fs::create_dir_all(nodes_directory) {
+            if let Err(error) = fs::create_dir_all(&nodes_directory) {
                 warn!("{} to create nodes directory: {}", "Failed".red(), &error);
             }
         }
 
         let mut nodes = Self::new(controller);
-        let entries = match fs::read_dir(nodes_directory) {
+        let entries = match fs::read_dir(&nodes_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read nodes directory: {}", "Failed".red(), &error);
@@ -123,6 +123,9 @@ impl Nodes {
         self.nodes.get(name).cloned()
     }
 
+    /// This can be used to retire or activate a node
+    /// 
+    /// Retiring a node will remove it from the groups that use it and stop all servers on it
     pub fn set_node_status(&mut self, node: &NodeHandle, status: LifecycleStatus) -> Result<()> {
         match status {
             LifecycleStatus::Retired => {
@@ -139,6 +142,7 @@ impl Nodes {
         Ok(())
     }
 
+    /// This should only be called from set_node_status and delete_node
     fn retire_node(&mut self, node: &NodeHandle) {
         let controller = self
             .controller
@@ -150,6 +154,7 @@ impl Nodes {
         }
     }
 
+    /// This should only be called from set_node_status
     fn activate_node(&mut self, _node: &NodeHandle) {}
 
     pub fn delete_node(&mut self, node: &NodeHandle) -> Result<()> {
@@ -195,7 +200,7 @@ impl Nodes {
         match self.add_node(node) {
             Ok(_) => {
                 stored_node
-                    .save_to_file(&Path::new(NODES_DIRECTORY).join(format!("{}.toml", name)))?;
+                    .save_to_file(&Storage::get_node_file(name))?;
                 info!("Created node {}", name.blue());
                 Ok(CreationResult::Created)
             }
@@ -360,7 +365,7 @@ impl Node {
     }
 
     fn delete_file(&self) -> Result<()> {
-        let file_path = self.get_file_path();
+        let file_path = Storage::get_node_file(&self.name);
         if file_path.exists() {
             fs::remove_file(file_path)?;
         }
@@ -374,11 +379,7 @@ impl Node {
             status: self.status.read().unwrap().clone(),
             controller: self.controller.clone(),
         };
-        stored_node.save_to_file(&self.get_file_path())
-    }
-
-    fn get_file_path(&self) -> PathBuf {
-        Path::new(NODES_DIRECTORY).join(format!("{}.toml", self.name))
+        stored_node.save_to_file(&Storage::get_node_file(&self.name))
     }
 }
 

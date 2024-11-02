@@ -1,6 +1,5 @@
 use std::fs;
 use std::net::SocketAddr;
-use std::path::Path;
 use std::sync::{Arc, Mutex, Weak};
 
 use anyhow::{anyhow, Result};
@@ -17,9 +16,9 @@ use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use super::source::Source;
-use super::{DriverNodeHandle, GenericDriver, Information, DATA_DIRECTORY, DRIVERS_DIRECTORY};
+use super::{DriverNodeHandle, GenericDriver, Information};
 use crate::application::node::{Capabilities, Node, RemoteController};
-use crate::config::CONFIG_DIRECTORY;
+use crate::storage::Storage;
 
 mod node_impl;
 
@@ -216,8 +215,8 @@ impl GenericDriver for WasmDriver {
 
 impl WasmDriver {
     fn new(cloud_identifier: &str, name: &str, source: &Source) -> Result<Arc<Self>> {
-        let config_directory = Path::new(CONFIG_DIRECTORY).join(name);
-        let data_directory = Path::new(DRIVERS_DIRECTORY).join(DATA_DIRECTORY).join(name);
+        let config_directory = Storage::get_config_folder_for_driver(name);
+        let data_directory = Storage::get_data_folder_for_driver(name);
         if !config_directory.exists() {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!(
@@ -242,7 +241,7 @@ impl WasmDriver {
         let mut config = Config::new();
         config.wasm_component_model(true);
         if let Err(error) =
-            config.cache_config_load(Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE))
+            config.cache_config_load(Storage::get_configs_folder().join(CACHE_CONFIG_FILE))
         {
             warn!(
                 "{} to enable caching for wasmtime engine: {}",
@@ -303,7 +302,7 @@ impl WasmDriver {
 
     pub fn load_all(cloud_identifier: &str, drivers: &mut Vec<Arc<dyn GenericDriver>>) {
         // Check if cache configuration exists
-        let cache_config = Path::new(CONFIG_DIRECTORY).join(CACHE_CONFIG_FILE);
+        let cache_config = Storage::get_configs_folder().join(CACHE_CONFIG_FILE);
         if !cache_config.exists() {
             fs::write(&cache_config, DEFAULT_CACHE_CONFIG).unwrap_or_else(|error| {
                 warn!(
@@ -316,7 +315,7 @@ impl WasmDriver {
 
         let old_loaded = drivers.len();
 
-        let drivers_directory = Path::new(DRIVERS_DIRECTORY).join(WASM_DIRECTORY);
+        let drivers_directory = Storage::get_drivers_folder().join(WASM_DIRECTORY);
         if !drivers_directory.exists() {
             fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
                 warn!("{} to create drivers directory: {}", "Failed".red(), &error)

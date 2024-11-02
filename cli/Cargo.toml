@@ -12,6 +12,9 @@ log = "0.4.22"
 simplelog = "0.12.2"
 colored = "2.1.0"
 
+# File management
+dirs = "5.0.1"
+
 # Input parsing
 inquire = "0.7.5"
 

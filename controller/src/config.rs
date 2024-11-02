@@ -9,8 +9,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub const CONFIG_DIRECTORY: &str = "configs";
-const CONFIG_FILE: &str = "config.toml";
+use crate::storage::Storage;
 
 const DEFAULT_EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(130);
 const DEFAULT_EXPECTED_RESTART_TIME: Duration = Duration::from_secs(120);
@@ -49,7 +48,7 @@ pub struct Config {
 
 impl Config {
     fn load_or_empty() -> Self {
-        let path = Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE);
+        let path = Storage::get_primary_config_file();
         if !path.exists() {
             return Self::default();
         }
@@ -95,7 +94,7 @@ impl Config {
             save = true;
         }
         if save {
-            if let Err(error) = config.save_to_file(&Path::new(CONFIG_DIRECTORY).join(CONFIG_FILE))
+            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file())
             {
                 error!("Failed to save generated configuration to file: {}", &error);
             }

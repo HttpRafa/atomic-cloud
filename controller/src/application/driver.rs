@@ -14,9 +14,6 @@ use crate::application::driver::wasm::WasmDriver;
 #[cfg(feature = "wasm-drivers")]
 mod wasm;
 
-pub const DRIVERS_DIRECTORY: &str = "drivers";
-pub const DATA_DIRECTORY: &str = "data";
-
 pub struct Information {
     authors: Vec<String>,
     version: String,

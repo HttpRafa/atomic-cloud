@@ -10,12 +10,9 @@ use log::{error, info, warn};
 use stored::StoredUser;
 use uuid::Uuid;
 
-use crate::config::{LoadFromTomlFile, SaveToTomlFile};
+use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
 
 use super::server::{ServerHandle, WeakServerHandle};
-
-const AUTH_DIRECTORY: &str = "auth";
-const USERS_DIRECTORY: &str = "users";
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
@@ -48,7 +45,7 @@ impl Auth {
     pub fn load_all() -> Self {
         info!("Loading users...");
 
-        let users_directory = Path::new(AUTH_DIRECTORY).join(USERS_DIRECTORY);
+        let users_directory = Storage::get_users_folder();
         if !users_directory.exists() {
             if let Err(error) = fs::create_dir_all(&users_directory) {
                 warn!("{} to create users directory: {}", "Failed".red(), &error);
@@ -180,9 +177,7 @@ impl Auth {
         let stored_user = StoredUser {
             token: token.to_string(),
         };
-        let user_path = Path::new(AUTH_DIRECTORY)
-            .join(USERS_DIRECTORY)
-            .join(format!("{}.toml", username));
+        let user_path = Storage::get_user_file(username);
         if stored_user.save_to_file(&user_path).is_err() {
             error!(
                 "{} to save user to file: {}",

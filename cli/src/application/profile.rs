@@ -1,3 +1,4 @@
+use log::info;
 use url::Url;
 
 pub struct Profiles {
@@ -12,6 +13,8 @@ impl Profiles {
     }
 
     pub fn load_all() -> Self {
+        info!("Loading profiles...");
+
         Self::new(vec![])
     }
 }

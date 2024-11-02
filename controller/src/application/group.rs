@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
-    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock, Weak,
@@ -15,7 +14,7 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredGroup;
 
-use crate::config::{LoadFromTomlFile, SaveToTomlFile};
+use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
 
 use super::{
     node::{LifecycleStatus, NodeHandle, Nodes, WeakNodeHandle},
@@ -24,8 +23,6 @@ use super::{
     },
     CreationResult, WeakControllerHandle,
 };
-
-const GROUPS_DIRECTORY: &str = "groups";
 
 pub type GroupHandle = Arc<Group>;
 pub type WeakGroupHandle = Weak<Group>;
@@ -47,15 +44,15 @@ impl Groups {
     pub fn load_all(controller: WeakControllerHandle, nodes: &Nodes) -> Self {
         info!("Loading groups...");
 
-        let groups_directory = Path::new(GROUPS_DIRECTORY);
+        let groups_directory = Storage::get_groups_folder();
         if !groups_directory.exists() {
-            if let Err(error) = fs::create_dir_all(groups_directory) {
+            if let Err(error) = fs::create_dir_all(&groups_directory) {
                 warn!("{} to create groups directory: {}", "Failed".red(), &error);
             }
         }
 
         let mut groups = Self::new(controller);
-        let entries = match fs::read_dir(groups_directory) {
+        let entries = match fs::read_dir(&groups_directory) {
             Ok(entries) => entries,
             Err(error) => {
                 error!("{} to read groups directory: {}", "Failed".red(), &error);
@@ -223,7 +220,7 @@ impl Groups {
         );
 
         self.add_group(group);
-        stored_group.save_to_file(&Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", name)))?;
+        stored_group.save_to_file(&Storage::get_group_file(name))?;
         info!("Created group {}", name.blue());
         Ok(CreationResult::Created)
     }
@@ -463,7 +460,7 @@ impl Group {
     }
 
     fn delete_file(&self) -> Result<()> {
-        let file_path = self.get_file_path();
+        let file_path = Storage::get_group_file(&self.name);
         if file_path.exists() {
             fs::remove_file(file_path)?;
         }
@@ -485,11 +482,7 @@ impl Group {
             resources: self.resources.clone(),
             deployment: self.deployment.clone(),
         };
-        stored_group.save_to_file(&self.get_file_path())
-    }
-
-    fn get_file_path(&self) -> PathBuf {
-        Path::new(GROUPS_DIRECTORY).join(format!("{}.toml", self.name))
+        stored_group.save_to_file(&Storage::get_group_file(&self.name))
     }
 }
 

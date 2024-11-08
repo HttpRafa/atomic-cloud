@@ -1,7 +1,7 @@
 #![no_main]
 
-use driver::{Pterodactyl, PterodactylNodeWrapper};
-use exports::node::driver::bridge::Guest;
+use driver::{Pterodactyl, PterodactylCloudletWrapper};
+use exports::cloudlet::driver::bridge::Guest;
 use wit_bindgen::generate;
 
 mod config;
@@ -18,7 +18,7 @@ struct Export;
 
 impl Guest for Export {
     type GenericDriver = Pterodactyl;
-    type GenericNode = PterodactylNodeWrapper;
+    type GenericCloudlet = PterodactylCloudletWrapper;
 }
 
 export!(Export);

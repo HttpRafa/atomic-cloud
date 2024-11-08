@@ -12,33 +12,33 @@ use uuid::Uuid;
 
 use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
 
-use super::server::{ServerHandle, WeakServerHandle};
+use super::unit::{UnitHandle, WeakUnitHandle};
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
 pub type AuthUserHandle = Arc<AuthUser>;
-pub type AuthServerHandle = Arc<AuthServer>;
+pub type AuthUnitHandle = Arc<AuthUnit>;
 
 pub struct AuthUser {
     pub username: String,
     pub token: String,
 }
 
-pub struct AuthServer {
-    pub server: WeakServerHandle,
+pub struct AuthUnit {
+    pub unit: WeakUnitHandle,
     pub token: String,
 }
 
 pub struct Auth {
     pub users: RwLock<HashMap<String, AuthUserHandle>>,
-    pub servers: RwLock<HashMap<String, AuthServerHandle>>,
+    pub units: RwLock<HashMap<String, AuthUnitHandle>>,
 }
 
 impl Auth {
     pub fn new(users: HashMap<String, AuthUserHandle>) -> Self {
         Auth {
             users: RwLock::new(users),
-            servers: RwLock::new(HashMap::new()),
+            units: RwLock::new(HashMap::new()),
         }
     }
 
@@ -135,33 +135,33 @@ impl Auth {
         self.users.read().unwrap().get(token).cloned()
     }
 
-    pub fn get_server(&self, token: &str) -> Option<AuthServerHandle> {
-        self.servers.read().unwrap().get(token).cloned()
+    pub fn get_unit(&self, token: &str) -> Option<AuthUnitHandle> {
+        self.units.read().unwrap().get(token).cloned()
     }
 
-    pub fn register_server(&self, server: WeakServerHandle) -> AuthServerHandle {
+    pub fn register_unit(&self, unit: WeakUnitHandle) -> AuthUnitHandle {
         let token = format!(
             "sctl_{}{}",
             Uuid::new_v4().as_simple(),
             Uuid::new_v4().as_simple()
         );
 
-        let server = Arc::new(AuthServer {
-            server,
+        let unit = Arc::new(AuthUnit {
+            unit,
             token: token.clone(),
         });
-        self.servers
+        self.units
             .write()
             .unwrap()
-            .insert(token.clone(), server.clone());
+            .insert(token.clone(), unit.clone());
 
-        server
+        unit
     }
 
-    pub fn unregister_server(&self, server: &ServerHandle) {
-        self.servers.write().unwrap().retain(|_, value| {
-            if let Some(ref_server) = value.server.upgrade() {
-                !Arc::ptr_eq(&ref_server, server)
+    pub fn unregister_unit(&self, unit: &UnitHandle) {
+        self.units.write().unwrap().retain(|_, value| {
+            if let Some(ref_unit) = value.unit.upgrade() {
+                !Arc::ptr_eq(&ref_unit, unit)
             } else {
                 true
             }

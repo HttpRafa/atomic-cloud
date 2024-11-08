@@ -1,5 +1,5 @@
 use anyhow::Result;
-use auth::{AdminInterceptor, ServerInterceptor};
+use auth::{AdminInterceptor, UnitInterceptor};
 use colored::Colorize;
 use log::{error, info};
 use std::sync::Arc;
@@ -11,11 +11,11 @@ use tonic::transport::Server;
 
 use crate::application::{Controller, WeakControllerHandle};
 use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
-use server::{proto::server_service_server::ServerServiceServer, ServerServiceImpl};
+use unit::{proto::unit_service_server::UnitServiceServer, UnitServiceImpl};
 
 mod admin;
 mod auth;
-pub mod server;
+pub mod unit;
 mod stream;
 
 pub struct NetworkStack {
@@ -56,7 +56,7 @@ impl NetworkStack {
             let admin_service = AdminServiceImpl {
                 controller: Arc::clone(&controller),
             };
-            let server_service = ServerServiceImpl {
+            let unit_service = UnitServiceImpl {
                 controller: Arc::clone(&controller),
             };
 
@@ -73,9 +73,9 @@ impl NetworkStack {
                         controller: Arc::clone(&controller),
                     },
                 ))
-                .add_service(ServerServiceServer::with_interceptor(
-                    server_service,
-                    ServerInterceptor { controller },
+                .add_service(UnitServiceServer::with_interceptor(
+                    unit_service,
+                    UnitInterceptor { controller },
                 ))
                 .serve_with_shutdown(address, async {
                     shutdown.changed().await.ok();

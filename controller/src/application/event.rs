@@ -2,7 +2,7 @@ use colored::Colorize;
 use log::debug;
 use uuid::Uuid;
 
-use super::server::{ServerHandle, WeakServerHandle};
+use super::unit::{UnitHandle, WeakUnitHandle};
 
 use std::{
     any::{Any, TypeId},
@@ -27,7 +27,7 @@ pub trait Event: Any + Send + Sync + Debug {}
 pub type EventListener<E> = Box<dyn Fn(&E) + Send + Sync>;
 
 struct RegisteredListener {
-    server: Option<WeakServerHandle>,
+    unit: Option<WeakUnitHandle>,
     listener: Box<dyn Any + Send + Sync>,
 }
 
@@ -44,7 +44,7 @@ impl EventBus {
 
     pub fn register_listener<E: Event>(&self, key: EventKey, listener: EventListener<E>) {
         let registered_listener = RegisteredListener {
-            server: None,
+            unit: None,
             listener: Box::new(listener),
         };
         self.listeners
@@ -55,14 +55,14 @@ impl EventBus {
             .push(registered_listener);
     }
 
-    pub fn register_listener_under_server<E: Event>(
+    pub fn register_listener_under_unit<E: Event>(
         &self,
         key: EventKey,
-        server: WeakServerHandle,
+        unit: WeakUnitHandle,
         listener: EventListener<E>,
     ) {
         let registered_listener = RegisteredListener {
-            server: Some(server),
+            unit: Some(unit),
             listener: Box::new(listener),
         };
         self.listeners
@@ -73,17 +73,17 @@ impl EventBus {
             .push(registered_listener);
     }
 
-    pub fn unregister_listener(&self, key: EventKey, server: &ServerHandle) {
+    pub fn unregister_listener(&self, key: EventKey, unit: &UnitHandle) {
         let mut listeners = self.listeners.write().unwrap();
         if let Some(registered_listeners) = listeners.get_mut(&key) {
             registered_listeners.retain(|registered_listener| {
-                if let Some(weak_server) = &registered_listener.server {
-                    if let Some(strong_server) = weak_server.upgrade() {
-                        if Arc::ptr_eq(server, &strong_server) {
+                if let Some(weak_unit) = &registered_listener.unit {
+                    if let Some(strong_unit) = weak_unit.upgrade() {
+                        if Arc::ptr_eq(unit, &strong_unit) {
                             return false;
                         }
                     } else {
-                        return false; // Server is dead
+                        return false; // Unit is dead
                     }
                 }
                 true
@@ -91,17 +91,17 @@ impl EventBus {
         }
     }
 
-    pub fn cleanup_server(&self, server: &ServerHandle) {
+    pub fn cleanup_unit(&self, unit: &UnitHandle) {
         let mut listeners = self.listeners.write().unwrap();
         for (_, registered_listeners) in listeners.iter_mut() {
             registered_listeners.retain(|registered_listener| {
-                if let Some(weak_server) = &registered_listener.server {
-                    if let Some(strong_server) = weak_server.upgrade() {
-                        if Arc::ptr_eq(server, &strong_server) {
+                if let Some(weak_unit) = &registered_listener.unit {
+                    if let Some(strong_unit) = weak_unit.upgrade() {
+                        if Arc::ptr_eq(unit, &strong_unit) {
                             return false;
                         }
                     } else {
-                        return false; // Server is dead
+                        return false; // Unit is dead
                     }
                 }
                 true
@@ -140,9 +140,9 @@ impl Hash for EventKey {
                 state.write_u8(0);
                 channel.hash(state);
             }
-            EventKey::Transfer(server) => {
+            EventKey::Transfer(unit) => {
                 state.write_u8(1);
-                server.hash(state);
+                unit.hash(state);
             }
             EventKey::Custom(type_id) => {
                 state.write_u8(2);

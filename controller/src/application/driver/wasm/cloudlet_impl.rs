@@ -9,35 +9,35 @@ use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
 use crate::application::{
-    auth::AuthServer,
-    driver::GenericNode,
-    node::Allocation,
-    server::{
-        Deployment, KeyValue, Resources, Retention, Server, ServerHandle, StartRequest,
+    auth::AuthUnit,
+    driver::GenericCloudlet,
+    cloudlet::Allocation,
+    unit::{
+        Spec, KeyValue, Resources, Retention, Unit, UnitHandle, StartRequest,
         StartRequestHandle,
     },
 };
 
 use super::{
-    exports::node::driver::bridge::{self, Address},
+    exports::cloudlet::driver::bridge::{self, Address},
     WasmDriver,
 };
 
-pub struct WasmNode {
+pub struct WasmCloudlet {
     pub handle: Weak<WasmDriver>,
     pub resource: ResourceAny, // This is delete if the handle is dropped
 }
 
 #[async_trait]
-impl GenericNode for WasmNode {
+impl GenericCloudlet for WasmCloudlet {
     fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             match driver
                 .bindings
-                .node_driver_bridge()
-                .generic_node()
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
                 .call_allocate_addresses(store, self.resource, &(request.into()))
             {
                 Ok(Ok(addresses)) => addresses
@@ -61,8 +61,8 @@ impl GenericNode for WasmNode {
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver
                 .bindings
-                .node_driver_bridge()
-                .generic_node()
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
                 .call_deallocate_addresses(
                     store,
                     self.resource,
@@ -76,43 +76,43 @@ impl GenericNode for WasmNode {
         }
     }
 
-    fn start_server(&self, server: &ServerHandle) -> Result<()> {
+    fn start_unit(&self, unit: &UnitHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver
                 .bindings
-                .node_driver_bridge()
-                .generic_node()
-                .call_start_server(store, self.resource, &server.into())
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
+                .call_start_unit(store, self.resource, &unit.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
     }
 
-    fn restart_server(&self, server: &ServerHandle) -> Result<()> {
+    fn restart_unit(&self, unit: &UnitHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver
                 .bindings
-                .node_driver_bridge()
-                .generic_node()
-                .call_restart_server(store, self.resource, &server.into())
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
+                .call_restart_unit(store, self.resource, &unit.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
     }
 
-    fn stop_server(&self, server: &ServerHandle) -> Result<()> {
+    fn stop_unit(&self, unit: &UnitHandle) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
             driver
                 .bindings
-                .node_driver_bridge()
-                .generic_node()
-                .call_stop_server(store, self.resource, &server.into())
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
+                .call_stop_unit(store, self.resource, &unit.into())
         } else {
             Err(anyhow!("Failed to get handle to wasm driver"))
         }
@@ -137,9 +137,9 @@ impl From<&Retention> for bridge::Retention {
     }
 }
 
-impl From<&Deployment> for bridge::Deployment {
-    fn from(val: &Deployment) -> Self {
-        bridge::Deployment {
+impl From<&Spec> for bridge::Spec {
+    fn from(val: &Spec) -> Self {
+        bridge::Spec {
             settings: val.settings.iter().map(|setting| setting.into()).collect(),
             environment: val.environment.iter().map(|env| env.into()).collect(),
             disk_retention: (&val.disk_retention).into(),
@@ -166,29 +166,29 @@ impl From<Arc<Allocation>> for bridge::Allocation {
         bridge::Allocation {
             addresses: val.addresses.iter().map(|address| address.into()).collect(),
             resources: val.resources.clone().into(),
-            deployment: (&val.deployment).into(),
+            spec: (&val.spec).into(),
         }
     }
 }
 
-impl From<Arc<AuthServer>> for bridge::Auth {
-    fn from(val: Arc<AuthServer>) -> Self {
+impl From<Arc<AuthUnit>> for bridge::Auth {
+    fn from(val: Arc<AuthUnit>) -> Self {
         bridge::Auth {
             token: val.token.clone(),
         }
     }
 }
 
-impl From<&Arc<Server>> for bridge::Server {
-    fn from(val: &Arc<Server>) -> Self {
-        bridge::Server {
+impl From<&Arc<Unit>> for bridge::Unit {
+    fn from(val: &Arc<Unit>) -> Self {
+        bridge::Unit {
             name: val.name.clone(),
             uuid: val.uuid.to_string(),
-            group: val.group.as_ref().map(|group| {
-                group
-                    .group
+            deployment: val.deployment.as_ref().map(|deployment| {
+                deployment
+                    .deployment
                     .upgrade()
-                    .expect("Group dropped while servers of the group are still active")
+                    .expect("Deployment dropped while units of the deployment are still active")
                     .name
                     .clone()
             }),
@@ -198,20 +198,20 @@ impl From<&Arc<Server>> for bridge::Server {
     }
 }
 
-impl From<&Arc<StartRequest>> for bridge::ServerProposal {
+impl From<&Arc<StartRequest>> for bridge::UnitProposal {
     fn from(val: &Arc<StartRequest>) -> Self {
-        bridge::ServerProposal {
+        bridge::UnitProposal {
             name: val.name.clone(),
-            group: val.group.as_ref().map(|group| {
-                group
-                    .group
+            deployment: val.deployment.as_ref().map(|deployment| {
+                deployment
+                    .deployment
                     .upgrade()
-                    .expect("Group dropped while servers of the group are still active")
+                    .expect("Deployment dropped while units of the deployment are still active")
                     .name
                     .clone()
             }),
             resources: val.resources.clone().into(),
-            deployment: (&val.deployment).into(),
+            spec: (&val.spec).into(),
         }
     }
 }

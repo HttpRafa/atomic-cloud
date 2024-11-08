@@ -1,16 +1,16 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::exports::node::driver::bridge::Retention;
+use crate::exports::cloudlet::driver::bridge::Retention;
 
 #[derive(Clone)]
-pub struct PanelServer {
+pub struct PanelUnit {
     pub id: u32,
     pub identifier: String,
-    pub name: ServerName,
+    pub name: UnitName,
 }
 
-impl PanelServer {
-    pub fn new(id: u32, identifier: String, name: ServerName) -> PanelServer {
+impl PanelUnit {
+    pub fn new(id: u32, identifier: String, name: UnitName) -> PanelUnit {
         Self {
             id,
             identifier,
@@ -20,14 +20,14 @@ impl PanelServer {
 }
 
 #[derive(Clone)]
-pub struct ServerName {
+pub struct UnitName {
     pub cloud_identifier: String,
     pub name: String,
     pub timestamp: u64,
     pub retention: Retention,
 }
 
-impl ServerName {
+impl UnitName {
     pub fn new(cloud_identifier: &str, name: &str, retention: &Retention) -> Self {
         Self {
             cloud_identifier: cloud_identifier.to_owned(),

@@ -1,4 +1,4 @@
-package node:driver;
+package cloudlet:driver;
 
 interface log {
     variant level {
@@ -45,17 +45,17 @@ interface bridge {
         ready: bool,
     }
 
-    /* Node | Start */
+    /* Cloudlet | Start */
     record capabilities {
         memory: option<u32>,
         max-allocations: option<u32>,
-        sub-node: option<string>,
+        child: option<string>,
     }
 
     record remote-controller {
         address: string,
     }
-    /* Node | End */
+    /* Cloudlet | End */
 
     /* Allocation */
     record address {
@@ -63,7 +63,7 @@ interface bridge {
         port: u16,
     }
 
-    /* Server | Start */
+    /* Unit | Start */
     record resources {
         memory: u32,
         swap: u32,
@@ -88,7 +88,7 @@ interface bridge {
         value: string,
     }
 
-    record deployment {
+    record spec {
         settings: list<key-value>,
         environment: list<key-value>,
         disk-retention: retention,
@@ -98,43 +98,43 @@ interface bridge {
     record allocation {
         addresses: list<address>,
         resources: resources,
-        deployment: deployment,
+        spec: spec,
     }
 
     record auth {
         token: string,
     }
 
-    record server-proposal {
+    record unit-proposal {
         name: string,
-        group: option<string>,
+        deployment: option<string>,
         resources: resources,
-        deployment: deployment,
+        spec: spec,
     }
 
-    record server {
+    record unit {
         name: string,
         uuid: uuid,
-        group: option<string>,
+        deployment: option<string>,
         allocation: allocation,
         auth: auth,
     }
-    /* Server | End */
+    /* Unit | End */
 
-    resource generic-node {
+    resource generic-cloudlet {
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
-        allocate-addresses: func(server: server-proposal) -> result<list<address>, string>;
+        allocate-addresses: func(unit: unit-proposal) -> result<list<address>, string>;
         deallocate-addresses: func(addresses: list<address>);
 
-        start-server: func(server: server);
-        restart-server: func(server: server);
-        stop-server: func(server: server);
+        start-unit: func(unit: unit);
+        restart-unit: func(unit: unit);
+        stop-unit: func(unit: unit);
     }
 
     resource generic-driver {
         constructor(cloud-identifier: string);
         init: func() -> information;
-        init-node: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-node, string>;
+        init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, string>;
     }
 }
 

@@ -3,10 +3,10 @@ use auth::Auth;
 use colored::Colorize;
 use driver::Drivers;
 use event::EventBus;
-use group::Groups;
+use deployment::Deployments;
 use log::info;
-use node::Nodes;
-use server::Servers;
+use cloudlet::Cloudlets;
+use unit::Units;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 use std::thread;
@@ -20,9 +20,9 @@ use crate::network::NetworkStack;
 pub mod auth;
 pub mod driver;
 pub mod event;
-pub mod group;
-pub mod node;
-pub mod server;
+pub mod deployment;
+pub mod cloudlet;
+pub mod unit;
 pub mod user;
 
 static STARTUP_SLEEP: Duration = Duration::from_secs(1);
@@ -48,11 +48,11 @@ pub struct Controller {
     auth: Auth,
 
     /* Accessed rarely */
-    nodes: RwLock<Nodes>,
-    groups: RwLock<Groups>,
+    cloudlets: RwLock<Cloudlets>,
+    deployments: RwLock<Deployments>,
 
     /* Accessed frequently */
-    servers: Servers,
+    units: Units,
     users: Users,
 
     /* Event Bus */
@@ -64,9 +64,9 @@ impl Controller {
         Arc::new_cyclic(move |handle| {
             let auth = Auth::load_all();
             let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
-            let nodes = Nodes::load_all(handle.clone(), &drivers);
-            let groups = Groups::load_all(handle.clone(), &nodes);
-            let servers = Servers::new(handle.clone());
+            let cloudlets = Cloudlets::load_all(handle.clone(), &drivers);
+            let deployments = Deployments::load_all(handle.clone(), &cloudlets);
+            let units = Units::new(handle.clone());
             let users = Users::new(handle.clone());
             let event_bus = EventBus::new(/*handle.clone()*/);
             Self {
@@ -81,9 +81,9 @@ impl Controller {
                 )),
                 running: AtomicBool::new(true),
                 auth,
-                nodes: RwLock::new(nodes),
-                groups: RwLock::new(groups),
-                servers,
+                cloudlets: RwLock::new(cloudlets),
+                deployments: RwLock::new(deployments),
+                units,
                 users,
                 event_bus,
             }
@@ -110,9 +110,9 @@ impl Controller {
             }
         }
 
-        // Stop all servers
-        info!("Stopping all servers...");
-        self.servers.stop_all_instant();
+        // Stop all units
+        info!("Stopping all units...");
+        self.units.stop_all_instant();
 
         // Stop network stack
         info!("Stopping network stack...");
@@ -131,28 +131,28 @@ impl Controller {
         self.running.store(false, Ordering::Relaxed);
     }
 
-    pub fn lock_nodes(&self) -> RwLockReadGuard<Nodes> {
-        self.nodes.read().expect("Failed to get lock to nodes")
+    pub fn lock_cloudlets(&self) -> RwLockReadGuard<Cloudlets> {
+        self.cloudlets.read().expect("Failed to get lock to cloudlets")
     }
 
-    pub fn lock_groups(&self) -> RwLockReadGuard<Groups> {
-        self.groups.read().expect("Failed to get lock to groups")
+    pub fn lock_deployments(&self) -> RwLockReadGuard<Deployments> {
+        self.deployments.read().expect("Failed to get lock to deployments")
     }
 
-    pub fn lock_nodes_mut(&self) -> RwLockWriteGuard<Nodes> {
-        self.nodes.write().expect("Failed to get lock to nodes")
+    pub fn lock_cloudlets_mut(&self) -> RwLockWriteGuard<Cloudlets> {
+        self.cloudlets.write().expect("Failed to get lock to cloudlets")
     }
 
-    pub fn lock_groups_mut(&self) -> RwLockWriteGuard<Groups> {
-        self.groups.write().expect("Failed to get lock to groups")
+    pub fn lock_deployments_mut(&self) -> RwLockWriteGuard<Deployments> {
+        self.deployments.write().expect("Failed to get lock to deployments")
     }
 
     pub fn get_auth(&self) -> &Auth {
         &self.auth
     }
 
-    pub fn get_servers(&self) -> &Servers {
-        &self.servers
+    pub fn get_units(&self) -> &Units {
+        &self.units
     }
 
     pub fn get_users(&self) -> &Users {
@@ -168,11 +168,11 @@ impl Controller {
     }
 
     fn tick(&self) {
-        // Check if all groups have started there servers etc..
-        self.lock_groups().tick(&self.servers);
+        // Check if all deployments have started there units etc..
+        self.lock_deployments().tick(&self.units);
 
-        // Check if all servers have sent their heartbeats and start requested server if we can
-        self.servers.tick();
+        // Check if all units have sent their heartbeats and start requested units if we can
+        self.units.tick();
 
         // Check state of all users
         self.users.tick();

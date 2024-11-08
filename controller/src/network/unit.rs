@@ -1,15 +1,15 @@
 use crate::{
     application::{
-        auth::AuthServerHandle,
+        auth::AuthUnitHandle,
         event::{channel::ChannelMessageSended, transfer::UserTransferRequested, EventKey},
-        user::{transfer::TransferTarget, CurrentServer},
+        user::{transfer::TransferTarget, CurrentUnit},
         ControllerHandle,
     },
     VERSION,
 };
 
 use super::stream::StdReceiverStream;
-use proto::server_service_server::ServerService;
+use proto::unit_service_server::UnitService;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
@@ -23,85 +23,85 @@ use std::{
 pub mod proto {
     use tonic::include_proto;
 
-    include_proto!("server");
+    include_proto!("unit");
 }
 
-pub struct ServerServiceImpl {
+pub struct UnitServiceImpl {
     pub controller: ControllerHandle,
 }
 
 #[async_trait]
-impl ServerService for ServerServiceImpl {
+impl UnitService for UnitServiceImpl {
     async fn beat_heart(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
-            .get_servers()
-            .handle_heart_beat(&requesting_server);
+            .get_units()
+            .handle_heart_beat(&requesting_unit);
         Ok(Response::new(()))
     }
 
     async fn mark_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
-        self.controller.get_servers().mark_ready(&requesting_server);
+        self.controller.get_units().mark_ready(&requesting_unit);
         Ok(Response::new(()))
     }
 
     async fn mark_not_ready(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
-            .get_servers()
-            .mark_not_ready(&requesting_server);
+            .get_units()
+            .mark_not_ready(&requesting_unit);
         Ok(Response::new(()))
     }
 
     async fn mark_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
-            .get_servers()
-            .mark_running(&requesting_server);
+            .get_units()
+            .mark_running(&requesting_unit);
         Ok(Response::new(()))
     }
 
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
-            .get_servers()
-            .checked_stop_server(&requesting_server);
+            .get_units()
+            .checked_unit_stop(&requesting_unit);
         Ok(Response::new(()))
     }
 
@@ -109,17 +109,17 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::user_management::UserConnectedRequest>,
     ) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let user = request.into_inner();
         self.controller.get_users().handle_user_connected(
-            requesting_server,
+            requesting_unit,
             user.name,
             Uuid::from_str(&user.uuid).map_err(|error| {
                 Status::invalid_argument(format!("Failed to parse UUID: {}", error))
@@ -132,17 +132,17 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::user_management::UserDisconnectedRequest>,
     ) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let user = request.into_inner();
         self.controller.get_users().handle_user_disconnected(
-            requesting_server,
+            requesting_unit,
             Uuid::from_str(&user.uuid).map_err(|error| {
                 Status::invalid_argument(format!("Failed to parse UUID: {}", error))
             })?,
@@ -156,20 +156,20 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<()>,
     ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let (sender, receiver) = channel();
         self.controller
             .get_event_bus()
-            .register_listener_under_server(
-                EventKey::Transfer(requesting_server.uuid),
-                Arc::downgrade(&requesting_server),
+            .register_listener_under_unit(
+                EventKey::Transfer(requesting_unit.uuid),
+                Arc::downgrade(&requesting_unit),
                 Box::new(move |event: &UserTransferRequested| {
                     let transfer = &event.transfer;
                     if let Some((user, _, to)) = transfer.get_strong() {
@@ -194,13 +194,13 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::transfer_management::TransferAllUsersRequest>,
     ) -> Result<Response<u32>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let transfer = request.into_inner();
         let target = match transfer.target {
@@ -208,24 +208,24 @@ impl ServerService for ServerServiceImpl {
                 match proto::transfer_management::transfer_target_value::TargetType::try_from(
                     target.target_type,
                 ) {
-                    Ok(proto::transfer_management::transfer_target_value::TargetType::Group) => {
-                        TransferTarget::Group(
+                    Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
+                        TransferTarget::Deployment(
                             self.controller
-                                .lock_groups()
+                                .lock_deployments()
                                 .find_by_name(&target.target)
-                                .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                                .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
                         )
                     }
-                    _ => TransferTarget::Server(
+                    _ => TransferTarget::Unit(
                         self.controller
-                            .get_servers()
-                            .get_server(Uuid::from_str(&target.target).map_err(|error| {
+                            .get_units()
+                            .get_unit(Uuid::from_str(&target.target).map_err(|error| {
                                 Status::invalid_argument(format!(
                                     "Failed to parse target UUID: {}",
                                     error
                                 ))
                             })?)
-                            .ok_or_else(|| Status::not_found("Server does not exist"))?,
+                            .ok_or_else(|| Status::not_found("Unit does not exist"))?,
                     ),
                 },
             ),
@@ -235,7 +235,7 @@ impl ServerService for ServerServiceImpl {
         Ok(Response::new(
             self.controller
                 .get_users()
-                .transfer_all_users(&requesting_server, target),
+                .transfer_all_users(&requesting_unit, target),
         ))
     }
 
@@ -243,13 +243,13 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::transfer_management::TransferUserRequest>,
     ) -> Result<Response<bool>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let transfer = request.into_inner();
         let target = transfer
@@ -266,39 +266,39 @@ impl ServerService for ServerServiceImpl {
             .get_user(user_uuid)
             .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
 
-        // Check if the user is connected to the server that requested the transfer
-        if let CurrentServer::Connected(server) = user.server.read().unwrap().deref() {
-            if let Some(server) = server.upgrade() {
-                if !Arc::ptr_eq(&server, &requesting_server) {
+        // Check if the user is connected to the unit that requested the transfer
+        if let CurrentUnit::Connected(unit) = user.unit.read().unwrap().deref() {
+            if let Some(unit) = unit.upgrade() {
+                if !Arc::ptr_eq(&unit, &requesting_unit) {
                     return Err(Status::permission_denied(
-                        "User is not connected to the requesting server",
+                        "User is not connected to the requesting unit",
                     ));
                 }
             }
         } else {
             return Err(Status::permission_denied(
-                "User is not connected to any server",
+                "User is not connected to any unit",
             ));
         }
 
         let target = match proto::transfer_management::transfer_target_value::TargetType::try_from(
             target.target_type,
         ) {
-            Ok(proto::transfer_management::transfer_target_value::TargetType::Group) => {
-                TransferTarget::Group(
+            Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
+                TransferTarget::Deployment(
                     self.controller
-                        .lock_groups()
+                        .lock_deployments()
                         .find_by_name(&target.target)
-                        .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                        .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
                 )
             }
-            _ => TransferTarget::Server(
+            _ => TransferTarget::Unit(
                 self.controller
-                    .get_servers()
-                    .get_server(Uuid::from_str(&target.target).map_err(|error| {
+                    .get_units()
+                    .get_unit(Uuid::from_str(&target.target).map_err(|error| {
                         Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
                     })?)
-                    .ok_or_else(|| Status::not_found("Server does not exist"))?,
+                    .ok_or_else(|| Status::not_found("Unit does not exist"))?,
             ),
         };
 
@@ -316,13 +316,13 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<proto::channel_management::ChannelMessageValue>,
     ) -> Result<Response<u32>, Status> {
-        let _requesting_server = request
+        let _requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let message = request.into_inner();
         let count = self.controller.get_event_bus().dispatch(
@@ -336,17 +336,17 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
             .get_event_bus()
-            .unregister_listener(EventKey::Channel(request.into_inner()), &requesting_server);
+            .unregister_listener(EventKey::Channel(request.into_inner()), &requesting_unit);
 
         Ok(Response::new(()))
     }
@@ -357,22 +357,22 @@ impl ServerService for ServerServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<Self::SubscribeToChannelStream>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         let channel_name = &request.into_inner();
 
         let (sender, receiver) = channel();
         self.controller
             .get_event_bus()
-            .register_listener_under_server(
+            .register_listener_under_unit(
                 EventKey::Channel(channel_name.clone()),
-                Arc::downgrade(&requesting_server),
+                Arc::downgrade(&requesting_unit),
                 Box::new(move |event: &ChannelMessageSended| {
                     sender
                         .send(Ok(event.message.clone()))
@@ -384,17 +384,17 @@ impl ServerService for ServerServiceImpl {
     }
 
     async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {
-        let requesting_server = request
+        let requesting_unit = request
             .extensions()
-            .get::<AuthServerHandle>()
-            .expect("Failed to get server from extensions. Is tonic broken?")
-            .server
+            .get::<AuthUnitHandle>()
+            .expect("Failed to get unit from extensions. Is tonic broken?")
+            .unit
             .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated server does not exist"))?;
+            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
         self.controller
             .get_event_bus()
-            .cleanup_server(&requesting_server);
+            .cleanup_unit(&requesting_unit);
 
         Ok(Response::new(()))
     }

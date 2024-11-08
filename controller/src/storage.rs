@@ -5,11 +5,11 @@ This makes it easier to change them in the future
 
 use std::path::PathBuf;
 
-/* Nodes */
-const NODES_DIRECTORY: &str = "nodes";
+/* Cloudlets */
+const CLOUDLETS_DIRECTORY: &str = "cloudlets";
 
-/* Groups */
-const GROUPS_DIRECTORY: &str = "groups";
+/* Deployments */
+const DEPLOYMENTS_DIRECTORY: &str = "deployments";
 
 /* Auth */
 const AUTH_DIRECTORY: &str = "auth";
@@ -27,20 +27,20 @@ pub struct Storage;
 
 impl Storage {
 
-    /* Nodes */
-    pub fn get_nodes_folder() -> PathBuf {
-        PathBuf::from(NODES_DIRECTORY)
+    /* Cloudlets */
+    pub fn get_cloudlets_folder() -> PathBuf {
+        PathBuf::from(CLOUDLETS_DIRECTORY)
     }
-    pub fn get_node_file(name: &str) -> PathBuf {
-        Storage::get_nodes_folder().join(format!("{}.toml", name))
+    pub fn get_cloudlet_file(name: &str) -> PathBuf {
+        Storage::get_cloudlets_folder().join(format!("{}.toml", name))
     }
 
-    /* Groups */
-    pub fn get_groups_folder() -> PathBuf {
-        PathBuf::from(GROUPS_DIRECTORY)
+    /* Deployments */
+    pub fn get_deployments_folder() -> PathBuf {
+        PathBuf::from(DEPLOYMENTS_DIRECTORY)
     }
-    pub fn get_group_file(name: &str) -> PathBuf {
-        Storage::get_groups_folder().join(format!("{}.toml", name))
+    pub fn get_deployment_file(name: &str) -> PathBuf {
+        Storage::get_deployments_folder().join(format!("{}.toml", name))
     }
 
     /* Auth */

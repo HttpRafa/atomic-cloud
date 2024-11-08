@@ -6,31 +6,31 @@ use log::error;
 use log::info;
 use log::warn;
 
-use crate::application::group::GroupHandle;
+use crate::application::deployment::DeploymentHandle;
 use crate::application::{
     event::{transfer::UserTransferRequested, EventKey},
-    server::{ServerHandle, WeakServerHandle},
+    unit::{UnitHandle, WeakUnitHandle},
 };
 
-use super::{CurrentServer, UserHandle, Users, WeakUserHandle};
+use super::{CurrentUnit, UserHandle, Users, WeakUserHandle};
 
 impl Users {
     pub fn transfer_all_users(
         &self,
-        server: &ServerHandle,
+        unit: &UnitHandle,
         possible_target: Option<TransferTarget>,
     ) -> u32 {
         let controller = self
             .controller
             .upgrade()
             .expect("Failed to upgrade controller. This should never happen");
-        let users = self.get_users_on_server(server);
+        let users = self.get_users_on_unit(unit);
         let mut count = 0;
 
         let target = possible_target.or(controller
-            .get_servers()
-            .find_fallback_server(server)
-            .map(TransferTarget::Server));
+            .get_units()
+            .find_fallback_unit(unit)
+            .map(TransferTarget::Unit));
         if let Some(target) = target {
             for user in &users {
                 if let Some(transfer) = self.resolve_transfer(user, &target) {
@@ -45,24 +45,24 @@ impl Users {
     }
 
     pub fn resolve_transfer(&self, user: &UserHandle, target: &TransferTarget) -> Option<Transfer> {
-        if let CurrentServer::Connected(from) = user.server.read().unwrap().deref() {
+        if let CurrentUnit::Connected(from) = user.unit.read().unwrap().deref() {
             match target {
-                TransferTarget::Server(to) => {
+                TransferTarget::Unit(to) => {
                     return Some(Transfer::new(
                         Arc::downgrade(user),
                         from.clone(),
                         Arc::downgrade(to),
                     ));
                 }
-                TransferTarget::Group(group) => {
-                    if let Some(to) = group.get_free_server() {
+                TransferTarget::Deployment(deployment) => {
+                    if let Some(to) = deployment.get_free_unit() {
                         return Some(Transfer::new(
                             Arc::downgrade(user),
                             from.clone(),
                             Arc::downgrade(&to),
                         ));
                     } else {
-                        warn!("{} to find free server in group {} while resolving transfer of user {}", group.name, user.name, "Failed".red());
+                        warn!("{} to find free unit in deployment {} while resolving transfer of user {}", deployment.name, user.name, "Failed".red());
                     }
                 }
             }
@@ -74,7 +74,7 @@ impl Users {
     pub fn transfer_user(&self, transfer: Transfer) -> bool {
         if let Some((user, from, to)) = transfer.get_strong() {
             info!(
-                "Transfering user {} from {} to server {}",
+                "Transfering user {} from {} to unit {}",
                 user.name.blue(),
                 from.name.blue(),
                 to.name.blue()
@@ -91,7 +91,7 @@ impl Users {
                 },
             );
 
-            *user.server.write().unwrap() = CurrentServer::Transfering(transfer);
+            *user.unit.write().unwrap() = CurrentUnit::Transfering(transfer);
             return true;
         } else {
             error!(
@@ -105,20 +105,20 @@ impl Users {
 }
 
 pub enum TransferTarget {
-    Server(ServerHandle),
-    Group(GroupHandle),
+    Unit(UnitHandle),
+    Deployment(DeploymentHandle),
 }
 
 #[derive(Clone, Debug)]
 pub struct Transfer {
     pub timestamp: Instant,
     pub user: WeakUserHandle,
-    pub from: WeakServerHandle,
-    pub to: WeakServerHandle,
+    pub from: WeakUnitHandle,
+    pub to: WeakUnitHandle,
 }
 
 impl Transfer {
-    pub fn new(user: WeakUserHandle, from: WeakServerHandle, to: WeakServerHandle) -> Self {
+    pub fn new(user: WeakUserHandle, from: WeakUnitHandle, to: WeakUnitHandle) -> Self {
         Self {
             timestamp: Instant::now(),
             user,
@@ -127,7 +127,7 @@ impl Transfer {
         }
     }
 
-    pub fn get_strong(&self) -> Option<(UserHandle, ServerHandle, ServerHandle)> {
+    pub fn get_strong(&self) -> Option<(UserHandle, UnitHandle, UnitHandle)> {
         let user = self.user.upgrade()?;
         let from = self.from.upgrade()?;
         let to = self.to.upgrade()?;

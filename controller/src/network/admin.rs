@@ -5,9 +5,9 @@ use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use crate::application::{
-    group::{ScalingPolicy, StartConstraints},
-    node::{Capabilities, LifecycleStatus, RemoteController},
-    server::{Deployment, FallbackPolicy, KeyValue, Resources, Retention},
+    deployment::{ScalingPolicy, StartConstraints},
+    cloudlet::{Capabilities, LifecycleStatus, RemoteController},
+    unit::{Spec, FallbackPolicy, KeyValue, Resources, Retention},
     user::transfer::TransferTarget,
     ControllerHandle, CreationResult,
 };
@@ -41,22 +41,22 @@ impl AdminService for AdminServiceImpl {
             _ => return Err(Status::invalid_argument("Invalid resource status")),
         };
         match proto::resource_management::ResourceCategory::try_from(resource.category) {
-            Ok(proto::resource_management::ResourceCategory::Node) => {
-                let mut handle = self.controller.lock_nodes_mut();
-                let node = handle
+            Ok(proto::resource_management::ResourceCategory::Cloudlet) => {
+                let mut handle = self.controller.lock_cloudlets_mut();
+                let cloudlet = handle
                     .find_by_name(&resource.id)
-                    .ok_or(Status::not_found("Node not found"))?;
-                match handle.set_node_status(&node, status) {
+                    .ok_or(Status::not_found("Cloudlet not found"))?;
+                match handle.set_cloudlet_status(&cloudlet, status) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
             }
-            Ok(proto::resource_management::ResourceCategory::Group) => {
-                let mut handle = self.controller.lock_groups_mut();
-                let group: std::sync::Arc<crate::application::group::Group> = handle
+            Ok(proto::resource_management::ResourceCategory::Deployment) => {
+                let mut handle = self.controller.lock_deployments_mut();
+                let deployment: std::sync::Arc<crate::application::deployment::Deployment> = handle
                     .find_by_name(&resource.id)
-                    .ok_or(Status::not_found("Group not found"))?;
-                match handle.set_group_status(&group, status) {
+                    .ok_or(Status::not_found("Deployment not found"))?;
+                match handle.set_deployment_status(&deployment, status) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
@@ -74,57 +74,57 @@ impl AdminService for AdminServiceImpl {
     ) -> Result<Response<()>, Status> {
         let resource = request.into_inner();
         match proto::resource_management::ResourceCategory::try_from(resource.category) {
-            Ok(proto::resource_management::ResourceCategory::Node) => {
-                let mut handle = self.controller.lock_nodes_mut();
-                let node = handle
+            Ok(proto::resource_management::ResourceCategory::Cloudlet) => {
+                let mut handle = self.controller.lock_cloudlets_mut();
+                let cloudlet = handle
                     .find_by_name(&resource.id)
-                    .ok_or(Status::not_found("Node not found"))?;
-                match handle.delete_node(&node) {
+                    .ok_or(Status::not_found("Cloudlet not found"))?;
+                match handle.delete_cloudlet(&cloudlet) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
             }
-            Ok(proto::resource_management::ResourceCategory::Group) => {
-                let mut handle = self.controller.lock_groups_mut();
-                let group: std::sync::Arc<crate::application::group::Group> = handle
+            Ok(proto::resource_management::ResourceCategory::Deployment) => {
+                let mut handle = self.controller.lock_deployments_mut();
+                let deployment: std::sync::Arc<crate::application::deployment::Deployment> = handle
                     .find_by_name(&resource.id)
-                    .ok_or(Status::not_found("Group not found"))?;
-                match handle.delete_group(&group) {
+                    .ok_or(Status::not_found("Deployment not found"))?;
+                match handle.delete_deployment(&deployment) {
                     Ok(()) => Ok(Response::new(())),
                     Err(error) => Err(Status::internal(error.to_string())),
                 }
             }
-            Ok(proto::resource_management::ResourceCategory::Server) => {
+            Ok(proto::resource_management::ResourceCategory::Unit) => {
                 let uuid = Uuid::from_str(&resource.id).map_err(|error| {
-                    Status::invalid_argument(format!("Failed to parse UUID of server: {}", error))
+                    Status::invalid_argument(format!("Failed to parse UUID of the unit: {}", error))
                 })?;
-                let servers = self.controller.get_servers();
-                let server = servers
-                    .get_server(uuid)
-                    .ok_or(Status::not_found("Server not found"))?;
-                servers.checked_stop_server(&server);
+                let units = self.controller.get_units();
+                let unit = units
+                    .get_unit(uuid)
+                    .ok_or(Status::not_found("Unit not found"))?;
+                units.checked_unit_stop(&unit);
                 Ok(Response::new(()))
             }
             Err(_) => Err(Status::not_found("Invalid resource category")),
         }
     }
 
-    async fn create_node(
+    async fn create_cloudlet(
         &self,
-        request: Request<proto::node_management::NodeValue>,
+        request: Request<proto::cloudlet_management::CloudletValue>,
     ) -> Result<Response<()>, Status> {
-        let node = request.into_inner();
-        let name = &node.name;
-        let driver = &node.driver;
+        let cloudlet = request.into_inner();
+        let name = &cloudlet.name;
+        let driver = &cloudlet.driver;
 
         let capabilities = Capabilities {
-            memory: node.memory,
-            max_allocations: node.max_allocations,
-            sub_node: node.sub_node,
+            memory: cloudlet.memory,
+            max_allocations: cloudlet.max_allocations,
+            child: cloudlet.child,
         };
 
         let controller = RemoteController {
-            address: node.controller_address.parse().map_err(|_| {
+            address: cloudlet.controller_address.parse().map_err(|_| {
                 Status::invalid_argument("The controller address is not a valid URL")
             })?,
         };
@@ -134,11 +134,11 @@ impl AdminService for AdminServiceImpl {
             None => return Err(Status::invalid_argument("The driver does not exist")),
         };
 
-        let mut nodes = self.controller.lock_nodes_mut();
-        match nodes.create_node(name, driver, capabilities, controller) {
+        let mut cloudlets = self.controller.lock_cloudlets_mut();
+        match cloudlets.create_cloudlet(name, driver, capabilities, controller) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
-                CreationResult::AlreadyExists => Err(Status::already_exists("Node already exists")),
+                CreationResult::AlreadyExists => Err(Status::already_exists("Cloudlet already exists")),
                 CreationResult::Denied(error) => {
                     Err(Status::failed_precondition(error.to_string()))
                 }
@@ -147,49 +147,49 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn get_node(
+    async fn get_cloudlet(
         &self,
         request: Request<String>,
-    ) -> Result<Response<proto::node_management::NodeValue>, Status> {
-        let handle = self.controller.lock_nodes();
-        let node = handle
+    ) -> Result<Response<proto::cloudlet_management::CloudletValue>, Status> {
+        let handle = self.controller.lock_cloudlets();
+        let cloudlet = handle
             .find_by_name(&request.into_inner())
-            .ok_or(Status::not_found("Node not found"))?;
+            .ok_or(Status::not_found("Cloudlet not found"))?;
 
-        Ok(Response::new(proto::node_management::NodeValue {
-            name: node.name.to_owned(),
-            driver: node.driver.name().to_owned(),
-            memory: node.capabilities.memory,
-            max_allocations: node.capabilities.max_allocations,
-            sub_node: node.capabilities.sub_node.clone(),
-            controller_address: node.controller.address.to_string(),
+        Ok(Response::new(proto::cloudlet_management::CloudletValue {
+            name: cloudlet.name.to_owned(),
+            driver: cloudlet.driver.name().to_owned(),
+            memory: cloudlet.capabilities.memory,
+            max_allocations: cloudlet.capabilities.max_allocations,
+            child: cloudlet.capabilities.child.clone(),
+            controller_address: cloudlet.controller.address.to_string(),
         }))
     }
 
-    async fn get_nodes(
+    async fn get_cloudlets(
         &self,
         _request: Request<()>,
-    ) -> Result<Response<proto::node_management::NodeListResponse>, Status> {
-        let handle = self.controller.lock_nodes();
-        let mut nodes = Vec::with_capacity(handle.get_amount());
-        for node in handle.get_nodes() {
-            nodes.push(node.name.clone());
+    ) -> Result<Response<proto::cloudlet_management::CloudletListResponse>, Status> {
+        let handle = self.controller.lock_cloudlets();
+        let mut cloudlets = Vec::with_capacity(handle.get_amount());
+        for cloudlet in handle.get_cloudlets() {
+            cloudlets.push(cloudlet.name.clone());
         }
 
-        Ok(Response::new(proto::node_management::NodeListResponse {
-            nodes,
+        Ok(Response::new(proto::cloudlet_management::CloudletListResponse {
+            cloudlets,
         }))
     }
 
-    async fn create_group(
+    async fn create_deployment(
         &self,
-        request: Request<proto::group_management::GroupValue>,
+        request: Request<proto::deployment_management::DeploymentValue>,
     ) -> Result<Response<()>, Status> {
-        let group = request.into_inner();
-        let name = &group.name;
+        let deployment = request.into_inner();
+        let name = &deployment.name;
 
         /* Constraints */
-        let constraints = match &group.constraints {
+        let constraints = match &deployment.constraints {
             Some(constraints) => StartConstraints {
                 minimum: constraints.minimum,
                 maximum: constraints.maximum,
@@ -199,18 +199,18 @@ impl AdminService for AdminServiceImpl {
         };
 
         /* Scaling */
-        let scaling = match &group.scaling {
+        let scaling = match &deployment.scaling {
             Some(scaling) => ScalingPolicy {
                 enabled: true,
                 max_players: scaling.max_players,
                 start_threshold: scaling.start_threshold,
-                stop_empty_servers: scaling.stop_empty_servers,
+                stop_empty_units: scaling.stop_empty_units,
             },
             None => ScalingPolicy::default(),
         };
 
         /* Resources */
-        let resources = match &group.resources {
+        let resources = match &deployment.resources {
             Some(resources) => Resources {
                 memory: resources.memory,
                 swap: resources.swap,
@@ -222,11 +222,11 @@ impl AdminService for AdminServiceImpl {
             None => Resources::default(),
         };
 
-        /* Deployment */
-        let mut deployment = Deployment::default();
-        if let Some(value) = group.deployment {
-            deployment.image.clone_from(&value.image);
-            deployment.settings = value
+        /* Spec */
+        let mut spec = Spec::default();
+        if let Some(value) = deployment.spec {
+            spec.image.clone_from(&value.image);
+            spec.settings = value
                 .settings
                 .iter()
                 .map(|setting| KeyValue {
@@ -234,7 +234,7 @@ impl AdminService for AdminServiceImpl {
                     value: setting.value.clone(),
                 })
                 .collect();
-            deployment.environment = value
+            spec.environment = value
                 .environment
                 .iter()
                 .map(|setting| KeyValue {
@@ -243,50 +243,50 @@ impl AdminService for AdminServiceImpl {
                 })
                 .collect();
             if let Some(value) = value.disk_retention {
-                deployment.disk_retention =
-                    match proto::server_management::server_deployment::Retention::try_from(value) {
-                        Ok(proto::server_management::server_deployment::Retention::Permanent) => {
+                spec.disk_retention =
+                    match proto::unit_management::unit_spec::Retention::try_from(value) {
+                        Ok(proto::unit_management::unit_spec::Retention::Permanent) => {
                             Retention::Permanent
                         }
                         _ => Retention::Temporary,
                     };
             }
             if let Some(value) = value.fallback {
-                deployment.fallback = FallbackPolicy {
+                spec.fallback = FallbackPolicy {
                     enabled: value.enabled,
                     priority: value.priority,
                 };
             }
         }
 
-        /* Nodes */
-        let mut node_handles = Vec::with_capacity(group.nodes.len());
-        for node in &group.nodes {
-            let node = match self.controller.lock_nodes().find_by_name(node) {
-                Some(node) => node,
+        /* Cloudlets */
+        let mut cloudlet_handles = Vec::with_capacity(deployment.cloudlets.len());
+        for cloudlet in &deployment.cloudlets {
+            let cloudlet = match self.controller.lock_cloudlets().find_by_name(cloudlet) {
+                Some(cloudlet) => cloudlet,
                 None => {
                     return Err(Status::invalid_argument(format!(
-                        "Node {} does not exist",
-                        node
+                        "Cloudlet {} does not exist",
+                        cloudlet
                     )))
                 }
             };
-            node_handles.push(node);
+            cloudlet_handles.push(cloudlet);
         }
 
-        let mut groups = self.controller.lock_groups_mut();
-        match groups.create_group(
+        let mut deployments = self.controller.lock_deployments_mut();
+        match deployments.create_deployment(
             name,
-            node_handles,
+            cloudlet_handles,
             constraints,
             scaling,
             resources,
-            deployment,
+            spec,
         ) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
                 CreationResult::AlreadyExists => {
-                    Err(Status::already_exists("Group already exists"))
+                    Err(Status::already_exists("Deployment already exists"))
                 }
                 CreationResult::Denied(error) => {
                     Err(Status::failed_precondition(error.to_string()))
@@ -296,47 +296,47 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
-    async fn get_group(
+    async fn get_deployment(
         &self,
         request: Request<String>,
-    ) -> Result<Response<proto::group_management::GroupValue>, Status> {
-        let handle = self.controller.lock_groups();
-        let group = handle
+    ) -> Result<Response<proto::deployment_management::DeploymentValue>, Status> {
+        let handle = self.controller.lock_deployments();
+        let deployment = handle
             .find_by_name(&request.into_inner())
-            .ok_or(Status::not_found("Group not found"))?;
-        let nodes = group
-            .nodes
+            .ok_or(Status::not_found("Deployment not found"))?;
+        let cloudlets = deployment
+            .cloudlets
             .read()
             .unwrap()
             .iter()
-            .filter_map(|node| node.upgrade().map(|node| node.name.clone()))
+            .filter_map(|cloudlet| cloudlet.upgrade().map(|cloudlet| cloudlet.name.clone()))
             .collect();
 
-        Ok(Response::new(proto::group_management::GroupValue {
-            name: group.name.to_owned(),
-            nodes,
-            constraints: Some(proto::group_management::group_value::Constraints {
-                minimum: group.constraints.minimum,
-                maximum: group.constraints.maximum,
-                priority: group.constraints.priority,
+        Ok(Response::new(proto::deployment_management::DeploymentValue {
+            name: deployment.name.to_owned(),
+            cloudlets,
+            constraints: Some(proto::deployment_management::deployment_value::Constraints {
+                minimum: deployment.constraints.minimum,
+                maximum: deployment.constraints.maximum,
+                priority: deployment.constraints.priority,
             }),
-            scaling: Some(proto::group_management::group_value::Scaling {
-                max_players: group.scaling.max_players,
-                start_threshold: group.scaling.start_threshold,
-                stop_empty_servers: group.scaling.stop_empty_servers,
+            scaling: Some(proto::deployment_management::deployment_value::Scaling {
+                max_players: deployment.scaling.max_players,
+                start_threshold: deployment.scaling.start_threshold,
+                stop_empty_units: deployment.scaling.stop_empty_units,
             }),
-            resources: Some(proto::server_management::ServerResources {
-                memory: group.resources.memory,
-                swap: group.resources.swap,
-                cpu: group.resources.cpu,
-                io: group.resources.io,
-                disk: group.resources.disk,
-                addresses: group.resources.addresses,
+            resources: Some(proto::unit_management::UnitResources {
+                memory: deployment.resources.memory,
+                swap: deployment.resources.swap,
+                cpu: deployment.resources.cpu,
+                io: deployment.resources.io,
+                disk: deployment.resources.disk,
+                addresses: deployment.resources.addresses,
             }),
-            deployment: Some(proto::server_management::ServerDeployment {
-                image: group.deployment.image.clone(),
-                settings: group
-                    .deployment
+            spec: Some(proto::unit_management::UnitSpec {
+                image: deployment.spec.image.clone(),
+                settings: deployment
+                    .spec
                     .settings
                     .iter()
                     .map(|setting| proto::common::KeyValue {
@@ -344,8 +344,8 @@ impl AdminService for AdminServiceImpl {
                         value: setting.value.clone(),
                     })
                     .collect(),
-                environment: group
-                    .deployment
+                environment: deployment
+                    .spec
                     .environment
                     .iter()
                     .map(|setting| proto::common::KeyValue {
@@ -353,97 +353,67 @@ impl AdminService for AdminServiceImpl {
                         value: setting.value.clone(),
                     })
                     .collect(),
-                disk_retention: Some(group.deployment.disk_retention.clone() as i32),
-                fallback: Some(proto::server_management::server_deployment::Fallback {
-                    enabled: group.deployment.fallback.enabled,
-                    priority: group.deployment.fallback.priority,
+                disk_retention: Some(deployment.spec.disk_retention.clone() as i32),
+                fallback: Some(proto::unit_management::unit_spec::Fallback {
+                    enabled: deployment.spec.fallback.enabled,
+                    priority: deployment.spec.fallback.priority,
                 }),
             }),
         }))
     }
 
-    async fn get_groups(
+    async fn get_deployments(
         &self,
         _request: Request<()>,
-    ) -> Result<Response<proto::group_management::GroupListResponse>, Status> {
-        let handle = self.controller.lock_groups();
-        let mut groups = Vec::with_capacity(handle.get_amount());
-        for name in handle.get_groups().keys() {
-            groups.push(name.clone());
+    ) -> Result<Response<proto::deployment_management::DeploymentListResponse>, Status> {
+        let handle = self.controller.lock_deployments();
+        let mut deployments = Vec::with_capacity(handle.get_amount());
+        for name in handle.get_deployments().keys() {
+            deployments.push(name.clone());
         }
 
-        Ok(Response::new(proto::group_management::GroupListResponse {
-            groups,
+        Ok(Response::new(proto::deployment_management::DeploymentListResponse {
+            deployments,
         }))
     }
 
-    async fn get_servers(
-        &self,
-        _request: Request<()>,
-    ) -> Result<Response<proto::server_management::ServerListResponse>, Status> {
-        let servers = self
-            .controller
-            .get_servers()
-            .get_servers()
-            .values()
-            .filter_map(|server| {
-                server
-                    .node
-                    .upgrade()
-                    .map(|node| proto::server_management::SimpleServerValue {
-                        name: server.name.to_string(),
-                        uuid: server.uuid.to_string(),
-                        group: server
-                            .group
-                            .as_ref()
-                            .and_then(|g| g.group.upgrade().map(|grp| grp.name.to_string())),
-                        node: node.name.to_string(),
-                    })
-            })
-            .collect();
-
-        Ok(Response::new(
-            proto::server_management::ServerListResponse { servers },
-        ))
-    }
-
-    async fn get_server(
+    async fn get_unit(
         &self,
         request: Request<String>,
-    ) -> Result<Response<proto::server_management::ServerValue>, Status> {
-        let server_uuid = Uuid::from_str(&request.into_inner())
-            .map_err(|e| Status::invalid_argument(format!("Invalid server UUID: {}", e)))?;
+    ) -> Result<Response<proto::unit_management::UnitValue>, Status> {
+        let unit_uuid = Uuid::from_str(&request.into_inner())
+            .map_err(|e| Status::invalid_argument(format!("Invalid unit UUID: {}", e)))?;
 
-        let server = self
+        let unit = self
             .controller
-            .get_servers()
-            .get_server(server_uuid)
-            .ok_or_else(|| Status::not_found("Server not found"))?;
+            .get_units()
+            .get_unit(unit_uuid)
+            .ok_or_else(|| Status::not_found("Unit not found"))?;
 
-        let node = server
-            .node
+        let cloudlet = unit
+            .cloudlet
             .upgrade()
-            .ok_or_else(|| Status::internal("Node is no longer usable"))?;
+            .ok_or_else(|| Status::internal("Cloudlet is no longer usable"))?;
 
-        let state = (server
+        let state = (unit
             .state
             .read()
-            .map_err(|_| Status::internal("Failed to lock server state"))?)
+            .map_err(|_| Status::internal("Failed to lock unit state"))?)
         .clone() as i32;
 
-        Ok(Response::new(proto::server_management::ServerValue {
-            name: server.name.clone(),
-            uuid: server.uuid.to_string(),
-            group: server
-                .group
+        Ok(Response::new(proto::unit_management::UnitValue {
+            name: unit.name.clone(),
+            uuid: unit.uuid.to_string(),
+            deployment: unit
+                .deployment
                 .as_ref()
-                .and_then(|g| g.group.upgrade().map(|grp| grp.name.clone())),
-            node: node.name.clone(),
-            connected_users: server.connected_users.load(Ordering::Relaxed),
-            rediness: server.rediness.load(Ordering::Relaxed),
-            auth_token: server.auth.token.clone(),
-            allocation: Some(proto::server_management::ServerAllocation {
-                addresses: server
+                .and_then(|g| g.deployment.upgrade().map(|grp| grp.name.clone())),
+            cloudlet: cloudlet.name.clone(),
+            connected_users: unit.connected_users.load(Ordering::Relaxed),
+            rediness: unit.rediness.load(Ordering::Relaxed),
+            auth_token: unit.auth.token.clone(),
+            allocation: Some(proto::unit_management::UnitAllocation {
+                addresses: unit
                     .allocation
                     .addresses
                     .iter()
@@ -452,19 +422,19 @@ impl AdminService for AdminServiceImpl {
                         port: addr.port() as u32,
                     })
                     .collect(),
-                resources: Some(proto::server_management::ServerResources {
-                    memory: server.allocation.resources.memory,
-                    swap: server.allocation.resources.swap,
-                    cpu: server.allocation.resources.cpu,
-                    io: server.allocation.resources.io,
-                    disk: server.allocation.resources.disk,
-                    addresses: server.allocation.resources.addresses,
+                resources: Some(proto::unit_management::UnitResources {
+                    memory: unit.allocation.resources.memory,
+                    swap: unit.allocation.resources.swap,
+                    cpu: unit.allocation.resources.cpu,
+                    io: unit.allocation.resources.io,
+                    disk: unit.allocation.resources.disk,
+                    addresses: unit.allocation.resources.addresses,
                 }),
-                deployment: Some(proto::server_management::ServerDeployment {
-                    image: server.allocation.deployment.image.clone(),
-                    settings: server
+                spec: Some(proto::unit_management::UnitSpec {
+                    image: unit.allocation.spec.image.clone(),
+                    settings: unit
                         .allocation
-                        .deployment
+                        .spec
                         .settings
                         .iter()
                         .map(|kv| proto::common::KeyValue {
@@ -472,9 +442,9 @@ impl AdminService for AdminServiceImpl {
                             value: kv.value.clone(),
                         })
                         .collect(),
-                    environment: server
+                    environment: unit
                         .allocation
-                        .deployment
+                        .spec
                         .environment
                         .iter()
                         .map(|kv| proto::common::KeyValue {
@@ -482,15 +452,45 @@ impl AdminService for AdminServiceImpl {
                             value: kv.value.clone(),
                         })
                         .collect(),
-                    disk_retention: Some(server.allocation.deployment.disk_retention.clone() as i32),
-                    fallback: Some(proto::server_management::server_deployment::Fallback {
-                        enabled: server.allocation.deployment.fallback.enabled,
-                        priority: server.allocation.deployment.fallback.priority,
+                    disk_retention: Some(unit.allocation.spec.disk_retention.clone() as i32),
+                    fallback: Some(proto::unit_management::unit_spec::Fallback {
+                        enabled: unit.allocation.spec.fallback.enabled,
+                        priority: unit.allocation.spec.fallback.priority,
                     }),
                 }),
             }),
             state,
         }))
+    }
+
+    async fn get_units(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::unit_management::UnitListResponse>, Status> {
+        let units = self
+            .controller
+            .get_units()
+            .get_units()
+            .values()
+            .filter_map(|unit| {
+                unit
+                    .cloudlet
+                    .upgrade()
+                    .map(|cloudlet| proto::unit_management::SimpleUnitValue {
+                        name: unit.name.to_string(),
+                        uuid: unit.uuid.to_string(),
+                        deployment: unit
+                            .deployment
+                            .as_ref()
+                            .and_then(|d| d.deployment.upgrade().map(|d| d.name.to_string())),
+                        cloudlet: cloudlet.name.to_string(),
+                    })
+            })
+            .collect();
+
+        Ok(Response::new(
+            proto::unit_management::UnitListResponse { units },
+        ))
     }
 
     async fn transfer_user(
@@ -515,21 +515,21 @@ impl AdminService for AdminServiceImpl {
         let target = match proto::user_management::transfer_target_value::TargetType::try_from(
             target.target_type,
         ) {
-            Ok(proto::user_management::transfer_target_value::TargetType::Group) => {
-                TransferTarget::Group(
+            Ok(proto::user_management::transfer_target_value::TargetType::Deployment) => {
+                TransferTarget::Deployment(
                     self.controller
-                        .lock_groups()
+                        .lock_deployments()
                         .find_by_name(&target.target)
-                        .ok_or_else(|| Status::not_found("Group does not exist"))?,
+                        .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
                 )
             }
-            _ => TransferTarget::Server(
+            _ => TransferTarget::Unit(
                 self.controller
-                    .get_servers()
-                    .get_server(Uuid::from_str(&target.target).map_err(|error| {
+                    .get_units()
+                    .get_unit(Uuid::from_str(&target.target).map_err(|error| {
                         Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
                     })?)
-                    .ok_or_else(|| Status::not_found("Server does not exist"))?,
+                    .ok_or_else(|| Status::not_found("Unit does not exist"))?,
             ),
         };
 

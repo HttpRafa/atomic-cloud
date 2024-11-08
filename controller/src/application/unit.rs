@@ -13,32 +13,32 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
-    auth::AuthServerHandle,
-    group::WeakGroupHandle,
-    node::{AllocationHandle, NodeHandle, WeakNodeHandle},
+    auth::AuthUnitHandle,
+    deployment::WeakDeploymentHandle,
+    cloudlet::{AllocationHandle, CloudletHandle, WeakCloudletHandle},
     ControllerHandle, WeakControllerHandle,
 };
 
-pub type ServerHandle = Arc<Server>;
-pub type WeakServerHandle = Weak<Server>;
+pub type UnitHandle = Arc<Unit>;
+pub type WeakUnitHandle = Weak<Unit>;
 pub type StartRequestHandle = Arc<StartRequest>;
 
-pub struct Servers {
+pub struct Units {
     controller: WeakControllerHandle,
 
-    /* Servers started by this atomic cloud instance */
-    servers: RwLock<HashMap<Uuid, ServerHandle>>,
+    /* Units started by this atomic cloud instance */
+    units: RwLock<HashMap<Uuid, UnitHandle>>,
 
-    /* Servers that should be started/stopped next controller tick */
+    /* Units that should be started/stopped next controller tick */
     start_requests: RwLock<VecDeque<StartRequestHandle>>,
     stop_requests: RwLock<VecDeque<StopRequest>>,
 }
 
-impl Servers {
+impl Units {
     pub fn new(controller: WeakControllerHandle) -> Self {
         Self {
             controller,
-            servers: RwLock::new(HashMap::new()),
+            units: RwLock::new(HashMap::new()),
             start_requests: RwLock::new(VecDeque::new()),
             stop_requests: RwLock::new(VecDeque::new()),
         }
@@ -51,17 +51,17 @@ impl Servers {
             .upgrade()
             .expect("Failed to upgrade controller");
 
-        // Check health of servers
+        // Check health of units
         {
-            let dead_servers = self.servers.read().unwrap().values().filter(|server| {
-                let health = server.health.read().unwrap();
+            let dead_units = self.units.read().unwrap().values().filter(|unit| {
+                let health = unit.health.read().unwrap();
                 if health.is_dead() {
-                    match *server.state.read().unwrap() {
+                    match *unit.state.read().unwrap() {
                         State::Starting | State::Restarting => {
-                            warn!("Server {} {} to establish online status within the expected startup time of {}.", server.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
+                            warn!("Unit {} {} to establish online status within the expected startup time of {}.", unit.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
                         }
                         _ => {
-                            warn!("Server {} has not checked in for {}, indicating a potential failure.", server.name.blue(), format!("{:.2?}", health.timeout).blue());
+                            warn!("Unit {} has not checked in for {}, indicating a potential failure.", unit.name.blue(), format!("{:.2?}", health.timeout).blue());
                         }
                     }
                     true
@@ -69,12 +69,12 @@ impl Servers {
                     false
                 }
             }).cloned().collect::<Vec<_>>();
-            for server in dead_servers {
-                self.restart_server(&server);
+            for unit in dead_units {
+                self.restart_unit(&unit);
             }
         }
 
-        // Stop all servers that have to be stopped
+        // Stop all units that have to be stopped
         {
             let mut requests = self.stop_requests.write().unwrap();
             requests.retain(|request| {
@@ -84,7 +84,7 @@ impl Servers {
                     }
                 }
 
-                self.stop_server_nolock(request, &mut self.servers.write().unwrap());
+                self.stop_unit_nolock(request, &mut self.units.write().unwrap());
                 false
             });
         }
@@ -100,7 +100,7 @@ impl Servers {
             requests.retain(|request| {
                 if request.canceled.load(Ordering::Relaxed) {
                     debug!(
-                        "{} start of server {}",
+                        "{} start of unit {}",
                         "Canceled".yellow(),
                         request.name.blue()
                     );
@@ -113,27 +113,27 @@ impl Servers {
                     }
                 }
 
-                if request.nodes.is_empty() {
+                if request.cloudlets.is_empty() {
                     warn!(
-                        "{} to allocate resources for server {} because no nodes were specified",
+                        "{} to allocate resources for unit {} because no cloudlets were specified",
                         "Failed".red(),
                         request.name.red()
                     );
                     return true;
                 }
 
-                // Collect and sort nodes by the number of allocations
-                for node in &request.nodes {
-                    let node = node.upgrade().unwrap();
-                    // Try to allocate resources on nodes
-                    if let Ok(allocation) = node.allocate(request) {
-                        // Start server on the node
-                        self.start_server(request, allocation, &node);
+                // Collect and sort cloudlets by the number of allocations
+                for cloudlet in &request.cloudlets {
+                    let cloudlet = cloudlet.upgrade().unwrap();
+                    // Try to allocate resources on cloudlets
+                    if let Ok(allocation) = cloudlet.allocate(request) {
+                        // Start unit on the cloudlet
+                        self.start_unit(request, allocation, &cloudlet);
                         return false;
                     }
                 }
                 warn!(
-                    "{} to allocate resources for server {}",
+                    "{} to allocate resources for unit {}",
                     "Failed".red(),
                     request.name.red()
                 );
@@ -142,82 +142,82 @@ impl Servers {
         }
     }
 
-    pub fn queue_server(&self, request: StartRequest) -> StartRequestHandle {
+    pub fn queue_unit(&self, request: StartRequest) -> StartRequestHandle {
         let arc = Arc::new(request);
         self.start_requests.write().unwrap().push_back(arc.clone());
         arc
     }
 
     pub fn stop_all_instant(&self) {
-        self.servers
+        self.units
             .write()
             .unwrap()
             .drain()
-            .for_each(|(_, server)| {
-                self.stop_server_internal(&StopRequest { when: None, server });
+            .for_each(|(_, unit)| {
+                self.stop_unit_internal(&StopRequest { when: None, unit });
             });
     }
 
-    pub fn stop_all_on_node(&self, node: &NodeHandle) {
-        self.servers
+    pub fn stop_all_on_cloudlet(&self, cloudlet: &CloudletHandle) {
+        self.units
             .read()
             .unwrap()
             .values()
-            .filter(|server| Arc::ptr_eq(&server.node.upgrade().unwrap(), node))
-            .for_each(|server| {
-                self.stop_server_now(server.clone());
+            .filter(|unit| Arc::ptr_eq(&unit.cloudlet.upgrade().unwrap(), cloudlet))
+            .for_each(|unit| {
+                self.stop_unit_now(unit.clone());
             });
     }
 
-    fn stop_server_nolock(&self, request: &StopRequest, servers: &mut HashMap<Uuid, ServerHandle>) {
-        self.stop_server_internal(request);
-        servers.remove(&request.server.uuid);
+    fn stop_unit_nolock(&self, request: &StopRequest, units: &mut HashMap<Uuid, UnitHandle>) {
+        self.stop_unit_internal(request);
+        units.remove(&request.unit.uuid);
     }
 
-    fn stop_server_internal(&self, request: &StopRequest) {
-        let server = &request.server;
-        info!("{} server {}", "Stopping".yellow(), server.name.blue());
+    fn stop_unit_internal(&self, request: &StopRequest) {
+        let unit = &request.unit;
+        info!("{} unit {}", "Stopping".yellow(), unit.name.blue());
 
-        // Remove resources allocated by server from node
-        if let Some(node) = server.node.upgrade() {
-            node.deallocate(&server.allocation);
+        // Remove resources allocated by unit from cloudlet
+        if let Some(cloudlet) = unit.cloudlet.upgrade() {
+            cloudlet.deallocate(&unit.allocation);
         }
 
-        // Send start request to node
+        // Send start request to cloudlet
         // We do this async because the driver chould be running blocking code like network requests
         let controller = self
             .controller
             .upgrade()
             .expect("The controller is dead while still running code that requires it");
         {
-            let server = server.clone();
+            let unit = unit.clone();
             controller
                 .get_runtime()
                 .as_ref()
                 .unwrap()
-                .spawn_blocking(move || stop_thread(server));
+                .spawn_blocking(move || stop_thread(unit));
         }
 
-        // Remove server from group and servers list
-        if let Some(group) = &server.group {
-            group.remove_server(server);
+        // Remove unit from deployment and units list
+        if let Some(deployment) = &unit.deployment {
+            deployment.remove_unit(unit);
         }
         if let Some(controller) = self.controller.upgrade() {
-            controller.get_auth().unregister_server(server);
+            controller.get_auth().unregister_unit(unit);
         }
 
-        // Remove users connected to the server
-        controller.get_users().cleanup_users(server);
+        // Remove users connected to the unit
+        controller.get_users().cleanup_users(unit);
         // Remove subscribers from channels
-        controller.get_event_bus().cleanup_server(server);
+        controller.get_event_bus().cleanup_unit(unit);
 
-        fn stop_thread(server: ServerHandle) {
-            if let Some(node) = server.node.upgrade() {
-                if let Err(error) = node.get_inner().stop_server(&server) {
+        fn stop_thread(unit: UnitHandle) {
+            if let Some(cloudlet) = unit.cloudlet.upgrade() {
+                if let Err(error) = cloudlet.get_inner().stop_unit(&unit) {
                     error!(
-                        "{} to stop server {}: {}",
+                        "{} to stop unit {}: {}",
                         "Failed".red(),
-                        server.name.red(),
+                        unit.name.red(),
                         error
                     );
                 }
@@ -225,146 +225,146 @@ impl Servers {
         }
     }
 
-    pub fn stop_server_now(&self, server: ServerHandle) {
+    pub fn stop_unit_now(&self, unit: UnitHandle) {
         self.stop_requests
             .write()
             .unwrap()
-            .push_back(StopRequest { when: None, server });
+            .push_back(StopRequest { when: None, unit });
     }
 
-    pub fn _stop_server(&self, when: Instant, server: ServerHandle) {
+    pub fn _stop_unit(&self, when: Instant, unit: UnitHandle) {
         self.stop_requests.write().unwrap().push_back(StopRequest {
             when: Some(when),
-            server,
+            unit,
         });
     }
 
-    pub fn restart_server(&self, server: &ServerHandle) {
-        info!("{} server {}", "Restarting".yellow(), server.name.blue());
+    pub fn restart_unit(&self, unit: &UnitHandle) {
+        info!("{} unit {}", "Restarting".yellow(), unit.name.blue());
 
         let controller = self
             .controller
             .upgrade()
             .expect("Failed to upgrade controller");
 
-        *server.state.write().unwrap() = State::Restarting;
-        *server.health.write().unwrap() = Health::new(
+        *unit.state.write().unwrap() = State::Restarting;
+        *unit.health.write().unwrap() = Health::new(
             controller.configuration.timings.restart.unwrap(),
             controller.configuration.timings.healthbeat.unwrap(),
         );
 
-        // Send restart request to node
+        // Send restart request to cloudlet
         // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = self.controller.upgrade() {
-            let server = server.clone();
+            let unit = unit.clone();
             let copy = controller.clone();
             controller
                 .get_runtime()
                 .as_ref()
                 .unwrap()
-                .spawn_blocking(move || restart_thread(copy, server));
+                .spawn_blocking(move || restart_thread(copy, unit));
         }
 
-        fn restart_thread(controller: ControllerHandle, server: ServerHandle) {
-            if let Some(node) = server.node.upgrade() {
-                if let Err(error) = &node.get_inner().restart_server(&server) {
+        fn restart_thread(controller: ControllerHandle, unit: UnitHandle) {
+            if let Some(cloudlet) = unit.cloudlet.upgrade() {
+                if let Err(error) = &cloudlet.get_inner().restart_unit(&unit) {
                     error!(
-                        "{} to restart server {}: {}",
+                        "{} to restart unit {}: {}",
                         "Failed".red(),
-                        server.name.red(),
+                        unit.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server_now(server);
+                    controller.get_units().stop_unit_now(unit);
                 }
             }
         }
     }
 
-    pub fn handle_heart_beat(&self, server: &ServerHandle) {
-        debug!("Received heartbeat from server {}", &server.name);
+    pub fn handle_heart_beat(&self, unit: &UnitHandle) {
+        debug!("Received heartbeat from unit {}", &unit.name);
 
         // Reset health
-        server.health.write().unwrap().reset();
+        unit.health.write().unwrap().reset();
 
-        // Check were the server is in the state machine
-        let mut state = server.state.write().unwrap();
+        // Check were the unit is in the state machine
+        let mut state = unit.state.write().unwrap();
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
-                "The server {} is now {}",
-                server.name.blue(),
+                "The unit {} is now {}",
+                unit.name.blue(),
                 "loading".yellow()
             );
         }
     }
 
-    pub fn mark_ready(&self, server: &ServerHandle) {
-        if !server.rediness.load(Ordering::Relaxed) {
-            debug!("The server {} is {}", server.name.blue(), "ready".green());
-            server.rediness.store(true, Ordering::Relaxed);
+    pub fn mark_ready(&self, unit: &UnitHandle) {
+        if !unit.rediness.load(Ordering::Relaxed) {
+            debug!("The unit {} is {}", unit.name.blue(), "ready".green());
+            unit.rediness.store(true, Ordering::Relaxed);
         }
     }
 
-    pub fn mark_not_ready(&self, server: &ServerHandle) {
-        if server.rediness.load(Ordering::Relaxed) {
+    pub fn mark_not_ready(&self, unit: &UnitHandle) {
+        if unit.rediness.load(Ordering::Relaxed) {
             debug!(
-                "The server {} is {} ready",
-                server.name.blue(),
+                "The unit {} is {} ready",
+                unit.name.blue(),
                 "no longer".red()
             );
-            server.rediness.store(false, Ordering::Relaxed);
+            unit.rediness.store(false, Ordering::Relaxed);
         }
     }
 
-    pub fn mark_running(&self, server: &ServerHandle) {
-        let mut state = server.state.write().unwrap();
+    pub fn mark_running(&self, unit: &UnitHandle) {
+        let mut state = unit.state.write().unwrap();
         if *state == State::Preparing {
             info!(
-                "The server {} is now {}",
-                server.name.blue(),
+                "The unit {} is now {}",
+                unit.name.blue(),
                 "running".green()
             );
             *state = State::Running;
         }
     }
 
-    pub fn checked_stop_server(&self, server: &ServerHandle) {
-        let mut state = server.state.write().unwrap();
+    pub fn checked_unit_stop(&self, unit: &UnitHandle) {
+        let mut state = unit.state.write().unwrap();
         if *state != State::Stopping {
-            self.mark_not_ready(server);
+            self.mark_not_ready(unit);
             *state = State::Stopping;
-            self.stop_server_now(server.clone());
+            self.stop_unit_now(unit.clone());
         }
     }
 
-    pub fn find_fallback_server(&self, excluded: &ServerHandle) -> Option<ServerHandle> {
-        // TODO: Also check if the server have free slots
-        self.servers
+    pub fn find_fallback_unit(&self, excluded: &UnitHandle) -> Option<UnitHandle> {
+        // TODO: Also check if the unit have free slots
+        self.units
             .read()
             .unwrap()
             .values()
-            .filter(|server| {
-                !Arc::ptr_eq(server, excluded)
-                    && server.allocation.deployment.fallback.enabled
-                    && *server.state.read().unwrap() == State::Running
+            .filter(|unit| {
+                !Arc::ptr_eq(unit, excluded)
+                    && unit.allocation.spec.fallback.enabled
+                    && *unit.state.read().unwrap() == State::Running
             })
-            .max_by_key(|server| server.allocation.deployment.fallback.priority)
+            .max_by_key(|unit| unit.allocation.spec.fallback.priority)
             .cloned()
     }
 
-    pub fn get_server(&self, uuid: Uuid) -> Option<ServerHandle> {
-        self.servers.read().unwrap().get(&uuid).cloned()
+    pub fn get_unit(&self, uuid: Uuid) -> Option<UnitHandle> {
+        self.units.read().unwrap().get(&uuid).cloned()
     }
 
-    pub fn get_servers(&self) -> RwLockReadGuard<HashMap<Uuid, ServerHandle>> {
-        self.servers.read().expect("Failed to lock servers")
+    pub fn get_units(&self) -> RwLockReadGuard<HashMap<Uuid, UnitHandle>> {
+        self.units.read().expect("Failed to lock units")
     }
 
-    fn start_server(
+    fn start_unit(
         &self,
         request: &StartRequestHandle,
         allocation: AllocationHandle,
-        node: &NodeHandle,
+        cloudlet: &CloudletHandle,
     ) {
         let controller = self
             .controller
@@ -372,26 +372,26 @@ impl Servers {
             .expect("Failed to upgrade controller");
 
         info!(
-            "{} server {} on node {} listening on port {}",
+            "{} unit {} on cloudlet {} listening on port {}",
             "Spinning up".green(),
             request.name.blue(),
-            node.name.blue(),
+            cloudlet.name.blue(),
             allocation.primary_address().to_string().blue()
         );
-        let server = Arc::new_cyclic(|handle| {
-            // Create a token for the server
+        let unit = Arc::new_cyclic(|handle| {
+            // Create a token for the unit
             let auth = self
                 .controller
                 .upgrade()
-                .expect("WAIT. We are creating a server while the controller is dead?")
+                .expect("WAIT. We are creating a unit while the controller is dead?")
                 .get_auth()
-                .register_server(handle.clone());
+                .register_unit(handle.clone());
 
-            Server {
+            Unit {
                 name: request.name.clone(),
                 uuid: Uuid::new_v4(),
-                group: request.group.clone(),
-                node: Arc::downgrade(node),
+                deployment: request.deployment.clone(),
+                cloudlet: Arc::downgrade(cloudlet),
                 allocation,
                 connected_users: AtomicU32::new(0),
                 auth,
@@ -407,23 +407,23 @@ impl Servers {
             }
         });
 
-        if let Some(group) = &request.group {
-            group.set_active(server.clone(), request);
+        if let Some(deployment) = &request.deployment {
+            deployment.set_active(unit.clone(), request);
         }
-        self.servers
+        self.units
             .write()
             .unwrap()
-            .insert(server.uuid, server.clone());
+            .insert(unit.uuid, unit.clone());
 
-        // Print server information to the console for debugging
+        // Print unit information to the console for debugging
         debug!("{}", "-----------------------------------".red());
-        debug!("{}", "New server added to controller".red());
-        debug!("{}{}", "Name: ".red(), server.name.red());
-        debug!("{}{}", "UUID: ".red(), server.uuid.to_string().red());
-        debug!("{}{}", "Token: ".red(), server.auth.token.red());
+        debug!("{}", "New unit added to controller".red());
+        debug!("{}{}", "Name: ".red(), unit.name.red());
+        debug!("{}{}", "UUID: ".red(), unit.uuid.to_string().red());
+        debug!("{}{}", "Token: ".red(), unit.auth.token.red());
         debug!("{}", "-----------------------------------".red());
 
-        // Send start request to node
+        // Send start request to cloudlet
         // We do this async because the driver chould be running blocking code like network requests
         if let Some(controller) = self.controller.upgrade() {
             let copy = controller.clone();
@@ -431,47 +431,47 @@ impl Servers {
                 .get_runtime()
                 .as_ref()
                 .unwrap()
-                .spawn_blocking(move || start_thread(copy, server));
+                .spawn_blocking(move || start_thread(copy, unit));
         }
 
-        fn start_thread(controller: ControllerHandle, server: ServerHandle) {
-            if let Some(node) = server.node.upgrade() {
-                if let Err(error) = node.get_inner().start_server(&server) {
+        fn start_thread(controller: ControllerHandle, unit: UnitHandle) {
+            if let Some(cloudlet) = unit.cloudlet.upgrade() {
+                if let Err(error) = cloudlet.get_inner().start_unit(&unit) {
                     error!(
-                        "{} to start server {}: {}",
+                        "{} to start unit {}: {}",
                         "Failed".red(),
-                        server.name.red(),
+                        unit.name.red(),
                         error
                     );
-                    controller.get_servers().stop_server_now(server);
+                    controller.get_units().stop_unit_now(unit);
                 }
             }
         }
     }
 }
 
-pub struct Server {
+pub struct Unit {
     pub name: String,
     pub uuid: Uuid,
-    pub group: Option<GroupInfo>,
-    pub node: WeakNodeHandle,
+    pub deployment: Option<DeploymentRef>,
+    pub cloudlet: WeakCloudletHandle,
     pub allocation: AllocationHandle,
 
     /* Users */
     pub connected_users: AtomicU32,
 
     /* Auth */
-    pub auth: AuthServerHandle,
+    pub auth: AuthUnitHandle,
 
-    /* Health and State of the server */
+    /* Health and State of the unit */
     pub health: RwLock<Health>,
     pub state: RwLock<State>,
     pub flags: Flags,
     pub rediness: AtomicBool,
 }
 
-impl Server {
-    pub fn get_player_count(&self) -> u32 {
+impl Unit {
+    pub fn get_user_count(&self) -> u32 {
         self.connected_users.load(Ordering::Relaxed)
     }
 }
@@ -500,16 +500,16 @@ pub struct StartRequest {
     pub canceled: AtomicBool,
     pub when: Option<Instant>,
     pub name: String,
-    pub group: Option<GroupInfo>,
-    pub nodes: Vec<WeakNodeHandle>,
+    pub deployment: Option<DeploymentRef>,
+    pub cloudlets: Vec<WeakCloudletHandle>,
     pub resources: Resources,
-    pub deployment: Deployment,
+    pub spec: Spec,
     pub priority: i32,
 }
 
 pub struct StopRequest {
     pub when: Option<Instant>,
-    pub server: ServerHandle,
+    pub unit: UnitHandle,
 }
 
 #[derive(PartialEq, Clone)]
@@ -522,26 +522,26 @@ pub enum State {
 }
 
 pub struct Flags {
-    /* Required for the group system */
+    /* Required for the deployment system */
     pub stop: RwLock<Option<Instant>>,
 }
 
 #[derive(Clone)]
-pub struct GroupInfo {
-    pub server_id: usize,
-    pub group: WeakGroupHandle,
+pub struct DeploymentRef {
+    pub unit_id: usize,
+    pub deployment: WeakDeploymentHandle,
 }
 
-impl GroupInfo {
-    pub fn remove_server(&self, server: &ServerHandle) {
-        if let Some(group) = self.group.upgrade() {
-            group.remove_server(server);
+impl DeploymentRef {
+    pub fn remove_unit(&self, unit: &UnitHandle) {
+        if let Some(deployment) = self.deployment.upgrade() {
+            deployment.remove_unit(unit);
         }
     }
 
-    pub fn set_active(&self, server: ServerHandle, request: &StartRequestHandle) {
-        if let Some(group) = self.group.upgrade() {
-            group.set_server_active(server, request);
+    pub fn set_active(&self, unit: UnitHandle, request: &StartRequestHandle) {
+        if let Some(deployment) = self.deployment.upgrade() {
+            deployment.set_unit_active(unit, request);
         }
     }
 }
@@ -578,7 +578,7 @@ pub struct KeyValue {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
-pub struct Deployment {
+pub struct Spec {
     pub settings: Vec<KeyValue>,
     pub environment: Vec<KeyValue>,
     pub disk_retention: Retention,

@@ -4,23 +4,23 @@ use std::sync::{Arc, Mutex, Weak};
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
-use exports::node::driver::bridge;
+use exports::cloudlet::driver::bridge;
 use log::{debug, error, info, warn};
-use node::driver;
-use node::driver::http::{Header, Method, Response};
-use node::driver::log::Level;
-use node_impl::WasmNode;
+use cloudlet::driver;
+use cloudlet::driver::http::{Header, Method, Response};
+use cloudlet::driver::log::Level;
+use cloudlet_impl::WasmCloudlet;
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use super::source::Source;
-use super::{DriverNodeHandle, GenericDriver, Information};
-use crate::application::node::{Capabilities, Node, RemoteController};
+use super::{DriverCloudletHandle, GenericDriver, Information};
+use crate::application::cloudlet::{Capabilities, Cloudlet, RemoteController};
 use crate::storage::Storage;
 
-mod node_impl;
+mod cloudlet_impl;
 
 bindgen!({
     world: "driver",
@@ -181,7 +181,7 @@ impl GenericDriver for WasmDriver {
         let (resource, store) = Self::get_resource_and_store(&mut handle);
         match self
             .bindings
-            .node_driver_bridge()
+            .cloudlet_driver_bridge()
             .generic_driver()
             .call_init(store, resource)
         {
@@ -190,23 +190,23 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    fn init_node(&self, node: &Node) -> Result<DriverNodeHandle> {
+    fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle> {
         let mut handle = self.handle.lock().unwrap();
         let (resource, store) = Self::get_resource_and_store(&mut handle);
         match self
             .bindings
-            .node_driver_bridge()
+            .cloudlet_driver_bridge()
             .generic_driver()
-            .call_init_node(
+            .call_init_cloudlet(
                 store,
                 resource,
-                &node.name,
-                &(&node.capabilities).into(),
-                &(&node.controller).into(),
+                &cloudlet.name,
+                &(&cloudlet.capabilities).into(),
+                &(&cloudlet.controller).into(),
             )? {
-            Ok(node) => Ok(Arc::new(WasmNode {
+            Ok(cloudlet) => Ok(Arc::new(WasmCloudlet {
                 handle: self.own.clone(),
-                resource: node,
+                resource: cloudlet,
             })),
             Err(error) => Err(anyhow!(error)),
         }
@@ -289,7 +289,7 @@ impl WasmDriver {
         });
         let driver_resource = driver
             .bindings
-            .node_driver_bridge()
+            .cloudlet_driver_bridge()
             .generic_driver()
             .call_constructor(&mut store, cloud_identifier)?;
         driver
@@ -422,7 +422,7 @@ impl From<&Capabilities> for bridge::Capabilities {
         bridge::Capabilities {
             memory: val.memory,
             max_allocations: val.max_allocations,
-            sub_node: val.sub_node.clone(),
+            child: val.child.clone(),
         }
     }
 }

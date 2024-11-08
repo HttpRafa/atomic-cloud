@@ -4,9 +4,9 @@ use log::info;
 use std::{net::SocketAddr, sync::Arc};
 use tonic::async_trait;
 
-use crate::application::node::Node;
-use crate::application::server::ServerHandle;
-use crate::application::server::StartRequestHandle;
+use crate::application::cloudlet::Cloudlet;
+use crate::application::unit::UnitHandle;
+use crate::application::unit::StartRequestHandle;
 
 #[cfg(feature = "wasm-drivers")]
 use crate::application::driver::wasm::WasmDriver;
@@ -24,23 +24,23 @@ pub struct Information {
 pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     fn init(&self) -> Result<Information>;
-    fn init_node(&self, node: &Node) -> Result<DriverNodeHandle>;
+    fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle>;
 }
 
 #[async_trait]
-pub trait GenericNode: Send + Sync {
+pub trait GenericCloudlet: Send + Sync {
     /* Prepare */
     fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>>;
     fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
 
-    /* Servers */
-    fn start_server(&self, server: &ServerHandle) -> Result<()>;
-    fn restart_server(&self, server: &ServerHandle) -> Result<()>;
-    fn stop_server(&self, server: &ServerHandle) -> Result<()>;
+    /* Unitss */
+    fn start_unit(&self, unit: &UnitHandle) -> Result<()>;
+    fn restart_unit(&self, unit: &UnitHandle) -> Result<()>;
+    fn stop_unit(&self, unit: &UnitHandle) -> Result<()>;
 }
 
 pub type DriverHandle = Arc<dyn GenericDriver>;
-pub type DriverNodeHandle = Arc<dyn GenericNode>;
+pub type DriverCloudletHandle = Arc<dyn GenericCloudlet>;
 
 pub struct Drivers {
     drivers: Vec<DriverHandle>,

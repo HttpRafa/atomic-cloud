@@ -1,16 +1,16 @@
 use backend::Backend;
 use colored::Colorize;
-use node::PterodactylNode;
+use cloudlet::PterodactylCloudlet;
 use std::cell::UnsafeCell;
 use std::rc::Rc;
 use std::sync::RwLock;
 
-use crate::exports::node::driver::bridge::{
-    Capabilities, GenericNode, GuestGenericDriver, GuestGenericNode, Information, RemoteController,
+use crate::exports::cloudlet::driver::bridge::{
+    Capabilities, GenericCloudlet, GuestGenericDriver, GuestGenericCloudlet, Information, RemoteController,
 };
 use crate::{error, info};
 
-pub mod node;
+pub mod cloudlet;
 
 mod backend;
 
@@ -26,8 +26,8 @@ pub struct Pterodactyl {
     /* Backend */
     backend: UnsafeCell<Option<Rc<Backend>>>,
 
-    /* Nodes that this driver handles */
-    nodes: RwLock<Vec<Rc<PterodactylNode>>>,
+    /* Cloudlets that this driver handles */
+    cloudlets: RwLock<Vec<Rc<PterodactylCloudlet>>>,
 }
 
 impl Pterodactyl {
@@ -42,7 +42,7 @@ impl GuestGenericDriver for Pterodactyl {
         Self {
             cloud_identifier,
             backend: UnsafeCell::new(None),
-            nodes: RwLock::new(Vec::new()),
+            cloudlets: RwLock::new(Vec::new()),
         }
     }
 
@@ -62,46 +62,46 @@ impl GuestGenericDriver for Pterodactyl {
         }
     }
 
-    fn init_node(
+    fn init_cloudlet(
         &self,
         name: String,
         capabilities: Capabilities,
         controller: RemoteController,
-    ) -> Result<GenericNode, String> {
-        if let Some(value) = capabilities.sub_node.as_ref() {
-            if let Some(node) = self.get_backend().get_node_by_name(value) {
-                let wrapper = PterodactylNodeWrapper::new(
+    ) -> Result<GenericCloudlet, String> {
+        if let Some(value) = capabilities.child.as_ref() {
+            if let Some(cloudlet) = self.get_backend().get_node_by_name(value) {
+                let wrapper = PterodactylCloudletWrapper::new(
                     self.cloud_identifier.clone(),
                     name.clone(),
-                    Some(node.id),
+                    Some(cloudlet.id),
                     capabilities,
                     controller,
                 );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
-                // Add node to nodes
-                let mut nodes = self.nodes.write().expect("Failed to get lock on nodes");
-                nodes.push(wrapper.inner.clone());
+                // Add cloudlet to cloudlets list
+                let mut cloudlets = self.cloudlets.write().expect("Failed to get lock on cloudlets");
+                cloudlets.push(wrapper.inner.clone());
                 info!(
-                    "Node {}[{}] was {}",
+                    "Cloudlet {}[{}] was {}",
                     name.blue(),
-                    format!("{}", node.id).blue(),
+                    format!("{}", cloudlet.id).blue(),
                     "added".green()
                 );
-                Ok(GenericNode::new(wrapper))
+                Ok(GenericCloudlet::new(wrapper))
             } else {
                 Err("Node does not exist in the Pterodactyl panel".to_string())
             }
         } else {
-            Err("Node lacks the required sub-node capability".to_string())
+            Err("Cloudlet lacks the required child capability".to_string())
         }
     }
 }
 
-pub struct PterodactylNodeWrapper {
-    pub inner: Rc<PterodactylNode>,
+pub struct PterodactylCloudletWrapper {
+    pub inner: Rc<PterodactylCloudlet>,
 }
 
-impl PterodactylNodeWrapper {
+impl PterodactylCloudletWrapper {
     fn get_backend(&self) -> &Rc<Backend> {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.inner.backend.get() }.as_ref().unwrap()

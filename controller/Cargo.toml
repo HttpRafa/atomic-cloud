@@ -18,7 +18,7 @@ anyhow = "1.0.93"
 # Signal handling
 ctrlc = "3.4.5"
 
-# Server system
+# Unit system
 uuid = { version = "1.11.0", features = ["v4"] }
 
 # Command line arguments

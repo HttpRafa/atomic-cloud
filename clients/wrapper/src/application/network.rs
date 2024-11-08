@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use proto::{
-    server_service_client::ServerServiceClient,
+    unit_service_client::UnitServiceClient,
     transfer_management::ResolvedTransferResponse,
     user_management::{UserConnectedRequest, UserDisconnectedRequest},
 };
@@ -16,7 +16,7 @@ use tonic::{transport::Channel, Request, Response, Status, Streaming};
 pub mod proto {
     use tonic::include_proto;
 
-    include_proto!("server");
+    include_proto!("unit");
 }
 
 pub type CloudConnectionHandle = Arc<CloudConnection>;
@@ -27,10 +27,10 @@ pub struct CloudConnection {
     token: String,
 
     /* TLS */
-    tls_config: Option<String>,
+    //tls_config: Option<String>,
 
     /* Client */
-    client: Mutex<Option<ServerServiceClient<Channel>>>,
+    client: Mutex<Option<UnitServiceClient<Channel>>>,
 }
 
 impl CloudConnection {
@@ -51,10 +51,10 @@ impl CloudConnection {
             exit(1);
         }
 
-        if let Ok(value) = std::env::var("SERVER_TOKEN") {
+        if let Ok(value) = std::env::var("UNIT_TOKEN") {
             token = Some(value);
         } else {
-            error!("Missing SERVER_TOKEN environment variable. Please set it to the token of this server");
+            error!("Missing UNIT_TOKEN environment variable. Please set it to the token of this unit");
             exit(1);
         }
 
@@ -67,18 +67,18 @@ impl CloudConnection {
         Arc::new(Self::new(address.unwrap(), token.unwrap(), tls_config))
     }
 
-    pub fn new(address: Url, token: String, tls_config: Option<String>) -> Self {
+    pub fn new(address: Url, token: String, _tls_config: Option<String>) -> Self {
         Self {
             address,
             token,
-            tls_config,
+            //tls_config,
             client: Mutex::new(None),
         }
     }
 
     pub async fn connect(&self) -> Result<()> {
         *self.client.lock().await =
-            Some(ServerServiceClient::connect(self.address.to_string()).await?);
+            Some(UnitServiceClient::connect(self.address.to_string()).await?);
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 package io.atomic.cloud.paper.transfer;
 
 import io.atomic.cloud.common.connection.CloudConnection;
-import io.atomic.cloud.grpc.server.TransferManagement;
+import io.atomic.cloud.grpc.unit.TransferManagement;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;

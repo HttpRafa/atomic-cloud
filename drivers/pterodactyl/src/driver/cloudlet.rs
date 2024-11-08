@@ -1,5 +1,5 @@
 use colored::Colorize;
-use server::{PanelServer, ServerName};
+use unit::{PanelUnit, UnitName};
 use std::{
     cell::UnsafeCell,
     rc::Rc,
@@ -9,9 +9,9 @@ use std::{
 
 use crate::{
     error,
-    exports::node::driver::bridge::{
-        Address, Capabilities, GuestGenericNode, RemoteController, Retention, Server,
-        ServerProposal,
+    exports::cloudlet::driver::bridge::{
+        Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
+        UnitProposal,
     },
     info, warn,
 };
@@ -22,12 +22,12 @@ use super::{
         server::{BServerEgg, BServerFeatureLimits},
         Backend,
     },
-    PterodactylNodeWrapper,
+    PterodactylCloudletWrapper,
 };
 
-pub mod server;
+pub mod unit;
 
-impl GuestGenericNode for PterodactylNodeWrapper {
+impl GuestGenericCloudlet for PterodactylCloudletWrapper {
     fn new(
         cloud_identifier: String,
         name: String,
@@ -36,7 +36,7 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         controller: RemoteController,
     ) -> Self {
         Self {
-            inner: Rc::new(PterodactylNode {
+            inner: Rc::new(PterodactylCloudlet {
                 cloud_identifier,
                 backend: UnsafeCell::new(None),
                 id: id.unwrap(),
@@ -44,32 +44,32 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 capabilities,
                 controller,
                 allocations: RwLock::new(vec![]),
-                servers: RwLock::new(vec![]),
+                units: RwLock::new(vec![]),
             }),
         }
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
-    fn allocate_addresses(&self, server: ServerProposal) -> Result<Vec<Address>, String> {
-        let amount = server.resources.addresses;
+    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
+        let amount = unit.resources.addresses;
 
         let mut used = self.inner.get_allocations_mut();
-        if server.deployment.disk_retention == Retention::Permanent {
-            let name = ServerName::new(
+        if unit.spec.disk_retention == Retention::Permanent {
+            let name = UnitName::new(
                 &self.inner.cloud_identifier,
-                &server.name,
+                &unit.name,
                 &Retention::Permanent,
             );
 
-            // Check if a server with the same name is already exists
-            if let Some(backend_server) = self.get_backend().get_server_by_name(&name) {
+            // Check if a unit with the same name is already exists
+            if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
                 // Get the allocations that are already used by this server
                 let mut allocations = self
                     .get_backend()
-                    .get_allocations_by_server(&backend_server.identifier);
+                    .get_allocations_by_server(&backend_unit.identifier);
 
-                if (allocations.1.len() + 1) as u32 != server.resources.addresses {
-                    warn!("The server {} has a different amount of addresses than the panel has allocated. This may cause issues.", server.name);
+                if (allocations.1.len() + 1) as u32 != unit.resources.addresses {
+                    warn!("The unit {} has a different amount of addresses than the panel has allocated. This may cause issues.", unit.name);
                     // TODO: Add a way to fix this
                 }
 
@@ -105,15 +105,15 @@ impl GuestGenericNode for PterodactylNodeWrapper {
         });
     }
 
-    fn start_server(&self, server: Server) {
-        let deployment = &server.allocation.deployment;
-        let name = ServerName::new(
+    fn start_unit(&self, unit: Unit) {
+        let spec = &unit.allocation.spec;
+        let name = UnitName::new(
             &self.inner.cloud_identifier,
-            &server.name,
-            &deployment.disk_retention,
+            &unit.name,
+            &spec.disk_retention,
         );
 
-        let allocations = server
+        let allocations = unit
             .allocation
             .addresses
             .iter()
@@ -121,40 +121,40 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 Some(allocation) => Some(allocation),
                 None => {
                     error!(
-                        "Allocation({:?}) not found for server {}",
-                        &server.allocation.addresses[0], server.name
+                        "Allocation({:?}) not found for unit {}",
+                        &unit.allocation.addresses[0], unit.name
                     );
                     None
                 }
             })
             .collect::<Vec<_>>();
 
-        // Check if a server with the same name is already exists
-        if let Some(backend_server) = self.get_backend().get_server_by_name(&name) {
-            if deployment.disk_retention == Retention::Temporary {
+        // Check if a unit with the same name is already exists
+        if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
+            if spec.disk_retention == Retention::Temporary {
                 error!(
-                    "Server {} already exists on the panel, but the disk retention is temporary",
-                    server.name.blue()
+                    "Unit {} already exists on the panel, but the disk retention is temporary",
+                    unit.name.blue()
                 );
                 return;
             }
-            // Just use the existing server and change its settings
+            // Just use the existing unit and change its settings
             info!(
-                "Server {} already exists on the panel, updating settings and starting...",
-                server.name.blue()
+                "Unit {} already exists on the panel, updating settings and starting...",
+                unit.name.blue()
             );
             self.get_backend()
-                .update_settings(self, allocations[0].id, &backend_server, &server);
-            self.get_backend().start_server(&backend_server.identifier);
-            self.inner.get_servers_mut().push(PanelServer::new(
-                backend_server.id,
-                backend_server.identifier,
+                .update_settings(self, allocations[0].id, &backend_unit, &unit);
+            self.get_backend().start_server(&backend_unit.identifier);
+            self.inner.get_units_mut().push(PanelUnit::new(
+                backend_unit.id,
+                backend_unit.identifier,
                 name,
             ));
         } else {
             let mut egg = None;
             let mut startup = None;
-            for value in deployment.settings.iter() {
+            for value in spec.settings.iter() {
                 match value.key.as_str() {
                     "egg" => match value.value.parse::<u32>() {
                         Ok(id) => {
@@ -180,16 +180,16 @@ impl GuestGenericNode for PterodactylNodeWrapper {
             }
             if !missing.is_empty() {
                 error!(
-                    "The following required settings to start the server are missing: {}",
+                    "The following required settings to start the unit are missing: {}",
                     missing.join(", ").red()
                 );
                 return;
             }
 
-            // Create a new server
-            if let Some(server) = self.get_backend().create_server(
+            // Create a new unit
+            if let Some(unit) = self.get_backend().create_server(
                 &name,
-                &server,
+                &unit,
                 self,
                 &allocations,
                 BServerEgg {
@@ -202,71 +202,71 @@ impl GuestGenericNode for PterodactylNodeWrapper {
                 },
             ) {
                 info!(
-                    "Server {} successfully {} on the panel",
-                    server.name.blue(),
+                    "Unit {} successfully {} on the panel",
+                    unit.name.blue(),
                     "created".green()
                 );
-                self.inner.get_servers_mut().push(PanelServer::new(
-                    server.id,
-                    server.identifier,
+                self.inner.get_units_mut().push(PanelUnit::new(
+                    unit.id,
+                    unit.identifier,
                     name,
                 ));
             }
         }
     }
 
-    fn restart_server(&self, server: Server) {
-        if let Some(backend_server) = self.inner.find_server(&server.name) {
-            self.get_backend().restart_server(&backend_server);
+    fn restart_unit(&self, unit: Unit) {
+        if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
+            self.get_backend().restart_server(&backend_unit);
             info!(
-                "Panel is {} the server {}...",
+                "Panel is {} the unit {}...",
                 "restarting".yellow(),
-                backend_server.name.generate().blue(),
+                backend_unit.name.generate().blue(),
             );
         } else {
             error!(
-                "{} to restart server {} because the server was {} by this driver",
+                "{} to restart unit {} because the unit was {} by this driver",
                 "Failed".red(),
-                server.name,
+                unit.name,
                 "never started".red()
             );
         }
     }
 
-    fn stop_server(&self, server: Server) {
-        if let Some(backend_server) = self.inner.find_server(&server.name) {
-            if server.allocation.deployment.disk_retention == Retention::Temporary {
-                self.get_backend().delete_server(backend_server.id);
+    fn stop_unit(&self, unit: Unit) {
+        if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
+            if unit.allocation.spec.disk_retention == Retention::Temporary {
+                self.get_backend().delete_server(backend_unit.id);
                 info!(
-                    "Server {} successfully {} from the panel",
-                    backend_server.name.generate().blue(),
+                    "Unit {} successfully {} from the panel",
+                    backend_unit.name.generate().blue(),
                     "deleted".red()
                 );
             } else {
-                self.get_backend().stop_server(&backend_server);
+                self.get_backend().stop_server(&backend_unit);
                 info!(
-                    "Panel is {} the server {}...",
+                    "Panel is {} the unit {}...",
                     "stopping".red(),
-                    backend_server.name.generate().blue(),
+                    backend_unit.name.generate().blue(),
                 );
             }
-            self.inner.delete_server(backend_server.id);
+            self.inner.delete_unit(backend_unit.id);
         } else {
             error!(
-                "{} to stop server {} because the server was {} by this driver",
+                "{} to stop unit {} because the unit was {} by this driver",
                 "Failed".red(),
-                server.name,
+                unit.name,
                 "never started".red()
             );
         }
     }
 }
 
-pub struct PterodactylNode {
+pub struct PterodactylCloudlet {
     /* Cloud Identification */
     pub cloud_identifier: String,
 
-    /* Informations about the node */
+    /* Informations about the cloudlet */
     pub backend: UnsafeCell<Option<Rc<Backend>>>,
     pub id: u32,
     pub name: String,
@@ -275,10 +275,10 @@ pub struct PterodactylNode {
 
     /* Dynamic Resources */
     pub allocations: RwLock<Vec<BAllocation>>,
-    pub servers: RwLock<Vec<PanelServer>>,
+    pub units: RwLock<Vec<PanelUnit>>,
 }
 
-impl PterodactylNode {
+impl PterodactylCloudlet {
     fn get_allocations(&self) -> RwLockReadGuard<Vec<BAllocation>> {
         // Safe as we are only run on the same thread
         self.allocations.read().unwrap()
@@ -287,13 +287,13 @@ impl PterodactylNode {
         // Safe as we are only run on the same thread
         self.allocations.write().unwrap()
     }
-    fn get_servers(&self) -> RwLockReadGuard<Vec<PanelServer>> {
+    fn get_units(&self) -> RwLockReadGuard<Vec<PanelUnit>> {
         // Safe as we are only run on the same thread
-        self.servers.read().unwrap()
+        self.units.read().unwrap()
     }
-    fn get_servers_mut(&self) -> RwLockWriteGuard<Vec<PanelServer>> {
+    fn get_units_mut(&self) -> RwLockWriteGuard<Vec<PanelUnit>> {
         // Safe as we are only run on the same thread
-        self.servers.write().unwrap()
+        self.units.write().unwrap()
     }
 
     fn find_allocation(&self, address: &Address) -> Option<BAllocation> {
@@ -302,13 +302,13 @@ impl PterodactylNode {
             .find(|allocation| allocation.ip == address.ip && allocation.port == address.port)
             .cloned()
     }
-    fn find_server(&self, name: &str) -> Option<PanelServer> {
-        self.get_servers()
+    fn find_unit(&self, name: &str) -> Option<PanelUnit> {
+        self.get_units()
             .iter()
-            .find(|server| server.name.name == name)
+            .find(|unit| unit.name.name == name)
             .cloned()
     }
-    fn delete_server(&self, id: u32) {
-        self.get_servers_mut().retain(|server| server.id != id);
+    fn delete_unit(&self, id: u32) {
+        self.get_units_mut().retain(|unit| unit.id != id);
     }
 }

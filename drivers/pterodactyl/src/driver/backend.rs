@@ -16,14 +16,14 @@ use user::BUser;
 use crate::{
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
-    exports::node::driver::bridge::Server,
-    node::driver::http::{send_http_request, Header, Method, Response},
+    exports::cloudlet::driver::bridge::Unit,
+    cloudlet::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
 
 use super::{
-    node::server::{PanelServer, ServerName},
-    PterodactylNodeWrapper,
+    cloudlet::unit::{PanelUnit, UnitName},
+    PterodactylCloudletWrapper,
 };
 
 pub mod allocation;
@@ -40,7 +40,7 @@ const CLIENT_ENDPOINT: &str = "api/client";
 
 /* Variables */
 const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
-const SERVER_TOKEN: &str = "SERVER_TOKEN";
+const UNIT_TOKEN: &str = "UNIT_TOKEN";
 
 #[derive(Deserialize, Serialize)]
 pub struct ResolvedValues {
@@ -184,10 +184,10 @@ impl Backend {
 
     pub fn update_settings(
         &self,
-        node: &PterodactylNodeWrapper,
+        node: &PterodactylCloudletWrapper,
         primary_allocation: u32,
         backend_server: &BServer,
-        server: &Server,
+        server: &Unit,
     ) {
         // Update the server token and controller address
         self.update_variable(
@@ -195,7 +195,7 @@ impl Backend {
             CONTROLLER_ADDRESS,
             &node.inner.controller.address,
         );
-        self.update_variable(&backend_server.identifier, SERVER_TOKEN, &server.auth.token);
+        self.update_variable(&backend_server.identifier, UNIT_TOKEN, &server.auth.token);
         self.update_build_configuration(
             backend_server.id,
             BUpdateBuild {
@@ -246,11 +246,11 @@ impl Backend {
         self.change_power_state(identifier, "start")
     }
 
-    pub fn restart_server(&self, identifier: &PanelServer) -> bool {
+    pub fn restart_server(&self, identifier: &PanelUnit) -> bool {
         self.change_power_state(&identifier.identifier, "restart")
     }
 
-    pub fn stop_server(&self, server: &PanelServer) -> bool {
+    pub fn stop_server(&self, server: &PanelUnit) -> bool {
         self.change_power_state(&server.identifier, "stop")
     }
 
@@ -275,16 +275,16 @@ impl Backend {
 
     pub fn create_server(
         &self,
-        name: &ServerName,
-        server: &Server,
-        node: &PterodactylNodeWrapper,
+        name: &UnitName,
+        server: &Unit,
+        node: &PterodactylCloudletWrapper,
         allocations: &[BAllocation],
         egg: BServerEgg,
         features: BServerFeatureLimits,
     ) -> Option<BServer> {
         let mut environment = server
             .allocation
-            .deployment
+            .spec
             .environment
             .iter()
             .map(|value| (value.key.clone(), value.value.clone()))
@@ -295,14 +295,14 @@ impl Backend {
             CONTROLLER_ADDRESS.to_string(),
             node.inner.controller.address.clone(),
         );
-        environment.insert(SERVER_TOKEN.to_string(), server.auth.token.clone());
+        environment.insert(UNIT_TOKEN.to_string(), server.auth.token.clone());
 
         let backend_server = BCServer {
             name: name.generate(),
             node: node.inner.id,
             user: self.resolved.as_ref().unwrap().user,
             egg: egg.id,
-            docker_image: server.allocation.deployment.image.clone(),
+            docker_image: server.allocation.spec.image.clone(),
             startup: egg.startup.to_owned(),
             environment,
             limits: server.allocation.resources.into(),
@@ -318,7 +318,7 @@ impl Backend {
         .map(|data| data.attributes)
     }
 
-    pub fn get_server_by_name(&self, name: &ServerName) -> Option<BServer> {
+    pub fn get_server_by_name(&self, name: &UnitName) -> Option<BServer> {
         self.api_find_on_pages::<BServer>(
             Method::Get,
             &Endpoint::Application,

@@ -29,25 +29,25 @@ impl Interceptor for AdminInterceptor {
 }
 
 #[derive(Clone)]
-pub struct ServerInterceptor {
+pub struct UnitInterceptor {
     pub controller: Arc<Controller>,
 }
 
-impl Interceptor for ServerInterceptor {
+impl Interceptor for UnitInterceptor {
     fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
         let metadata = request.metadata();
         let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
         match token {
             Some(token) => {
-                let server = self.controller.get_auth().get_server(token);
-                if let Some(server) = server {
-                    request.extensions_mut().insert(server);
+                let unit = self.controller.get_auth().get_unit(token);
+                if let Some(unit) = unit {
+                    request.extensions_mut().insert(unit);
                     Ok(request)
                 } else {
-                    Err(Status::unauthenticated("Invalid server token"))
+                    Err(Status::unauthenticated("Invalid unit token"))
                 }
             }
-            None => Err(Status::unauthenticated("No server token provided")),
+            None => Err(Status::unauthenticated("No unit token provided")),
         }
     }
 }

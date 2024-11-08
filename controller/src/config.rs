@@ -15,7 +15,7 @@ const DEFAULT_EXPECTED_STARTUP_TIME: Duration = Duration::from_secs(130);
 const DEFAULT_EXPECTED_RESTART_TIME: Duration = Duration::from_secs(120);
 const DEFAULT_HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(15);
 const DEFAULT_TRANSFER_TIMEOUT: Duration = Duration::from_secs(10);
-const DEFAULT_EMPTY_SERVER_TIMEOUT: Duration = Duration::from_secs(120);
+const DEFAULT_EMPTY_UNIT_TIMEOUT: Duration = Duration::from_secs(120);
 
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 12892;
@@ -31,7 +31,7 @@ pub struct Timings {
     pub restart: Option<Duration>,
     pub healthbeat: Option<Duration>,
     pub transfer: Option<Duration>,
-    pub empty_server: Option<Duration>,
+    pub empty_unit: Option<Duration>,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -89,8 +89,8 @@ impl Config {
             config.timings.transfer = Some(DEFAULT_TRANSFER_TIMEOUT);
             save = true;
         }
-        if config.timings.empty_server.is_none() {
-            config.timings.empty_server = Some(DEFAULT_EMPTY_SERVER_TIMEOUT);
+        if config.timings.empty_unit.is_none() {
+            config.timings.empty_unit = Some(DEFAULT_EMPTY_UNIT_TIMEOUT);
             save = true;
         }
         if save {

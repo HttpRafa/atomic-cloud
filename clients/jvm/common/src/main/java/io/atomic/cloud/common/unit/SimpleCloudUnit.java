@@ -1,12 +1,12 @@
-package io.atomic.cloud.common.server;
+package io.atomic.cloud.common.unit;
 
-import io.atomic.cloud.api.server.CloudServer;
+import io.atomic.cloud.api.unit.CloudUnit;
 import io.atomic.cloud.common.connection.CloudConnection;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class SimpleCloudServer implements CloudServer {
+public class SimpleCloudUnit implements CloudUnit {
 
     protected final CloudConnection connection;
 

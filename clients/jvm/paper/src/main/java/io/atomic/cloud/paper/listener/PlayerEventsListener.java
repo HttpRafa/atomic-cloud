@@ -1,6 +1,6 @@
 package io.atomic.cloud.paper.listener;
 
-import io.atomic.cloud.grpc.server.UserManagement;
+import io.atomic.cloud.grpc.unit.UserManagement;
 import io.atomic.cloud.paper.CloudPlugin;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

@@ -1,7 +1,7 @@
 package io.atomic.cloud.api;
 
 import io.atomic.cloud.api.channel.Channels;
-import io.atomic.cloud.api.server.CloudServer;
+import io.atomic.cloud.api.unit.CloudUnit;
 
 public class Cloud {
 
@@ -20,7 +20,7 @@ public class Cloud {
      * Get the current server instance
      * @return the current server instance
      */
-    public static CloudServer self() {
+    public static CloudUnit self() {
         return Cloud.INSTANCE.self();
     }
 
@@ -45,7 +45,7 @@ public class Cloud {
          * Get the current server instance
          * @return the current server instance
          */
-        CloudServer self();
+        CloudUnit self();
 
         /**
          * The channels API

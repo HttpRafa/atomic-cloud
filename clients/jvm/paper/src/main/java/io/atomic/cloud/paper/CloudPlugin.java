@@ -4,7 +4,7 @@ import io.atomic.cloud.api.Cloud;
 import io.atomic.cloud.common.channel.ChannelManager;
 import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.common.health.Heart;
-import io.atomic.cloud.common.server.SimpleCloudServer;
+import io.atomic.cloud.common.unit.SimpleCloudUnit;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import io.atomic.cloud.paper.transfer.TransferHandler;
@@ -29,7 +29,7 @@ public class CloudPlugin extends JavaPlugin {
     private final ChannelManager channels = new ChannelManager();
     private Heart heart;
     private CloudConnection connection;
-    private SimpleCloudServer self;
+    private SimpleCloudUnit self;
 
     private TransferHandler transferHandler;
 
@@ -38,7 +38,7 @@ public class CloudPlugin extends JavaPlugin {
         Cloud.setup(new CloudImpl());
 
         this.connection = CloudConnection.createFromEnv();
-        this.self = new SimpleCloudServer(this.connection);
+        this.self = new SimpleCloudUnit(this.connection);
         this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
         this.transferHandler = new TransferHandler(this.connection);
 

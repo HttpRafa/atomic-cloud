@@ -4,7 +4,10 @@ import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.grpc.server.*;
+import io.atomic.cloud.grpc.unit.ChannelManagement;
+import io.atomic.cloud.grpc.unit.TransferManagement;
+import io.atomic.cloud.grpc.unit.UnitServiceGrpc;
+import io.atomic.cloud.grpc.unit.UserManagement;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -26,7 +29,7 @@ public class CloudConnection {
     private final URL address;
     private final String token;
 
-    private ServerServiceGrpc.ServerServiceStub client;
+    private UnitServiceGrpc.UnitServiceStub client;
 
     // Cache values
     private String controllerVersion;
@@ -39,7 +42,7 @@ public class CloudConnection {
             channel.usePlaintext();
         }
 
-        this.client = ServerServiceGrpc.newStub(channel.build()).withCallCredentials(new CallCredentials() {
+        this.client = UnitServiceGrpc.newStub(channel.build()).withCallCredentials(new CallCredentials() {
             @Override
             public void applyRequestMetadata(RequestInfo requestInfo, Executor executor, MetadataApplier applier) {
                 var metadata = new Metadata();
@@ -141,11 +144,11 @@ public class CloudConnection {
     @Contract(" -> new")
     public static @NotNull CloudConnection createFromEnv() {
         var address = System.getenv("CONTROLLER_ADDRESS");
-        var token = System.getenv("SERVER_TOKEN");
+        var token = System.getenv("UNIT_TOKEN");
         if (address == null) {
             throw new IllegalStateException("CONTROLLER_ADDRESS not set");
         } else if (token == null) {
-            throw new IllegalStateException("SERVER_TOKEN not set");
+            throw new IllegalStateException("UNIT_TOKEN not set");
         }
 
         URL url;

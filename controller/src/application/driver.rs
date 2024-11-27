@@ -5,8 +5,8 @@ use std::{net::SocketAddr, sync::Arc};
 use tonic::async_trait;
 
 use crate::application::cloudlet::Cloudlet;
-use crate::application::unit::UnitHandle;
 use crate::application::unit::StartRequestHandle;
+use crate::application::unit::UnitHandle;
 
 #[cfg(feature = "wasm-drivers")]
 use crate::application::driver::wasm::WasmDriver;

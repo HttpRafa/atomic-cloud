@@ -1,11 +1,11 @@
 use colored::Colorize;
-use unit::{PanelUnit, UnitName};
 use std::{
     cell::UnsafeCell,
     rc::Rc,
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec,
 };
+use unit::{PanelUnit, UnitName};
 
 use crate::{
     error,
@@ -206,11 +206,9 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                     unit.name.blue(),
                     "created".green()
                 );
-                self.inner.get_units_mut().push(PanelUnit::new(
-                    unit.id,
-                    unit.identifier,
-                    name,
-                ));
+                self.inner
+                    .get_units_mut()
+                    .push(PanelUnit::new(unit.id, unit.identifier, name));
             }
         }
     }

@@ -1,12 +1,13 @@
 use backend::Backend;
-use colored::Colorize;
 use cloudlet::PterodactylCloudlet;
+use colored::Colorize;
 use std::cell::UnsafeCell;
 use std::rc::Rc;
 use std::sync::RwLock;
 
 use crate::exports::cloudlet::driver::bridge::{
-    Capabilities, GenericCloudlet, GuestGenericDriver, GuestGenericCloudlet, Information, RemoteController,
+    Capabilities, GenericCloudlet, GuestGenericCloudlet, GuestGenericDriver, Information,
+    RemoteController,
 };
 use crate::{error, info};
 
@@ -79,7 +80,10 @@ impl GuestGenericDriver for Pterodactyl {
                 );
                 unsafe { *wrapper.inner.backend.get() = Some(self.get_backend().clone()) }
                 // Add cloudlet to cloudlets list
-                let mut cloudlets = self.cloudlets.write().expect("Failed to get lock on cloudlets");
+                let mut cloudlets = self
+                    .cloudlets
+                    .write()
+                    .expect("Failed to get lock on cloudlets");
                 cloudlets.push(wrapper.inner.clone());
                 info!(
                     "Cloudlet {}[{}] was {}",

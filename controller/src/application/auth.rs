@@ -1,16 +1,16 @@
 use std::{
     collections::HashMap,
     fs,
-    path::Path,
     sync::{Arc, RwLock},
 };
 
 use colored::Colorize;
+use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use log::{error, info, warn};
 use stored::StoredUser;
 use uuid::Uuid;
 
-use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
+use crate::storage::Storage;
 
 use super::unit::{UnitHandle, WeakUnitHandle};
 
@@ -198,7 +198,7 @@ impl Auth {
 }
 
 mod stored {
-    use crate::config::{LoadFromTomlFile, SaveToTomlFile};
+    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize)]

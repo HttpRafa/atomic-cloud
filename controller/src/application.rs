@@ -1,27 +1,27 @@
 use anyhow::Error;
 use auth::Auth;
+use cloudlet::Cloudlets;
 use colored::Colorize;
+use deployment::Deployments;
 use driver::Drivers;
 use event::EventBus;
-use deployment::Deployments;
 use log::info;
-use cloudlet::Cloudlets;
-use unit::Units;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::runtime::{Builder, Runtime};
+use unit::Units;
 use user::Users;
 
 use crate::config::Config;
 use crate::network::NetworkStack;
 
 pub mod auth;
+pub mod cloudlet;
+pub mod deployment;
 pub mod driver;
 pub mod event;
-pub mod deployment;
-pub mod cloudlet;
 pub mod unit;
 pub mod user;
 
@@ -132,19 +132,27 @@ impl Controller {
     }
 
     pub fn lock_cloudlets(&self) -> RwLockReadGuard<Cloudlets> {
-        self.cloudlets.read().expect("Failed to get lock to cloudlets")
+        self.cloudlets
+            .read()
+            .expect("Failed to get lock to cloudlets")
     }
 
     pub fn lock_deployments(&self) -> RwLockReadGuard<Deployments> {
-        self.deployments.read().expect("Failed to get lock to deployments")
+        self.deployments
+            .read()
+            .expect("Failed to get lock to deployments")
     }
 
     pub fn lock_cloudlets_mut(&self) -> RwLockWriteGuard<Cloudlets> {
-        self.cloudlets.write().expect("Failed to get lock to cloudlets")
+        self.cloudlets
+            .write()
+            .expect("Failed to get lock to cloudlets")
     }
 
     pub fn lock_deployments_mut(&self) -> RwLockWriteGuard<Deployments> {
-        self.deployments.write().expect("Failed to get lock to deployments")
+        self.deployments
+            .write()
+            .expect("Failed to get lock to deployments")
     }
 
     pub fn get_auth(&self) -> &Auth {

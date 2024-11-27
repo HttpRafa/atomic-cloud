@@ -7,17 +7,18 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
+use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use stored::StoredCloudlet;
 use url::Url;
 
 use super::{
-    driver::{DriverHandle, DriverCloudletHandle, Drivers, GenericDriver},
-    unit::{Spec, Resources, StartRequestHandle},
+    driver::{DriverCloudletHandle, DriverHandle, Drivers, GenericDriver},
+    unit::{Resources, Spec, StartRequestHandle},
     CreationResult, WeakControllerHandle,
 };
-use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
+use crate::storage::Storage;
 
 pub type CloudletHandle = Arc<Cloudlet>;
 pub type WeakCloudletHandle = Weak<Cloudlet>;
@@ -37,19 +38,24 @@ impl Cloudlets {
     }
 
     /// This will try to load all the cloudletss stored as toml files from the cloudlets directory
-    /// 
+    ///
     /// Any compilcations will be logged and the cloudlet will be skipped
     pub fn load_all(controller: WeakControllerHandle, drivers: &Drivers) -> Self {
         info!("Loading cloudlets...");
 
+        let mut cloudlets = Self::new(controller);
         let cloudlets_directory = Storage::get_cloudlets_folder();
         if !cloudlets_directory.exists() {
             if let Err(error) = fs::create_dir_all(&cloudlets_directory) {
-                warn!("{} to create cloudlets directory: {}", "Failed".red(), &error);
+                warn!(
+                    "{} to create cloudlets directory: {}",
+                    "Failed".red(),
+                    &error
+                );
+                return cloudlets;
             }
         }
 
-        let mut cloudlets = Self::new(controller);
         let entries = match fs::read_dir(&cloudlets_directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -107,7 +113,10 @@ impl Cloudlets {
             }
         }
 
-        info!("Loaded {}", format!("{} cloudlet(s)", cloudlets.cloudlets.len()).blue());
+        info!(
+            "Loaded {}",
+            format!("{} cloudlet(s)", cloudlets.cloudlets.len()).blue()
+        );
         cloudlets
     }
 
@@ -124,9 +133,13 @@ impl Cloudlets {
     }
 
     /// This can be used to retire or activate a cloudlet
-    /// 
+    ///
     /// Retiring a cloudlet will remove it from the deployments that use it and stop all units on it
-    pub fn set_cloudlet_status(&mut self, cloudlet: &CloudletHandle, status: LifecycleStatus) -> Result<()> {
+    pub fn set_cloudlet_status(
+        &mut self,
+        cloudlet: &CloudletHandle,
+        status: LifecycleStatus,
+    ) -> Result<()> {
         match status {
             LifecycleStatus::Retired => {
                 self.retire_cloudlet(cloudlet);
@@ -149,7 +162,9 @@ impl Cloudlets {
             .upgrade()
             .expect("The controller is dead while still running code that requires it");
         {
-            controller.lock_deployments().search_and_remove_cloudlet(cloudlet);
+            controller
+                .lock_deployments()
+                .search_and_remove_cloudlet(cloudlet);
             controller.get_units().stop_all_on_cloudlet(cloudlet);
         }
     }
@@ -158,7 +173,12 @@ impl Cloudlets {
     fn activate_cloudlet(&mut self, _cloudlet: &CloudletHandle) {}
 
     pub fn delete_cloudlet(&mut self, cloudlet: &CloudletHandle) -> Result<()> {
-        if *cloudlet.status.read().expect("Failed to lock status of cloudlet") != LifecycleStatus::Retired {
+        if *cloudlet
+            .status
+            .read()
+            .expect("Failed to lock status of cloudlet")
+            != LifecycleStatus::Retired
+        {
             return Err(anyhow!("Cloudlet is not retired"));
         }
         self.retire_cloudlet(cloudlet); // Just to be sure
@@ -199,8 +219,7 @@ impl Cloudlets {
 
         match self.add_cloudlet(cloudlet) {
             Ok(_) => {
-                stored_cloudlet
-                    .save_to_file(&Storage::get_cloudlet_file(name))?;
+                stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(name))?;
                 info!("Created cloudlet {}", name.blue());
                 Ok(CreationResult::Created)
             }
@@ -211,7 +230,8 @@ impl Cloudlets {
     fn add_cloudlet(&mut self, mut cloudlet: Cloudlet) -> Result<()> {
         match cloudlet.init() {
             Ok(_) => {
-                self.cloudlets.insert(cloudlet.name.clone(), Arc::new(cloudlet));
+                self.cloudlets
+                    .insert(cloudlet.name.clone(), Arc::new(cloudlet));
                 Ok(())
             }
             Err(error) => Err(error),
@@ -406,7 +426,7 @@ pub struct RemoteController {
 
 mod stored {
     use super::{Capabilities, LifecycleStatus, RemoteController};
-    use crate::config::{LoadFromTomlFile, SaveToTomlFile};
+    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize)]

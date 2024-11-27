@@ -14,10 +14,10 @@ use url::Url;
 use user::BUser;
 
 use crate::{
+    cloudlet::driver::http::{send_http_request, Header, Method, Response},
     config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
     exports::cloudlet::driver::bridge::Unit,
-    cloudlet::driver::http::{send_http_request, Header, Method, Response},
     warn,
 };
 

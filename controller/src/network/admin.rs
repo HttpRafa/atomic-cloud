@@ -5,9 +5,9 @@ use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
 use crate::application::{
-    deployment::{ScalingPolicy, StartConstraints},
     cloudlet::{Capabilities, LifecycleStatus, RemoteController},
-    unit::{Spec, FallbackPolicy, KeyValue, Resources, Retention},
+    deployment::{ScalingPolicy, StartConstraints},
+    unit::{FallbackPolicy, KeyValue, Resources, Retention, Spec},
     user::transfer::TransferTarget,
     ControllerHandle, CreationResult,
 };
@@ -138,7 +138,9 @@ impl AdminService for AdminServiceImpl {
         match cloudlets.create_cloudlet(name, driver, capabilities, controller) {
             Ok(result) => match result {
                 CreationResult::Created => Ok(Response::new(())),
-                CreationResult::AlreadyExists => Err(Status::already_exists("Cloudlet already exists")),
+                CreationResult::AlreadyExists => {
+                    Err(Status::already_exists("Cloudlet already exists"))
+                }
                 CreationResult::Denied(error) => {
                     Err(Status::failed_precondition(error.to_string()))
                 }
@@ -176,9 +178,9 @@ impl AdminService for AdminServiceImpl {
             cloudlets.push(cloudlet.name.clone());
         }
 
-        Ok(Response::new(proto::cloudlet_management::CloudletListResponse {
-            cloudlets,
-        }))
+        Ok(Response::new(
+            proto::cloudlet_management::CloudletListResponse { cloudlets },
+        ))
     }
 
     async fn create_deployment(
@@ -312,54 +314,58 @@ impl AdminService for AdminServiceImpl {
             .filter_map(|cloudlet| cloudlet.upgrade().map(|cloudlet| cloudlet.name.clone()))
             .collect();
 
-        Ok(Response::new(proto::deployment_management::DeploymentValue {
-            name: deployment.name.to_owned(),
-            cloudlets,
-            constraints: Some(proto::deployment_management::deployment_value::Constraints {
-                minimum: deployment.constraints.minimum,
-                maximum: deployment.constraints.maximum,
-                priority: deployment.constraints.priority,
-            }),
-            scaling: Some(proto::deployment_management::deployment_value::Scaling {
-                max_players: deployment.scaling.max_players,
-                start_threshold: deployment.scaling.start_threshold,
-                stop_empty_units: deployment.scaling.stop_empty_units,
-            }),
-            resources: Some(proto::unit_management::UnitResources {
-                memory: deployment.resources.memory,
-                swap: deployment.resources.swap,
-                cpu: deployment.resources.cpu,
-                io: deployment.resources.io,
-                disk: deployment.resources.disk,
-                addresses: deployment.resources.addresses,
-            }),
-            spec: Some(proto::unit_management::UnitSpec {
-                image: deployment.spec.image.clone(),
-                settings: deployment
-                    .spec
-                    .settings
-                    .iter()
-                    .map(|setting| proto::common::KeyValue {
-                        key: setting.key.clone(),
-                        value: setting.value.clone(),
-                    })
-                    .collect(),
-                environment: deployment
-                    .spec
-                    .environment
-                    .iter()
-                    .map(|setting| proto::common::KeyValue {
-                        key: setting.key.clone(),
-                        value: setting.value.clone(),
-                    })
-                    .collect(),
-                disk_retention: Some(deployment.spec.disk_retention.clone() as i32),
-                fallback: Some(proto::unit_management::unit_spec::Fallback {
-                    enabled: deployment.spec.fallback.enabled,
-                    priority: deployment.spec.fallback.priority,
+        Ok(Response::new(
+            proto::deployment_management::DeploymentValue {
+                name: deployment.name.to_owned(),
+                cloudlets,
+                constraints: Some(
+                    proto::deployment_management::deployment_value::Constraints {
+                        minimum: deployment.constraints.minimum,
+                        maximum: deployment.constraints.maximum,
+                        priority: deployment.constraints.priority,
+                    },
+                ),
+                scaling: Some(proto::deployment_management::deployment_value::Scaling {
+                    max_players: deployment.scaling.max_players,
+                    start_threshold: deployment.scaling.start_threshold,
+                    stop_empty_units: deployment.scaling.stop_empty_units,
                 }),
-            }),
-        }))
+                resources: Some(proto::unit_management::UnitResources {
+                    memory: deployment.resources.memory,
+                    swap: deployment.resources.swap,
+                    cpu: deployment.resources.cpu,
+                    io: deployment.resources.io,
+                    disk: deployment.resources.disk,
+                    addresses: deployment.resources.addresses,
+                }),
+                spec: Some(proto::unit_management::UnitSpec {
+                    image: deployment.spec.image.clone(),
+                    settings: deployment
+                        .spec
+                        .settings
+                        .iter()
+                        .map(|setting| proto::common::KeyValue {
+                            key: setting.key.clone(),
+                            value: setting.value.clone(),
+                        })
+                        .collect(),
+                    environment: deployment
+                        .spec
+                        .environment
+                        .iter()
+                        .map(|setting| proto::common::KeyValue {
+                            key: setting.key.clone(),
+                            value: setting.value.clone(),
+                        })
+                        .collect(),
+                    disk_retention: Some(deployment.spec.disk_retention.clone() as i32),
+                    fallback: Some(proto::unit_management::unit_spec::Fallback {
+                        enabled: deployment.spec.fallback.enabled,
+                        priority: deployment.spec.fallback.priority,
+                    }),
+                }),
+            },
+        ))
     }
 
     async fn get_deployments(
@@ -372,9 +378,9 @@ impl AdminService for AdminServiceImpl {
             deployments.push(name.clone());
         }
 
-        Ok(Response::new(proto::deployment_management::DeploymentListResponse {
-            deployments,
-        }))
+        Ok(Response::new(
+            proto::deployment_management::DeploymentListResponse { deployments },
+        ))
     }
 
     async fn get_unit(
@@ -473,8 +479,7 @@ impl AdminService for AdminServiceImpl {
             .get_units()
             .values()
             .filter_map(|unit| {
-                unit
-                    .cloudlet
+                unit.cloudlet
                     .upgrade()
                     .map(|cloudlet| proto::unit_management::SimpleUnitValue {
                         name: unit.name.to_string(),
@@ -488,9 +493,9 @@ impl AdminService for AdminServiceImpl {
             })
             .collect();
 
-        Ok(Response::new(
-            proto::unit_management::UnitListResponse { units },
-        ))
+        Ok(Response::new(proto::unit_management::UnitListResponse {
+            units,
+        }))
     }
 
     async fn transfer_user(

@@ -69,9 +69,7 @@ impl UnitService for UnitServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
-        self.controller
-            .get_units()
-            .mark_not_ready(&requesting_unit);
+        self.controller.get_units().mark_not_ready(&requesting_unit);
         Ok(Response::new(()))
     }
 
@@ -84,9 +82,7 @@ impl UnitService for UnitServiceImpl {
             .upgrade()
             .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
 
-        self.controller
-            .get_units()
-            .mark_running(&requesting_unit);
+        self.controller.get_units().mark_running(&requesting_unit);
         Ok(Response::new(()))
     }
 
@@ -208,14 +204,14 @@ impl UnitService for UnitServiceImpl {
                 match proto::transfer_management::transfer_target_value::TargetType::try_from(
                     target.target_type,
                 ) {
-                    Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
-                        TransferTarget::Deployment(
-                            self.controller
-                                .lock_deployments()
-                                .find_by_name(&target.target)
-                                .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
-                        )
-                    }
+                    Ok(
+                        proto::transfer_management::transfer_target_value::TargetType::Deployment,
+                    ) => TransferTarget::Deployment(
+                        self.controller
+                            .lock_deployments()
+                            .find_by_name(&target.target)
+                            .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
+                    ),
                     _ => TransferTarget::Unit(
                         self.controller
                             .get_units()

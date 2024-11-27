@@ -1,11 +1,8 @@
-use std::fs;
 use std::net::SocketAddr;
-use std::path::Path;
 use std::time::Duration;
 
-use anyhow::Result;
+use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use log::{error, warn};
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -94,8 +91,7 @@ impl Config {
             save = true;
         }
         if save {
-            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file())
-            {
+            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file()) {
                 error!("Failed to save generated configuration to file: {}", &error);
             }
         }
@@ -118,21 +114,3 @@ impl Config {
 
 impl SaveToTomlFile for Config {}
 impl LoadFromTomlFile for Config {}
-
-pub trait SaveToTomlFile: Serialize {
-    fn save_to_file(&self, path: &Path) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, toml::to_string(self)?)?;
-        Ok(())
-    }
-}
-
-pub trait LoadFromTomlFile: DeserializeOwned {
-    fn load_from_file(path: &Path) -> Result<Self> {
-        let data = fs::read_to_string(path)?;
-        let config = toml::from_str(&data)?;
-        Ok(config)
-    }
-}

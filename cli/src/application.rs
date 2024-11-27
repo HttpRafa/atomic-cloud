@@ -13,7 +13,5 @@ impl Cli {
         }
     }
 
-    pub async fn start(&mut self) {
-        
-    }
+    pub async fn start(&mut self) {}
 }

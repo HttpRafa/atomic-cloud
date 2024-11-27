@@ -15,8 +15,8 @@ use unit::{proto::unit_service_server::UnitServiceServer, UnitServiceImpl};
 
 mod admin;
 mod auth;
-pub mod unit;
 mod stream;
+pub mod unit;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,

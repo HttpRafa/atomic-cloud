@@ -8,7 +8,7 @@ edition = "2021"
 common = { path = "../../common" }
 
 # Wasm plugin
-wit-bindgen = "0.34.0"
+wit-bindgen = "0.35.0"
 
 # Error handling
 anyhow = "1.0.93"
@@ -17,12 +17,12 @@ anyhow = "1.0.93"
 colored = "2.1.0"
 
 # Configuration
-serde = { version = "1.0.214", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 toml = "0.8.19"
 
 # Pelican API
-url = { version = "2.5.3", features = ["serde"] }
-serde_json = "1.0.132"
+url = { version = "2.5.4", features = ["serde"] }
+serde_json = "1.0.133"
 
 [build-dependencies]
 toml = "0.8.19"

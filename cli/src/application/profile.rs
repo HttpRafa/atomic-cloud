@@ -3,8 +3,9 @@ use std::{
     fs,
 };
 
+use anyhow::{anyhow, Result};
 use colored::Colorize;
-use common::config::LoadFromTomlFile;
+use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use log::{info, warn};
 use stored::StoredProfile;
 use url::Url;
@@ -97,24 +98,81 @@ impl Profiles {
         profiles
     }
 
+    pub fn create_profile(&mut self, profile: &Profile) -> Result<()> {
+        // Check if profile already exists
+        if self.profiles.iter().any(|p| p.id == profile.id) {
+            return Err(anyhow!("Profile '{}' already exists", profile.name));
+        }
+
+        let profile = profile.clone();
+        profile.mark_dirty()?;
+        self.add_profile(profile);
+        Ok(())
+    }
+
     fn add_profile(&mut self, profile: Profile) {
         self.profiles.push(profile);
     }
 }
 
+#[derive(Clone)]
 pub struct Profile {
     pub id: String,
     pub name: String,
+    pub authorization: String,
     pub url: Url,
 }
 
 impl Profile {
+    pub fn new(name: &str, authorization: &str, url: Url) -> Self {
+        Self {
+            id: Self::compute_id(name),
+            name: name.to_string(),
+            authorization: authorization.to_string(),
+            url,
+        }
+    }
+
     fn from(id: &str, profile: &StoredProfile) -> Self {
         Self {
             id: id.to_string(),
             name: profile.name.clone(),
+            authorization: profile.authorization.clone(),
             url: profile.url.clone(),
         }
+    }
+
+    fn compute_id(name: &str) -> String {
+        name.chars()
+            .map(|c| match c {
+                '/' | ':' | '|' => '-',
+                '<' | '>' | '"' | '\\' | '?' | '*' => '.',
+                ' ' => '_',
+                _ => c,
+            })
+            .collect::<String>()
+            .to_lowercase()
+    }
+
+    pub fn mark_dirty(&self) -> Result<()> {
+        self.save_to_file()
+    }
+
+    fn _delete_file(&self) -> Result<()> {
+        let file_path = Storage::get_profile_file(&self.id);
+        if file_path.exists() {
+            fs::remove_file(file_path)?;
+        }
+        Ok(())
+    }
+
+    fn save_to_file(&self) -> Result<()> {
+        let stored_profile = StoredProfile {
+            name: self.name.clone(),
+            authorization: self.authorization.clone(),
+            url: self.url.clone(),
+        };
+        stored_profile.save_to_file(&Storage::get_profile_file(&self.id))
     }
 }
 
@@ -133,6 +191,7 @@ mod stored {
     pub struct StoredProfile {
         /* Settings */
         pub name: String,
+        pub authorization: String,
 
         /* Controller */
         pub url: Url,

@@ -1,16 +1,19 @@
-use std::{
-    fmt::{Display, Formatter},
-    process::exit,
+use std::fmt::{Display, Formatter};
+
+use inquire::{
+    validator::{Validation, ValueRequiredValidator},
+    Password, Select, Text,
 };
+use log::error;
+use url::Url;
 
-use inquire::Select;
-use log::{error, info};
+use super::profile::{Profile, Profiles};
 
-use super::profile::Profiles;
-
-enum Selection<T> {
+pub enum Selection<T> {
     Some(T),
     Create,
+    Delete,
+    None,
 }
 
 impl<T: Display> Display for Selection<T> {
@@ -18,6 +21,8 @@ impl<T: Display> Display for Selection<T> {
         match self {
             Selection::Some(value) => write!(f, "{}", value),
             Selection::Create => write!(f, "Create new"),
+            Selection::Delete => write!(f, "Delete one"),
+            Selection::None => write!(f, ""),
         }
     }
 }
@@ -25,31 +30,77 @@ impl<T: Display> Display for Selection<T> {
 pub struct Prompt;
 
 impl Prompt {
-    pub fn select_profile(profiles: &Profiles) {
+    /* Profiles */
+    pub fn select_profile(profiles: &Profiles) -> Selection<&Profile> {
         let mut options = profiles
             .profiles
             .iter()
             .map(Selection::Some)
             .collect::<Vec<_>>();
         options.push(Selection::Create);
+        options.push(Selection::Delete);
         match Select::new(
             "What profile/controller to you want to interact with?",
             options,
         )
         .prompt()
         {
-            Ok(selection) => match selection {
-                Selection::Some(profile) => {
-                    info!("Selected profile '{}'", profile);
-                }
-                Selection::Create => {
-                    info!("Creating new profile");
-                }
-            },
+            Ok(selection) => selection,
             Err(error) => {
-                error!("The CLI requires a profile to be selected | {}", error);
-                exit(1);
+                error!(
+                    "Ops. Something went wrong while evaluating your input | {}",
+                    error
+                );
+                Selection::None
             }
         }
+    }
+    pub fn collect_profile_information() -> Option<Profile> {
+        let name = match Text::new("How do you want to name this profile?")
+            .with_validator(ValueRequiredValidator::default())
+            .prompt()
+        {
+            Ok(name) => name,
+            Err(error) => {
+                error!(
+                    "Ops. Something went wrong while evaluating your input | {}",
+                    error
+                );
+                return None;
+            }
+        };
+
+        let authorization = match Password::new("What is the authorization token for this profile?")
+            .with_validator(ValueRequiredValidator::default())
+            .prompt()
+        {
+            Ok(authorization) => authorization,
+            Err(error) => {
+                error!(
+                    "Ops. Something went wrong while evaluating your input | {}",
+                    error
+                );
+                return None;
+            }
+        };
+
+        let url = match Text::new("What is the URL for this profile?")
+            .with_validator(|url: &str| match Url::parse(url) {
+                Ok(_) => Ok(Validation::Valid),
+                Err(error) => Ok(Validation::Invalid(error.into())),
+            })
+            .prompt()
+        {
+            Ok(url) => Url::parse(&url).expect("Ops. That was unexpected"),
+            Err(error) => {
+                error!(
+                    "Ops. Something went wrong while evaluating your input | {}",
+                    error
+                );
+                return None;
+            }
+        };
+
+        Some(Profile::new(&name, &authorization, url))
     }
 }

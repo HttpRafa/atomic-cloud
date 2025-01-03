@@ -12,6 +12,7 @@ DRIVER_DIR = $(RUN_DIR)/drivers/wasm
 
 # Arguments
 CONTROLLER_ARGS = "--debug"
+CLI_ARGS = "--debug"
 
 # OS detection
 ifeq ($(OS),Windows_NT)
@@ -50,6 +51,10 @@ run: run-controller
 ## Run controller
 run-controller:
 	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p controller --all-features -- $(CONTROLLER_ARGS)
+
+## Run cli
+run-cli:
+	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p cli --all-features -- $(CLI_ARGS)
 
 ## Build controller target
 build-controller:

@@ -1,4 +1,7 @@
-use std::fs;
+use std::{
+    fmt::{Display, Formatter},
+    fs,
+};
 
 use colored::Colorize;
 use common::config::LoadFromTomlFile;
@@ -83,13 +86,13 @@ impl Profiles {
 
             info!("Loading profile '{}'", id.blue());
             let profile = Profile::from(&id, &profile);
-            
+
             profiles.add_profile(profile);
         }
 
         info!(
             "Loaded {}",
-            format!("{} deployment(s)", profiles.profiles.len()).blue()
+            format!("{} profiles(s)", profiles.profiles.len()).blue()
         );
         profiles
     }
@@ -112,6 +115,12 @@ impl Profile {
             name: profile.name.clone(),
             url: profile.url.clone(),
         }
+    }
+}
+
+impl Display for Profile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 

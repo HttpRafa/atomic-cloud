@@ -3,13 +3,13 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, Weak};
 
 use anyhow::{anyhow, Result};
-use colored::Colorize;
-use exports::cloudlet::driver::bridge;
-use log::{debug, error, info, warn};
 use cloudlet::driver;
 use cloudlet::driver::http::{Header, Method, Response};
 use cloudlet::driver::log::Level;
 use cloudlet_impl::WasmCloudlet;
+use colored::Colorize;
+use exports::cloudlet::driver::bridge;
+use log::{debug, error, info, warn};
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};

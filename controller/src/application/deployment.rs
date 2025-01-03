@@ -10,17 +10,16 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use colored::Colorize;
+use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredDeployment;
 
-use crate::{config::{LoadFromTomlFile, SaveToTomlFile}, storage::Storage};
+use crate::storage::Storage;
 
 use super::{
-    cloudlet::{LifecycleStatus, CloudletHandle, Cloudlets, WeakCloudletHandle},
-    unit::{
-        Spec, DeploymentRef, Resources, UnitHandle, Units, StartRequest, StartRequestHandle,
-    },
+    cloudlet::{CloudletHandle, Cloudlets, LifecycleStatus, WeakCloudletHandle},
+    unit::{DeploymentRef, Resources, Spec, StartRequest, StartRequestHandle, UnitHandle, Units},
     CreationResult, WeakControllerHandle,
 };
 
@@ -44,18 +43,27 @@ impl Deployments {
     pub fn load_all(controller: WeakControllerHandle, cloudlets: &Cloudlets) -> Self {
         info!("Loading deployments...");
 
+        let mut deployments = Self::new(controller);
         let deployments_directory = Storage::get_deployments_folder();
         if !deployments_directory.exists() {
             if let Err(error) = fs::create_dir_all(&deployments_directory) {
-                warn!("{} to create deployments directory: {}", "Failed".red(), &error);
+                warn!(
+                    "{} to create deployments directory: {}",
+                    "Failed".red(),
+                    &error
+                );
+                return deployments;
             }
         }
 
-        let mut deployments = Self::new(controller);
         let entries = match fs::read_dir(&deployments_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("{} to read deployments directory: {}", "Failed".red(), &error);
+                error!(
+                    "{} to read deployments directory: {}",
+                    "Failed".red(),
+                    &error
+                );
                 return deployments;
             }
         };
@@ -127,7 +135,11 @@ impl Deployments {
         self.deployments.get(name).cloned()
     }
 
-    pub fn set_deployment_status(&mut self, deployment: &DeploymentHandle, status: LifecycleStatus) -> Result<()> {
+    pub fn set_deployment_status(
+        &mut self,
+        deployment: &DeploymentHandle,
+        status: LifecycleStatus,
+    ) -> Result<()> {
         match status {
             LifecycleStatus::Retired => {
                 self.retire_deployment(deployment);
@@ -165,7 +177,11 @@ impl Deployments {
     fn activate_deployment(&mut self, _deployment: &DeploymentHandle) {}
 
     pub fn delete_deployment(&mut self, deployment: &DeploymentHandle) -> Result<()> {
-        if *deployment.status.read().expect("Failed to lock status of deployment") != LifecycleStatus::Retired
+        if *deployment
+            .status
+            .read()
+            .expect("Failed to lock status of deployment")
+            != LifecycleStatus::Retired
         {
             return Err(anyhow!("Deployment is not retired"));
         }
@@ -203,7 +219,10 @@ impl Deployments {
             return Ok(CreationResult::AlreadyExists);
         }
 
-        let cloudlets: Vec<String> = cloudlet_handles.iter().map(|cloudlet| cloudlet.name.clone()).collect();
+        let cloudlets: Vec<String> = cloudlet_handles
+            .iter()
+            .map(|cloudlet| cloudlet.name.clone())
+            .collect();
 
         let stored_deployment = StoredDeployment {
             status: LifecycleStatus::Retired,
@@ -237,12 +256,15 @@ impl Deployments {
                     }
                     false
                 });
-            deployment.mark_dirty().expect("Failed to mark deployment as dirty");
+            deployment
+                .mark_dirty()
+                .expect("Failed to mark deployment as dirty");
         }
     }
 
     fn add_deployment(&mut self, deployment: DeploymentHandle) {
-        self.deployments.insert(deployment.name.to_string(), deployment);
+        self.deployments
+            .insert(deployment.name.to_string(), deployment);
     }
 
     fn remove_deployment(&mut self, deployment: &DeploymentHandle) {
@@ -292,7 +314,11 @@ pub struct Deployment {
 }
 
 impl Deployment {
-    fn from(name: &str, stored_deployment: &StoredDeployment, cloudlets: Vec<WeakCloudletHandle>) -> DeploymentHandle {
+    fn from(
+        name: &str,
+        stored_deployment: &StoredDeployment,
+        cloudlets: Vec<WeakCloudletHandle>,
+    ) -> DeploymentHandle {
         Arc::new_cyclic(|handle| Self {
             handle: handle.clone(),
             name: name.to_string(),
@@ -307,7 +333,11 @@ impl Deployment {
         })
     }
 
-    fn try_from(name: &str, stored_deployment: &StoredDeployment, cloudlets: &Cloudlets) -> Option<DeploymentHandle> {
+    fn try_from(
+        name: &str,
+        stored_deployment: &StoredDeployment,
+        cloudlets: &Cloudlets,
+    ) -> Option<DeploymentHandle> {
         let cloudlet_handles: Vec<WeakCloudletHandle> = stored_deployment
             .cloudlets
             .iter()
@@ -361,7 +391,10 @@ impl Deployment {
                             if unit.get_user_count() == 0 {
                                 if let Some(stop_time) = stop_flag.as_ref() {
                                     if &Instant::now() > stop_time && amount_to_stop > 0 {
-                                        debug!("Unit {} is empty and reached the timeout, stopping...", unit.name.blue());
+                                        debug!(
+                                            "Unit {} is empty and reached the timeout, stopping...",
+                                            unit.name.blue()
+                                        );
                                         controller.get_units().checked_unit_stop(unit);
                                         amount_to_stop -= 1;
                                     }
@@ -372,11 +405,7 @@ impl Deployment {
                                     );
                                     stop_flag.replace(
                                         Instant::now()
-                                            + controller
-                                                .configuration
-                                                .timings
-                                                .empty_unit
-                                                .unwrap(),
+                                            + controller.configuration.timings.empty_unit.unwrap(),
                                     );
                                 }
                             } else if stop_flag.is_some() {
@@ -522,14 +551,12 @@ impl IdAllocator {
 }
 
 mod shared {
+    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
 
-    use crate::{
-        application::{
-            cloudlet::LifecycleStatus,
-            unit::{Spec, Resources},
-        },
-        config::{LoadFromTomlFile, SaveToTomlFile},
+    use crate::application::{
+        cloudlet::LifecycleStatus,
+        unit::{Resources, Spec},
     };
 
     use super::{ScalingPolicy, StartConstraints};

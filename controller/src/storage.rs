@@ -26,7 +26,6 @@ const DATA_DIRECTORY: &str = "data";
 pub struct Storage;
 
 impl Storage {
-
     /* Cloudlets */
     pub fn get_cloudlets_folder() -> PathBuf {
         PathBuf::from(CLOUDLETS_DIRECTORY)
@@ -64,10 +63,11 @@ impl Storage {
         PathBuf::from(DRIVERS_DIRECTORY)
     }
     pub fn get_data_folder_for_driver(name: &str) -> PathBuf {
-        Storage::get_drivers_folder().join(DATA_DIRECTORY).join(name)
+        Storage::get_drivers_folder()
+            .join(DATA_DIRECTORY)
+            .join(name)
     }
     pub fn get_config_folder_for_driver(name: &str) -> PathBuf {
         Storage::get_configs_folder().join(name)
     }
-
 }

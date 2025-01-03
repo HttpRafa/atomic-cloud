@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - controller/**
+      - cli/**
       - clients/wrapper/**
       - drivers/pterodactyl/**
 

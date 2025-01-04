@@ -1,5 +1,8 @@
+use std::{thread, time::Duration};
+
 use inquire::Select;
-use log::error;
+use loading::Loading;
+use log::debug;
 
 use crate::application::profile::Profiles;
 
@@ -16,13 +19,20 @@ impl Menu for LoadProfileMenu {
         )
         .prompt()
         {
-            Ok(_selection) => MenuResult::Success,
+            Ok(profile) => {
+                let progress = Loading::default();
+                progress.text(format!(
+                    "Connecting to controller \"{}\" at {}",
+                    profile.name, profile.url
+                ));
+                thread::sleep(Duration::from_secs(3));
+                progress.fail("Not implemented yet");
+                progress.end();
+                MenuResult::Success
+            }
             Err(error) => {
-                error!(
-                    "Ops. Something went wrong while evaluating your input | {}",
-                    error
-                );
-                MenuResult::Failed
+                debug!("{}", error);
+                MenuResult::Aborted
             }
         }
     }

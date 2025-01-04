@@ -15,7 +15,7 @@ use crate::version::Version;
 pub struct CloudInit;
 
 impl CloudInit {
-    pub fn init_logging(debug: bool, log_file: PathBuf) {
+    pub fn init_logging(debug: bool, minimal: bool, log_file: PathBuf) {
         if let Some(parent) = log_file.parent() {
             if !parent.exists() {
                 if let Err(error) = fs::create_dir_all(parent) {
@@ -27,35 +27,34 @@ impl CloudInit {
 
         Self::init_logging_with_writeable(
             debug,
+            minimal,
             File::create(log_file).expect("Failed to create log file"),
         );
     }
 
-    pub fn init_logging_with_writeable(debug: bool, log_file: File) {
+    pub fn init_logging_with_writeable(debug: bool, minimal: bool, log_file: File) {
+        let mut config = ConfigBuilder::new();
+        if minimal {
+            config.set_max_level(LevelFilter::Off);
+            config.set_time_level(LevelFilter::Off);
+        }
         if debug {
+            config.set_location_level(LevelFilter::Error);
             CombinedLogger::init(vec![
                 TermLogger::new(
                     LevelFilter::Debug,
-                    ConfigBuilder::new()
-                        .set_location_level(LevelFilter::Error)
-                        .build(),
+                    config.build(),
                     TerminalMode::Mixed,
                     ColorChoice::Auto,
                 ),
-                WriteLogger::new(
-                    LevelFilter::Debug,
-                    ConfigBuilder::new()
-                        .set_location_level(LevelFilter::Error)
-                        .build(),
-                    log_file,
-                ),
+                WriteLogger::new(LevelFilter::Debug, config.build(), log_file),
             ])
             .expect("Failed to init logging crate");
         } else {
             CombinedLogger::init(vec![
                 TermLogger::new(
                     LevelFilter::Info,
-                    ConfigBuilder::new().build(),
+                    config.build(),
                     TerminalMode::Mixed,
                     ColorChoice::Auto,
                 ),

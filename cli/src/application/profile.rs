@@ -6,7 +6,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use colored::Colorize;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use log::{info, warn};
+use loading::Loading;
 use stored::StoredProfile;
 use url::Url;
 
@@ -22,17 +22,17 @@ impl Profiles {
     }
 
     pub fn load_all() -> Self {
-        info!("Loading profiles...");
+        let progress = Loading::default();
+        progress.text("Loading profiles");
 
         let mut profiles = Self::new();
         let profiles_directory = Storage::get_profiles_folder();
         if !profiles_directory.exists() {
             if let Err(error) = fs::create_dir_all(&profiles_directory) {
-                warn!(
-                    "{} to create deployments directory: {}",
-                    "Failed".red(),
+                progress.warn(format!(
+                    "Failed to create deployments directory: {}",
                     &error
-                );
+                ));
                 return profiles;
             }
         }
@@ -40,11 +40,7 @@ impl Profiles {
         let entries = match fs::read_dir(&profiles_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                warn!(
-                    "{} to read deployments directory: {}",
-                    "Failed".red(),
-                    &error
-                );
+                progress.warn(format!("Failed to read deployments directory: {}", &error));
                 return profiles;
             }
         };
@@ -53,11 +49,10 @@ impl Profiles {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    warn!(
-                        "{} to read entry in profiles directory: {}",
-                        "Failed".red(),
+                    progress.warn(format!(
+                        "Failed to read entry in profiles directory: {}",
                         &error
-                    );
+                    ));
                     continue;
                 }
             };
@@ -75,32 +70,32 @@ impl Profiles {
             let profile = match StoredProfile::load_from_file(&path) {
                 Ok(profile) => profile,
                 Err(error) => {
-                    warn!(
-                        "{} to load profile from file '{}': {}",
-                        "Failed".red(),
+                    progress.warn(format!(
+                        "Failed to load profile from file '{}': {}",
                         path.display(),
                         &error
-                    );
+                    ));
                     continue;
                 }
             };
 
-            info!("Loading profile '{}'", id.blue());
+            progress.text(format!("Loading profile '{}'", id.blue()));
             let profile = Profile::from(&id, &profile);
 
             profiles.add_profile(profile);
         }
 
-        info!(
+        progress.success(format!(
             "Loaded {}",
             format!("{} profiles(s)", profiles.profiles.len()).blue()
-        );
+        ));
+        progress.end();
         profiles
     }
 
     pub fn create_profile(&mut self, profile: &Profile) -> Result<()> {
         // Check if profile already exists
-        if self.profiles.iter().any(|p| p.id == profile.id) {
+        if Self::is_id_used(&self.profiles, &profile.id) {
             return Err(anyhow!("Profile '{}' already exists", profile.name));
         }
 
@@ -108,6 +103,22 @@ impl Profiles {
         profile.mark_dirty()?;
         self.add_profile(profile);
         Ok(())
+    }
+
+    pub fn delete_profile(&mut self, profile: &Profile) -> Result<()> {
+        let index = self
+            .profiles
+            .iter()
+            .position(|p| p.id == profile.id)
+            .ok_or_else(|| anyhow!("Profile '{}' not found", profile.name))?;
+
+        let profile = self.profiles.remove(index);
+        profile.delete_file()?;
+        Ok(())
+    }
+
+    pub fn is_id_used(profiles: &Vec<Profile>, id: &str) -> bool {
+        profiles.iter().any(|p| p.id == id)
     }
 
     fn add_profile(&mut self, profile: Profile) {
@@ -142,7 +153,7 @@ impl Profile {
         }
     }
 
-    fn compute_id(name: &str) -> String {
+    pub fn compute_id(name: &str) -> String {
         name.chars()
             .map(|c| match c {
                 '/' | ':' | '|' => '-',
@@ -158,7 +169,7 @@ impl Profile {
         self.save_to_file()
     }
 
-    fn _delete_file(&self) -> Result<()> {
+    fn delete_file(&self) -> Result<()> {
         let file_path = Storage::get_profile_file(&self.id);
         if file_path.exists() {
             fs::remove_file(file_path)?;

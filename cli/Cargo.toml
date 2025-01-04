@@ -10,6 +10,7 @@ common = { path = "../common" }
 # Logging
 log = "0.4.22"
 simplelog = "0.12.2"
+loading = "0.4.0"
 colored = "2.1.0"
 
 # File management

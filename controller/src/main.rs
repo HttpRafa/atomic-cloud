@@ -23,7 +23,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 fn main() {
     let args = Args::parse();
-    CloudInit::init_logging(args.debug, Storage::get_latest_log_file());
+    CloudInit::init_logging(args.debug, false, Storage::get_latest_log_file());
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let start_time = Instant::now();

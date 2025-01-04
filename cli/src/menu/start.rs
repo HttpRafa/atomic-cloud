@@ -4,7 +4,7 @@ use std::{
 };
 
 use inquire::Select;
-use log::error;
+use log::debug;
 
 use crate::application::profile::Profiles;
 
@@ -23,10 +23,10 @@ enum Selection {
 impl Display for Selection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Selection::LoadProfile => write!(f, "Connect to existing controller"),
-            Selection::CreateProfile => write!(f, "Add new controller"),
-            Selection::DeleteProfile => write!(f, "Remove existing controller"),
-            Selection::Exit => write!(f, "Close application"),
+            Selection::LoadProfile => write!(f, "🖧 | Connect to existing controller"),
+            Selection::CreateProfile => write!(f, "+ | Add new controller"),
+            Selection::DeleteProfile => write!(f, "🗑 | Remove existing controller"),
+            Selection::Exit => write!(f, "✖ | Close application"),
         }
     }
 }
@@ -35,29 +35,28 @@ pub struct StartMenu;
 
 impl Menu for StartMenu {
     fn show(profiles: &mut Profiles) -> MenuResult {
-        match Select::new(
-            "What do you want to do?",
-            vec![
-                Selection::LoadProfile,
-                Selection::CreateProfile,
-                Selection::DeleteProfile,
-                Selection::Exit,
-            ],
-        )
-        .prompt()
+        let mut options = vec![];
+
         {
+            let amount = profiles.profiles.len();
+            if amount > 0 {
+                options.push(Selection::LoadProfile);
+                options.push(Selection::DeleteProfile);
+            }
+            options.push(Selection::CreateProfile);
+            options.push(Selection::Exit);
+        }
+
+        match Select::new("What do you want to do?", options).prompt() {
             Ok(selection) => match selection {
                 Selection::LoadProfile => LoadProfileMenu::show(profiles),
                 Selection::CreateProfile => CreateProfileMenu::show(profiles),
                 Selection::DeleteProfile => DeleteProfileMenu::show(profiles),
-                Selection::Exit => MenuResult::Success,
+                Selection::Exit => MenuResult::Exit,
             },
             Err(error) => {
-                error!(
-                    "Ops. Something went wrong while evaluating your input | {}",
-                    error
-                );
-                MenuResult::Failed
+                debug!("{}", error);
+                MenuResult::Exit
             }
         }
     }

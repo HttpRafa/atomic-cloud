@@ -19,7 +19,7 @@ pub const LOG_FILE: &str = "wrapper.log";
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    CloudInit::init_logging(args.debug, PathBuf::from(LOG_FILE));
+    CloudInit::init_logging(args.debug, false, PathBuf::from(LOG_FILE));
     CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
 
     info!("{} wrapper...", "Starting".green());

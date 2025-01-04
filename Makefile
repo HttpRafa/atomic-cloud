@@ -43,7 +43,7 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
 
 ## Build target
-build: build-controller build-wrapper build-drivers
+build: build-controller build-cli build-wrapper build-drivers
 
 ## Run target
 run: run-controller
@@ -59,6 +59,10 @@ run-cli:
 ## Build controller target
 build-controller:
 	cargo build -p controller --all-features --release
+
+## Build cli target
+build-cli:
+	cargo build -p cli --all-features --release
 
 ## Build wrapper target
 build-wrapper:

@@ -1,7 +1,7 @@
 use log::info;
 use profile::Profiles;
 
-use crate::menu::{start::StartMenu, Menu};
+use crate::menu::{start::StartMenu, Menu, MenuResult};
 
 pub mod profile;
 
@@ -17,7 +17,11 @@ impl Cli {
     }
 
     pub async fn start(&mut self) {
-        StartMenu::show(&mut self.profiles);
-        info!("Goodbye!");
+        loop {
+            if StartMenu::show(&mut self.profiles) == MenuResult::Exit {
+                break;
+            }
+        }
+        info!("ℹ Goodbye!");
     }
 }

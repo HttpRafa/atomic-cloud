@@ -5,9 +5,12 @@ mod delete_profile;
 mod load_profile;
 pub mod start;
 
+#[derive(PartialEq)]
 pub enum MenuResult {
     Success,
+    Aborted,
     Failed,
+    Exit,
 }
 
 pub trait Menu {

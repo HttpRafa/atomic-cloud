@@ -10,8 +10,8 @@ common = { path = "../common" }
 # Logging
 log = "0.4.22"
 simplelog = "0.12.2"
+colored = "2.2.0"
 loading = "0.4.0"
-colored = "2.1.0"
 
 # File management
 dirs = "5.0.1"
@@ -20,21 +20,21 @@ dirs = "5.0.1"
 inquire = "0.7.5"
 
 # Error handling
-anyhow = "1.0.93"
+anyhow = "1.0.95"
 
 # Command line arguments
-clap = { version = "4.5.21", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
 
 # Configuration
 serde = { version = "1.0.215", features = ["derive"] }
 toml = "0.8.19"
 
 # Async runtime
-tokio = { version = "1.41.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.42.0", features = ["rt", "rt-multi-thread", "macros"] }
 
 # API
 url = { version = "2.5.4", features = ["serde"] }
-prost = "0.13.3"
+prost = "0.13.4"
 tonic = "0.12.3"
 
 [build-dependencies]

@@ -2,6 +2,7 @@ use application::Cli;
 use args::Args;
 use clap::Parser;
 use common::init::CloudInit;
+use storage::Storage;
 
 mod application;
 mod args;
@@ -15,7 +16,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    CloudInit::init_logging(args.debug);
+    CloudInit::init_logging(args.debug, Storage::get_latest_log_file());
     CloudInit::print_ascii_art("Atomic Cloud CLI", &VERSION, &AUTHORS);
 
     let mut cli = Cli::new().await;

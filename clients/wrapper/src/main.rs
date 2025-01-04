@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use application::Wrapper;
 use args::Args;
 use clap::Parser;
@@ -12,11 +14,12 @@ mod args;
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
+pub const LOG_FILE: &str = "wrapper.log";
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    CloudInit::init_logging(args.debug);
+    CloudInit::init_logging(args.debug, PathBuf::from(LOG_FILE));
     CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
 
     info!("{} wrapper...", "Starting".green());

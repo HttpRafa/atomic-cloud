@@ -1,4 +1,8 @@
-use std::{fs::{self, File}, path::PathBuf, process::exit};
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+    process::exit,
+};
 
 use colored::Colorize;
 use log::LevelFilter;
@@ -15,10 +19,7 @@ impl CloudInit {
         if let Some(parent) = log_file.parent() {
             if !parent.exists() {
                 if let Err(error) = fs::create_dir_all(parent) {
-                    println!(
-                        "Failed to create logs directory: {}",
-                        &error
-                    );
+                    println!("Failed to create logs directory: {}", &error);
                     exit(1);
                 }
             }

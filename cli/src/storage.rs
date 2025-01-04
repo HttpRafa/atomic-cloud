@@ -27,7 +27,9 @@ impl Storage {
 
     /* Logs */
     pub fn get_latest_log_file() -> PathBuf {
-        Storage::get_cli_folder().join(LOGS_DIRECTORY).join(LATEST_LOG_FILE)
+        Storage::get_cli_folder()
+            .join(LOGS_DIRECTORY)
+            .join(LATEST_LOG_FILE)
     }
 
     /* Profiles */

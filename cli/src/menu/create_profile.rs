@@ -3,7 +3,7 @@ use inquire::{
     Password, Text,
 };
 use loading::Loading;
-use log::{debug, error, info};
+use log::debug;
 use url::Url;
 
 use crate::application::profile::{Profile, Profiles};

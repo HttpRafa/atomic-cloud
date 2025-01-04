@@ -117,7 +117,7 @@ impl Profiles {
         Ok(())
     }
 
-    pub fn is_id_used(profiles: &Vec<Profile>, id: &str) -> bool {
+    pub fn is_id_used(profiles: &[Profile], id: &str) -> bool {
         profiles.iter().any(|p| p.id == id)
     }
 

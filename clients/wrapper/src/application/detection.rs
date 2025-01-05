@@ -1,7 +1,7 @@
 use std::process::exit;
 
-use log::error;
 use regex::Regex;
+use simplelog::error;
 use uuid::Uuid;
 
 pub struct RegexDetector {
@@ -41,11 +41,11 @@ impl RegexDetector {
             if let Ok(value) = Regex::new(&value) {
                 started_regex = value;
             } else {
-                error!("Failed to parse STARTED_REGEX environment variable");
+                error!("<red>Failed</> to parse STARTED_REGEX environment variable");
                 exit(1);
             }
         } else {
-            error!("Missing STARTED_REGEX environment variable. Please set it to the regex that indicates the process has started");
+            error!("<red>Missing</> STARTED_REGEX environment variable. Please set it to the regex that indicates the process has started");
             exit(1);
         }
 
@@ -53,7 +53,7 @@ impl RegexDetector {
             if let Ok(value) = Regex::new(&value) {
                 stopping_regex = Some(value);
             } else {
-                error!("Failed to parse STOPPING_REGEX environment variable");
+                error!("<red>Failed</> to parse STOPPING_REGEX environment variable");
                 exit(1);
             }
         } else {
@@ -64,7 +64,7 @@ impl RegexDetector {
             if let Ok(value) = Regex::new(&value) {
                 user_connected_regex = Some(value);
             } else {
-                error!("Failed to parse USER_CONNECTED_REGEX environment variable");
+                error!("<red>Failed</> to parse USER_CONNECTED_REGEX environment variable");
                 exit(1);
             }
         } else {
@@ -75,7 +75,7 @@ impl RegexDetector {
             if let Ok(value) = Regex::new(&value) {
                 user_disconnected_regex = Some(value);
             } else {
-                error!("Failed to parse USER_DISCONNECTED_REGEX environment variable");
+                error!("<red>Failed</> to parse USER_DISCONNECTED_REGEX environment variable");
                 exit(1);
             }
         } else {

@@ -5,9 +5,8 @@ use std::{
 };
 
 use colored::Colorize;
-use log::LevelFilter;
 use simplelog::{
-    ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode, WriteLogger,
+    ColorChoice, CombinedLogger, ConfigBuilder, LevelFilter, TermLogger, TerminalMode, WriteLogger
 };
 
 use crate::version::Version;

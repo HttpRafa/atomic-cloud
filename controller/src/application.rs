@@ -1,11 +1,10 @@
 use anyhow::Error;
 use auth::Auth;
 use cloudlet::Cloudlets;
-use colored::Colorize;
 use deployment::Deployments;
 use driver::Drivers;
 use event::EventBus;
-use log::info;
+use simplelog::info;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 use std::thread;
@@ -111,15 +110,15 @@ impl Controller {
         }
 
         // Stop all units
-        info!("Stopping all units...");
+        info!("<red>Stopping</> all units...");
         self.units.stop_all_instant();
 
         // Stop network stack
-        info!("Stopping network stack...");
+        info!("<red>Stopping</> network stack...");
         network_handle.shutdown();
 
         // Wait for all tokio task to finish
-        info!("Stopping async runtime...");
+        info!("<red>Stopping</> async runtime...");
         (*self.runtime.write().unwrap())
             .take()
             .unwrap()
@@ -127,7 +126,7 @@ impl Controller {
     }
 
     pub fn request_stop(&self) {
-        info!("Controller stop requested. Stopping...");
+        info!("Controller <red>stop</> requested. <red>Stopping</>...");
         self.running.store(false, Ordering::Relaxed);
     }
 
@@ -190,7 +189,7 @@ impl Controller {
         // Set up signal handlers
         let controller = self.handle.clone();
         ctrlc::set_handler(move || {
-            info!("{} signal received. Stopping...", "Interrupt".red());
+            info!("<red>Interrupt</> signal received. Stopping...");
             if let Some(controller) = controller.upgrade() {
                 controller.request_stop();
             }

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use auth::{AdminInterceptor, UnitInterceptor};
-use colored::Colorize;
-use log::{error, info};
+use simplelog::{info, error};
 use std::sync::Arc;
 use tokio::{
     sync::watch::{self, Receiver, Sender},
@@ -26,7 +25,7 @@ pub struct NetworkStack {
 
 impl NetworkStack {
     pub fn start(controller: Arc<Controller>) -> Self {
-        info!("Starting networking stack...");
+        info!("<green>Starting</> networking stack...");
 
         let (sender, receiver) = watch::channel(false);
 
@@ -61,9 +60,8 @@ impl NetworkStack {
             };
 
             info!(
-                "Controller {} on {}",
-                "listening".blue(),
-                format!("{}", address).blue()
+                "Controller <blue>listening</> on <blue>{}</>",
+                address
             );
 
             Server::builder()

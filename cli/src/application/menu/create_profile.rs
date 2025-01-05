@@ -3,7 +3,7 @@ use inquire::{
     Password, Text,
 };
 use loading::Loading;
-use log::debug;
+use simplelog::debug;
 use url::Url;
 
 use crate::{

@@ -1,6 +1,6 @@
 use inquire::{Confirm, Select};
 use loading::Loading;
-use log::debug;
+use simplelog::debug;
 
 use crate::application::profile::Profiles;
 

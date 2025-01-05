@@ -9,11 +9,10 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use colored::Colorize;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use shared::StoredDeployment;
+use simplelog::{debug, error, info, warn};
 
 use crate::storage::Storage;
 
@@ -48,8 +47,7 @@ impl Deployments {
         if !deployments_directory.exists() {
             if let Err(error) = fs::create_dir_all(&deployments_directory) {
                 warn!(
-                    "{} to create deployments directory: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to create deployments directory: <red>{}</>",
                     &error
                 );
                 return deployments;
@@ -60,8 +58,7 @@ impl Deployments {
             Ok(entries) => entries,
             Err(error) => {
                 error!(
-                    "{} to read deployments directory: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to read deployments directory: <red>{}</>",
                     &error
                 );
                 return deployments;
@@ -72,7 +69,7 @@ impl Deployments {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("{} to read deployment entry: {}", "Failed".red(), &error);
+                    error!("<red>Failed</> to read deployment entry: <red>{}</>", &error);
                     continue;
                 }
             };
@@ -91,8 +88,7 @@ impl Deployments {
                 Ok(deployment) => deployment,
                 Err(error) => {
                     error!(
-                        "{} to read deployment {} from file({:?}): {}",
-                        "Failed".red(),
+                        "<red>Failed</> to read deployment <blue>{}</> from file(<blue>{:?}</>): <red>{}</>",
                         &name,
                         &path,
                         &error
@@ -107,12 +103,12 @@ impl Deployments {
             };
 
             deployments.add_deployment(deployment);
-            info!("Loaded deployment {}", &name.blue());
+            info!("Loaded deployment <blue>{}</>", &name);
         }
 
         info!(
-            "Loaded {}",
-            format!("{} deployment(s)", deployments.deployments.len()).blue()
+            "Loaded <blue>{} deployment(s)</>",
+            deployments.deployments.len()
         );
         deployments
     }
@@ -143,11 +139,11 @@ impl Deployments {
         match status {
             LifecycleStatus::Retired => {
                 self.retire_deployment(deployment);
-                info!("Retired deployment {}", deployment.name.blue());
+                info!("<red>Retired</> deployment <blue>{}</>", deployment.name);
             }
             LifecycleStatus::Active => {
                 self.activate_deployment(deployment);
-                info!("Activated deployment {}", deployment.name.blue());
+                info!("<green>Activated</> deployment <blue>{}</>", deployment.name);
             }
         }
         *deployment.status.write().unwrap() = status;
@@ -192,13 +188,13 @@ impl Deployments {
         let ref_count = Arc::strong_count(deployment);
         if ref_count > 1 {
             warn!(
-                "Deployment {} still has strong references[{}] this chould indicate a memory leak!",
-                deployment.name.blue(),
-                format!("{}", ref_count).red()
+                "Deployment <blue>{}</> still has strong references[<red>{}</>] this chould indicate a memory leak!",
+                deployment.name,
+                ref_count
             );
         }
 
-        info!("Deleted deployment {}", deployment.name.blue());
+        info!("<red>Deleted</> deployment <blue>{}</>", deployment.name);
         Ok(())
     }
 
@@ -240,7 +236,7 @@ impl Deployments {
 
         self.add_deployment(deployment);
         stored_deployment.save_to_file(&Storage::get_deployment_file(name))?;
-        info!("Created deployment {}", name.blue());
+        info!("<green>Created</> deployment <blue>{}</>", name);
         Ok(CreationResult::Created)
     }
 
@@ -392,16 +388,16 @@ impl Deployment {
                                 if let Some(stop_time) = stop_flag.as_ref() {
                                     if &Instant::now() > stop_time && amount_to_stop > 0 {
                                         debug!(
-                                            "Unit {} is empty and reached the timeout, stopping...",
-                                            unit.name.blue()
+                                            "Unit <blue>{}</> is empty and reached the timeout, <red>stopping</> it...",
+                                            unit.name
                                         );
                                         controller.get_units().checked_unit_stop(unit);
                                         amount_to_stop -= 1;
                                     }
                                 } else {
                                     debug!(
-                                        "Unit {} is empty, starting stop timer...",
-                                        unit.name.blue()
+                                        "Unit <blue>{}</> is empty, starting stop timer...",
+                                        unit.name
                                     );
                                     stop_flag.replace(
                                         Instant::now()
@@ -410,8 +406,8 @@ impl Deployment {
                                 }
                             } else if stop_flag.is_some() {
                                 debug!(
-                                    "Unit {} is no longer empty, clearing stop timer...",
-                                    unit.name.blue()
+                                    "Unit <blue>{}</> is no longer empty, clearing stop timer...",
+                                    unit.name
                                 );
                                 stop_flag.take();
                             }

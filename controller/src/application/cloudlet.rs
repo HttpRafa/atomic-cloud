@@ -6,10 +6,9 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use colored::Colorize;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use simplelog::{info, warn, error};
 use stored::StoredCloudlet;
 use url::Url;
 
@@ -48,8 +47,7 @@ impl Cloudlets {
         if !cloudlets_directory.exists() {
             if let Err(error) = fs::create_dir_all(&cloudlets_directory) {
                 warn!(
-                    "{} to create cloudlets directory: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to create cloudlets directory: <red>{}</>",
                     &error
                 );
                 return cloudlets;
@@ -59,7 +57,7 @@ impl Cloudlets {
         let entries = match fs::read_dir(&cloudlets_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("{} to read cloudlets directory: {}", "Failed".red(), &error);
+                error!("<red>Failed</> to read cloudlets directory: <red>{}</>", &error);
                 return cloudlets;
             }
         };
@@ -68,7 +66,7 @@ impl Cloudlets {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("{} to read cloudlet entry: {}", "Failed".red(), &error);
+                    error!("<red>Failed</> to read cloudlet entry: <red>{}</>", &error);
                     continue;
                 }
             };
@@ -87,8 +85,7 @@ impl Cloudlets {
                 Ok(cloudlet) => cloudlet,
                 Err(error) => {
                     error!(
-                        "{} to read cloudlet {} from file({:?}): {}",
-                        "Failed".red(),
+                        "<red>Failed</> to read cloudlet <blue>{}</> from file(<blue>{:?}</>): <red>{}</>",
                         &name,
                         &path,
                         &error
@@ -97,7 +94,7 @@ impl Cloudlets {
                 }
             };
 
-            info!("Loading cloudlet {}", &name.blue());
+            info!("Loading cloudlet <blue>{}</>", &name);
             let cloudlet = match Cloudlet::try_from(&name, &cloudlet, drivers) {
                 Some(cloudlet) => cloudlet,
                 None => continue,
@@ -105,17 +102,16 @@ impl Cloudlets {
 
             if let Err(error) = cloudlets.add_cloudlet(cloudlet) {
                 warn!(
-                    "{} to load cloudlet {} because it was denied by the driver",
-                    "Failed".red(),
-                    &name.blue()
+                    "<red>Failed</> to load cloudlet <blue>{}</> because it was denied by the driver",
+                    &name
                 );
                 warn!(" -> {}", &error);
             }
         }
 
         info!(
-            "Loaded {}",
-            format!("{} cloudlet(s)", cloudlets.cloudlets.len()).blue()
+            "Loaded <blue>{} cloudlet(s)</>",
+            cloudlets.cloudlets.len()
         );
         cloudlets
     }
@@ -143,11 +139,11 @@ impl Cloudlets {
         match status {
             LifecycleStatus::Retired => {
                 self.retire_cloudlet(cloudlet);
-                info!("Retired cloudlet {}", cloudlet.name.blue());
+                info!("Retired cloudlet <blue>{}</>", cloudlet.name);
             }
             LifecycleStatus::Active => {
                 self.activate_cloudlet(cloudlet);
-                info!("Activated cloudlet {}", cloudlet.name.blue());
+                info!("Activated cloudlet <blue>{}</>", cloudlet.name);
             }
         }
         *cloudlet.status.write().unwrap() = status;
@@ -188,13 +184,13 @@ impl Cloudlets {
         let ref_count = Arc::strong_count(cloudlet);
         if ref_count > 1 {
             warn!(
-                "Cloudlet {} still has strong references[{}] this chould indicate a memory leak!",
-                cloudlet.name.blue(),
-                format!("{}", ref_count).red()
+                "Cloudlet <blue>{}</> still has strong references[<red>{}</>] this chould indicate a memory leak!",
+                cloudlet.name,
+                ref_count
             );
         }
 
-        info!("Deleted cloudlet {}", cloudlet.name.blue());
+        info!("<red>Deleted</> cloudlet <blue>{}</>", cloudlet.name);
         Ok(())
     }
 
@@ -220,7 +216,7 @@ impl Cloudlets {
         match self.add_cloudlet(cloudlet) {
             Ok(_) => {
                 stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(name))?;
-                info!("Created cloudlet {}", name.blue());
+                info!("<green>Created</> cloudlet <blue>{}</>", name);
                 Ok(CreationResult::Created)
             }
             Err(error) => Ok(CreationResult::Denied(error)),
@@ -293,10 +289,9 @@ impl Cloudlet {
             .map(|driver| Self::from(name, stored_cloudlet, driver))
             .or_else(|| {
                 error!(
-                    "{} to load cloudlet {} because there is no loaded driver with the name {}",
-                    "Failed".red(),
-                    &name.red(),
-                    &stored_cloudlet.driver.red()
+                    "<red>Failed</> to load cloudlet <red>{}</> because there is no loaded driver with the name <red>{}</>",
+                    &name,
+                    &stored_cloudlet.driver
                 );
                 None
             })
@@ -315,9 +310,8 @@ impl Cloudlet {
     pub fn allocate(&self, request: &StartRequestHandle) -> Result<AllocationHandle> {
         if *self.status.read().unwrap() == LifecycleStatus::Retired {
             warn!(
-                "Attempted to allocate resources on {} cloudlet {}",
-                "retired".red(),
-                self.name.blue()
+                "Attempted to allocate resources on <red>retired</> cloudlet <blue>{}</>",
+                self.name
             );
             return Err(anyhow!("Can not allocate resources on retired cloudlet"));
         }
@@ -368,7 +362,7 @@ impl Cloudlet {
             .unwrap()
             .deallocate_addresses(allocation.addresses.clone())
         {
-            error!("{} to deallocate addresses: {}", "Failed".red(), &error);
+            error!("<red>Failed</> to deallocate addresses: <red>{}</>", &error);
         }
         self.allocations
             .write()

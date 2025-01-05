@@ -5,8 +5,7 @@ use std::{
     time::Instant,
 };
 
-use colored::Colorize;
-use log::{debug, info, warn};
+use simplelog::{debug, info, warn};
 use transfer::Transfer;
 use uuid::Uuid;
 
@@ -49,10 +48,10 @@ impl Users {
                 {
                     if let Some(to) = transfer.to.upgrade() {
                         warn!(
-                            "User {}[{}] failed to transfer to unit {} in time",
-                            user.name.blue(),
-                            user.uuid.to_string().blue(),
-                            to.name.blue()
+                            "User <blue>{}</>[<blue>{}</>] failed to transfer to unit <blue>{}</> in time",
+                            user.name,
+                            user.uuid.to_string(),
+                            to.name
                         );
                     }
                     return false;
@@ -74,29 +73,28 @@ impl Users {
                 CurrentUnit::Connected(_) => {
                     *current_unit = CurrentUnit::Connected(Arc::downgrade(&unit));
                     warn!(
-                        "User {}[{}] was never flagged as transferring but switched to unit {}",
-                        name.blue(),
-                        uuid.to_string().blue(),
-                        unit.name.blue()
+                        "User <blue>{}</>[<blue>{}</>] was never flagged as transferring but switched to unit <blue>{}</>",
+                        name,
+                        uuid.to_string(),
+                        unit.name
                     );
                 }
                 CurrentUnit::Transfering(_) => {
                     *current_unit = CurrentUnit::Connected(Arc::downgrade(&unit));
                     info!(
-                        "User {}[{}] successfully transferred to unit {}",
-                        name.blue(),
-                        uuid.to_string().blue(),
-                        unit.name.blue()
+                        "User <blue>{}</>[<blue>{}</>] successfully transferred to unit <blue>{}</>",
+                        name,
+                        uuid.to_string(),
+                        unit.name
                     );
                 }
             }
         } else {
             info!(
-                "User {}[{}] {} to unit {}",
-                name.blue(),
-                uuid.to_string().blue(),
-                "connected".green(),
-                unit.name.blue()
+                "User <blue>{}</>[<blue>{}</>] <green>connected</> to unit <blue>{}</>",
+                name,
+                uuid.to_string(),
+                unit.name
             );
             users.insert(uuid, self.create_user(name, uuid, &unit));
         }
@@ -114,11 +112,10 @@ impl Users {
                     // Verify if the user is connected to the unit that is saying he is disconnecting
                     if Arc::ptr_eq(&strong_unit, &unit) {
                         info!(
-                            "User {}[{}] {} from unit {}",
-                            user.name.blue(),
-                            user.uuid.to_string().blue(),
-                            "disconnect".red(),
-                            strong_unit.name.blue(),
+                            "User <blue>{}</>[<blue>{}</>] <red>disconnected</> from unit <blue>{}</>",
+                            user.name,
+                            user.uuid.to_string(),
+                            strong_unit.name,
                         );
                         users.remove(&user.uuid);
                     }
@@ -134,20 +131,19 @@ impl Users {
                 if let Some(unit) = weak_unit.upgrade() {
                     if Arc::ptr_eq(&unit, dead_unit) {
                         info!(
-                            "User {}[{}] {} from unit {}",
-                            user.name.blue(),
-                            user.uuid.to_string().blue(),
-                            "disconnect".red(),
-                            unit.name.blue(),
+                            "User <blue>{}</>[<blue>{}</>] <red>disconnected</> from unit <blue>{}</>",
+                            user.name,
+                            user.uuid.to_string(),
+                            unit.name,
                         );
                         amount += 1;
                         return false;
                     }
                 } else {
                     debug!(
-                        "User {}[{}] is connected to a dead unit removing him",
-                        user.name.blue(),
-                        user.uuid.to_string().blue()
+                        "User <blue>{}</>[<blue>{}</>] is connected to a dead unit removing him",
+                        user.name,
+                        user.uuid.to_string()
                     );
                     amount += 1;
                     return false;

@@ -2,7 +2,6 @@ use std::{collections::HashMap, path::Path};
 
 use allocation::{BAllocation, BCAllocation};
 use anyhow::Result;
-use colored::Colorize;
 use common::{BBody, BList, BObject};
 use node::BNode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -164,8 +163,8 @@ impl Backend {
         }
         if !missing.is_empty() {
             error!(
-                "The following required configuration values are missing: {}",
-                missing.join(", ").red()
+                "The following required configuration values are missing: <red>{}</>",
+                missing.join(", ")
             );
             return Err(anyhow::anyhow!("Missing required configuration values"));
         }

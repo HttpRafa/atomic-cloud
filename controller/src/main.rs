@@ -2,9 +2,8 @@ use std::time::Instant;
 
 use args::Args;
 use clap::Parser;
-use colored::Colorize;
 use common::init::CloudInit;
-use log::info;
+use simplelog::info;
 use storage::Storage;
 
 use crate::application::Controller;
@@ -28,13 +27,13 @@ fn main() {
 
     let start_time = Instant::now();
     info!(
-        "Starting cloud version {}...",
-        format!("v{}", VERSION).blue()
+        "<green>Starting</> cloud version <blue>v{}</>...",
+        VERSION
     );
     info!("Loading configuration...");
 
     let configuration = Config::new_filled();
     let controller = Controller::new(configuration);
-    info!("Loaded cloud in {:.2?}", start_time.elapsed());
+    info!("Loaded cloud in <blue>{:.2?}</>", start_time.elapsed());
     controller.start();
 }

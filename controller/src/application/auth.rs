@@ -4,9 +4,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use colored::Colorize;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use log::{error, info, warn};
+use simplelog::{info, warn, error};
 use stored::StoredUser;
 use uuid::Uuid;
 
@@ -48,7 +47,7 @@ impl Auth {
         let users_directory = Storage::get_users_folder();
         if !users_directory.exists() {
             if let Err(error) = fs::create_dir_all(&users_directory) {
-                warn!("{} to create users directory: {}", "Failed".red(), &error);
+                warn!("<red>Failed</> to create users directory: <red>{}</>", &error);
             }
         }
 
@@ -56,7 +55,7 @@ impl Auth {
         let entries = match fs::read_dir(&users_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("{} to read users directory: {}", "Failed".red(), &error);
+                error!("<red>Failed</> to read users directory: <red>{}</>", &error);
                 return Auth::new(users);
             }
         };
@@ -65,7 +64,7 @@ impl Auth {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("{} to read user entry: {}", "Failed".red(), &error);
+                    error!("<red>Failed</> to read user entry: <red>{}</>", &error);
                     continue;
                 }
             };
@@ -84,8 +83,7 @@ impl Auth {
                 Ok(user) => user,
                 Err(error) => {
                     error!(
-                        "{} to read user {} from file({:?}): {}",
-                        "Failed".red(),
+                        "<red>Failed</> to read user <blue>{}</> from file(<blue>{:?}</>): <red>{}</>",
                         &name,
                         &path,
                         &error
@@ -102,11 +100,11 @@ impl Auth {
                 .values()
                 .any(|u| u.username.eq_ignore_ascii_case(&user.username))
             {
-                error!("User with the name {} already exists", &name.red());
+                error!("User with the name <red>{}</> already exists", &name);
                 continue;
             }
             users.insert(user.token.clone(), Arc::new(user));
-            info!("Loaded user {}", &name.blue());
+            info!("Loaded user <blue>{}</>", &name);
         }
 
         let amount = users.len();
@@ -115,19 +113,18 @@ impl Auth {
             let user = auth
                 .register_user(DEFAULT_ADMIN_USERNAME)
                 .expect("Failed to create default admin user");
-            info!("{}", "-----------------------------------".red());
-            info!("{}", "No users found, created default admin user".red());
-            info!("{}{}", "Username: ".red(), DEFAULT_ADMIN_USERNAME.red());
-            info!("{}{}", "Token: ".red(), &user.token.red());
-            info!("{}", "-----------------------------------".red());
+            info!("<red>-----------------------------------</>");
+            info!("<red>No users found, created default admin user</>");
+            info!("<red>Username: </>{}", DEFAULT_ADMIN_USERNAME);
+            info!("<red>Token: </>{}", &user.token);
+            info!("<red>-----------------------------------</>");
             info!(
-                "{}",
-                "      Welcome to Atomic Cloud       ".bright_blue().bold()
+                "<bright-blue><b>Welcome to Atomic Cloud</>"
             );
-            info!("{}", "-----------------------------------".red());
+            info!("<red>-----------------------------------</>");
         }
 
-        info!("Loaded {}", format!("{} user(s)", amount).blue());
+        info!("Loaded <blue>{} user(s)</>", amount);
         auth
     }
 
@@ -180,8 +177,7 @@ impl Auth {
         let user_path = Storage::get_user_file(username);
         if stored_user.save_to_file(&user_path).is_err() {
             error!(
-                "{} to save user to file: {}",
-                "Failed".red(),
+                "<red>Failed</> to save user to file: <red>{}</>",
                 &user_path.display()
             );
             return None;

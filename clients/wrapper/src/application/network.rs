@@ -1,7 +1,7 @@
 use std::{process::exit, sync::Arc};
 
 use anyhow::Result;
-use log::error;
+use simplelog::error;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -43,11 +43,11 @@ impl CloudConnection {
             if let Ok(value) = Url::parse(&value) {
                 address = Some(value);
             } else {
-                error!("Failed to parse CONTROLLER_ADDRESS environment variable");
+                error!("<red>Failed</> to parse CONTROLLER_ADDRESS environment variable");
                 exit(1);
             }
         } else {
-            error!("Missing CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller");
+            error!("<red>Missing</> CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller");
             exit(1);
         }
 
@@ -55,7 +55,7 @@ impl CloudConnection {
             token = Some(value);
         } else {
             error!(
-                "Missing UNIT_TOKEN environment variable. Please set it to the token of this unit"
+                "<red>Missing</> UNIT_TOKEN environment variable. Please set it to the token of this unit"
             );
             exit(1);
         }

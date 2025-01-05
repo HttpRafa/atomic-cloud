@@ -7,12 +7,11 @@ use std::{
     time::Duration,
 };
 
-use colored::Colorize;
 use detection::RegexDetector;
 use heart::Heart;
-use log::{error, info};
 use network::CloudConnection;
 use process::ManagedProcess;
+use simplelog::{error, info};
 use tokio::{select, time::interval};
 use transfer::Transfers;
 use user::Users;
@@ -58,7 +57,7 @@ impl Wrapper {
 
         let connection = CloudConnection::from_env();
         if let Err(error) = connection.connect().await {
-            error!("Failed to connect to cloud: {}", error);
+            error!("<red>Failed</> to connect to cloud: {}", error);
             exit(1);
         }
 
@@ -78,7 +77,7 @@ impl Wrapper {
         // Set up signal handlers
         let running = Arc::downgrade(&self.running);
         ctrlc::set_handler(move || {
-            info!("{} signal received. Stopping...", "Interrupt".red());
+            info!("<red>Interrupt</> signal received. <red>Stopping</>...");
             if let Some(running) = running.upgrade() {
                 running.store(false, Ordering::Relaxed);
             }
@@ -110,11 +109,11 @@ impl Wrapper {
             process.kill_if_running().await;
         }
 
-        info!("All {}! Bye :)", "done".green());
+        info!("All <green>done</>! Bye :)");
     }
 
     pub fn request_stop(&self) {
-        info!("Wrapper stop requested. {}...", "Stopping".red());
+        info!("Wrapper stop requested. <red>Stopping</>...");
         self.running.store(false, Ordering::Relaxed);
     }
 

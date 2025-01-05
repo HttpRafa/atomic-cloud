@@ -1,6 +1,5 @@
 use anyhow::Result;
-use colored::Colorize;
-use log::info;
+use simplelog::info;
 use std::{net::SocketAddr, sync::Arc};
 use tonic::async_trait;
 
@@ -55,7 +54,7 @@ impl Drivers {
         #[cfg(feature = "wasm-drivers")]
         WasmDriver::load_all(cloud_identifier, &mut drivers);
 
-        info!("Loaded {}", format!("{} driver(s)", drivers.len()).blue());
+        info!("Loaded <blue>{} driver(s)</>", drivers.len());
         Self { drivers }
     }
 

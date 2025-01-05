@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use colored::Colorize;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use loading::Loading;
 use stored::StoredProfile;
@@ -81,15 +80,15 @@ impl Profiles {
                 }
             };
 
-            progress.text(format!("Loading profile '{}'", id.blue()));
+            progress.text(format!("Loading profile '{}'", id));
             let profile = Profile::from(&id, &profile);
 
             profiles.add_profile(profile);
         }
 
         progress.success(format!(
-            "Loaded {}",
-            format!("{} profiles(s)", profiles.profiles.len()).blue()
+            "Loaded {} profiles(s)",
+            profiles.profiles.len()
         ));
         progress.end();
         profiles

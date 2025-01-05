@@ -1,5 +1,6 @@
 use std::{process::exit, str::FromStr};
 
+use simplelog::{error, info};
 use tonic::Streaming;
 use uuid::Uuid;
 
@@ -8,7 +9,6 @@ use super::{
     process::ManagedProcess,
     user::Users,
 };
-use log::{error, info};
 
 pub struct Transfers {
     /* Network */
@@ -28,7 +28,7 @@ impl Transfers {
         if let Ok(value) = std::env::var("TRANSFER_COMMAND") {
             transfer_command = value;
         } else {
-            error!("Missing TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received");
+            error!("<red>Missing</> TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received");
             exit(1);
         }
 
@@ -49,7 +49,7 @@ impl Transfers {
                 self.stream = Some(stream.into_inner());
             }
             Err(error) => {
-                error!("Failed to subscribe to transfers: {}", error);
+                error!("<red>Failed</> to subscribe to transfers: {}", error);
             }
         }
     }
@@ -60,7 +60,7 @@ impl Transfers {
                 if let Ok(uuid) = Uuid::from_str(&transfer.user_uuid) {
                     if let Some(user) = users.get_user_from_uuid(uuid).await {
                         info!(
-                            "Transferred user {} to {}:{}",
+                            "Transferred user <blue>{}</> to <blue>{}</>:<blue>{}</>",
                             user.name, transfer.host, transfer.port
                         );
                         let command = self
@@ -72,12 +72,12 @@ impl Transfers {
                         process.write_to_stdin(&command).await;
                     } else {
                         error!(
-                            "Received transfer from unknown user: {}",
+                            "Received transfer from unknown user: <blue>{}</>",
                             transfer.user_uuid
                         );
                     }
                 } else {
-                    error!("Failed to parse uuid: {}", transfer.user_uuid);
+                    error!("<red>Failed</> to parse uuid: {}", transfer.user_uuid);
                 }
             }
         }

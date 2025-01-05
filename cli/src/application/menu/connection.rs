@@ -3,7 +3,10 @@ use std::{thread, time::Duration};
 use loading::Loading;
 use start::ConnectionStartMenu;
 
-use crate::{application::profile::{Profile, Profiles}, VERSION};
+use crate::{
+    application::profile::{Profile, Profiles},
+    VERSION,
+};
 
 use super::MenuResult;
 
@@ -31,7 +34,7 @@ impl ConnectionMenu {
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));
                 progress.end();
-                return MenuResult::Failed;
+                MenuResult::Failed
             }
         }
     }

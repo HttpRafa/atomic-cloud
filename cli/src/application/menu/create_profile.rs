@@ -71,7 +71,10 @@ impl CreateProfileMenu {
 
         let progress = Loading::default();
         let profile = Profile::new(&name, &authorization, url);
-        progress.text(format!("Connecting to the controller \"{}\" at {} to verify the profile", profile.name, profile.url));
+        progress.text(format!(
+            "Connecting to the controller \"{}\" at {} to verify the profile",
+            profile.name, profile.url
+        ));
         match profile.establish_connection().await {
             Ok(connection) => {
                 if connection.outdated {

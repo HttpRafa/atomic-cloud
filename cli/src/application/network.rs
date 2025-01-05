@@ -6,7 +6,7 @@ use url::Url;
 
 use crate::VERSION;
 
-use super::profile::{Profile};
+use super::profile::Profile;
 
 #[allow(clippy::all)]
 pub mod proto {

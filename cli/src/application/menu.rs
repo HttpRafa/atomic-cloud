@@ -1,9 +1,7 @@
-
-
+mod connection;
 mod create_profile;
 mod delete_profile;
 mod load_profile;
-mod connection;
 pub mod start;
 
 #[derive(PartialEq)]

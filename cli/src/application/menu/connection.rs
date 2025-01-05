@@ -11,25 +11,30 @@ use crate::{
 use super::MenuResult;
 
 mod start;
+mod general;
+mod resource;
+mod cloudlet;
+mod deployment;
+mod unit;
+mod user;
 
 pub struct ConnectionMenu;
 
 impl ConnectionMenu {
-    pub async fn show(profile: Profile, profiles: &mut Profiles) -> MenuResult {
+    pub async fn show(mut profile: Profile, profiles: &mut Profiles) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
             "Connecting to controller \"{}\" at {}",
             profile.name, profile.url
         ));
         match profile.establish_connection().await {
-            Ok(connection) => {
+            Ok(mut connection) => {
                 if connection.outdated {
                     progress.warn(format!("The controller is running an outdated protocol version {} compared to this client running {}", connection.protocol, VERSION.protocol));
                 }
-                thread::sleep(Duration::from_secs(3));
                 progress.success("Successfully connected to the controller");
                 progress.end();
-                ConnectionStartMenu::show(profile, connection, profiles).await
+                ConnectionStartMenu::show(&mut profile, &mut connection, profiles).await
             }
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));

@@ -16,7 +16,7 @@ pub mod proto {
 }
 
 pub struct EstablishedConnection {
-    pub connection: CloudConnection,
+    pub client: CloudConnection,
     pub outdated: bool,
     pub protocol: u32,
 }
@@ -47,10 +47,10 @@ impl CloudConnection {
     }
 
     pub async fn establish_connection(profile: &Profile) -> Result<EstablishedConnection> {
-        let mut connection = Self::from_profile(profile);
-        connection.connect().await?;
+        let mut client = Self::from_profile(profile);
+        client.connect().await?;
 
-        let protocol = match connection.get_protocol_version().await {
+        let protocol = match client.get_protocol_version().await {
             Ok(version) => version,
             Err(error) => {
                 warn!("<yellow>⚠</> Failed to get protocol version: {}", error);
@@ -59,7 +59,7 @@ impl CloudConnection {
         };
 
         Ok(EstablishedConnection {
-            connection,
+            client,
             outdated: protocol != VERSION.protocol,
             protocol,
         })
@@ -67,6 +67,17 @@ impl CloudConnection {
 
     pub async fn connect(&mut self) -> Result<()> {
         self.client = Some(AdminServiceClient::connect(self.address.to_string()).await?);
+        Ok(())
+    }
+
+    pub async fn request_stop(&mut self) -> Result<()> {
+        let request = self.create_request(());
+
+        self.client
+            .as_mut()
+            .unwrap()
+            .request_stop(request)
+            .await?;
         Ok(())
     }
 

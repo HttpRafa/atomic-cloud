@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::{ops::Deref, sync::Arc};
 
-use simplelog::{info, warn, error};
+use simplelog::{error, info, warn};
 
 use crate::application::deployment::DeploymentHandle;
 use crate::application::{
@@ -72,9 +72,7 @@ impl Users {
         if let Some((user, from, to)) = transfer.get_strong() {
             info!(
                 "Transfering user <blue>{}</> from <blue>{}</> to unit <blue>{}</>",
-                user.name,
-                from.name,
-                to.name
+                user.name, from.name, to.name
             );
 
             let controller = self
@@ -91,9 +89,7 @@ impl Users {
             *user.unit.write().unwrap() = CurrentUnit::Transfering(transfer);
             return true;
         } else {
-            error!(
-                "<red>Failed</> to transfer user because some required information is missing",
-            );
+            error!("<red>Failed</> to transfer user because some required information is missing",);
         }
 
         false

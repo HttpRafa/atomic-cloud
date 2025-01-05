@@ -1,4 +1,8 @@
-use crate::application::{menu::MenuResult, network::EstablishedConnection, profile::{Profile, Profiles}};
+use crate::application::{
+    menu::MenuResult,
+    network::EstablishedConnection,
+    profile::{Profile, Profiles},
+};
 
 pub struct DeleteResourceMenu;
 

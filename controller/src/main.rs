@@ -26,10 +26,7 @@ fn main() {
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let start_time = Instant::now();
-    info!(
-        "<green>Starting</> cloud version <blue>v{}</>...",
-        VERSION
-    );
+    info!("<green>Starting</> cloud version <blue>v{}</>...", VERSION);
     info!("Loading configuration...");
 
     let configuration = Config::new_filled();

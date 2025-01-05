@@ -4,12 +4,22 @@ use inquire::Select;
 use simplelog::debug;
 
 use crate::application::{
-    menu::{delete_profile::DeleteProfileMenu, MenuResult},
+    menu::MenuResult,
     network::EstablishedConnection,
     profile::{Profile, Profiles},
 };
 
-use super::{cloudlet::{create_cloudlet::CreateCloudletMenu, get_cloudlet::GetCloudletMenu, get_cloudlets::GetCloudletsMenu}, deployment::get_deployment::GetDeploymentMenu, general::{get_versions::GetVersionsMenu, request_stop::RequestStopMenu}, resource::{delete_resource::DeleteResourceMenu, set_resource_status::SetResourceStatusMenu}, unit::{get_unit::GetUnitMenu, get_units::GetUnitsMenu}, user::transfer_user::TransferUserMenu};
+use super::{
+    cloudlet::{
+        create_cloudlet::CreateCloudletMenu, get_cloudlet::GetCloudletMenu,
+        get_cloudlets::GetCloudletsMenu,
+    },
+    deployment::{get_deployment::GetDeploymentMenu, get_deployments::GetDeploymentsMenu},
+    general::{get_versions::GetVersionsMenu, request_stop::RequestStopMenu},
+    resource::{delete_resource::DeleteResourceMenu, set_resource_status::SetResourceStatusMenu},
+    unit::{get_unit::GetUnitMenu, get_units::GetUnitsMenu},
+    user::transfer_user::TransferUserMenu,
+};
 
 enum Action {
     // Resource Management
@@ -49,14 +59,14 @@ impl Display for Action {
 
             Action::CreateCloudlet => write!(f, "Create Cloudlet"),
             Action::GetCloudlet => write!(f, "Get information about a certain Cloudlet"),
-            Action::GetCloudlets => write!(f, "List all Cloudlets"),
+            Action::GetCloudlets => write!(f, "Get all Cloudlets"),
 
             Action::CreateDeployment => write!(f, "Create Deployment"),
             Action::GetDeployment => write!(f, "Get information about a certain Deployment"),
-            Action::GetDeployments => write!(f, "List all Deployments"),
+            Action::GetDeployments => write!(f, "Get all Deployments"),
 
             Action::GetUnit => write!(f, "Get information about a certain Unit"),
-            Action::GetUnits => write!(f, "List all Units"),
+            Action::GetUnits => write!(f, "Get all Units"),
 
             Action::TransferUser => write!(f, "Transfer a user to a different Unit"),
 
@@ -88,7 +98,9 @@ impl ConnectionStartMenu {
         connection: &mut EstablishedConnection,
         profiles: &mut Profiles,
     ) -> MenuResult {
-            match Select::new("What do you want to do?", vec![
+        match Select::new(
+            "What do you want to do?",
+            vec![
                 Action::RequestStop,
                 Action::TransferUser,
                 Action::SetResourceStatus,
@@ -103,27 +115,42 @@ impl ConnectionStartMenu {
                 Action::GetUnits,
                 Action::GetVersions,
                 Action::DisconnectFromController,
-            ]).prompt() {
-                Ok(selection) => match selection {
-                    Action::SetResourceStatus => SetResourceStatusMenu::show(profile, connection, profiles).await,
-                    Action::DeleteResource => DeleteResourceMenu::show(profile, connection, profiles).await,
-                    Action::CreateCloudlet => CreateCloudletMenu::show(profile, connection, profiles).await,
-                    Action::GetCloudlet => GetCloudletMenu::show(profile, connection, profiles).await,
-                    Action::GetCloudlets => GetCloudletsMenu::show(profile, connection, profiles).await,
-                    Action::CreateDeployment => CreateCloudletMenu::show(profile, connection, profiles).await,
-                    Action::GetDeployment => GetDeploymentMenu::show(profile, connection, profiles).await,
-                    Action::GetDeployments => GetDeploymentMenu::show(profile, connection, profiles).await,
-                    Action::GetUnit => GetUnitMenu::show(profile, connection, profiles).await,
-                    Action::GetUnits => GetUnitsMenu::show(profile, connection, profiles).await,
-                    Action::TransferUser => TransferUserMenu::show(profile, connection, profiles).await,
-                    Action::RequestStop => RequestStopMenu::show(profile, connection, profiles).await,
-                    Action::GetVersions => GetVersionsMenu::show(profile, connection, profiles).await,
-                    Action::DisconnectFromController => MenuResult::Exit,
-                },
-                Err(error) => {
-                    debug!("{}", error);
-                    MenuResult::Exit
+            ],
+        )
+        .prompt()
+        {
+            Ok(selection) => match selection {
+                Action::SetResourceStatus => {
+                    SetResourceStatusMenu::show(profile, connection, profiles).await
                 }
+                Action::DeleteResource => {
+                    DeleteResourceMenu::show(profile, connection, profiles).await
+                }
+                Action::CreateCloudlet => {
+                    CreateCloudletMenu::show(profile, connection, profiles).await
+                }
+                Action::GetCloudlet => GetCloudletMenu::show(profile, connection, profiles).await,
+                Action::GetCloudlets => GetCloudletsMenu::show(profile, connection, profiles).await,
+                Action::CreateDeployment => {
+                    CreateCloudletMenu::show(profile, connection, profiles).await
+                }
+                Action::GetDeployment => {
+                    GetDeploymentMenu::show(profile, connection, profiles).await
+                }
+                Action::GetDeployments => {
+                    GetDeploymentsMenu::show(profile, connection, profiles).await
+                }
+                Action::GetUnit => GetUnitMenu::show(profile, connection, profiles).await,
+                Action::GetUnits => GetUnitsMenu::show(profile, connection, profiles).await,
+                Action::TransferUser => TransferUserMenu::show(profile, connection, profiles).await,
+                Action::RequestStop => RequestStopMenu::show(profile, connection, profiles).await,
+                Action::GetVersions => GetVersionsMenu::show(profile, connection, profiles).await,
+                Action::DisconnectFromController => MenuResult::Exit,
+            },
+            Err(error) => {
+                debug!("{}", error);
+                MenuResult::Exit
             }
+        }
     }
 }

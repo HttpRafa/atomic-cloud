@@ -8,7 +8,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use serde::{Deserialize, Serialize};
-use simplelog::{info, warn, error};
+use simplelog::{error, info, warn};
 use stored::StoredCloudlet;
 use url::Url;
 
@@ -57,7 +57,10 @@ impl Cloudlets {
         let entries = match fs::read_dir(&cloudlets_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("<red>Failed</> to read cloudlets directory: <red>{}</>", &error);
+                error!(
+                    "<red>Failed</> to read cloudlets directory: <red>{}</>",
+                    &error
+                );
                 return cloudlets;
             }
         };
@@ -109,10 +112,7 @@ impl Cloudlets {
             }
         }
 
-        info!(
-            "Loaded <blue>{} cloudlet(s)</>",
-            cloudlets.cloudlets.len()
-        );
+        info!("Loaded <blue>{} cloudlet(s)</>", cloudlets.cloudlets.len());
         cloudlets
     }
 

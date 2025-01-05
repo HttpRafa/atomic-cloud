@@ -77,10 +77,7 @@ impl ManagedProcess {
 
     pub async fn tick(&mut self) -> bool {
         if let Some(status) = self.process.try_wait().ok().flatten() {
-            info!(
-                "Child process <red>exited</> with <blue>{}</>",
-                status
-            );
+            info!("Child process <red>exited</> with <blue>{}</>", status);
             self.handle_state_change(State::Stopped).await;
             return true;
         }

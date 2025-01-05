@@ -86,8 +86,7 @@ impl GuestGenericDriver for Pterodactyl {
                 cloudlets.push(wrapper.inner.clone());
                 info!(
                     "Cloudlet <blue>{}</>[<blue>{}</>] was <green>added</>",
-                    name,
-                    cloudlet.id
+                    name, cloudlet.id
                 );
                 Ok(GenericCloudlet::new(wrapper))
             } else {

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use proto::admin_service_client::AdminServiceClient;
+use proto::{admin_service_client::AdminServiceClient, cloudlet_management::CloudletValue, deployment_management::DeploymentValue, unit_management::{SimpleUnitValue, UnitValue}};
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
 use url::Url;
@@ -73,12 +73,77 @@ impl CloudConnection {
     pub async fn request_stop(&mut self) -> Result<()> {
         let request = self.create_request(());
 
-        self.client
+        self.client.as_mut().unwrap().request_stop(request).await?;
+        Ok(())
+    }
+
+    pub async fn get_cloudlet(&mut self, name: &str) -> Result<CloudletValue> {
+        let request = self.create_request(name.to_string());
+        Ok(self
+            .client
             .as_mut()
             .unwrap()
-            .request_stop(request)
-            .await?;
-        Ok(())
+            .get_cloudlet(request)
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_cloudlets(&mut self) -> Result<Vec<String>> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_cloudlets(request)
+            .await?
+            .into_inner()
+            .cloudlets)
+    }
+
+    pub async fn get_deployment(&mut self, name: &str) -> Result<DeploymentValue> {
+        let request = self.create_request(name.to_string());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_deployment(request)
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_deployments(&mut self) -> Result<Vec<String>> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_deployments(request)
+            .await?
+            .into_inner()
+            .deployments)
+    }
+
+    pub async fn get_unit(&mut self, uuid: &str) -> Result<UnitValue> {
+        let request = self.create_request(uuid.to_string());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_unit(request)
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_units(&mut self) -> Result<Vec<SimpleUnitValue>> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_units(request)
+            .await?
+            .into_inner()
+            .units)
     }
 
     pub async fn get_protocol_version(&mut self) -> Result<u32> {
@@ -88,6 +153,17 @@ impl CloudConnection {
             .as_mut()
             .unwrap()
             .get_protocol_version(request)
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_controller_version(&mut self) -> Result<String> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_controller_version(request)
             .await?
             .into_inner())
     }

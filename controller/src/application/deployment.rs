@@ -69,7 +69,10 @@ impl Deployments {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("<red>Failed</> to read deployment entry: <red>{}</>", &error);
+                    error!(
+                        "<red>Failed</> to read deployment entry: <red>{}</>",
+                        &error
+                    );
                     continue;
                 }
             };
@@ -143,7 +146,10 @@ impl Deployments {
             }
             LifecycleStatus::Active => {
                 self.activate_deployment(deployment);
-                info!("<green>Activated</> deployment <blue>{}</>", deployment.name);
+                info!(
+                    "<green>Activated</> deployment <blue>{}</>",
+                    deployment.name
+                );
             }
         }
         *deployment.status.write().unwrap() = status;

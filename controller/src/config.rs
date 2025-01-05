@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use serde::{Deserialize, Serialize};
-use simplelog::{warn, error};
+use simplelog::{error, warn};
 use uuid::Uuid;
 
 use crate::storage::Storage;
@@ -50,7 +50,10 @@ impl Config {
             return Self::default();
         }
         Self::load_from_file(&path).unwrap_or_else(|error| {
-            warn!("<red>Failed</> to read configuration from file: <red>{}</>", error);
+            warn!(
+                "<red>Failed</> to read configuration from file: <red>{}</>",
+                error
+            );
             Self::default()
         })
     }
@@ -92,7 +95,10 @@ impl Config {
         }
         if save {
             if let Err(error) = config.save_to_file(&Storage::get_primary_config_file()) {
-                error!("<red>Failed</> to save generated configuration to file: <red>{}</>", &error);
+                error!(
+                    "<red>Failed</> to save generated configuration to file: <red>{}</>",
+                    &error
+                );
             }
         }
 

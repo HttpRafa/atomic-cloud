@@ -115,8 +115,7 @@ impl driver::http::Host for WasmDriverState {
             Err(error) => {
                 warn!(
                     "<red>Failed</> to send HTTP request for driver <blue>{}</>: <red>{}</>",
-                    &driver.name,
-                    error
+                    &driver.name, error
                 );
                 return None;
             }
@@ -219,8 +218,7 @@ impl WasmDriver {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!(
                     "<red>Failed</> to create configs directory for driver <blue>{}</>: <red>{}</>",
-                    &name,
-                    &error
+                    &name, &error
                 )
             });
         }
@@ -228,8 +226,7 @@ impl WasmDriver {
             fs::create_dir_all(&data_directory).unwrap_or_else(|error| {
                 warn!(
                     "<red>Failed</> to create data directory for driver <blue>{}</>: <red>{}</>",
-                    &name,
-                    &error
+                    &name, &error
                 )
             });
         }
@@ -312,14 +309,20 @@ impl WasmDriver {
         let drivers_directory = Storage::get_drivers_folder().join(WASM_DIRECTORY);
         if !drivers_directory.exists() {
             fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
-                warn!("<red>Failed</> to create drivers directory: <red>{}</>", &error)
+                warn!(
+                    "<red>Failed</> to create drivers directory: <red>{}</>",
+                    &error
+                )
             });
         }
 
         let entries = match fs::read_dir(&drivers_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("<red>Failed</> to read driver directory: <red>{}</>", &error);
+                error!(
+                    "<red>Failed</> to read driver directory: <red>{}</>",
+                    &error
+                );
                 return;
             }
         };
@@ -393,7 +396,9 @@ impl WasmDriver {
         }
 
         if old_loaded == drivers.len() {
-            warn!("The Wasm driver feature is <yellow>enabled</>, but no Wasm drivers were loaded.");
+            warn!(
+                "The Wasm driver feature is <yellow>enabled</>, but no Wasm drivers were loaded."
+            );
         }
     }
 }

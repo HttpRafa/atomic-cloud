@@ -1,6 +1,6 @@
 use anyhow::Result;
 use auth::{AdminInterceptor, UnitInterceptor};
-use simplelog::{info, error};
+use simplelog::{error, info};
 use std::sync::Arc;
 use tokio::{
     sync::watch::{self, Receiver, Sender},
@@ -59,10 +59,7 @@ impl NetworkStack {
                 controller: Arc::clone(&controller),
             };
 
-            info!(
-                "Controller <blue>listening</> on <blue>{}</>",
-                address
-            );
+            info!("Controller <blue>listening</> on <blue>{}</>", address);
 
             Server::builder()
                 .add_service(AdminServiceServer::with_interceptor(

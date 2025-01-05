@@ -1,5 +1,3 @@
-use std::{thread, time::Duration};
-
 use loading::Loading;
 use start::ConnectionStartMenu;
 
@@ -10,11 +8,11 @@ use crate::{
 
 use super::MenuResult;
 
-mod start;
-mod general;
-mod resource;
 mod cloudlet;
 mod deployment;
+mod general;
+mod resource;
+mod start;
 mod unit;
 mod user;
 

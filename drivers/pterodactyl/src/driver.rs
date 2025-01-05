@@ -1,6 +1,5 @@
 use backend::Backend;
 use cloudlet::PterodactylCloudlet;
-use colored::Colorize;
 use std::cell::UnsafeCell;
 use std::rc::Rc;
 use std::sync::RwLock;
@@ -51,8 +50,8 @@ impl GuestGenericDriver for Pterodactyl {
         let backend = Backend::new_filled_and_resolved();
         if let Err(error) = &backend {
             error!(
-                "Failed to initialize Pterodactyl driver: {}",
-                error.to_string().red()
+                "Failed to initialize Pterodactyl driver: <red>{}</>",
+                error.to_string()
             );
         }
         unsafe { *self.backend.get() = backend.ok().map(Rc::new) };
@@ -86,10 +85,9 @@ impl GuestGenericDriver for Pterodactyl {
                     .expect("Failed to get lock on cloudlets");
                 cloudlets.push(wrapper.inner.clone());
                 info!(
-                    "Cloudlet {}[{}] was {}",
-                    name.blue(),
-                    format!("{}", cloudlet.id).blue(),
-                    "added".green()
+                    "Cloudlet <blue>{}</>[<blue>{}</>] was <green>added</>",
+                    name,
+                    cloudlet.id
                 );
                 Ok(GenericCloudlet::new(wrapper))
             } else {

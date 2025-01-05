@@ -1,10 +1,7 @@
 use std::time::Instant;
 use std::{ops::Deref, sync::Arc};
 
-use colored::Colorize;
-use log::error;
-use log::info;
-use log::warn;
+use simplelog::{info, warn, error};
 
 use crate::application::deployment::DeploymentHandle;
 use crate::application::{
@@ -62,7 +59,7 @@ impl Users {
                             Arc::downgrade(&to),
                         ));
                     } else {
-                        warn!("{} to find free unit in deployment {} while resolving transfer of user {}", deployment.name, user.name, "Failed".red());
+                        warn!("<red>Failed</> to find free unit in deployment <blue>{}</> while resolving transfer of user <blue>{}</>", deployment.name, user.name);
                     }
                 }
             }
@@ -74,10 +71,10 @@ impl Users {
     pub fn transfer_user(&self, transfer: Transfer) -> bool {
         if let Some((user, from, to)) = transfer.get_strong() {
             info!(
-                "Transfering user {} from {} to unit {}",
-                user.name.blue(),
-                from.name.blue(),
-                to.name.blue()
+                "Transfering user <blue>{}</> from <blue>{}</> to unit <blue>{}</>",
+                user.name,
+                from.name,
+                to.name
             );
 
             let controller = self
@@ -95,8 +92,7 @@ impl Users {
             return true;
         } else {
             error!(
-                "{} to transfer user because some required information is missing",
-                "Failed".red()
+                "<red>Failed</> to transfer user because some required information is missing",
             );
         }
 

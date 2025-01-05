@@ -2,8 +2,8 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use simplelog::{warn, error};
 use uuid::Uuid;
 
 use crate::storage::Storage;
@@ -50,7 +50,7 @@ impl Config {
             return Self::default();
         }
         Self::load_from_file(&path).unwrap_or_else(|error| {
-            warn!("Failed to read configuration from file: {}", error);
+            warn!("<red>Failed</> to read configuration from file: <red>{}</>", error);
             Self::default()
         })
     }
@@ -92,7 +92,7 @@ impl Config {
         }
         if save {
             if let Err(error) = config.save_to_file(&Storage::get_primary_config_file()) {
-                error!("Failed to save generated configuration to file: {}", &error);
+                error!("<red>Failed</> to save generated configuration to file: <red>{}</>", &error);
             }
         }
 
@@ -104,7 +104,7 @@ impl Config {
             if let Ok(address) = address.parse() {
                 config.network.bind.replace(address);
             } else {
-                error!("Failed to parse BIND_ADDRESS environment variable");
+                error!("<red>Failed</> to parse BIND_ADDRESS environment variable");
             }
         }
 

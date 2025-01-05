@@ -7,9 +7,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use colored::Colorize;
-use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
+use simplelog::{debug, info, warn, error};
 use uuid::Uuid;
 
 use super::{
@@ -58,10 +57,10 @@ impl Units {
                 if health.is_dead() {
                     match *unit.state.read().unwrap() {
                         State::Starting | State::Restarting => {
-                            warn!("Unit {} {} to establish online status within the expected startup time of {}.", unit.name.blue(), "failed".red(), format!("{:.2?}", controller.configuration.timings.restart.unwrap()).blue());
+                            warn!("Unit <blue>{} <red>failed</> to establish online status within the expected startup time of <blue>{:.2?}</>.", unit.name, controller.configuration.timings.restart.unwrap());
                         }
                         _ => {
-                            warn!("Unit {} has not checked in for {}, indicating a potential failure.", unit.name.blue(), format!("{:.2?}", health.timeout).blue());
+                            warn!("Unit <blue>{}</> has not checked in for <blue>{:.2?}</>, indicating a potential error.", unit.name, health.timeout);
                         }
                     }
                     true
@@ -100,9 +99,8 @@ impl Units {
             requests.retain(|request| {
                 if request.canceled.load(Ordering::Relaxed) {
                     debug!(
-                        "{} start of unit {}",
-                        "Canceled".yellow(),
-                        request.name.blue()
+                        "<yellow>Canceled</> start of unit <blue>{}</>",
+                        request.name
                     );
                     return false;
                 }
@@ -115,9 +113,8 @@ impl Units {
 
                 if request.cloudlets.is_empty() {
                     warn!(
-                        "{} to allocate resources for unit {} because no cloudlets were specified",
-                        "Failed".red(),
-                        request.name.red()
+                        "<red>Failed</> to allocate resources for unit <red>{}</> because no cloudlets were specified",
+                        request.name
                     );
                     return true;
                 }
@@ -133,9 +130,8 @@ impl Units {
                     }
                 }
                 warn!(
-                    "{} to allocate resources for unit {}",
-                    "Failed".red(),
-                    request.name.red()
+                    "<red>Failed</> to allocate resources for unit <red>{}</>",
+                    request.name
                 );
                 true
             });
@@ -172,7 +168,7 @@ impl Units {
 
     fn stop_unit_internal(&self, request: &StopRequest) {
         let unit = &request.unit;
-        info!("{} unit {}", "Stopping".yellow(), unit.name.blue());
+        info!("<red>Stopping</> unit <blue>{}</>", unit.name);
 
         // Remove resources allocated by unit from cloudlet
         if let Some(cloudlet) = unit.cloudlet.upgrade() {
@@ -211,9 +207,8 @@ impl Units {
             if let Some(cloudlet) = unit.cloudlet.upgrade() {
                 if let Err(error) = cloudlet.get_inner().stop_unit(&unit) {
                     error!(
-                        "{} to stop unit {}: {}",
-                        "Failed".red(),
-                        unit.name.red(),
+                        "<red>Failed</> to stop unit <red>{}</>: <red>{}</>",
+                        unit.name,
                         error
                     );
                 }
@@ -236,7 +231,7 @@ impl Units {
     }
 
     pub fn restart_unit(&self, unit: &UnitHandle) {
-        info!("{} unit {}", "Restarting".yellow(), unit.name.blue());
+        info!("<yellow>Restarting</> unit <blue>{}</>", unit.name);
 
         let controller = self
             .controller
@@ -265,9 +260,8 @@ impl Units {
             if let Some(cloudlet) = unit.cloudlet.upgrade() {
                 if let Err(error) = &cloudlet.get_inner().restart_unit(&unit) {
                     error!(
-                        "{} to restart unit {}: {}",
-                        "Failed".red(),
-                        unit.name.red(),
+                        "<red>Failed</> to restart unit <red>{}</>: <red>{}</>",
+                        unit.name,
                         error
                     );
                     controller.get_units().stop_unit_now(unit);
@@ -287,16 +281,15 @@ impl Units {
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
             info!(
-                "The unit {} is now {}",
-                unit.name.blue(),
-                "loading".yellow()
+                "The unit <blue>{}</> is now <yellow>loading</>",
+                unit.name
             );
         }
     }
 
     pub fn mark_ready(&self, unit: &UnitHandle) {
         if !unit.rediness.load(Ordering::Relaxed) {
-            debug!("The unit {} is {}", unit.name.blue(), "ready".green());
+            debug!("The unit <blue>{}</> is <green>ready</>", unit.name);
             unit.rediness.store(true, Ordering::Relaxed);
         }
     }
@@ -304,9 +297,8 @@ impl Units {
     pub fn mark_not_ready(&self, unit: &UnitHandle) {
         if unit.rediness.load(Ordering::Relaxed) {
             debug!(
-                "The unit {} is {} ready",
-                unit.name.blue(),
-                "no longer".red()
+                "The unit <blue>{}</> is <red>no longer</> ready",
+                unit.name
             );
             unit.rediness.store(false, Ordering::Relaxed);
         }
@@ -315,7 +307,7 @@ impl Units {
     pub fn mark_running(&self, unit: &UnitHandle) {
         let mut state = unit.state.write().unwrap();
         if *state == State::Preparing {
-            info!("The unit {} is now {}", unit.name.blue(), "running".green());
+            info!("The unit <blue>{}</> is now <green>running</>", unit.name);
             *state = State::Running;
         }
     }
@@ -364,11 +356,10 @@ impl Units {
             .expect("Failed to upgrade controller");
 
         info!(
-            "{} unit {} on cloudlet {} listening on port {}",
-            "Spinning up".green(),
-            request.name.blue(),
-            cloudlet.name.blue(),
-            allocation.primary_address().to_string().blue()
+            "<green>Spinning up</> unit <blue>{}</> on cloudlet <blue>{}</> listening on port <blue>{}</>",
+            request.name,
+            cloudlet.name,
+            allocation.primary_address().to_string()
         );
         let unit = Arc::new_cyclic(|handle| {
             // Create a token for the unit
@@ -405,12 +396,12 @@ impl Units {
         self.units.write().unwrap().insert(unit.uuid, unit.clone());
 
         // Print unit information to the console for debugging
-        debug!("{}", "-----------------------------------".red());
-        debug!("{}", "New unit added to controller".red());
-        debug!("{}{}", "Name: ".red(), unit.name.red());
-        debug!("{}{}", "UUID: ".red(), unit.uuid.to_string().red());
-        debug!("{}{}", "Token: ".red(), unit.auth.token.red());
-        debug!("{}", "-----------------------------------".red());
+        debug!("<red>-----------------------------------</>");
+        debug!("<red>New unit added to controller</>");
+        debug!("<red>Name: {}</>", unit.name);
+        debug!("<red>UUID: {}</>", unit.uuid.to_string());
+        debug!("<red>Token: {}</>", unit.auth.token);
+        debug!("<red>-----------------------------------</>");
 
         // Send start request to cloudlet
         // We do this async because the driver chould be running blocking code like network requests
@@ -427,9 +418,8 @@ impl Units {
             if let Some(cloudlet) = unit.cloudlet.upgrade() {
                 if let Err(error) = cloudlet.get_inner().start_unit(&unit) {
                     error!(
-                        "{} to start unit {}: {}",
-                        "Failed".red(),
-                        unit.name.red(),
+                        "<red>Failed</> to start unit <red>{}</>: <red>{}</>",
+                        unit.name,
                         error
                     );
                     controller.get_units().stop_unit_now(unit);

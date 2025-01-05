@@ -7,9 +7,8 @@ use cloudlet::driver;
 use cloudlet::driver::http::{Header, Method, Response};
 use cloudlet::driver::log::Level;
 use cloudlet_impl::WasmCloudlet;
-use colored::Colorize;
 use exports::cloudlet::driver::bridge;
-use log::{debug, error, info, warn};
+use simplelog::{debug, error, info, warn};
 use tonic::async_trait;
 use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
@@ -65,23 +64,23 @@ impl driver::log::Host for WasmDriverState {
     fn log_string(&mut self, level: Level, message: String) {
         match level {
             Level::Info => info!(
-                "{} {}",
-                format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(),
+                "<blue>[{}]</> {}",
+                &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),
             Level::Warn => warn!(
-                "{} {}",
-                format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(),
+                "<blue>[{}]</> {}",
+                &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),
             Level::Error => error!(
-                "{} {}",
-                format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(),
+                "<blue>[{}] {}",
+                &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),
             Level::Debug => debug!(
-                "{} {}",
-                format!("[{}]", &self.handle.upgrade().unwrap().name.to_uppercase()).blue(),
+                "[{}] {}",
+                &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),
         }
@@ -115,9 +114,8 @@ impl driver::http::Host for WasmDriverState {
             Ok(response) => response,
             Err(error) => {
                 warn!(
-                    "{} to send HTTP request for driver {}: {}",
-                    "Failed".red(),
-                    &driver.name.blue(),
+                    "<red>Failed</> to send HTTP request for driver <blue>{}</>: <red>{}</>",
+                    &driver.name,
                     error
                 );
                 return None;
@@ -220,8 +218,7 @@ impl WasmDriver {
         if !config_directory.exists() {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!(
-                    "{} to create configs directory for driver {}: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to create configs directory for driver <blue>{}</>: <red>{}</>",
                     &name,
                     &error
                 )
@@ -230,8 +227,7 @@ impl WasmDriver {
         if !data_directory.exists() {
             fs::create_dir_all(&data_directory).unwrap_or_else(|error| {
                 warn!(
-                    "{} to create data directory for driver {}: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to create data directory for driver <blue>{}</>: <red>{}</>",
                     &name,
                     &error
                 )
@@ -244,8 +240,7 @@ impl WasmDriver {
             config.cache_config_load(Storage::get_configs_folder().join(CACHE_CONFIG_FILE))
         {
             warn!(
-                "{} to enable caching for wasmtime engine: {}",
-                "Failed".red(),
+                "<red>Failed</> to enable caching for wasmtime engine: <red>{}</>",
                 &error
             );
         }
@@ -306,8 +301,7 @@ impl WasmDriver {
         if !cache_config.exists() {
             fs::write(&cache_config, DEFAULT_CACHE_CONFIG).unwrap_or_else(|error| {
                 warn!(
-                    "{} to create default cache configuration file: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to create default cache configuration file: <red>{}</>",
                     &error
                 )
             });
@@ -318,14 +312,14 @@ impl WasmDriver {
         let drivers_directory = Storage::get_drivers_folder().join(WASM_DIRECTORY);
         if !drivers_directory.exists() {
             fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
-                warn!("{} to create drivers directory: {}", "Failed".red(), &error)
+                warn!("<red>Failed</> to create drivers directory: <red>{}</>", &error)
             });
         }
 
         let entries = match fs::read_dir(&drivers_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("{} to read driver directory: {}", "Failed".red(), &error);
+                error!("<red>Failed</> to read driver directory: <red>{}</>", &error);
                 return;
             }
         };
@@ -334,7 +328,7 @@ impl WasmDriver {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("{} to read driver entry: {}", "Failed".red(), &error);
+                    error!("<red>Failed</> to read driver entry: <red>{}</>", &error);
                     continue;
                 }
             };
@@ -348,7 +342,7 @@ impl WasmDriver {
                     .ends_with(".wasm")
             {
                 warn!(
-                    "The driver directory should only contain wasm files, please remove {:?}",
+                    "The driver directory should only contain wasm files, please remove <blue>{:?}</>",
                     &entry.file_name()
                 );
                 continue;
@@ -359,8 +353,7 @@ impl WasmDriver {
                 Ok(source) => source,
                 Err(error) => {
                     error!(
-                        "{} to read source code for driver {} from file({:?}): {}",
-                        "Failed".red(),
+                        "<red>Failed</> to read source code for driver <blue>{}</> from file(<blue>{:?}</>): <blue>{}</>",
                         &name,
                         &path,
                         &error
@@ -369,31 +362,29 @@ impl WasmDriver {
                 }
             };
 
-            info!("Compiling driver {}...", &name.blue());
+            info!("Compiling driver <blue>{}</>...", &name);
             let driver = WasmDriver::new(cloud_identifier, &name, &source);
             match driver {
                 Ok(driver) => match driver.init() {
                     Ok(info) => {
                         if info.ready {
                             info!(
-                                "Loaded driver {} by {}",
-                                format!("{} v{}", &driver.name, &info.version).blue(),
-                                &info.authors.join(", ").blue()
+                                "Loaded driver <blue>{} v{}</> by <blue>{}</>",
+                                &driver.name, &info.version,
+                                &info.authors.join(", ")
                             );
                             drivers.push(driver);
                         } else {
                             warn!(
-                                "Driver {} marked itself as {}, skipping...",
-                                &driver.name.blue(),
-                                "not ready".yellow()
+                                "Driver <blue>{}</> marked itself as <yellow>not ready</>, skipping...",
+                                &driver.name
                             );
                         }
                     }
-                    Err(error) => error!("{} to load driver {}: {}", "Failed".red(), &name, &error),
+                    Err(error) => error!("<red>Failed</> to load driver <blue>{}</>: <red>{}</>", &name, &error),
                 },
                 Err(error) => error!(
-                    "{} to compile driver {} at location {}: {}",
-                    "Failed".red(),
+                    "<red>Failed</> to compile driver <blue>{}</> at location <blue>{}</>: <red>{}</>",
                     &name,
                     &source,
                     &error
@@ -402,7 +393,7 @@ impl WasmDriver {
         }
 
         if old_loaded == drivers.len() {
-            warn!("The Wasm driver feature is enabled, but no Wasm drivers were loaded.");
+            warn!("The Wasm driver feature is <yellow>enabled</>, but no Wasm drivers were loaded.");
         }
     }
 }

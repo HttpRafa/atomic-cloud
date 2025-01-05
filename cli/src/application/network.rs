@@ -1,6 +1,6 @@
 use anyhow::Result;
-use log::warn;
 use proto::admin_service_client::AdminServiceClient;
+use simplelog::warn;
 use tonic::{transport::Channel, Request};
 use url::Url;
 
@@ -53,7 +53,7 @@ impl CloudConnection {
         let protocol = match connection.get_protocol_version().await {
             Ok(version) => version,
             Err(error) => {
-                warn!("⚠ Failed to get protocol version: {}", error);
+                warn!("<yellow>⚠</> Failed to get protocol version: {}", error);
                 0
             }
         };

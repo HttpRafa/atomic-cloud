@@ -1,7 +1,6 @@
 use std::process::{exit, Stdio};
 
-use colored::Colorize;
-use log::{error, info};
+use simplelog::{error, info};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
     process::{Child, ChildStdin, ChildStdout, Command},
@@ -42,8 +41,8 @@ impl ManagedProcess {
         detector: RegexDetector,
         connection: CloudConnectionHandle,
     ) -> Self {
-        info!("{} child process...", "Starting".green());
-        info!("-> {} {}", program.blue(), args.join(" "));
+        info!("<green>Starting</> child process...");
+        info!("-> <blue>{}</> {}", program, args.join(" "));
 
         let mut process = match Command::new(program)
             .args(args)
@@ -53,7 +52,7 @@ impl ManagedProcess {
         {
             Ok(child) => child,
             Err(error) => {
-                error!("{} to start child process: {}", "Failed".red(), error);
+                error!("<red>Failed</> to start child process: {}", error);
                 exit(1);
             }
         };
@@ -79,9 +78,8 @@ impl ManagedProcess {
     pub async fn tick(&mut self) -> bool {
         if let Some(status) = self.process.try_wait().ok().flatten() {
             info!(
-                "Child process {} with {}",
-                "exited".red(),
-                format!("{}", status).blue()
+                "Child process <red>exited</> with <blue>{}</>",
+                status
             );
             self.handle_state_change(State::Stopped).await;
             return true;
@@ -93,7 +91,7 @@ impl ManagedProcess {
         let mut buffer = String::new();
         if self.stdout.read_line(&mut buffer).await.unwrap() > 0 {
             let line = buffer.trim();
-            println!("{} {}", "#".blue(), line);
+            println!("<blue>#</> {}", line);
             match self.detector.detect(line) {
                 Detection::Started => {
                     self.handle_state_change(State::Running).await;
@@ -122,7 +120,7 @@ impl ManagedProcess {
 
     pub async fn kill_if_running(&mut self) {
         if self.process.try_wait().ok().flatten().is_none() {
-            info!("{} child process...", "Stopping".red());
+            info!("<red>Stopping</> child process...");
             self.process
                 .kill()
                 .await
@@ -147,7 +145,7 @@ impl ManagedProcess {
 
         match state {
             State::Running => {
-                info!("The child process has {} successfully", "started".green());
+                info!("The child process has <green>started</> successfully");
                 if let Err(error) = self.connection.mark_running().await {
                     error!("Failed to report state to controller: {}", error);
                 }
@@ -156,7 +154,7 @@ impl ManagedProcess {
                 }
             }
             State::Stopping => {
-                info!("The child process is {}", "stopping".red());
+                info!("The child process is <red>stopping</>");
                 if let Err(error) = self.connection.mark_not_ready().await {
                     error!("Failed to report state to controller: {}", error);
                 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use inquire::Select;
-use log::debug;
+use simplelog::debug;
 
 use crate::application::profile::Profiles;
 

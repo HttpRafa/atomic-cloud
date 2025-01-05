@@ -1,6 +1,6 @@
-use log::info;
 use menu::{start::StartMenu, MenuResult};
 use profile::Profiles;
+use simplelog::info;
 
 mod menu;
 mod network;
@@ -23,6 +23,6 @@ impl Cli {
                 break;
             }
         }
-        info!("ℹ Goodbye!");
+        info!("<blue>ℹ</> Goodbye!");
     }
 }

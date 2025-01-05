@@ -1,4 +1,3 @@
-use colored::Colorize;
 use std::{
     cell::UnsafeCell,
     rc::Rc,
@@ -133,15 +132,15 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
             if spec.disk_retention == Retention::Temporary {
                 error!(
-                    "Unit {} already exists on the panel, but the disk retention is temporary",
-                    unit.name.blue()
+                    "Unit <blue>{}</> already exists on the panel, but the disk retention is temporary",
+                    unit.name
                 );
                 return;
             }
             // Just use the existing unit and change its settings
             info!(
-                "Unit {} already exists on the panel, updating settings and starting...",
-                unit.name.blue()
+                "Unit <blue>{}</> already exists on the panel, updating settings and starting...",
+                unit.name
             );
             self.get_backend()
                 .update_settings(self, allocations[0].id, &backend_unit, &unit);
@@ -180,8 +179,8 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             }
             if !missing.is_empty() {
                 error!(
-                    "The following required settings to start the unit are missing: {}",
-                    missing.join(", ").red()
+                    "The following required settings to start the unit are missing: <red>{}</>",
+                    missing.join(", ")
                 );
                 return;
             }
@@ -202,9 +201,8 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 },
             ) {
                 info!(
-                    "Unit {} successfully {} on the panel",
-                    unit.name.blue(),
-                    "created".green()
+                    "Unit <blue>{}</> successfully <green>created</> on the panel",
+                    unit.name,
                 );
                 self.inner
                     .get_units_mut()
@@ -217,16 +215,13 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
             self.get_backend().restart_server(&backend_unit);
             info!(
-                "Panel is {} the unit {}...",
-                "restarting".yellow(),
-                backend_unit.name.generate().blue(),
+                "Panel is <yellow>restarting</> the unit <blue>{}</>...",
+                backend_unit.name.generate(),
             );
         } else {
             error!(
-                "{} to restart unit {} because the unit was {} by this driver",
-                "Failed".red(),
+                "<red>Failed</> to restart unit <blue>{}</> because the unit was <red>never started</> by this driver",
                 unit.name,
-                "never started".red()
             );
         }
     }
@@ -236,25 +231,21 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             if unit.allocation.spec.disk_retention == Retention::Temporary {
                 self.get_backend().delete_server(backend_unit.id);
                 info!(
-                    "Unit {} successfully {} from the panel",
-                    backend_unit.name.generate().blue(),
-                    "deleted".red()
+                    "Unit <blue>{}</> successfully <red>deleted</> from the panel",
+                    backend_unit.name.generate()
                 );
             } else {
                 self.get_backend().stop_server(&backend_unit);
                 info!(
-                    "Panel is {} the unit {}...",
-                    "stopping".red(),
-                    backend_unit.name.generate().blue(),
+                    "Panel is <red>stopping</> the unit <blue>{}</>...",
+                    backend_unit.name.generate(),
                 );
             }
             self.inner.delete_unit(backend_unit.id);
         } else {
             error!(
-                "{} to stop unit {} because the unit was {} by this driver",
-                "Failed".red(),
-                unit.name,
-                "never started".red()
+                "<red>Failed</> to stop unit <blue>{}</> because the unit was <red>never started</> by this driver",
+                unit.name
             );
         }
     }

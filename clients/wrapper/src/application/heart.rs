@@ -1,8 +1,9 @@
-use log::error;
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+
+use simplelog::error;
 
 use super::network::CloudConnection;
 
@@ -33,7 +34,7 @@ impl Heart {
     pub async fn beat(&mut self) {
         self.next_beat = Instant::now() + self.interval;
         if let Err(error) = self.connection.beat_heart().await {
-            error!("Failed to report health to controller: {}", error);
+            error!("<red>Failed</> to report health to controller: {}", error);
         }
     }
 }

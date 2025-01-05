@@ -1,5 +1,4 @@
-use colored::Colorize;
-use log::debug;
+use simplelog::debug;
 use uuid::Uuid;
 
 use super::unit::{UnitHandle, WeakUnitHandle};
@@ -110,7 +109,7 @@ impl EventBus {
     }
 
     pub fn dispatch<E: Event>(&self, key: &EventKey, event: &E) -> u32 {
-        debug!("[{}] Dispatching event: {:?}", "EVENTS".blue(), event);
+        debug!("<blue>[EVENTS]</> Dispatching event: <cyan>{:?}</>", event);
 
         let mut count = 0;
         let listeners = self.listeners.read().unwrap();

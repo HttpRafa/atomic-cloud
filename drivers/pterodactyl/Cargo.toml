@@ -1,6 +1,6 @@
 [package]
 name = "pterodactyl"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
@@ -12,9 +12,6 @@ wit-bindgen = "0.36.0"
 
 # Error handling
 anyhow = "1.0.95"
-
-# Logging
-colored = "2.2.0"
 
 # Configuration
 serde = { version = "1.0.217", features = ["derive"] }

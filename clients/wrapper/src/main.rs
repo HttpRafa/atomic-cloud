@@ -3,9 +3,8 @@ use std::path::PathBuf;
 use application::Wrapper;
 use args::Args;
 use clap::Parser;
-use colored::Colorize;
 use common::init::CloudInit;
-use log::info;
+use simplelog::info;
 
 mod application;
 mod args;
@@ -22,7 +21,7 @@ async fn main() {
     CloudInit::init_logging(args.debug, false, PathBuf::from(LOG_FILE));
     CloudInit::print_ascii_art("Atomic Cloud Wrapper", &VERSION, &AUTHORS);
 
-    info!("{} wrapper...", "Starting".green());
+    info!("<green>Starting</> wrapper...");
     let mut wrapper = Wrapper::new(args).await;
     wrapper.start().await
 }

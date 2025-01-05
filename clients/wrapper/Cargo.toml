@@ -1,6 +1,6 @@
 [package]
 name = "wrapper"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
@@ -8,9 +8,7 @@ edition = "2021"
 common = { path = "../../common" }
 
 # Logging
-log = "0.4.22"
-simplelog = "0.12.2"
-colored = "2.2.0"
+simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
 anyhow = "1.0.95"

@@ -395,6 +395,10 @@ impl UnitService for UnitServiceImpl {
         Ok(Response::new(()))
     }
 
+    async fn get_protocol_version(&self, _request: Request<()>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(VERSION.protocol))
+    }
+
     async fn get_controller_version(
         &self,
         _request: Request<()>,

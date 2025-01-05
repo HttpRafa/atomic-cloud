@@ -15,6 +15,9 @@ members = [
     "clients/wrapper",
 ]
 
+[workspace.metadata]
+protocol-version = 1
+
 [profile.release]
 lto = true
 strip = true

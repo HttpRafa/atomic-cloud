@@ -1,9 +1,10 @@
 use log::info;
+use menu::{start::StartMenu, MenuResult};
 use profile::Profiles;
 
-use crate::menu::{start::StartMenu, Menu, MenuResult};
-
-pub mod profile;
+mod menu;
+mod network;
+mod profile;
 
 pub struct Cli {
     profiles: Profiles,
@@ -18,7 +19,7 @@ impl Cli {
 
     pub async fn start(&mut self) {
         loop {
-            if StartMenu::show(&mut self.profiles) == MenuResult::Exit {
+            if StartMenu::show(&mut self.profiles).await == MenuResult::Exit {
                 break;
             }
         }

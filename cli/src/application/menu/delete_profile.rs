@@ -1,15 +1,15 @@
 use inquire::{Confirm, Select};
 use loading::Loading;
-use log::{debug, error};
+use log::debug;
 
 use crate::application::profile::Profiles;
 
-use super::{Menu, MenuResult};
+use super::MenuResult;
 
 pub struct DeleteProfileMenu;
 
-impl Menu for DeleteProfileMenu {
-    fn show(profiles: &mut Profiles) -> MenuResult {
+impl DeleteProfileMenu {
+    pub async fn show(profiles: &mut Profiles) -> MenuResult {
         let options = profiles.profiles.clone();
         match Select::new("What profile/controller do you want to delete?", options).prompt() {
             Ok(profile) => {
@@ -27,10 +27,11 @@ impl Menu for DeleteProfileMenu {
                                 MenuResult::Success
                             }
                             Err(err) => {
-                                error!(
-                                    "✖ Ops. Something went wrong while deleting the profile | {}",
+                                progress.fail(format!(
+                                    "Ops. Something went wrong while deleting the profile | {}",
                                     err
-                                );
+                                ));
+                                progress.end();
                                 MenuResult::Failed
                             }
                         }

@@ -10,7 +10,7 @@ use crate::application::profile::Profiles;
 
 use super::{
     create_profile::CreateProfileMenu, delete_profile::DeleteProfileMenu,
-    load_profile::LoadProfileMenu, Menu, MenuResult,
+    load_profile::LoadProfileMenu, MenuResult,
 };
 
 enum Selection {
@@ -33,8 +33,8 @@ impl Display for Selection {
 
 pub struct StartMenu;
 
-impl Menu for StartMenu {
-    fn show(profiles: &mut Profiles) -> MenuResult {
+impl StartMenu {
+    pub async fn show(profiles: &mut Profiles) -> MenuResult {
         let mut options = vec![];
 
         {
@@ -49,9 +49,9 @@ impl Menu for StartMenu {
 
         match Select::new("What do you want to do?", options).prompt() {
             Ok(selection) => match selection {
-                Selection::LoadProfile => LoadProfileMenu::show(profiles),
-                Selection::CreateProfile => CreateProfileMenu::show(profiles),
-                Selection::DeleteProfile => DeleteProfileMenu::show(profiles),
+                Selection::LoadProfile => LoadProfileMenu::show(profiles).await,
+                Selection::CreateProfile => CreateProfileMenu::show(profiles).await,
+                Selection::DeleteProfile => DeleteProfileMenu::show(profiles).await,
                 Selection::Exit => MenuResult::Exit,
             },
             Err(error) => {

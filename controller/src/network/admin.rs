@@ -4,12 +4,15 @@ use proto::admin_service_server::AdminService;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
-use crate::application::{
-    cloudlet::{Capabilities, LifecycleStatus, RemoteController},
-    deployment::{ScalingPolicy, StartConstraints},
-    unit::{FallbackPolicy, KeyValue, Resources, Retention, Spec},
-    user::transfer::TransferTarget,
-    ControllerHandle, CreationResult,
+use crate::{
+    application::{
+        cloudlet::{Capabilities, LifecycleStatus, RemoteController},
+        deployment::{ScalingPolicy, StartConstraints},
+        unit::{FallbackPolicy, KeyValue, Resources, Retention, Spec},
+        user::transfer::TransferTarget,
+        ControllerHandle, CreationResult,
+    },
+    VERSION,
 };
 
 #[allow(clippy::all)]
@@ -546,5 +549,16 @@ impl AdminService for AdminServiceImpl {
         Ok(Response::new(
             self.controller.get_users().transfer_user(transfer),
         ))
+    }
+
+    async fn get_protocol_version(&self, _request: Request<()>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(VERSION.protocol))
+    }
+
+    async fn get_controller_version(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<String>, Status> {
+        Ok(Response::new(VERSION.to_string()))
     }
 }

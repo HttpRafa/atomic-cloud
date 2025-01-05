@@ -12,6 +12,8 @@ use url::Url;
 
 use crate::storage::Storage;
 
+use super::network::{CloudConnection, EstablishedConnection};
+
 pub struct Profiles {
     pub profiles: Vec<Profile>,
 }
@@ -117,12 +119,16 @@ impl Profiles {
         Ok(())
     }
 
-    pub fn is_id_used(profiles: &[Profile], id: &str) -> bool {
-        profiles.iter().any(|p| p.id == id)
-    }
-
     fn add_profile(&mut self, profile: Profile) {
         self.profiles.push(profile);
+    }
+
+    pub fn already_exists(profiles: &[Profile], name: &str) -> bool {
+        profiles.iter().any(|p| p.id == Profile::compute_id(name))
+    }
+
+    pub fn is_id_used(profiles: &[Profile], id: &str) -> bool {
+        profiles.iter().any(|p| p.id == id)
     }
 }
 
@@ -153,16 +159,8 @@ impl Profile {
         }
     }
 
-    pub fn compute_id(name: &str) -> String {
-        name.chars()
-            .map(|c| match c {
-                '/' | ':' | '|' => '-',
-                '<' | '>' | '"' | '\\' | '?' | '*' => '.',
-                ' ' => '_',
-                _ => c,
-            })
-            .collect::<String>()
-            .to_lowercase()
+    pub async fn establish_connection(&self) -> Result<EstablishedConnection> {
+        CloudConnection::establish_connection(self).await
     }
 
     pub fn mark_dirty(&self) -> Result<()> {
@@ -184,6 +182,18 @@ impl Profile {
             url: self.url.clone(),
         };
         stored_profile.save_to_file(&Storage::get_profile_file(&self.id))
+    }
+
+    pub fn compute_id(name: &str) -> String {
+        name.chars()
+            .map(|c| match c {
+                '/' | ':' | '|' => '-',
+                '<' | '>' | '"' | '\\' | '?' | '*' => '.',
+                ' ' => '_',
+                _ => c,
+            })
+            .collect::<String>()
+            .to_lowercase()
     }
 }
 

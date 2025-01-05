@@ -39,6 +39,7 @@ service UnitService {
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
 
     // Information
+    rpc GetProtocolVersion(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
     rpc GetControllerVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 }
 

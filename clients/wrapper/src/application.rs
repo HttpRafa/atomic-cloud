@@ -86,7 +86,7 @@ impl Wrapper {
         .expect("Failed to set Ctrl+C handler");
 
         // Tell the controller we are a new client
-        self.connection.send_reset().await;
+        self.connection.send_reset().await.expect("Failed to send reset signal to controller");
 
         // Start child process
         self.start_child();

@@ -6,22 +6,24 @@ use loading::Loading;
 use log::debug;
 use url::Url;
 
-use crate::application::profile::{Profile, Profiles};
+use crate::{
+    application::profile::{Profile, Profiles},
+    VERSION,
+};
 
-use super::{Menu, MenuResult};
+use super::MenuResult;
 
 pub struct CreateProfileMenu;
 
-impl Menu for CreateProfileMenu {
-    fn show(profiles: &mut Profiles) -> MenuResult {
+impl CreateProfileMenu {
+    pub async fn show(profiles: &mut Profiles) -> MenuResult {
         let mut prompt = Text::new("How do you want to name this profile?")
             .with_help_message("Example: Production Controller")
             .with_validator(ValueRequiredValidator::default());
         {
             let used_profiles = profiles.profiles.clone();
             prompt = prompt.with_validator(move |name: &str| {
-                let id = Profile::compute_id(name);
-                if used_profiles.iter().any(|p| p.id == id) {
+                if Profiles::already_exists(&used_profiles, name) {
                     Ok(Validation::Invalid(
                         "Profile with this name already exists".into(),
                     ))
@@ -68,8 +70,21 @@ impl Menu for CreateProfileMenu {
         };
 
         let progress = Loading::default();
-        progress.text(format!("Creating profile \"{}\"", name));
         let profile = Profile::new(&name, &authorization, url);
+        progress.text(format!("Connecting to the controller \"{}\" at {} to verify the profile", profile.name, profile.url));
+        match profile.establish_connection().await {
+            Ok(connection) => {
+                if connection.outdated {
+                    progress.warn(format!("The controller is running an outdated protocol version {} compared to this client running {}", connection.protocol, VERSION.protocol));
+                }
+            }
+            Err(error) => {
+                progress.fail(format!("Failed to connect to the controller: {}", error));
+                progress.end();
+                return MenuResult::Failed;
+            }
+        }
+        progress.text(format!("Saving profile \"{}\"", name));
         if let Err(error) = profiles.create_profile(&profile) {
             progress.fail(format!("Failed to create profile: {}", error));
             progress.end();

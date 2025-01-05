@@ -189,7 +189,7 @@ impl CloudConnection {
             .await
     }
 
-    pub async fn send_reset(&self) {
+    pub async fn send_reset(&self) -> Result<()> {
         let request = self.create_request(());
 
         self.client
@@ -198,8 +198,8 @@ impl CloudConnection {
             .as_mut()
             .unwrap()
             .reset(request)
-            .await
-            .unwrap();
+            .await?;
+        Ok(())
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {

@@ -21,7 +21,7 @@ impl GetCloudletMenu {
             "Getting all available cloudlets from controller \"{}\"",
             profile.name
         ));
-        
+
         match connection.client.get_cloudlets().await {
             Ok(cloudlets) => {
                 progress.success("Data received 👍");
@@ -33,10 +33,9 @@ impl GetCloudletMenu {
                         let progress = Loading::default();
                         progress.text(format!(
                             "Getting information from controller \"{}\" about cloudlet \"{}\"",
-                            profile.name,
-                            cloudlet
+                            profile.name, cloudlet
                         ));
-                
+
                         match connection.client.get_cloudlet(&cloudlet).await {
                             Ok(cloudlet) => {
                                 progress.success("Data received 👍");
@@ -48,12 +47,18 @@ impl GetCloudletMenu {
                                     info!("      <green><b>Memory</>: {} MiB", memory);
                                 }
                                 if let Some(max_allocations) = cloudlet.max_allocations {
-                                    info!("      <green><b>Max Allocations</>: {} Units", max_allocations);
+                                    info!(
+                                        "      <green><b>Max Allocations</>: {} Units",
+                                        max_allocations
+                                    );
                                 }
                                 if let Some(child) = cloudlet.child {
                                     info!("      <green><b>Child Node</>: {}", child);
                                 }
-                                info!("      <green><b>Controller Address</>: {}", cloudlet.controller_address);
+                                info!(
+                                    "      <green><b>Controller Address</>: {}",
+                                    cloudlet.controller_address
+                                );
                                 MenuResult::Success
                             }
                             Err(err) => {
@@ -66,7 +71,7 @@ impl GetCloudletMenu {
                             }
                         }
                     }
-                    Err(_) => MenuResult::Aborted
+                    Err(_) => MenuResult::Aborted,
                 }
             }
             Err(err) => {

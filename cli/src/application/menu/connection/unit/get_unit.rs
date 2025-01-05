@@ -29,22 +29,19 @@ impl GetUnitMenu {
             "Getting all available deployments from controller \"{}\"",
             profile.name
         ));
-        
+
         match connection.client.get_units().await {
             Ok(units) => {
                 progress.success("Data received 👍");
                 progress.end();
-                match Select::new("From what unit do want more information?", units)
-                    .prompt()
-                {
+                match Select::new("From what unit do want more information?", units).prompt() {
                     Ok(unit) => {
                         let progress = Loading::default();
                         progress.text(format!(
                             "Getting information from controller \"{}\" about unit \"{}\"",
-                            profile.name,
-                            unit
+                            profile.name, unit
                         ));
-                
+
                         match connection.client.get_unit(&unit.uuid).await {
                             Ok(unit) => {
                                 progress.success("Data received 👍");
@@ -62,16 +59,34 @@ impl GetUnitMenu {
                                     info!("      <green><b>Allocation</>: ");
                                     info!("         <green><b>Allocations</>: ");
                                     for address in allocation.addresses {
-                                        info!("            - <green><b>{}:{}</>", address.ip, address.port);
+                                        info!(
+                                            "            - <green><b>{}:{}</>",
+                                            address.ip, address.port
+                                        );
                                     }
                                     if let Some(resources) = allocation.resources {
                                         info!("         <green><b>Resources per unit</>: ");
-                                        info!("            <green><b>Memory</>: {} MiB", resources.memory);
-                                        info!("            <green><b>Swap</>: {} MiB", resources.swap);
-                                        info!("            <green><b>CPU-Cores</>: {}", resources.cpu / 100);
+                                        info!(
+                                            "            <green><b>Memory</>: {} MiB",
+                                            resources.memory
+                                        );
+                                        info!(
+                                            "            <green><b>Swap</>: {} MiB",
+                                            resources.swap
+                                        );
+                                        info!(
+                                            "            <green><b>CPU-Cores</>: {}",
+                                            resources.cpu / 100
+                                        );
                                         info!("            <green><b>IO</>: {}", resources.io);
-                                        info!("            <green><b>Disk space</>: {} MiB", resources.disk);
-                                        info!("            <green><b>Addresses/Ports</>: {}", resources.addresses);
+                                        info!(
+                                            "            <green><b>Disk space</>: {} MiB",
+                                            resources.disk
+                                        );
+                                        info!(
+                                            "            <green><b>Addresses/Ports</>: {}",
+                                            resources.addresses
+                                        );
                                     } else {
                                         warn!("         <yellow><b>Resources per unit</>: None");
                                     }
@@ -80,17 +95,32 @@ impl GetUnitMenu {
                                         info!("            <green><b>Image</>: {}", spec.image);
                                         info!("            <green><b>Settings</>: ");
                                         for setting in spec.settings {
-                                            info!("               - <green><b>{}</>: {}", setting.key, setting.value);
+                                            info!(
+                                                "               - <green><b>{}</>: {}",
+                                                setting.key, setting.value
+                                            );
                                         }
                                         info!("            <green><b>Environment Variables</>: ");
                                         for environment in spec.environment {
-                                            info!("               - <green><b>{}</>: {}", environment.key, environment.value);
+                                            info!(
+                                                "               - <green><b>{}</>: {}",
+                                                environment.key, environment.value
+                                            );
                                         }
-                                        info!("         <green><b>Disk Retention</>: {}", spec.disk_retention.unwrap_or(0));
+                                        info!(
+                                            "         <green><b>Disk Retention</>: {}",
+                                            spec.disk_retention.unwrap_or(0)
+                                        );
                                         if let Some(fallback) = spec.fallback {
                                             info!("            <green><b>Fallback</>: ");
-                                            info!("               <green><b>Is fallback</>: {}", fallback.enabled);
-                                            info!("               <green><b>Priority</>: {}", fallback.priority);
+                                            info!(
+                                                "               <green><b>Is fallback</>: {}",
+                                                fallback.enabled
+                                            );
+                                            info!(
+                                                "               <green><b>Priority</>: {}",
+                                                fallback.priority
+                                            );
                                         }
                                     } else {
                                         warn!("         <yellow><b>Specification</>: None");
@@ -98,7 +128,10 @@ impl GetUnitMenu {
                                 } else {
                                     warn!("      <yellow><b>Scaling</>: None");
                                 }
-                                info!("      <green><b>Connected Users</>: {}", unit.connected_users);
+                                info!(
+                                    "      <green><b>Connected Users</>: {}",
+                                    unit.connected_users
+                                );
                                 info!("      <green><b>Auth Token</>: {}", unit.auth_token);
                                 info!("      <green><b>State</>: {}", unit.state);
                                 info!("      <green><b>Rediness</>: {}", unit.rediness);
@@ -114,7 +147,7 @@ impl GetUnitMenu {
                             }
                         }
                     }
-                    Err(_) => MenuResult::Aborted
+                    Err(_) => MenuResult::Aborted,
                 }
             }
             Err(err) => {

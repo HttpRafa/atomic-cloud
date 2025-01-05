@@ -1,5 +1,10 @@
 use anyhow::Result;
-use proto::{admin_service_client::AdminServiceClient, cloudlet_management::CloudletValue, deployment_management::DeploymentValue, unit_management::{SimpleUnitValue, UnitValue}};
+use proto::{
+    admin_service_client::AdminServiceClient,
+    cloudlet_management::CloudletValue,
+    deployment_management::DeploymentValue,
+    unit_management::{SimpleUnitValue, UnitValue},
+};
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
 use url::Url;

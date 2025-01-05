@@ -5,6 +5,10 @@ This makes it easier to change them in the future
 
 use std::path::PathBuf;
 
+/* Logs */
+const LOGS_DIRECTORY: &str = "logs";
+const LATEST_LOG_FILE: &str = "latest.log";
+
 /* Cloudlets */
 const CLOUDLETS_DIRECTORY: &str = "cloudlets";
 
@@ -26,6 +30,10 @@ const DATA_DIRECTORY: &str = "data";
 pub struct Storage;
 
 impl Storage {
+    /* Logs */
+    pub fn get_latest_log_file() -> PathBuf {
+        PathBuf::from(LOGS_DIRECTORY).join(LATEST_LOG_FILE)
+    }
 
     /* Cloudlets */
     pub fn get_cloudlets_folder() -> PathBuf {
@@ -64,10 +72,11 @@ impl Storage {
         PathBuf::from(DRIVERS_DIRECTORY)
     }
     pub fn get_data_folder_for_driver(name: &str) -> PathBuf {
-        Storage::get_drivers_folder().join(DATA_DIRECTORY).join(name)
+        Storage::get_drivers_folder()
+            .join(DATA_DIRECTORY)
+            .join(name)
     }
     pub fn get_config_folder_for_driver(name: &str) -> PathBuf {
         Storage::get_configs_folder().join(name)
     }
-
 }

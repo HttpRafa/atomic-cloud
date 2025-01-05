@@ -20,6 +20,8 @@ fn generate_build_info(stage: &str) {
     let build = env::var("CURRENT_BUILD").unwrap_or_else(|_| "0".to_string());
 
     let version = get_version_info().expect("Unable to get version information");
+    let protocol_version =
+        get_protocol_version_info().expect("Unable to get protocol version information");
 
     writeln!(file, "use common::version::{{Stage, Version}};").unwrap();
     writeln!(file, "pub const VERSION: Version = Version {{").unwrap();
@@ -29,6 +31,7 @@ fn generate_build_info(stage: &str) {
     writeln!(file, "    build: {},", build).unwrap();
     writeln!(file, "    commit: \"{}\",", commit).unwrap();
     writeln!(file, "    stage: Stage::{},", stage).unwrap();
+    writeln!(file, "    protocol: {},", protocol_version).unwrap();
     writeln!(file, "}};").unwrap();
 }
 
@@ -50,6 +53,16 @@ fn get_version_info() -> Result<(u16, u16, u16), Box<dyn std::error::Error>> {
     } else {
         Err("Version must have three parts".into())
     }
+}
+
+fn get_protocol_version_info() -> Result<u32, Box<dyn std::error::Error>> {
+    let cargo_toml_content = fs::read_to_string("../Cargo.toml")?;
+    let cargo_toml: toml::Value = toml::from_str(&cargo_toml_content)?;
+
+    let value = cargo_toml["workspace"]["metadata"]["protocol-version"]
+        .as_integer()
+        .map(|v| v as u32);
+    value.ok_or("Unable to get protocol version from Cargo.toml".into())
 }
 
 fn generate_grpc_code() -> Result<(), Box<dyn std::error::Error>> {

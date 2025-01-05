@@ -5,6 +5,7 @@ use clap::Parser;
 use colored::Colorize;
 use common::init::CloudInit;
 use log::info;
+use storage::Storage;
 
 use crate::application::Controller;
 use crate::config::Config;
@@ -22,7 +23,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 fn main() {
     let args = Args::parse();
-    CloudInit::init_logging(args.debug);
+    CloudInit::init_logging(args.debug, false, Storage::get_latest_log_file());
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let start_time = Instant::now();

@@ -17,12 +17,16 @@ impl Display for Stage {
 }
 
 pub struct Version {
+    // Application
     pub major: u16,
     pub minor: u16,
     pub patch: u16,
     pub build: u16,
     pub commit: &'static str,
     pub stage: Stage,
+
+    // Protocol
+    pub protocol: u32,
 }
 
 impl Display for Version {

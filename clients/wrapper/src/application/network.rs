@@ -6,8 +6,8 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use proto::{
-    unit_service_client::UnitServiceClient,
     transfer_management::ResolvedTransferResponse,
+    unit_service_client::UnitServiceClient,
     user_management::{UserConnectedRequest, UserDisconnectedRequest},
 };
 use tonic::{transport::Channel, Request, Response, Status, Streaming};
@@ -54,7 +54,9 @@ impl CloudConnection {
         if let Ok(value) = std::env::var("UNIT_TOKEN") {
             token = Some(value);
         } else {
-            error!("Missing UNIT_TOKEN environment variable. Please set it to the token of this unit");
+            error!(
+                "Missing UNIT_TOKEN environment variable. Please set it to the token of this unit"
+            );
             exit(1);
         }
 
@@ -187,7 +189,7 @@ impl CloudConnection {
             .await
     }
 
-    pub async fn send_reset(&self) {
+    pub async fn send_reset(&self) -> Result<()> {
         let request = self.create_request(());
 
         self.client
@@ -196,8 +198,8 @@ impl CloudConnection {
             .as_mut()
             .unwrap()
             .reset(request)
-            .await
-            .unwrap();
+            .await?;
+        Ok(())
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {

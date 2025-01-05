@@ -10,11 +10,10 @@ use wasmtime::component::ResourceAny;
 
 use crate::application::{
     auth::AuthUnit,
-    driver::GenericCloudlet,
     cloudlet::Allocation,
+    driver::GenericCloudlet,
     unit::{
-        Spec, KeyValue, Resources, Retention, Unit, UnitHandle, StartRequest,
-        StartRequestHandle,
+        KeyValue, Resources, Retention, Spec, StartRequest, StartRequestHandle, Unit, UnitHandle,
     },
 };
 

@@ -12,6 +12,7 @@ DRIVER_DIR = $(RUN_DIR)/drivers/wasm
 
 # Arguments
 CONTROLLER_ARGS = "--debug"
+CLI_ARGS = "--debug"
 
 # OS detection
 ifeq ($(OS),Windows_NT)
@@ -42,7 +43,7 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
 
 ## Build target
-build: build-controller build-wrapper build-drivers
+build: build-controller build-cli build-wrapper build-drivers
 
 ## Run target
 run: run-controller
@@ -51,9 +52,17 @@ run: run-controller
 run-controller:
 	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p controller --all-features -- $(CONTROLLER_ARGS)
 
+## Run cli
+run-cli:
+	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p cli --all-features -- $(CLI_ARGS)
+
 ## Build controller target
 build-controller:
 	cargo build -p controller --all-features --release
+
+## Build cli target
+build-cli:
+	cargo build -p cli --all-features --release
 
 ## Build wrapper target
 build-wrapper:

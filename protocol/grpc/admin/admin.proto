@@ -32,6 +32,10 @@ service AdminService {
 
     // User Management
     rpc TransferUser(UserManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
+
+    // Information
+    rpc GetProtocolVersion(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
+    rpc GetControllerVersion(google.protobuf.Empty) returns (google.protobuf.StringValue);
 }
 
 // Resource Management

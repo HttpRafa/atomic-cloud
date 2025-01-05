@@ -14,8 +14,8 @@ use uuid::Uuid;
 
 use super::{
     auth::AuthUnitHandle,
-    deployment::WeakDeploymentHandle,
     cloudlet::{AllocationHandle, CloudletHandle, WeakCloudletHandle},
+    deployment::WeakDeploymentHandle,
     ControllerHandle, WeakControllerHandle,
 };
 
@@ -149,13 +149,9 @@ impl Units {
     }
 
     pub fn stop_all_instant(&self) {
-        self.units
-            .write()
-            .unwrap()
-            .drain()
-            .for_each(|(_, unit)| {
-                self.stop_unit_internal(&StopRequest { when: None, unit });
-            });
+        self.units.write().unwrap().drain().for_each(|(_, unit)| {
+            self.stop_unit_internal(&StopRequest { when: None, unit });
+        });
     }
 
     pub fn stop_all_on_cloudlet(&self, cloudlet: &CloudletHandle) {
@@ -319,11 +315,7 @@ impl Units {
     pub fn mark_running(&self, unit: &UnitHandle) {
         let mut state = unit.state.write().unwrap();
         if *state == State::Preparing {
-            info!(
-                "The unit {} is now {}",
-                unit.name.blue(),
-                "running".green()
-            );
+            info!("The unit {} is now {}", unit.name.blue(), "running".green());
             *state = State::Running;
         }
     }
@@ -410,10 +402,7 @@ impl Units {
         if let Some(deployment) = &request.deployment {
             deployment.set_active(unit.clone(), request);
         }
-        self.units
-            .write()
-            .unwrap()
-            .insert(unit.uuid, unit.clone());
+        self.units.write().unwrap().insert(unit.uuid, unit.clone());
 
         // Print unit information to the console for debugging
         debug!("{}", "-----------------------------------".red());

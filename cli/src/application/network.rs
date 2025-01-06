@@ -6,6 +6,7 @@ use proto::{
     cloudlet_management::CloudletValue,
     deployment_management::DeploymentValue,
     unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
+    user_management::{transfer_target_value::TargetType, TransferUserRequest, UserValue},
 };
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
@@ -207,6 +208,27 @@ impl CloudConnection {
             .into_inner())
     }
 
+    pub async fn get_users(&mut self) -> Result<Vec<UserValue>> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_users(request)
+            .await?
+            .into_inner()
+            .users)
+    }
+
+    pub async fn transfer_user(
+        &mut self,
+        transfer_user_request: TransferUserRequest,
+    ) -> Result<()> {
+        let request = self.create_request(transfer_user_request);
+        self.client.as_mut().unwrap().transfer_user(request).await?;
+        Ok(())
+    }
+
     fn create_request<T>(&self, data: T) -> Request<T> {
         let mut request = Request::new(data);
 
@@ -224,6 +246,21 @@ impl Display for Retention {
         match self {
             Retention::Temporary => write!(f, "Temporary"),
             Retention::Permanent => write!(f, "Permanent"),
+        }
+    }
+}
+
+impl Display for UserValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (<blue>{}</>)", self.name, self.uuid)
+    }
+}
+
+impl Display for TargetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TargetType::Unit => write!(f, "Unit"),
+            TargetType::Deployment => write!(f, "Deployment"),
         }
     }
 }

@@ -1,17 +1,135 @@
+use anyhow::Result;
+use loading::Loading;
+use simplelog::debug;
+
 use crate::application::{
-    menu::MenuResult,
-    network::EstablishedConnection,
+    menu::{MenuResult, MenuUtils},
+    network::{
+        proto::{
+            unit_management::SimpleUnitValue,
+            user_management::{
+                transfer_target_value::TargetType, TransferTargetValue, TransferUserRequest,
+                UserValue,
+            },
+        },
+        EstablishedConnection,
+    },
     profile::{Profile, Profiles},
 };
 
 pub struct TransferUserMenu;
 
+struct Data {
+    users: Vec<UserValue>,
+    units: Vec<SimpleUnitValue>,
+    deployments: Vec<String>,
+}
+
 impl TransferUserMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
-        profiles: &mut Profiles,
+        _profiles: &mut Profiles,
     ) -> MenuResult {
-        MenuResult::Success
+        let progress = Loading::default();
+        progress.text(format!(
+            "Retrieving all existing cloudlets from the controller \"{}\"...",
+            profile.name
+        ));
+
+        match Self::get_required_data(connection).await {
+            Ok(data) => {
+                progress.success("Data retrieved successfully 👍");
+                progress.end();
+
+                match Self::collect_transfer_request(&data) {
+                    Ok(request) => {
+                        let progress = Loading::default();
+                        progress.text(format!(
+                            "Transferring user \"{}\" to target \"{}\"...",
+                            request.user_uuid,
+                            request.target.as_ref().unwrap().target
+                        ));
+
+                        match connection.client.transfer_user(request).await {
+                            Ok(_) => {
+                                progress.success("User transferred successfully 👍.");
+                                progress.end();
+                                MenuResult::Success
+                            }
+                            Err(error) => {
+                                progress.fail(format!(
+                                    "An error occurred while transferrng user: {}",
+                                    error
+                                ));
+                                progress.end();
+                                MenuResult::Failed
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        debug!("{}", error);
+                        MenuResult::Failed
+                    }
+                }
+            }
+            Err(error) => {
+                progress.fail(format!(
+                    "An error occurred while fetching the required data from the controller: {}",
+                    error
+                ));
+                progress.end();
+                MenuResult::Failed
+            }
+        }
+    }
+
+    async fn get_required_data(connection: &mut EstablishedConnection) -> Result<Data> {
+        let users = connection.client.get_users().await?;
+        let units = connection.client.get_units().await?;
+        let deployments = connection.client.get_deployments().await?;
+        Ok(Data {
+            users,
+            units,
+            deployments,
+        })
+    }
+
+    fn collect_transfer_request(data: &Data) -> Result<TransferUserRequest> {
+        let user = MenuUtils::select_no_help("Select the user to transfer", data.users.clone())?;
+        let target = Self::collect_transfer_target(data)?;
+
+        Ok(TransferUserRequest {
+            user_uuid: user.uuid,
+            target: Some(target),
+        })
+    }
+
+    fn collect_transfer_target(data: &Data) -> Result<TransferTargetValue> {
+        match MenuUtils::select_no_help(
+            "Select the target type",
+            vec![TargetType::Unit, TargetType::Deployment],
+        )? {
+            TargetType::Unit => {
+                let unit = MenuUtils::select_no_help(
+                    "Select the unit to transfer the user to",
+                    data.units.clone(),
+                )?;
+                Ok(TransferTargetValue {
+                    target_type: TargetType::Unit as i32,
+                    target: unit.uuid,
+                })
+            }
+            TargetType::Deployment => {
+                let deployment = MenuUtils::select_no_help(
+                    "Select the deployment to transfer the user to",
+                    data.deployments.clone(),
+                )?;
+                Ok(TransferTargetValue {
+                    target_type: TargetType::Deployment as i32,
+                    target: deployment,
+                })
+            }
+        }
     }
 }

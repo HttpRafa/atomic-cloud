@@ -34,6 +34,7 @@ service AdminService {
     rpc GetUnits(google.protobuf.Empty) returns (UnitManagement.UnitListResponse);
 
     // User Management
+    rpc GetUsers(google.protobuf.Empty) returns (UserManagement.UserListResponse);
     rpc TransferUser(UserManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
 
     // Information
@@ -187,6 +188,15 @@ message UnitManagement {
 
 // User Management
 message UserManagement {
+    message UserListResponse {
+        repeated UserValue users = 1;
+    }
+
+    message UserValue {
+        string name = 1;
+        string uuid = 2;
+    }
+
     message TransferTargetValue {
         string target = 1;
         TargetType targetType = 2;

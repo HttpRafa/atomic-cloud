@@ -17,31 +17,35 @@ impl GetCloudletsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Sending request to controller \"{}\"",
+            "Requesting cloudlet list from controller \"{}\"...",
             profile.name
         ));
 
         match connection.client.get_cloudlets().await {
             Ok(cloudlets) => {
-                progress.success("Data received 👍");
+                progress.success("Cloudlet data retrieved successfully 👍");
                 progress.end();
-                info!("   <blue>🖥  <b>Cloudlets</>");
-                if cloudlets.is_empty() {
-                    info!("      <green><b>No cloudlets found</>");
-                } else {
-                    for cloudlet in cloudlets {
-                        info!("    - <green>{}</>", cloudlet);
-                    }
-                }
+                Self::display_cloudlets(&cloudlets);
                 MenuResult::Success
             }
             Err(err) => {
                 progress.fail(format!(
-                    "Ops. Something went wrong while getting the required version information from the controller | {}",
+                    "An error occurred while retrieving cloudlet information: {}",
                     err
                 ));
                 progress.end();
                 MenuResult::Failed
+            }
+        }
+    }
+
+    fn display_cloudlets(cloudlets: &[String]) {
+        info!("   <blue>🖥  <b>Available Cloudlets</>");
+        if cloudlets.is_empty() {
+            info!("      <green><b>No cloudlets found.</>");
+        } else {
+            for cloudlet in cloudlets {
+                info!("    - <green>{}</>", cloudlet);
             }
         }
     }

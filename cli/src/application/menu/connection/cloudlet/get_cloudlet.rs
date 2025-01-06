@@ -1,10 +1,9 @@
-use inquire::Select;
 use loading::Loading;
 use simplelog::info;
 
 use crate::application::{
-    menu::MenuResult,
-    network::EstablishedConnection,
+    menu::{MenuResult, MenuUtils},
+    network::{proto::cloudlet_management::CloudletValue, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
@@ -18,54 +17,34 @@ impl GetCloudletMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Getting all available cloudlets from controller \"{}\"",
+            "Retrieving available cloudlets from controller \"{}\"...",
             profile.name
         ));
 
         match connection.client.get_cloudlets().await {
             Ok(cloudlets) => {
-                progress.success("Data received 👍");
+                progress.success("Cloudlet data retrieved successfully 👍");
                 progress.end();
-                match Select::new("From what cloudlet do want more information?", cloudlets)
-                    .prompt()
-                {
+                match MenuUtils::select_no_help(
+                    "Select a cloudlet to view more details:",
+                    cloudlets,
+                ) {
                     Ok(cloudlet) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Getting information from controller \"{}\" about cloudlet \"{}\"",
-                            profile.name, cloudlet
+                            "Fetching details for cloudlet \"{}\" from controller \"{}\"...",
+                            cloudlet, profile.name
                         ));
 
                         match connection.client.get_cloudlet(&cloudlet).await {
-                            Ok(cloudlet) => {
-                                progress.success("Data received 👍");
+                            Ok(details) => {
+                                progress.success("Cloudlet details retrieved successfully 👍");
                                 progress.end();
-                                info!("   <blue>🖥  <b>Cloudlet Info</>");
-                                info!("      <green><b>Name</>: {}", cloudlet.name);
-                                info!("      <green><b>Driver</>: {}", cloudlet.driver);
-                                if let Some(memory) = cloudlet.memory {
-                                    info!("      <green><b>Memory</>: {} MiB", memory);
-                                }
-                                if let Some(max_allocations) = cloudlet.max_allocations {
-                                    info!(
-                                        "      <green><b>Max Allocations</>: {} Units",
-                                        max_allocations
-                                    );
-                                }
-                                if let Some(child) = cloudlet.child {
-                                    info!("      <green><b>Child Node</>: {}", child);
-                                }
-                                info!(
-                                    "      <green><b>Controller Address</>: {}",
-                                    cloudlet.controller_address
-                                );
+                                Self::display_details(&details);
                                 MenuResult::Success
                             }
                             Err(err) => {
-                                progress.fail(format!(
-                                    "Ops. Something went wrong while getting the required version information from the controller | {}",
-                                    err
-                                ));
+                                progress.fail(format!("Failed to fetch cloudlet details: {}", err));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -75,13 +54,32 @@ impl GetCloudletMenu {
                 }
             }
             Err(err) => {
-                progress.fail(format!(
-                    "Ops. Something went wrong while getting the required version information from the controller | {}",
-                    err
-                ));
+                progress.fail(format!("Failed to retrieve cloudlet data: {}", err));
                 progress.end();
                 MenuResult::Failed
             }
         }
+    }
+
+    fn display_details(cloudlet: &CloudletValue) {
+        info!("   <blue>🖥  <b>Cloudlet Information</>");
+        info!("      <green><b>Name</>: {}", cloudlet.name);
+        info!("      <green><b>Driver</>: {}", cloudlet.driver);
+        if let Some(memory) = &cloudlet.memory {
+            info!("      <green><b>Memory</>: {} MiB", memory);
+        }
+        if let Some(max_allocations) = &cloudlet.max_allocations {
+            info!(
+                "      <green><b>Max Allocations</>: {} Units",
+                max_allocations
+            );
+        }
+        if let Some(child) = &cloudlet.child {
+            info!("      <green><b>Child Node</>: {}", child);
+        }
+        info!(
+            "      <green><b>Controller Address</>: {}",
+            cloudlet.controller_address
+        );
     }
 }

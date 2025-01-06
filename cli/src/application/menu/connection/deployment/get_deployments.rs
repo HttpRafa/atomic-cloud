@@ -17,31 +17,35 @@ impl GetDeploymentsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Sending request to controller \"{}\"",
+            "Requesting deployment list from controller \"{}\"...",
             profile.name
         ));
 
         match connection.client.get_deployments().await {
             Ok(deployments) => {
-                progress.success("Data received 👍");
+                progress.success("Deployment data retrieved successfully 👍");
                 progress.end();
-                info!("   <blue>🖥  <b>Deployments</>");
-                if deployments.is_empty() {
-                    info!("      <green><b>No deployments found</>");
-                } else {
-                    for deployment in deployments {
-                        info!("    - <green>{}</>", deployment);
-                    }
-                }
+                Self::display_deployments(&deployments);
                 MenuResult::Success
             }
             Err(err) => {
                 progress.fail(format!(
-                    "Ops. Something went wrong while getting the required version information from the controller | {}",
+                    "An error occurred while retrieving deployments: {}",
                     err
                 ));
                 progress.end();
                 MenuResult::Failed
+            }
+        }
+    }
+
+    fn display_deployments(deployments: &[String]) {
+        info!("   <blue>🖥  <b>Available Deployments</>");
+        if deployments.is_empty() {
+            info!("      <green><b>No deployments found.</>");
+        } else {
+            for deployment in deployments {
+                info!("    - <green>{}</>", deployment);
             }
         }
     }

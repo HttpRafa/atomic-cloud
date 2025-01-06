@@ -16,6 +16,9 @@ service AdminService {
     rpc SetResourceStatus(ResourceManagement.SetResourceStatusRequest) returns (google.protobuf.Empty);
     rpc DeleteResource(ResourceManagement.DeleteResourceRequest) returns (google.protobuf.Empty);
 
+    // Driver Management
+    rpc GetDrivers(google.protobuf.Empty) returns (DriverManagement.DriverListResponse);
+
     // Cloudlet Management
     rpc CreateCloudlet(CloudletManagement.CloudletValue) returns (google.protobuf.Empty);
     rpc GetCloudlet(google.protobuf.StringValue) returns (CloudletManagement.CloudletValue);
@@ -60,6 +63,13 @@ message ResourceManagement {
     enum ResourceStatus {
         ACTIVE = 0;
         RETIRED = 1;
+    }
+}
+
+// Driver Management
+message DriverManagement {
+    message DriverListResponse {
+        repeated string drivers = 1;
     }
 }
 

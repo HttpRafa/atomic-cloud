@@ -1,9 +1,11 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use proto::{
     admin_service_client::AdminServiceClient,
     cloudlet_management::CloudletValue,
     deployment_management::DeploymentValue,
-    unit_management::{SimpleUnitValue, UnitValue},
+    unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
 };
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
@@ -22,7 +24,7 @@ pub mod proto {
 
 pub struct EstablishedConnection {
     pub client: CloudConnection,
-    pub outdated: bool,
+    pub incompatible: bool,
     pub protocol: u32,
 }
 
@@ -65,7 +67,7 @@ impl CloudConnection {
 
         Ok(EstablishedConnection {
             client,
-            outdated: protocol != VERSION.protocol,
+            incompatible: protocol != VERSION.protocol,
             protocol,
         })
     }
@@ -79,6 +81,28 @@ impl CloudConnection {
         let request = self.create_request(());
 
         self.client.as_mut().unwrap().request_stop(request).await?;
+        Ok(())
+    }
+
+    pub async fn get_drivers(&mut self) -> Result<Vec<String>> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_drivers(request)
+            .await?
+            .into_inner()
+            .drivers)
+    }
+
+    pub async fn create_cloudlet(&mut self, cloudlet: CloudletValue) -> Result<()> {
+        let request = self.create_request(cloudlet);
+        self.client
+            .as_mut()
+            .unwrap()
+            .create_cloudlet(request)
+            .await?;
         Ok(())
     }
 
@@ -103,6 +127,16 @@ impl CloudConnection {
             .await?
             .into_inner()
             .cloudlets)
+    }
+
+    pub async fn create_deployment(&mut self, deployment: DeploymentValue) -> Result<()> {
+        let request = self.create_request(deployment);
+        self.client
+            .as_mut()
+            .unwrap()
+            .create_deployment(request)
+            .await?;
+        Ok(())
     }
 
     pub async fn get_deployment(&mut self, name: &str) -> Result<DeploymentValue> {
@@ -182,5 +216,14 @@ impl CloudConnection {
             .insert("authorization", self.token.parse().unwrap());
 
         request
+    }
+}
+
+impl Display for Retention {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Retention::Temporary => write!(f, "Temporary"),
+            Retention::Permanent => write!(f, "Permanent"),
+        }
     }
 }

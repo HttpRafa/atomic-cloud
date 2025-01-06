@@ -112,6 +112,23 @@ impl AdminService for AdminServiceImpl {
         }
     }
 
+    async fn get_drivers(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::driver_management::DriverListResponse>, Status> {
+        let drivers = self
+            .controller
+            .get_drivers()
+            .get_drivers()
+            .iter()
+            .map(|driver| driver.name().clone())
+            .collect();
+
+        Ok(Response::new(
+            proto::driver_management::DriverListResponse { drivers },
+        ))
+    }
+
     async fn create_cloudlet(
         &self,
         request: Request<proto::cloudlet_management::CloudletValue>,

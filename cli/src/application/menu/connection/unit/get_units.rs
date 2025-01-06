@@ -3,7 +3,7 @@ use simplelog::info;
 
 use crate::application::{
     menu::MenuResult,
-    network::EstablishedConnection,
+    network::{proto::unit_management::SimpleUnitValue, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
@@ -17,34 +17,35 @@ impl GetUnitsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Sending request to controller \"{}\"",
+            "Requesting unit list from controller \"{}\"",
             profile.name
         ));
 
         match connection.client.get_units().await {
             Ok(units) => {
-                progress.success("Data received 👍");
+                progress.success("Unit data retrieved successfully 👍");
                 progress.end();
-                info!("   <blue>🖥  <b>Units</>");
-                if units.is_empty() {
-                    info!("      <green><b>No units found</>");
-                } else {
-                    for unit in units {
-                        info!(
-                            "    - <green>{}</>@<cyan>{}</> (<blue>{}</>)",
-                            unit.name, unit.cloudlet, unit.uuid
-                        );
-                    }
-                }
+                Self::display_details(&units);
                 MenuResult::Success
             }
             Err(err) => {
-                progress.fail(format!(
-                    "Ops. Something went wrong while getting the required version information from the controller | {}",
-                    err
-                ));
+                progress.fail(format!("An error occurred while retrieving units: {}", err));
                 progress.end();
                 MenuResult::Failed
+            }
+        }
+    }
+
+    fn display_details(units: &[SimpleUnitValue]) {
+        info!("   <blue>🖥  <b>Units</>");
+        if units.is_empty() {
+            info!("      <green><b>No units found</>");
+        } else {
+            for unit in units {
+                info!(
+                    "    - <green>{}</>@<cyan>{}</> (<blue>{}</>)",
+                    unit.name, unit.cloudlet, unit.uuid
+                );
             }
         }
     }

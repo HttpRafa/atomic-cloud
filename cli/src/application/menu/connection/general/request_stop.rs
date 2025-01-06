@@ -1,10 +1,9 @@
 use std::{thread, time::Duration};
 
-use inquire::Confirm;
 use loading::Loading;
 
 use crate::application::{
-    menu::MenuResult,
+    menu::{MenuResult, MenuUtils},
     network::EstablishedConnection,
     profile::{Profile, Profiles},
 };
@@ -17,9 +16,7 @@ impl RequestStopMenu {
         connection: &mut EstablishedConnection,
         _profiles: &mut Profiles,
     ) -> MenuResult {
-        match Confirm::new("Do you really want to stop this controller?")
-            .with_help_message("This will stop all servers and kick all users | Type y or n")
-            .prompt()
+        match MenuUtils::confirm("Are you sure you want to stop this controller? This will stop all servers and disconnect all users.")
         {
             Ok(true) => {
                 let progress = Loading::default();
@@ -27,13 +24,13 @@ impl RequestStopMenu {
                 match connection.client.request_stop().await {
                     Ok(_) => {
                         thread::sleep(Duration::from_secs(3));
-                        progress.success("Controller stopped 👍");
+                        progress.success("Controller stopped successfully 👍");
                         progress.end();
                         MenuResult::Exit
                     }
                     Err(err) => {
                         progress.fail(format!(
-                            "Ops. Something went wrong while stopping the controller | {}",
+                            "Something went wrong while trying to stop the controller: {}",
                             err
                         ));
                         progress.end();

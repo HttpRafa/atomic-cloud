@@ -64,6 +64,10 @@ impl Drivers {
             .find(|driver| driver.name().eq_ignore_ascii_case(name))
             .cloned()
     }
+
+    pub fn get_drivers(&self) -> Vec<DriverHandle> {
+        self.drivers.clone()
+    }
 }
 
 #[cfg(feature = "wasm-drivers")]

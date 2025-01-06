@@ -1,10 +1,9 @@
 use std::fmt::Display;
 
-use inquire::Select;
 use simplelog::debug;
 
 use crate::application::{
-    menu::MenuResult,
+    menu::{MenuResult, MenuUtils},
     network::EstablishedConnection,
     profile::{Profile, Profiles},
 };
@@ -14,7 +13,10 @@ use super::{
         create_cloudlet::CreateCloudletMenu, get_cloudlet::GetCloudletMenu,
         get_cloudlets::GetCloudletsMenu,
     },
-    deployment::{get_deployment::GetDeploymentMenu, get_deployments::GetDeploymentsMenu},
+    deployment::{
+        create_deployment::CreateDeploymentMenu, get_deployment::GetDeploymentMenu,
+        get_deployments::GetDeploymentsMenu,
+    },
     general::{get_versions::GetVersionsMenu, request_stop::RequestStopMenu},
     resource::{delete_resource::DeleteResourceMenu, set_resource_status::SetResourceStatusMenu},
     unit::{get_unit::GetUnitMenu, get_units::GetUnitsMenu},
@@ -98,7 +100,7 @@ impl ConnectionStartMenu {
         connection: &mut EstablishedConnection,
         profiles: &mut Profiles,
     ) -> MenuResult {
-        match Select::new(
+        match MenuUtils::select_no_help(
             "What do you want to do?",
             vec![
                 Action::RequestStop,
@@ -116,9 +118,7 @@ impl ConnectionStartMenu {
                 Action::GetVersions,
                 Action::DisconnectFromController,
             ],
-        )
-        .prompt()
-        {
+        ) {
             Ok(selection) => match selection {
                 Action::SetResourceStatus => {
                     SetResourceStatusMenu::show(profile, connection, profiles).await
@@ -132,7 +132,7 @@ impl ConnectionStartMenu {
                 Action::GetCloudlet => GetCloudletMenu::show(profile, connection, profiles).await,
                 Action::GetCloudlets => GetCloudletsMenu::show(profile, connection, profiles).await,
                 Action::CreateDeployment => {
-                    CreateCloudletMenu::show(profile, connection, profiles).await
+                    CreateDeploymentMenu::show(profile, connection, profiles).await
                 }
                 Action::GetDeployment => {
                     GetDeploymentMenu::show(profile, connection, profiles).await

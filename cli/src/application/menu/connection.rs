@@ -27,8 +27,8 @@ impl ConnectionMenu {
         ));
         match profile.establish_connection().await {
             Ok(mut connection) => {
-                if connection.outdated {
-                    progress.warn(format!("The controller is running an outdated protocol version {} compared to this client running {}", connection.protocol, VERSION.protocol));
+                if connection.incompatible {
+                    progress.warn(format!("The controller is running an incompatible protocol version {} compared to this client's version {}", connection.protocol, VERSION.protocol));
                 }
                 progress.success("Successfully connected to the controller");
                 progress.end();

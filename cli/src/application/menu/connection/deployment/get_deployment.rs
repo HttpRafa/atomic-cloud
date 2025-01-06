@@ -45,11 +45,8 @@ impl GetDeploymentMenu {
                                 Self::display_details(&deployment_details);
                                 MenuResult::Success
                             }
-                            Err(err) => {
-                                progress.fail(format!(
-                                    "An error occurred while retrieving deployment details: {}",
-                                    err
-                                ));
+                            Err(error) => {
+                                progress.fail(format!("{}", error));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -58,11 +55,8 @@ impl GetDeploymentMenu {
                     Err(_) => MenuResult::Aborted,
                 }
             }
-            Err(err) => {
-                progress.fail(format!(
-                    "An error occurred while fetching deployments: {}",
-                    err
-                ));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

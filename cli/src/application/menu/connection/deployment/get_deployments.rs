@@ -28,11 +28,8 @@ impl GetDeploymentsMenu {
                 Self::display_deployments(&deployments);
                 MenuResult::Success
             }
-            Err(err) => {
-                progress.fail(format!(
-                    "An error occurred while retrieving deployments: {}",
-                    err
-                ));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

@@ -51,10 +51,7 @@ impl CreateCloudletMenu {
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!(
-                                    "An error occurred while creating the cloudlet: {}",
-                                    error
-                                ));
+                                progress.fail(format!("{}", error));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -67,10 +64,7 @@ impl CreateCloudletMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!(
-                    "An error occurred while fetching the required data from the controller: {}",
-                    error
-                ));
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

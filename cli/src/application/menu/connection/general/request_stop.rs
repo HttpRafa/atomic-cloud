@@ -28,10 +28,10 @@ impl RequestStopMenu {
                         progress.end();
                         MenuResult::Exit
                     }
-                    Err(err) => {
+                    Err(error) => {
                         progress.fail(format!(
-                            "Something went wrong while trying to stop the controller: {}",
-                            err
+                            "{}",
+                            error
                         ));
                         progress.end();
                         MenuResult::Failed

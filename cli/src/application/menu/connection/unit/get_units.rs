@@ -28,8 +28,8 @@ impl GetUnitsMenu {
                 Self::display_details(&units);
                 MenuResult::Success
             }
-            Err(err) => {
-                progress.fail(format!("An error occurred while retrieving units: {}", err));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

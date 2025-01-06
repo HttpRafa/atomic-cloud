@@ -5,7 +5,9 @@ use proto::{
     admin_service_client::AdminServiceClient,
     cloudlet_management::CloudletValue,
     deployment_management::DeploymentValue,
-    resource_management::{ResourceCategory, ResourceStatus, SetResourceStatusRequest},
+    resource_management::{
+        DeleteResourceRequest, ResourceCategory, ResourceStatus, SetResourceStatusRequest,
+    },
     unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
     user_management::{transfer_target_value::TargetType, TransferUserRequest, UserValue},
 };
@@ -92,6 +94,16 @@ impl CloudConnection {
             .as_mut()
             .unwrap()
             .set_resource_status(request)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_resource(&mut self, request: DeleteResourceRequest) -> Result<()> {
+        let request = self.create_request(request);
+        self.client
+            .as_mut()
+            .unwrap()
+            .delete_resource(request)
             .await?;
         Ok(())
     }

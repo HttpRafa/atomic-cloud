@@ -37,11 +37,8 @@ impl GetVersionsMenu {
                 info!("      <green><b>Protocol version</>: {}", VERSION.protocol);
                 MenuResult::Success
             }
-            Err(err) => {
-                progress.fail(format!(
-                    "Something went wrong while retrieving version info from the controller: {}",
-                    err
-                ));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

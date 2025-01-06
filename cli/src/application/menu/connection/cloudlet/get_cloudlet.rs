@@ -44,7 +44,7 @@ impl GetCloudletMenu {
                                 MenuResult::Success
                             }
                             Err(err) => {
-                                progress.fail(format!("Failed to fetch cloudlet details: {}", err));
+                                progress.fail(format!("{}", err));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -54,7 +54,7 @@ impl GetCloudletMenu {
                 }
             }
             Err(err) => {
-                progress.fail(format!("Failed to retrieve cloudlet data: {}", err));
+                progress.fail(format!("{}", err));
                 progress.end();
                 MenuResult::Failed
             }

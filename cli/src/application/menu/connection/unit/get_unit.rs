@@ -51,8 +51,8 @@ impl GetUnitMenu {
                                 Self::display_details(&unit);
                                 MenuResult::Success
                             }
-                            Err(err) => {
-                                progress.fail(format!("Failed to fetch unit details: {}", err));
+                            Err(error) => {
+                                progress.fail(format!("{}", error));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -61,8 +61,8 @@ impl GetUnitMenu {
                     Err(_) => MenuResult::Aborted,
                 }
             }
-            Err(err) => {
-                progress.fail(format!("Failed to retrieve cloudlet data: {}", err));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

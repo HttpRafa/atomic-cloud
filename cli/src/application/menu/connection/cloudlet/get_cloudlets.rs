@@ -28,11 +28,8 @@ impl GetCloudletsMenu {
                 Self::display_cloudlets(&cloudlets);
                 MenuResult::Success
             }
-            Err(err) => {
-                progress.fail(format!(
-                    "An error occurred while retrieving cloudlet information: {}",
-                    err
-                ));
+            Err(error) => {
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

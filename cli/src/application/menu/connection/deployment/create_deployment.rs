@@ -66,10 +66,7 @@ impl CreateDeploymentMenu {
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!(
-                                    "An error occurred while creating the deployment: {}",
-                                    error
-                                ));
+                                progress.fail(format!("{}", error));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -82,10 +79,7 @@ impl CreateDeploymentMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!(
-                    "An error occurred while fetching the required data from the controller: {}",
-                    error
-                ));
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

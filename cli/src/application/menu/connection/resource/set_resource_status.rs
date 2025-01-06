@@ -48,10 +48,7 @@ impl SetResourceStatusMenu {
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!(
-                                    "An error occurred while changing resource: {}",
-                                    error
-                                ));
+                                progress.fail(format!("{}", error));
                                 progress.end();
                                 MenuResult::Failed
                             }
@@ -64,10 +61,7 @@ impl SetResourceStatusMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!(
-                    "An error occurred while fetching the required data from the controller: {}",
-                    error
-                ));
+                progress.fail(format!("{}", error));
                 progress.end();
                 MenuResult::Failed
             }

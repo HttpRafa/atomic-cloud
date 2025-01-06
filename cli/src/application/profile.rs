@@ -86,10 +86,7 @@ impl Profiles {
             profiles.add_profile(profile);
         }
 
-        progress.success(format!(
-            "Loaded {} profiles(s)",
-            profiles.profiles.len()
-        ));
+        progress.success(format!("Loaded {} profiles(s)", profiles.profiles.len()));
         progress.end();
         profiles
     }

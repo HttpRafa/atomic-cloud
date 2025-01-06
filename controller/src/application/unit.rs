@@ -8,7 +8,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use simplelog::{debug, info, warn, error};
+use simplelog::{debug, error, info, warn};
 use uuid::Uuid;
 
 use super::{
@@ -208,8 +208,7 @@ impl Units {
                 if let Err(error) = cloudlet.get_inner().stop_unit(&unit) {
                     error!(
                         "<red>Failed</> to stop unit <red>{}</>: <red>{}</>",
-                        unit.name,
-                        error
+                        unit.name, error
                     );
                 }
             }
@@ -261,8 +260,7 @@ impl Units {
                 if let Err(error) = &cloudlet.get_inner().restart_unit(&unit) {
                     error!(
                         "<red>Failed</> to restart unit <red>{}</>: <red>{}</>",
-                        unit.name,
-                        error
+                        unit.name, error
                     );
                     controller.get_units().stop_unit_now(unit);
                 }
@@ -280,10 +278,7 @@ impl Units {
         let mut state = unit.state.write().unwrap();
         if *state == State::Starting || *state == State::Restarting {
             *state = State::Preparing;
-            info!(
-                "The unit <blue>{}</> is now <yellow>loading</>",
-                unit.name
-            );
+            info!("The unit <blue>{}</> is now <yellow>loading</>", unit.name);
         }
     }
 
@@ -296,10 +291,7 @@ impl Units {
 
     pub fn mark_not_ready(&self, unit: &UnitHandle) {
         if unit.rediness.load(Ordering::Relaxed) {
-            debug!(
-                "The unit <blue>{}</> is <red>no longer</> ready",
-                unit.name
-            );
+            debug!("The unit <blue>{}</> is <red>no longer</> ready", unit.name);
             unit.rediness.store(false, Ordering::Relaxed);
         }
     }
@@ -419,8 +411,7 @@ impl Units {
                 if let Err(error) = cloudlet.get_inner().start_unit(&unit) {
                     error!(
                         "<red>Failed</> to start unit <red>{}</>: <red>{}</>",
-                        unit.name,
-                        error
+                        unit.name, error
                     );
                     controller.get_units().stop_unit_now(unit);
                 }

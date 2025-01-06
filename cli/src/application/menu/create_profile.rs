@@ -4,14 +4,13 @@ use inquire::{
 };
 use loading::Loading;
 use simplelog::debug;
-use url::Url;
 
 use crate::{
     application::profile::{Profile, Profiles},
     VERSION,
 };
 
-use super::MenuResult;
+use super::{MenuResult, MenuUtils};
 
 pub struct CreateProfileMenu;
 
@@ -54,15 +53,12 @@ impl CreateProfileMenu {
             }
         };
 
-        let url = match Text::new("What is the URL for this profile?")
-            .with_help_message("Example: https://cloud.your-network.net")
-            .with_validator(|url: &str| match Url::parse(url) {
-                Ok(_) => Ok(Validation::Valid),
-                Err(error) => Ok(Validation::Invalid(error.into())),
-            })
-            .prompt()
-        {
-            Ok(url) => Url::parse(&url).expect("Ops. That was unexpected"),
+        let url = match MenuUtils::parsed_value(
+            "What is the URL for this profile?",
+            "Example: https://cloud.your-network.net",
+            "Please enter a valid URL",
+        ) {
+            Ok(url) => url,
             Err(error) => {
                 debug!("{}", error);
                 return MenuResult::Aborted;
@@ -77,8 +73,8 @@ impl CreateProfileMenu {
         ));
         match profile.establish_connection().await {
             Ok(connection) => {
-                if connection.outdated {
-                    progress.warn(format!("The controller is running an outdated protocol version {} compared to this client running {}", connection.protocol, VERSION.protocol));
+                if connection.incompatible {
+                    progress.warn(format!("The controller is running an incompatible protocol version {} compared to this client's version {}", connection.protocol, VERSION.protocol));
                 }
             }
             Err(error) => {

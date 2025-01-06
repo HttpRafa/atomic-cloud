@@ -29,7 +29,10 @@ impl Users {
             .user_connected(name.clone(), uuid.to_string())
             .await
         {
-            error!("<red>Failed</> to notify controller that user connected: {}", error);
+            error!(
+                "<red>Failed</> to notify controller that user connected: {}",
+                error
+            );
         }
         self.users.insert(name.clone(), User { name, uuid });
     }
@@ -43,7 +46,10 @@ impl Users {
                 .user_disconnected(user.uuid.to_string())
                 .await
             {
-                error!("<red>Failed</> to notify controller that user connected: {}", error);
+                error!(
+                    "<red>Failed</> to notify controller that user connected: {}",
+                    error
+                );
             }
         }
     }

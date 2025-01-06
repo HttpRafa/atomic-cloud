@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::atomic::Ordering};
 
-use proto::admin_service_server::AdminService;
+use proto::{admin_service_server::AdminService, user_management::UserValue};
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
@@ -40,7 +40,7 @@ impl AdminService for AdminServiceImpl {
         let resource = request.into_inner();
         let status = match proto::resource_management::ResourceStatus::try_from(resource.status) {
             Ok(proto::resource_management::ResourceStatus::Active) => LifecycleStatus::Active,
-            Ok(proto::resource_management::ResourceStatus::Retired) => LifecycleStatus::Retired,
+            Ok(proto::resource_management::ResourceStatus::Inactive) => LifecycleStatus::Inactive,
             _ => return Err(Status::invalid_argument("Invalid resource status")),
         };
         match proto::resource_management::ResourceCategory::try_from(resource.category) {
@@ -110,6 +110,23 @@ impl AdminService for AdminServiceImpl {
             }
             Err(_) => Err(Status::not_found("Invalid resource category")),
         }
+    }
+
+    async fn get_drivers(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::driver_management::DriverListResponse>, Status> {
+        let drivers = self
+            .controller
+            .get_drivers()
+            .get_drivers()
+            .iter()
+            .map(|driver| driver.name().clone())
+            .collect();
+
+        Ok(Response::new(
+            proto::driver_management::DriverListResponse { drivers },
+        ))
     }
 
     async fn create_cloudlet(
@@ -498,6 +515,26 @@ impl AdminService for AdminServiceImpl {
 
         Ok(Response::new(proto::unit_management::UnitListResponse {
             units,
+        }))
+    }
+
+    async fn get_users(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::user_management::UserListResponse>, Status> {
+        let users = self
+            .controller
+            .get_users()
+            .get_users()
+            .iter()
+            .map(|user| UserValue {
+                name: user.name.to_string(),
+                uuid: user.uuid.to_string(),
+            })
+            .collect();
+
+        Ok(Response::new(proto::user_management::UserListResponse {
+            users,
         }))
     }
 

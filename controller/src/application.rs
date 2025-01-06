@@ -154,6 +154,10 @@ impl Controller {
             .expect("Failed to get lock to deployments")
     }
 
+    pub fn get_drivers(&self) -> &Drivers {
+        &self.drivers
+    }
+
     pub fn get_auth(&self) -> &Auth {
         &self.auth
     }

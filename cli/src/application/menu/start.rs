@@ -3,14 +3,13 @@ use std::{
     vec,
 };
 
-use inquire::Select;
 use simplelog::debug;
 
 use crate::application::profile::Profiles;
 
 use super::{
     create_profile::CreateProfileMenu, delete_profile::DeleteProfileMenu,
-    load_profile::LoadProfileMenu, MenuResult,
+    load_profile::LoadProfileMenu, MenuResult, MenuUtils,
 };
 
 enum Selection {
@@ -47,7 +46,7 @@ impl StartMenu {
             options.push(Selection::Exit);
         }
 
-        match Select::new("What do you want to do?", options).prompt() {
+        match MenuUtils::select_no_help("What do you want to do?", options) {
             Ok(selection) => match selection {
                 Selection::LoadProfile => LoadProfileMenu::show(profiles).await,
                 Selection::CreateProfile => CreateProfileMenu::show(profiles).await,

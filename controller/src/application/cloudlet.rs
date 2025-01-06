@@ -8,7 +8,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use serde::{Deserialize, Serialize};
-use simplelog::{info, warn, error};
+use simplelog::{error, info, warn};
 use stored::StoredCloudlet;
 use url::Url;
 
@@ -57,7 +57,10 @@ impl Cloudlets {
         let entries = match fs::read_dir(&cloudlets_directory) {
             Ok(entries) => entries,
             Err(error) => {
-                error!("<red>Failed</> to read cloudlets directory: <red>{}</>", &error);
+                error!(
+                    "<red>Failed</> to read cloudlets directory: <red>{}</>",
+                    &error
+                );
                 return cloudlets;
             }
         };
@@ -109,10 +112,7 @@ impl Cloudlets {
             }
         }
 
-        info!(
-            "Loaded <blue>{} cloudlet(s)</>",
-            cloudlets.cloudlets.len()
-        );
+        info!("Loaded <blue>{} cloudlet(s)</>", cloudlets.cloudlets.len());
         cloudlets
     }
 
@@ -137,13 +137,13 @@ impl Cloudlets {
         status: LifecycleStatus,
     ) -> Result<()> {
         match status {
-            LifecycleStatus::Retired => {
+            LifecycleStatus::Inactive => {
                 self.retire_cloudlet(cloudlet);
-                info!("Retired cloudlet <blue>{}</>", cloudlet.name);
+                info!("<yellow>Inactive</> cloudlet <blue>{}</>", cloudlet.name);
             }
             LifecycleStatus::Active => {
                 self.activate_cloudlet(cloudlet);
-                info!("Activated cloudlet <blue>{}</>", cloudlet.name);
+                info!("<green>Activated</> cloudlet <blue>{}</>", cloudlet.name);
             }
         }
         *cloudlet.status.write().unwrap() = status;
@@ -173,9 +173,9 @@ impl Cloudlets {
             .status
             .read()
             .expect("Failed to lock status of cloudlet")
-            != LifecycleStatus::Retired
+            != LifecycleStatus::Inactive
         {
-            return Err(anyhow!("Cloudlet is not retired"));
+            return Err(anyhow!("Cloudlet is not inactive"));
         }
         self.retire_cloudlet(cloudlet); // Just to be sure
         cloudlet.delete_file()?;
@@ -208,7 +208,7 @@ impl Cloudlets {
         let stored_cloudlet = StoredCloudlet {
             driver: driver.name().to_string(),
             capabilities,
-            status: LifecycleStatus::Retired,
+            status: LifecycleStatus::Inactive,
             controller,
         };
         let cloudlet = Cloudlet::from(name, &stored_cloudlet, driver);
@@ -308,12 +308,12 @@ impl Cloudlet {
     }
 
     pub fn allocate(&self, request: &StartRequestHandle) -> Result<AllocationHandle> {
-        if *self.status.read().unwrap() == LifecycleStatus::Retired {
+        if *self.status.read().unwrap() == LifecycleStatus::Inactive {
             warn!(
-                "Attempted to allocate resources on <red>retired</> cloudlet <blue>{}</>",
+                "Attempted to allocate resources on <yellow>inactive</> cloudlet <blue>{}</>",
                 self.name
             );
-            return Err(anyhow!("Can not allocate resources on retired cloudlet"));
+            return Err(anyhow!("Can not allocate resources on inactive cloudlet"));
         }
 
         let mut allocations = self
@@ -406,9 +406,9 @@ pub struct Capabilities {
 
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq)]
 pub enum LifecycleStatus {
-    #[serde(rename = "retired")]
+    #[serde(rename = "inactive")]
     #[default]
-    Retired,
+    Inactive,
     #[serde(rename = "active")]
     Active,
 }

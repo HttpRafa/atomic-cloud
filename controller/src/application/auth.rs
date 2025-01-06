@@ -5,7 +5,7 @@ use std::{
 };
 
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use simplelog::{info, warn, error};
+use simplelog::{error, info, warn};
 use stored::StoredUser;
 use uuid::Uuid;
 
@@ -47,7 +47,10 @@ impl Auth {
         let users_directory = Storage::get_users_folder();
         if !users_directory.exists() {
             if let Err(error) = fs::create_dir_all(&users_directory) {
-                warn!("<red>Failed</> to create users directory: <red>{}</>", &error);
+                warn!(
+                    "<red>Failed</> to create users directory: <red>{}</>",
+                    &error
+                );
             }
         }
 
@@ -118,9 +121,7 @@ impl Auth {
             info!("<red>Username: </>{}", DEFAULT_ADMIN_USERNAME);
             info!("<red>Token: </>{}", &user.token);
             info!("<red>-----------------------------------</>");
-            info!(
-                "<bright-blue><b>Welcome to Atomic Cloud</>"
-            );
+            info!("<bright-blue><b>Welcome to Atomic Cloud</>");
             info!("<red>-----------------------------------</>");
         }
 

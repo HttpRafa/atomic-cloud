@@ -69,7 +69,10 @@ impl Deployments {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    error!("<red>Failed</> to read deployment entry: <red>{}</>", &error);
+                    error!(
+                        "<red>Failed</> to read deployment entry: <red>{}</>",
+                        &error
+                    );
                     continue;
                 }
             };
@@ -137,13 +140,19 @@ impl Deployments {
         status: LifecycleStatus,
     ) -> Result<()> {
         match status {
-            LifecycleStatus::Retired => {
+            LifecycleStatus::Inactive => {
                 self.retire_deployment(deployment);
-                info!("<red>Retired</> deployment <blue>{}</>", deployment.name);
+                info!(
+                    "<yellow>Inactive</> deployment <blue>{}</>",
+                    deployment.name
+                );
             }
             LifecycleStatus::Active => {
                 self.activate_deployment(deployment);
-                info!("<green>Activated</> deployment <blue>{}</>", deployment.name);
+                info!(
+                    "<green>Activated</> deployment <blue>{}</>",
+                    deployment.name
+                );
             }
         }
         *deployment.status.write().unwrap() = status;
@@ -177,9 +186,9 @@ impl Deployments {
             .status
             .read()
             .expect("Failed to lock status of deployment")
-            != LifecycleStatus::Retired
+            != LifecycleStatus::Inactive
         {
-            return Err(anyhow!("Deployment is not retired"));
+            return Err(anyhow!("Deployment is not inactive"));
         }
         self.retire_deployment(deployment); // Make sure all units are stopped
         deployment.delete_file()?;
@@ -221,7 +230,7 @@ impl Deployments {
             .collect();
 
         let stored_deployment = StoredDeployment {
-            status: LifecycleStatus::Retired,
+            status: LifecycleStatus::Inactive,
             cloudlets,
             constraints,
             scaling,
@@ -350,8 +359,8 @@ impl Deployment {
     }
 
     fn tick(&self, controller: &WeakControllerHandle, units: &Units) {
-        if *self.status.read().unwrap() == LifecycleStatus::Retired {
-            // Do not tick this deployment because it is retired
+        if *self.status.read().unwrap() == LifecycleStatus::Inactive {
+            // Do not tick this deployment because it is inactive
             return;
         }
 

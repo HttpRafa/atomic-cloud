@@ -1,6 +1,13 @@
 {
     "name": "Development Container",
     "dockerFile": "Dockerfile",
+    "build": {
+        "args": {
+            "REMOTE_USER": "${localEnv:USER}",
+            "REMOTE_UID": "${localEnv:REMOTE_UID:1000}",
+            "REMOTE_GID": "${localEnv:REMOTE_GID:1000}"
+        }
+    },
     "customizations": {
         "vscode": {
             "settings": {

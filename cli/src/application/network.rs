@@ -275,7 +275,7 @@ impl Display for Retention {
 
 impl Display for UserValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} (<blue>{}</>)", self.name, self.uuid)
+        write!(f, "{} ({})", self.name, self.uuid)
     }
 }
 

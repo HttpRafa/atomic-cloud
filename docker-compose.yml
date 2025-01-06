@@ -1,0 +1,10 @@
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CURRENT_COMMIT: dev
+        CURRENT_BUILD: 1
+    ports:
+      - "12892:12892"

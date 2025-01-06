@@ -1,6 +1,5 @@
 package io.atomic.cloud.paper.command;
 
-import com.google.protobuf.StringValue;
 import com.mojang.brigadier.Command;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.atomic.cloud.paper.permission.Permissions;
@@ -16,12 +15,11 @@ public class CloudCommand {
                 .requires(Permissions.CLOUD_COMMAND::check)
                 .executes(context -> {
                     var sender = context.getSource().getSender();
+                    var connection = CloudPlugin.INSTANCE.connection();
 
-                    CloudPlugin.INSTANCE
-                            .connection()
+                    connection
                             .getControllerVersion()
-                            .thenApply(StringValue::getValue)
-                            .thenAccept(version -> {
+                            .thenAcceptBoth(connection.getProtocolVersion(), (version, protocol) -> {
                                 sender.sendMessage(Component.text("╔════════════════════", NamedTextColor.GRAY));
                                 sender.sendRichMessage("<gray>║ <gradient:#084CFB:#43E8FF>AtomicCloud</gradient>");
                                 sender.sendRichMessage(
@@ -31,7 +29,10 @@ public class CloudCommand {
                                                         .getVersion() + "</gradient>");
                                 sender.sendRichMessage(
                                         "<gray>║ <gradient:#084CFB:#43E8FF>Controller Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                                + version + "</gradient>");
+                                                + version.getValue() + "</gradient>");
+                                sender.sendRichMessage(
+                                        "<gray>║ <gradient:#084CFB:#43E8FF>Controller Protocol Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
+                                                + protocol.getValue() + "</gradient>");
                                 sender.sendMessage(Component.text("╚════════════════════", NamedTextColor.GRAY));
                             });
 

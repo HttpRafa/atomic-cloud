@@ -32,7 +32,8 @@ public class CloudConnection {
     private UnitServiceGrpc.UnitServiceStub client;
 
     // Cache values
-    private String controllerVersion;
+    private UInt32Value protocolVersion;
+    private StringValue controllerVersion;
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -132,13 +133,32 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public CompletableFuture<StringValue> getControllerVersion() {
+    public synchronized CompletableFuture<UInt32Value> getProtocolVersion() {
         if (this.controllerVersion != null) {
-            return CompletableFuture.completedFuture(StringValue.of(this.controllerVersion));
+            return CompletableFuture.completedFuture(this.protocolVersion);
+        }
+        var observer = new StreamObserverImpl<UInt32Value>();
+        this.client.getProtocolVersion(Empty.getDefaultInstance(), observer);
+        return observer.future().thenApply((value) -> {
+            synchronized (this) {
+                this.protocolVersion = value;
+            }
+            return value;
+        });
+    }
+
+    public synchronized CompletableFuture<StringValue> getControllerVersion() {
+        if (this.controllerVersion != null) {
+            return CompletableFuture.completedFuture(this.controllerVersion);
         }
         var observer = new StreamObserverImpl<StringValue>();
         this.client.getControllerVersion(Empty.getDefaultInstance(), observer);
-        return observer.future();
+        return observer.future().thenApply((value) -> {
+            synchronized (this) {
+                this.controllerVersion = value;
+            }
+            return value;
+        });
     }
 
     @Contract(" -> new")

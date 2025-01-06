@@ -17,8 +17,15 @@ RUN cargo build -p controller --features wasm-drivers --release
 # Runtime stage: Use a minimal Alpine image
 FROM alpine:latest
 
+# Install necessary runtime dependencies
+RUN apk add --no-cache curl unzip
+
 # Set the working directory
 WORKDIR /app
+
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Copy the controller binary from the builder stage
 COPY --from=builder /usr/src/app/target/release/controller /app/controller
@@ -27,4 +34,4 @@ COPY --from=builder /usr/src/app/target/release/controller /app/controller
 EXPOSE 12892
 
 # Run the controller
-CMD ["./controller"]
+CMD ["./entrypoint.sh"]

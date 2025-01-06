@@ -63,7 +63,7 @@ message ResourceManagement {
 
     enum ResourceStatus {
         ACTIVE = 0;
-        RETIRED = 1;
+        INACTIVE = 1;
     }
 }
 

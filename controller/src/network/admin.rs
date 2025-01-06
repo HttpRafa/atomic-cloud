@@ -40,7 +40,7 @@ impl AdminService for AdminServiceImpl {
         let resource = request.into_inner();
         let status = match proto::resource_management::ResourceStatus::try_from(resource.status) {
             Ok(proto::resource_management::ResourceStatus::Active) => LifecycleStatus::Active,
-            Ok(proto::resource_management::ResourceStatus::Retired) => LifecycleStatus::Retired,
+            Ok(proto::resource_management::ResourceStatus::Inactive) => LifecycleStatus::Inactive,
             _ => return Err(Status::invalid_argument("Invalid resource status")),
         };
         match proto::resource_management::ResourceCategory::try_from(resource.category) {

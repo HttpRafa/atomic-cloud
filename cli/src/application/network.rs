@@ -5,6 +5,7 @@ use proto::{
     admin_service_client::AdminServiceClient,
     cloudlet_management::CloudletValue,
     deployment_management::DeploymentValue,
+    resource_management::{ResourceCategory, ResourceStatus, SetResourceStatusRequest},
     unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
     user_management::{transfer_target_value::TargetType, TransferUserRequest, UserValue},
 };
@@ -82,6 +83,16 @@ impl CloudConnection {
         let request = self.create_request(());
 
         self.client.as_mut().unwrap().request_stop(request).await?;
+        Ok(())
+    }
+
+    pub async fn set_resource_status(&mut self, request: SetResourceStatusRequest) -> Result<()> {
+        let request = self.create_request(request);
+        self.client
+            .as_mut()
+            .unwrap()
+            .set_resource_status(request)
+            .await?;
         Ok(())
     }
 
@@ -261,6 +272,25 @@ impl Display for TargetType {
         match self {
             TargetType::Unit => write!(f, "Unit"),
             TargetType::Deployment => write!(f, "Deployment"),
+        }
+    }
+}
+
+impl Display for ResourceCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResourceCategory::Cloudlet => write!(f, "Cloudlet"),
+            ResourceCategory::Deployment => write!(f, "Deployment"),
+            ResourceCategory::Unit => write!(f, "Unit"),
+        }
+    }
+}
+
+impl Display for ResourceStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResourceStatus::Active => write!(f, "Active"),
+            ResourceStatus::Inactive => write!(f, "Inactive"),
         }
     }
 }

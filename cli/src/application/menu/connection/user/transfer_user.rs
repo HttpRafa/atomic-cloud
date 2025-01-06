@@ -19,6 +19,7 @@ use crate::application::{
 
 pub struct TransferUserMenu;
 
+// TODO: Maybe dont request everything at once, but only what is needed
 struct Data {
     users: Vec<UserValue>,
     units: Vec<SimpleUnitValue>,
@@ -33,7 +34,7 @@ impl TransferUserMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Retrieving all existing cloudlets from the controller \"{}\"...",
+            "Retrieving all required data from the controller \"{}\"...",
             profile.name
         ));
 

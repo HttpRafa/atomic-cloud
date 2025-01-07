@@ -1,0 +1,19 @@
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CURRENT_COMMIT: dev
+        CURRENT_BUILD: 1
+    ports:
+      - "12892:12892"
+    environment:
+      - PTERODACTYL=true
+    volumes:
+      - ./run/logs:/app/logs
+      - ./run/auth:/app/auth
+      - ./run/configs:/app/configs
+      - ./run/cloudlets:/app/cloudlets
+      - ./run/deployments:/app/deployments
+      - ./run/drivers:/app/drivers

@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+    
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Cache Gradle Dependencies
+        id: cache-gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle-wrapper.jar') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+    
+      - name: Install Protobuf Compiler and MinGW (for Windows build)
+        run: sudo apt update && sudo apt install protobuf-compiler gcc-mingw-w64 -y
+
+      - name: Build Projects
+        run: |
+          cargo build --release --all --all-features --target x86_64-unknown-linux-gnu --verbose
+          cargo build --release --all --all-features --target x86_64-pc-windows-gnu --verbose
+        env:
+          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_BUILD: ${{ github.run_number }}
+
+      - name: Ensure Gradle Wrapper Permissions
+        run: chmod +x gradlew
+
+      - name: Build & Publish API
+        working-directory: clients/jvm
+        run: ./gradlew build publish --no-daemon
+        env:
+          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_BUILD: ${{ github.run_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release branch
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          BRANCH=release/${REF:10}
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git checkout -b $BRANCH
+          git push -u origin $BRANCH
+
+      - name: Copy Files
+        run: |
+          cp ./target/x86_64-unknown-linux-gnu/release/controller controller-linux-x86_64
+          cp ./target/x86_64-pc-windows-gnu/release/controller.exe controller-windows-x86_64.exe
+
+          cp ./target/x86_64-unknown-linux-gnu/release/cli cli-linux-x86_64
+          cp ./target/x86_64-pc-windows-gnu/release/cli.exe cli-windows-x86_64.exe
+
+          cp ./target/x86_64-unknown-linux-gnu/release/wrapper wrapper-linux-x86_64
+          cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
+
+          cp ./target/wasm32-wasip2/release/pterodactyl.wasm pterodactyl-driver.wasm
+
+          cp $(find ./clients/jvm/paper/build -name "*-all.jar") paper-client.jar
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: ${{ contains(github.ref, 'rc') || contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          files: |
+            controller-linux-x86_64
+            controller-windows-x86_64.exe
+            cli-linux-x86_64
+            cli-windows-x86_64.exe
+            wrapper-linux-x86_64
+            wrapper-windows-x86_64.exe
+            pterodactyl-driver.wasm
+            paper-client.jar

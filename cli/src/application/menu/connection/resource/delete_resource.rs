@@ -6,9 +6,7 @@ use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::{
         proto::{
-            resource_management::{
-                DeleteResourceRequest, ResourceCategory,
-            },
+            resource_management::{DeleteResourceRequest, ResourceCategory},
             unit_management::SimpleUnitValue,
         },
         EstablishedConnection,

@@ -24,7 +24,7 @@ RUN apk add --no-cache curl unzip
 WORKDIR /app
 
 # Copy entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
+COPY .github/docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Copy the controller binary from the builder stage

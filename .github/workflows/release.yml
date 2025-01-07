@@ -21,6 +21,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
+          targets: x86_64-unknown-linux-gnu,x86_64-pc-windows-gnu
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -69,6 +70,7 @@ jobs:
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Ensure Gradle Wrapper Permissions
+        working-directory: clients/jvm
         run: chmod +x gradlew
 
       - name: Build & Publish API

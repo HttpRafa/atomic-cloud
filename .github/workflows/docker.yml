@@ -52,7 +52,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64,linux/riscv64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             CURRENT_COMMIT=${{ github.sha }}
             CURRENT_BUILD=${{ github.run_number }}

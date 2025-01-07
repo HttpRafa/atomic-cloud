@@ -11,7 +11,7 @@ Next, add the following content to the file:
 ```yaml
 services:
   controller:
-    image: ghcr.io/httprafa/atomic-cloud:latest
+    image: ghcr.io/httprafa/atomic-cloud:v0.3.0-alpha
     ports:
       - "12892:12892"
     environment:

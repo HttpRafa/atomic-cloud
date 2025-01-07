@@ -1,3 +1,4 @@
-# Powerful APIs
-1. To enable communication between servers, the cloud has a channel system. For example, data can be sent from the game servers to the lobby via channels.
-2. It also has API to start servers and move players.
+# Robust APIs
+
+1. The cloud infrastructure includes a sophisticated channel system to facilitate seamless communication between servers. For instance, game servers can transmit data to the lobby servers through these channels, ensuring efficient and reliable data flow.
+2. Additionally, the API suite provides functionalities to initiate server instances and manage player transitions between servers, enhancing the overall gaming experience and operational efficiency.

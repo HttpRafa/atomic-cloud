@@ -29,9 +29,9 @@ pub mod unit;
 impl GuestGenericCloudlet for PterodactylCloudletWrapper {
     fn new(
         cloud_identifier: String,
-        name: String,
+        _name: String,
         id: Option<u32>,
-        capabilities: Capabilities,
+        _capabilities: Capabilities,
         controller: RemoteController,
     ) -> Self {
         Self {
@@ -39,8 +39,8 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 cloud_identifier,
                 backend: UnsafeCell::new(None),
                 id: id.unwrap(),
-                name,
-                capabilities,
+                //name,
+                //capabilities,
                 controller,
                 allocations: RwLock::new(vec![]),
                 units: RwLock::new(vec![]),
@@ -258,8 +258,8 @@ pub struct PterodactylCloudlet {
     /* Informations about the cloudlet */
     pub backend: UnsafeCell<Option<Rc<Backend>>>,
     pub id: u32,
-    pub name: String,
-    pub capabilities: Capabilities,
+    //pub name: String,
+    //pub capabilities: Capabilities,
     pub controller: RemoteController,
 
     /* Dynamic Resources */

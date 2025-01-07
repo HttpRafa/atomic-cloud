@@ -1,7 +1,6 @@
-name: Publish Docs
+name: Docs
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -10,7 +9,8 @@ on:
       - mkdocs.yml
 
 jobs:
-  build:
+  deploy:
+    name: Deploy Docs
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -19,15 +19,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.x
 
       - name: Install MkDocs Material
-        run: |
-          pip install mkdocs-material
+        run: pip install mkdocs-material
 
-      - name: Publish Docs
-        run: |
-          mkdocs gh-deploy --force
+      - name: Deploy Docs
+        run: mkdocs gh-deploy --force

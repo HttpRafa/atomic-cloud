@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::unit::{UnitHandle, WeakUnitHandle};
 
 use std::{
-    any::{Any, TypeId},
+    any::Any,
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
@@ -18,7 +18,7 @@ pub mod transfer;
 pub enum EventKey {
     Channel(String),
     Transfer(Uuid),
-    Custom(TypeId),
+    //Custom(TypeId),
 }
 
 pub trait Event: Any + Send + Sync + Debug {}
@@ -41,7 +41,7 @@ impl EventBus {
         }
     }
 
-    pub fn register_listener<E: Event>(&self, key: EventKey, listener: EventListener<E>) {
+    /*pub fn register_listener<E: Event>(&self, key: EventKey, listener: EventListener<E>) {
         let registered_listener = RegisteredListener {
             unit: None,
             listener: Box::new(listener),
@@ -52,7 +52,7 @@ impl EventBus {
             .entry(key)
             .or_default()
             .push(registered_listener);
-    }
+    }*/
 
     pub fn register_listener_under_unit<E: Event>(
         &self,
@@ -127,9 +127,9 @@ impl EventBus {
         count
     }
 
-    pub fn dispatch_custom<E: Event>(&self, event: &E) -> u32 {
+    /*pub fn dispatch_custom<E: Event>(&self, event: &E) -> u32 {
         self.dispatch(&EventKey::Custom(TypeId::of::<E>()), event)
-    }
+    }*/
 }
 
 impl Hash for EventKey {
@@ -142,11 +142,10 @@ impl Hash for EventKey {
             EventKey::Transfer(unit) => {
                 state.write_u8(1);
                 unit.hash(state);
-            }
-            EventKey::Custom(type_id) => {
-                state.write_u8(2);
-                type_id.hash(state);
-            }
+            } /*EventKey::Custom(type_id) => {
+                  state.write_u8(2);
+                  type_id.hash(state);
+              }*/
         }
     }
 }

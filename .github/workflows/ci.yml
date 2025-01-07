@@ -1,0 +1,80 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request:
+    
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+    
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Cache Gradle Dependencies
+        id: cache-gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle-wrapper.jar') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install Protobuf Compiler
+        run: sudo apt update && sudo apt install protobuf-compiler -y
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Build Projects
+        run: cargo build --all --all-features --verbose
+        env:
+          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_BUILD: ${{ github.run_number }}
+
+      - name: Run Tests
+        run: cargo test --workspace --exclude pterodactyl --all-features --verbose
+
+      - name: Build & Test JVM Client
+        working-directory: clients/jvm
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+        env:
+          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_BUILD: ${{ github.run_number }}

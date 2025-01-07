@@ -3,10 +3,15 @@
 # Check if the environment variable PTERODACTYL is set to true
 if [ "$PTERODACTYL" = "true" ]; then
     # Define the URL and the destination folder
-    ZIP_URL="https://nightly.link/HttpRafa/atomic-cloud/workflows/rust_pterodactyl/main/pterodactyl.zip"
-    ZIP_FILE="pterodactyl.zip"
-    DEST_FOLDER="drivers/wasm/"
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/pterodactyl-driver.wasm"
+    DEST_FOLDER="drivers/wasm"
     WASM_FILE="$DEST_FOLDER/pterodactyl.wasm"
+
+    # Create the destination folder if it does not exist
+    if [ ! -d "$DEST_FOLDER" ]; then
+        echo "Creating directory $DEST_FOLDER..."
+        mkdir -p "$DEST_FOLDER"
+    fi
 
     # Check if the .wasm file already exists
     if [ -f "$WASM_FILE" ]; then
@@ -14,19 +19,11 @@ if [ "$PTERODACTYL" = "true" ]; then
     else
         echo "File $WASM_FILE does not exist. Proceeding with download."
 
-        # Download the .zip file
-        echo "Downloading $ZIP_URL..."
-        curl -L -o $ZIP_FILE $ZIP_URL
+        # Download the .wasm file
+        echo "Downloading $WASM_URL..."
+        curl -L -o $WASM_FILE $WASM_URL
 
-        # Extract the .zip file
-        echo "Extracting $ZIP_FILE to $DEST_FOLDER..."
-        unzip $ZIP_FILE -d $DEST_FOLDER
-
-        # Remove the .zip file
-        echo "Removing $ZIP_FILE..."
-        rm $ZIP_FILE
-
-        echo "Download and extraction complete."
+        echo "Download complete."
     fi
 else
     echo "PTERODACTYL is not set to true. Skipping download."

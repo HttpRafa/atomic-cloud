@@ -2,7 +2,7 @@ import com.google.protobuf.gradle.id
 
 plugins {
     id("java")
-    id("com.diffplug.spotless") version "7.0.0.BETA1"
+    id("com.diffplug.spotless") version "7.0.1"
     id("com.google.protobuf") version "0.9.4"
 }
 

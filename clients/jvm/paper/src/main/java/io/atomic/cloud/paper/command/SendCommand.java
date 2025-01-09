@@ -8,9 +8,8 @@ import io.atomic.cloud.paper.command.argument.UnitArgument;
 import io.atomic.cloud.paper.permission.Permissions;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
-import java.util.List;
+import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
 import java.util.concurrent.CompletableFuture;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -24,13 +23,14 @@ public class SendCommand {
                             var sender = context.getSource().getSender();
                             var connection = CloudPlugin.INSTANCE.connection();
 
-                            @SuppressWarnings("unchecked")
-                            var players = (List<Player>) context.getArgument("user", List.class);
+                            var users = context.getArgument("user", PlayerSelectorArgumentResolver.class)
+                                    .resolve(context.getSource());
                             var unit = context.getArgument("unit", UnitInformation.SimpleUnitValue.class);
-                            var playerCount = players.size();
+                            var userCount = users.size();
 
-                            sender.sendRichMessage("Transferring " + playerCount + " to unit " + unit + "...");
-                            CompletableFuture.allOf(players.stream()
+                            sender.sendRichMessage("<gray>Transferring <aqua>" + userCount
+                                    + " <gray>users to unit <blue>" + unit.getName() + "<dark_gray>...");
+                            CompletableFuture.allOf(users.stream()
                                             .map((player) -> connection.transferUser(
                                                     TransferManagement.TransferUserRequest.newBuilder()
                                                             .setUserUuid(player.getUniqueId()
@@ -46,11 +46,12 @@ public class SendCommand {
                                             .toArray(CompletableFuture[]::new))
                                     .whenComplete((result, throwable) -> {
                                         if (throwable != null) {
-                                            sender.sendRichMessage("Failed to transfer " + playerCount + " to unit "
-                                                    + unit + ": " + throwable.getMessage());
-                                        } else {
                                             sender.sendRichMessage(
-                                                    "Submitted " + playerCount + " transfer requests to controller");
+                                                    "<red>Failed to transfer " + userCount + " users to unit "
+                                                            + unit.getName() + ": " + throwable.getMessage());
+                                        } else {
+                                            sender.sendRichMessage("<green>Submitted <aqua>" + userCount
+                                                    + " <gray>transfer requests to controller");
                                         }
                                     });
                             return Command.SINGLE_SUCCESS;

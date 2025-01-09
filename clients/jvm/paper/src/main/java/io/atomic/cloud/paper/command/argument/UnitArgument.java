@@ -44,7 +44,7 @@ public class UnitArgument implements CustomArgumentType.Converted<UnitInformatio
                     .forEach(unit -> builder.suggest(
                             unit.getName(),
                             MessageComponentSerializer.message()
-                                    .serialize(Component.text(unit.getName()).color(NamedTextColor.BLUE))));
+                                    .serialize(Component.text(unit.getUuid()).color(NamedTextColor.BLUE))));
             return builder.buildFuture();
         });
     }

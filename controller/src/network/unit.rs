@@ -388,21 +388,20 @@ impl UnitService for UnitServiceImpl {
             .get_units()
             .get_units()
             .values()
-            .filter_map(|unit| Some(proto::unit_information::SimpleUnitValue {
-                name: unit.name.to_string(),
+            .map(|unit| proto::unit_information::SimpleUnitValue {
+                name: unit.name.clone(),
                 uuid: unit.uuid.to_string(),
                 deployment: unit
                     .deployment
                     .as_ref()
-                    .and_then(|d| d.deployment.upgrade().map(|d| d.name.to_string())),
-            }))
+                    .and_then(|d| d.deployment.upgrade().map(|d| d.name.clone())),
+            })
             .collect();
 
         Ok(Response::new(proto::unit_information::UnitListResponse {
             units,
         }))
     }
-
 
     async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let requesting_unit = request

@@ -14,7 +14,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -130,7 +129,7 @@ public class CloudConnection {
 
     public Optional<UnitInformation.UnitListResponse> getUnitsNow() {
         var cached = this.unitsInfo.getValue();
-        if(cached.isEmpty()) {
+        if (cached.isEmpty()) {
             this.getUnits(); // Request value from controller
         }
         return cached;

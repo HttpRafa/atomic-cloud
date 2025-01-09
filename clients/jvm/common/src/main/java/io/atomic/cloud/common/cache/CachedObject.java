@@ -10,8 +10,8 @@ public class CachedObject<T> {
     private long invalidateTime;
 
     public synchronized Optional<T> getValue() {
-        if(this.value == null) return Optional.empty();
-        if(System.currentTimeMillis() > invalidateTime) {
+        if (this.value == null) return Optional.empty();
+        if (System.currentTimeMillis() > invalidateTime) {
             this.value = null;
             return Optional.empty();
         }
@@ -22,5 +22,4 @@ public class CachedObject<T> {
         this.value = value;
         this.invalidateTime = System.currentTimeMillis() + DEFAULT_EXPIRATION;
     }
-
 }

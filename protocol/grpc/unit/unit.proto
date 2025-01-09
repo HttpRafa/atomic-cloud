@@ -105,5 +105,6 @@ message UnitInformation {
     message SimpleUnitValue {
         string name = 1;
         string uuid = 2;
+        optional string deployment = 3;
     }
 }

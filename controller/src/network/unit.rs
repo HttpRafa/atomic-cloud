@@ -379,6 +379,30 @@ impl UnitService for UnitServiceImpl {
         Ok(Response::new(StdReceiverStream::new(receiver)))
     }
 
+    async fn get_units(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::unit_information::UnitListResponse>, Status> {
+        let units = self
+            .controller
+            .get_units()
+            .get_units()
+            .values()
+            .map(|unit| proto::unit_information::SimpleUnitValue {
+                name: unit.name.clone(),
+                uuid: unit.uuid.to_string(),
+                deployment: unit
+                    .deployment
+                    .as_ref()
+                    .and_then(|d| d.deployment.upgrade().map(|d| d.name.clone())),
+            })
+            .collect();
+
+        Ok(Response::new(proto::unit_information::UnitListResponse {
+            units,
+        }))
+    }
+
     async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let requesting_unit = request
             .extensions()

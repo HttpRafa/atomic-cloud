@@ -35,6 +35,9 @@ service UnitService {
     rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
     rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream ChannelManagement.ChannelMessageValue);
 
+    // Unit Information
+    rpc GetUnits(google.protobuf.Empty) returns (UnitInformation.UnitListResponse);
+
     // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
 
@@ -90,5 +93,18 @@ message ChannelManagement {
         uint32 id = 2;
         string data = 3;
         uint64 timestamp = 4;
+    }
+}
+
+// Unit Information
+message UnitInformation {
+    message UnitListResponse {
+        repeated SimpleUnitValue units = 1;
+    }
+
+    message SimpleUnitValue {
+        string name = 1;
+        string uuid = 2;
+        optional string deployment = 3;
     }
 }

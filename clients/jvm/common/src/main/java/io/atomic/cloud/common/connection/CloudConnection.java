@@ -4,10 +4,8 @@ import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.grpc.unit.ChannelManagement;
-import io.atomic.cloud.grpc.unit.TransferManagement;
-import io.atomic.cloud.grpc.unit.UnitServiceGrpc;
-import io.atomic.cloud.grpc.unit.UserManagement;
+import io.atomic.cloud.common.cache.CachedObject;
+import io.atomic.cloud.grpc.unit.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -16,6 +14,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import lombok.Getter;
@@ -32,8 +31,9 @@ public class CloudConnection {
     private UnitServiceGrpc.UnitServiceStub client;
 
     // Cache values
-    private UInt32Value protocolVersion;
-    private StringValue controllerVersion;
+    private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
+    private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
+    private final CachedObject<UnitInformation.UnitListResponse> unitsInfo = new CachedObject<>();
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -127,6 +127,27 @@ public class CloudConnection {
         this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 
+    public Optional<UnitInformation.UnitListResponse> getUnitsNow() {
+        var cached = this.unitsInfo.getValue();
+        if (cached.isEmpty()) {
+            this.getUnits(); // Request value from controller
+        }
+        return cached;
+    }
+
+    public CompletableFuture<UnitInformation.UnitListResponse> getUnits() {
+        var cached = this.unitsInfo.getValue();
+        if (cached.isPresent()) {
+            return CompletableFuture.completedFuture(cached.get());
+        }
+        var observer = new StreamObserverImpl<UnitInformation.UnitListResponse>();
+        this.client.getUnits(Empty.getDefaultInstance(), observer);
+        return observer.future().thenApply((value) -> {
+            this.unitsInfo.setValue(value);
+            return value;
+        });
+    }
+
     public CompletableFuture<Empty> sendReset() {
         var observer = new StreamObserverImpl<Empty>();
         this.client.reset(Empty.getDefaultInstance(), observer);
@@ -134,29 +155,27 @@ public class CloudConnection {
     }
 
     public synchronized CompletableFuture<UInt32Value> getProtocolVersion() {
-        if (this.controllerVersion != null) {
-            return CompletableFuture.completedFuture(this.protocolVersion);
+        var cached = this.protocolVersion.getValue();
+        if (cached.isPresent()) {
+            return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.getProtocolVersion(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            synchronized (this) {
-                this.protocolVersion = value;
-            }
+            this.protocolVersion.setValue(value);
             return value;
         });
     }
 
     public synchronized CompletableFuture<StringValue> getControllerVersion() {
-        if (this.controllerVersion != null) {
-            return CompletableFuture.completedFuture(this.controllerVersion);
+        var cached = this.controllerVersion.getValue();
+        if (cached.isPresent()) {
+            return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<StringValue>();
         this.client.getControllerVersion(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            synchronized (this) {
-                this.controllerVersion = value;
-            }
+            this.controllerVersion.setValue(value);
             return value;
         });
     }

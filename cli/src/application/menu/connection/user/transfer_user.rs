@@ -6,11 +6,11 @@ use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::{
         proto::{
-            unit_management::SimpleUnitValue,
-            user_management::{
-                transfer_target_value::TargetType, TransferTargetValue, TransferUserRequest,
-                UserValue,
+            transfer_management::{
+                transfer_target_value::TargetType, TransferTargetValue, TransferUsersRequest,
             },
+            unit_management::SimpleUnitValue,
+            user_management::UserValue,
         },
         EstablishedConnection,
     },
@@ -47,12 +47,12 @@ impl TransferUserMenu {
                     Ok(request) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Transferring user \"{}\" to target \"{}\"...",
-                            request.user_uuid,
-                            request.target.as_ref().unwrap().target
+                            "Transferring {} users to target \"{}\"...",
+                            request.user_uuids.len(),
+                            request.target.as_ref().unwrap()
                         ));
 
-                        match connection.client.transfer_user(request).await {
+                        match connection.client.transfer_users(request).await {
                             Ok(_) => {
                                 progress.success("User transferred successfully 👍.");
                                 progress.end();
@@ -90,12 +90,13 @@ impl TransferUserMenu {
         })
     }
 
-    fn collect_transfer_request(data: &Data) -> Result<TransferUserRequest> {
-        let user = MenuUtils::select_no_help("Select the user to transfer", data.users.clone())?;
+    fn collect_transfer_request(data: &Data) -> Result<TransferUsersRequest> {
+        let users =
+            MenuUtils::multi_select_no_help("Select the users to transfer", data.users.clone())?;
         let target = Self::collect_transfer_target(data)?;
 
-        Ok(TransferUserRequest {
-            user_uuid: user.uuid,
+        Ok(TransferUsersRequest {
+            user_uuids: users.iter().map(|user| user.uuid.clone()).collect(),
             target: Some(target),
         })
     }
@@ -103,7 +104,11 @@ impl TransferUserMenu {
     fn collect_transfer_target(data: &Data) -> Result<TransferTargetValue> {
         match MenuUtils::select_no_help(
             "Select the target type",
-            vec![TargetType::Unit, TargetType::Deployment],
+            vec![
+                TargetType::Unit,
+                TargetType::Deployment,
+                TargetType::Fallback,
+            ],
         )? {
             TargetType::Unit => {
                 let unit = MenuUtils::select_no_help(
@@ -112,7 +117,7 @@ impl TransferUserMenu {
                 )?;
                 Ok(TransferTargetValue {
                     target_type: TargetType::Unit as i32,
-                    target: unit.uuid,
+                    target: Some(unit.uuid),
                 })
             }
             TargetType::Deployment => {
@@ -122,9 +127,13 @@ impl TransferUserMenu {
                 )?;
                 Ok(TransferTargetValue {
                     target_type: TargetType::Deployment as i32,
-                    target: deployment,
+                    target: Some(deployment),
                 })
             }
+            TargetType::Fallback => Ok(TransferTargetValue {
+                target_type: TargetType::Fallback as i32,
+                target: None,
+            }),
         }
     }
 }

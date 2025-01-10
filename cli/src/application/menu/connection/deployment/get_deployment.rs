@@ -88,10 +88,6 @@ impl GetDeploymentMenu {
         if let Some(scaling) = &deployment_details.scaling {
             info!("      <green><b>Scaling</>:");
             info!(
-                "         <green><b>Max Players per Unit</>: {}",
-                scaling.max_players
-            );
-            info!(
                 "         <green><b>Start Threshold</>: {}%",
                 scaling.start_threshold * 100.0
             );
@@ -121,6 +117,10 @@ impl GetDeploymentMenu {
         if let Some(spec) = &deployment_details.spec {
             info!("      <green><b>Specification</>:");
             info!("         <green><b>Image</>: {}", spec.image);
+            info!(
+                "         <green><b>Max Players per Unit</>: {}",
+                spec.max_players
+            );
             info!("         <green><b>Settings</>:");
             for setting in &spec.settings {
                 info!("            - <green>{}</>: {}", setting.key, setting.value);

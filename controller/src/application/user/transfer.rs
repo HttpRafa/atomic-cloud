@@ -12,55 +12,52 @@ use crate::application::{
 use super::{CurrentUnit, UserHandle, Users, WeakUserHandle};
 
 impl Users {
-    pub fn transfer_all_users(
-        &self,
-        unit: &UnitHandle,
-        possible_target: Option<TransferTarget>,
-    ) -> u32 {
-        let controller = self
-            .controller
-            .upgrade()
-            .expect("Failed to upgrade controller. This should never happen");
-        let users = self.get_users_on_unit(unit);
-        let mut count = 0;
-
-        let target = possible_target.or(controller
-            .get_units()
-            .find_fallback_unit(unit)
-            .map(TransferTarget::Unit));
-        if let Some(target) = target {
-            for user in &users {
-                if let Some(transfer) = self.resolve_transfer(user, &target) {
-                    if self.transfer_user(transfer) {
-                        count += 1;
-                    }
-                }
-            }
-        }
-
-        count
-    }
-
     pub fn resolve_transfer(&self, user: &UserHandle, target: &TransferTarget) -> Option<Transfer> {
-        if let CurrentUnit::Connected(from) = user.unit.read().unwrap().deref() {
-            match target {
-                TransferTarget::Unit(to) => {
+        let from = {
+            let unit = user.unit.read().unwrap();
+            if let CurrentUnit::Connected(from) = unit.deref() {
+                from.clone()
+            } else {
+                return None;
+            }
+        };
+
+        match target {
+            TransferTarget::Unit(to) => {
+                return Some(Transfer::new(
+                    Arc::downgrade(user),
+                    from.clone(),
+                    Arc::downgrade(to),
+                ));
+            }
+            TransferTarget::Deployment(deployment) => {
+                if let Some(to) = deployment.get_free_unit() {
                     return Some(Transfer::new(
                         Arc::downgrade(user),
                         from.clone(),
-                        Arc::downgrade(to),
+                        Arc::downgrade(&to),
                     ));
+                } else {
+                    warn!("<red>Failed</> to find free unit in deployment <blue>{}</> while resolving transfer of user <blue>{}</>", deployment.name, user.name);
                 }
-                TransferTarget::Deployment(deployment) => {
-                    if let Some(to) = deployment.get_free_unit() {
-                        return Some(Transfer::new(
-                            Arc::downgrade(user),
-                            from.clone(),
-                            Arc::downgrade(&to),
-                        ));
-                    } else {
-                        warn!("<red>Failed</> to find free unit in deployment <blue>{}</> while resolving transfer of user <blue>{}</>", deployment.name, user.name);
-                    }
+            }
+            TransferTarget::Fallback => {
+                let controller = self
+                    .controller
+                    .upgrade()
+                    .expect("Failed to upgrade controller. This should never happen");
+                if let Some(fallback) = controller
+                    .get_units()
+                    .find_fallback_unit(
+                        &from
+                            .upgrade()
+                            .expect("Failed to upgrade unit. This should never happen"),
+                    )
+                    .map(TransferTarget::Unit)
+                {
+                    return self.resolve_transfer(user, &fallback);
+                } else {
+                    warn!("<red>Failed</> to find fallback unit while resolving transfer of user <blue>{}</>", user.name);
                 }
             }
         }
@@ -99,6 +96,7 @@ impl Users {
 pub enum TransferTarget {
     Unit(UnitHandle),
     Deployment(DeploymentHandle),
+    Fallback,
 }
 
 #[derive(Clone, Debug)]

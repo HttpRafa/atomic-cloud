@@ -224,7 +224,6 @@ impl AdminService for AdminServiceImpl {
         let scaling = match &deployment.scaling {
             Some(scaling) => ScalingPolicy {
                 enabled: true,
-                max_players: scaling.max_players,
                 start_threshold: scaling.start_threshold,
                 stop_empty_units: scaling.stop_empty_units,
             },
@@ -248,6 +247,7 @@ impl AdminService for AdminServiceImpl {
         let mut spec = Spec::default();
         if let Some(value) = deployment.spec {
             spec.image.clone_from(&value.image);
+            spec.max_players = value.max_players;
             spec.settings = value
                 .settings
                 .iter()
@@ -346,7 +346,6 @@ impl AdminService for AdminServiceImpl {
                     },
                 ),
                 scaling: Some(proto::deployment_management::deployment_value::Scaling {
-                    max_players: deployment.scaling.max_players,
                     start_threshold: deployment.scaling.start_threshold,
                     stop_empty_units: deployment.scaling.stop_empty_units,
                 }),
@@ -360,6 +359,7 @@ impl AdminService for AdminServiceImpl {
                 }),
                 spec: Some(proto::unit_management::UnitSpec {
                     image: deployment.spec.image.clone(),
+                    max_players: deployment.spec.max_players,
                     settings: deployment
                         .spec
                         .settings
@@ -458,6 +458,7 @@ impl AdminService for AdminServiceImpl {
                 }),
                 spec: Some(proto::unit_management::UnitSpec {
                     image: unit.allocation.spec.image.clone(),
+                    max_players: unit.allocation.spec.max_players,
                     settings: unit
                         .allocation
                         .spec
@@ -538,54 +539,76 @@ impl AdminService for AdminServiceImpl {
         }))
     }
 
-    async fn transfer_user(
+    async fn transfer_users(
         &self,
-        request: Request<proto::user_management::TransferUserRequest>,
-    ) -> Result<Response<bool>, Status> {
+        request: Request<proto::transfer_management::TransferUsersRequest>,
+    ) -> Result<Response<u32>, Status> {
         let transfer = request.into_inner();
         let target = transfer
             .target
             .ok_or_else(|| Status::invalid_argument("Target must be provided"))?;
 
-        let user_uuid = Uuid::from_str(&transfer.user_uuid).map_err(|error| {
-            Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
-        })?;
+        let target =
+            match proto::transfer_management::transfer_target_value::TargetType::try_from(
+                target.target_type,
+            ) {
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
+                    TransferTarget::Deployment(
+                        self.controller
+                            .lock_deployments()
+                            .find_by_name(&target.target.ok_or_else(|| {
+                                Status::invalid_argument("Target must be provided")
+                            })?)
+                            .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
+                    )
+                }
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Unit) => {
+                    TransferTarget::Unit(
+                        self.controller
+                            .get_units()
+                            .get_unit(
+                                Uuid::from_str(&target.target.ok_or_else(|| {
+                                    Status::invalid_argument("Target must be provided")
+                                })?)
+                                .map_err(|error| {
+                                    Status::invalid_argument(format!(
+                                        "Failed to parse target UUID: {}",
+                                        error
+                                    ))
+                                })?,
+                            )
+                            .ok_or_else(|| Status::not_found("Unit does not exist"))?,
+                    )
+                }
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Fallback) => {
+                    TransferTarget::Fallback
+                }
+                Err(error) => return Err(Status::invalid_argument(error.to_string())),
+            };
 
-        let user = self
-            .controller
-            .get_users()
-            .get_user(user_uuid)
-            .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
+        let mut count = 0;
+        for user_uuid in &transfer.user_uuids {
+            let user_uuid = Uuid::from_str(user_uuid).map_err(|error| {
+                Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
+            })?;
 
-        let target = match proto::user_management::transfer_target_value::TargetType::try_from(
-            target.target_type,
-        ) {
-            Ok(proto::user_management::transfer_target_value::TargetType::Deployment) => {
-                TransferTarget::Deployment(
-                    self.controller
-                        .lock_deployments()
-                        .find_by_name(&target.target)
-                        .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
-                )
+            let user = self
+                .controller
+                .get_users()
+                .get_user(user_uuid)
+                .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
+
+            let transfer = self
+                .controller
+                .get_users()
+                .resolve_transfer(&user, &target)
+                .ok_or_else(|| Status::not_found("Failed to resolve transfer"))?;
+
+            if self.controller.get_users().transfer_user(transfer) {
+                count += 1;
             }
-            _ => TransferTarget::Unit(
-                self.controller
-                    .get_units()
-                    .get_unit(Uuid::from_str(&target.target).map_err(|error| {
-                        Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
-                    })?)
-                    .ok_or_else(|| Status::not_found("Unit does not exist"))?,
-            ),
-        };
-
-        let transfer = self
-            .controller
-            .get_users()
-            .resolve_transfer(&user, &target)
-            .ok_or_else(|| Status::not_found("Failed to resolve transfer"))?;
-        Ok(Response::new(
-            self.controller.get_users().transfer_user(transfer),
-        ))
+        }
+        Ok(Response::new(count))
     }
 
     async fn get_protocol_version(&self, _request: Request<()>) -> Result<Response<u32>, Status> {

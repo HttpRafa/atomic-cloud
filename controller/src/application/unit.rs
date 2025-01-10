@@ -322,6 +322,7 @@ impl Units {
             .filter(|unit| {
                 !Arc::ptr_eq(unit, excluded)
                     && unit.allocation.spec.fallback.enabled
+                    && unit.rediness.load(Ordering::Relaxed)
                     && *unit.state.read().unwrap() == State::Running
             })
             .max_by_key(|unit| unit.allocation.spec.fallback.priority)
@@ -554,5 +555,6 @@ pub struct Spec {
     pub disk_retention: Retention,
     pub image: String,
 
+    pub max_players: u32,
     pub fallback: FallbackPolicy,
 }

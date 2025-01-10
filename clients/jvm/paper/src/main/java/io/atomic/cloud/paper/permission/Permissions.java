@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 @Getter
 public enum Permissions {
     CLOUD_COMMAND("atomic.cloud.command.cloud"),
-    SERVER_COMMAND("atomic.cloud.command.server");
+    SEND_COMMAND("atomic.cloud.command.send"),
+    DISPOSE_COMMAND("atomic.cloud.command.dispose");
 
     private final String permission;
 

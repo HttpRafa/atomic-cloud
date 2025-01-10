@@ -2,9 +2,14 @@ package io.atomic.cloud.common.channel;
 
 import io.atomic.cloud.api.channel.Channels;
 import io.atomic.cloud.api.channel.handler.ChannelHandler;
+import io.atomic.cloud.common.connection.CloudConnection;
 import java.util.concurrent.CompletableFuture;
+import lombok.AllArgsConstructor;
 
+@AllArgsConstructor
 public class ChannelManager implements Channels {
+
+    private final CloudConnection connection;
 
     @Override
     public CompletableFuture<Void> sendMessage(String channel, String message) {

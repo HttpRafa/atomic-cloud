@@ -157,17 +157,11 @@ impl CreateDeploymentMenu {
     }
 
     fn collect_scaling() -> Result<Scaling> {
-        let max_players = MenuUtils::parsed_value(
-            "What is the maximum number of players per unit?",
-            "Example: 20",
-            "Please enter a valid number",
-        )?;
         let start_threshold = MenuUtils::parsed_value::<f32>("At what percentage (0-100) of the max player count should the controller start a new unit?", "Example: 50", "Please enter a valid number")? / 100.0;
         let stop_empty_units =
             MenuUtils::confirm("Should the controller stop units that are empty for too long?")?;
 
         Ok(Scaling {
-            max_players,
             start_threshold,
             stop_empty_units,
         })
@@ -217,6 +211,11 @@ impl CreateDeploymentMenu {
 
     fn collect_specification() -> Result<UnitSpec> {
         let image = MenuUtils::text("Which image should the unit use?", "Example: ubuntu:latest")?;
+        let max_players = MenuUtils::parsed_value(
+            "What is the maximum number of players per unit?",
+            "Example: 20",
+            "Please enter a valid number",
+        )?;
         let settings = MenuUtils::parsed_value::<KeyValueList>(
             "What settings should the controller pass to the driver when starting a unit?",
             "Format: key=value,key=value,key=value,...",
@@ -237,6 +236,7 @@ impl CreateDeploymentMenu {
 
         Ok(UnitSpec {
             image,
+            max_players,
             settings,
             environment,
             disk_retention: Some(disk_retention as i32),

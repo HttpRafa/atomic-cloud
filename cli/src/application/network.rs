@@ -8,8 +8,11 @@ use proto::{
     resource_management::{
         DeleteResourceRequest, ResourceCategory, ResourceStatus, SetResourceStatusRequest,
     },
+    transfer_management::{
+        transfer_target_value::TargetType, TransferTargetValue, TransferUsersRequest,
+    },
     unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
-    user_management::{transfer_target_value::TargetType, TransferUserRequest, UserValue},
+    user_management::UserValue,
 };
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
@@ -243,12 +246,13 @@ impl CloudConnection {
             .users)
     }
 
-    pub async fn transfer_user(
-        &mut self,
-        transfer_user_request: TransferUserRequest,
-    ) -> Result<()> {
-        let request = self.create_request(transfer_user_request);
-        self.client.as_mut().unwrap().transfer_user(request).await?;
+    pub async fn transfer_users(&mut self, request: TransferUsersRequest) -> Result<()> {
+        let request = self.create_request(request);
+        self.client
+            .as_mut()
+            .unwrap()
+            .transfer_users(request)
+            .await?;
         Ok(())
     }
 
@@ -284,6 +288,19 @@ impl Display for TargetType {
         match self {
             TargetType::Unit => write!(f, "Unit"),
             TargetType::Deployment => write!(f, "Deployment"),
+            TargetType::Fallback => write!(f, "Fallback"),
+        }
+    }
+}
+
+impl Display for TransferTargetValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match TargetType::try_from(self.target_type)
+            .expect("There is something wrong with the target type")
+        {
+            TargetType::Unit => write!(f, "Unit ({})", self.target.as_ref().unwrap()),
+            TargetType::Deployment => write!(f, "Deployment ({})", self.target.as_ref().unwrap()),
+            TargetType::Fallback => write!(f, "Fallback"),
         }
     }
 }

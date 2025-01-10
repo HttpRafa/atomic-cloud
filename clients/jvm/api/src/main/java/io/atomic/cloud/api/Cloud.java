@@ -1,7 +1,8 @@
 package io.atomic.cloud.api;
 
 import io.atomic.cloud.api.channel.Channels;
-import io.atomic.cloud.api.unit.CloudUnit;
+import io.atomic.cloud.api.objects.LocalCloudUnit;
+import io.atomic.cloud.api.transfer.Transfers;
 
 public class Cloud {
 
@@ -20,7 +21,7 @@ public class Cloud {
      * Get the current server instance
      * @return the current server instance
      */
-    public static CloudUnit self() {
+    public static LocalCloudUnit self() {
         return Cloud.INSTANCE.self();
     }
 
@@ -30,6 +31,14 @@ public class Cloud {
      */
     public static Channels channels() {
         return Cloud.INSTANCE.channels();
+    }
+
+    /**
+     * The transfer API
+     * @return the transfer API
+     */
+    public static Transfers transfers() {
+        return Cloud.INSTANCE.transfers();
     }
 
     /**
@@ -45,13 +54,19 @@ public class Cloud {
          * Get the current server instance
          * @return the current server instance
          */
-        CloudUnit self();
+        LocalCloudUnit self();
 
         /**
          * The channels API
          * @return the channels API
          */
         Channels channels();
+
+        /**
+         * The transfer API
+         * @return the transfer API
+         */
+        Transfers transfers();
 
         /**
          * The server marks itself ready when it is started. This method disables this behavior.

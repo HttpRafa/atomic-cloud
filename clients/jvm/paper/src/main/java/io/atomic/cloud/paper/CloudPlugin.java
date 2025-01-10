@@ -4,7 +4,8 @@ import io.atomic.cloud.api.Cloud;
 import io.atomic.cloud.common.channel.ChannelManager;
 import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.common.health.Heart;
-import io.atomic.cloud.common.unit.SimpleCloudUnit;
+import io.atomic.cloud.common.objects.SimpleLocalCloudUnit;
+import io.atomic.cloud.common.transfer.TransferManager;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import io.atomic.cloud.paper.transfer.TransferHandler;
@@ -26,10 +27,11 @@ public class CloudPlugin extends JavaPlugin {
     public static final Logger LOGGER = LoggerFactory.getLogger("atomic-cloud");
 
     private final Settings settings = new Settings();
-    private final ChannelManager channels = new ChannelManager();
+    private ChannelManager channels;
+    private TransferManager transfers;
     private Heart heart;
     private CloudConnection connection;
-    private SimpleCloudUnit self;
+    private SimpleLocalCloudUnit self;
 
     private TransferHandler transferHandler;
 
@@ -38,8 +40,10 @@ public class CloudPlugin extends JavaPlugin {
         Cloud.setup(new CloudImpl());
 
         this.connection = CloudConnection.createFromEnv();
-        this.self = new SimpleCloudUnit(this.connection);
+        this.self = new SimpleLocalCloudUnit(this.connection);
         this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
+        this.channels = new ChannelManager(this.connection);
+        this.transfers = new TransferManager(this.connection);
         this.transferHandler = new TransferHandler(this.connection);
 
         LOGGER.info("Connecting to controller...");

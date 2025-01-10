@@ -287,7 +287,6 @@ pub struct StartConstraints {
 #[derive(Serialize, Deserialize, Clone, Copy, Default)]
 pub struct ScalingPolicy {
     pub enabled: bool,
-    pub max_players: u32,
     pub start_threshold: f32,
     pub stop_empty_units: bool,
 }
@@ -375,8 +374,7 @@ impl Deployment {
         if self.scaling.enabled {
             for unit in deployment_units.iter() {
                 if let AssociatedUnit::Active(unit) = unit {
-                    let player_ratio =
-                        unit.get_user_count() as f32 / self.scaling.max_players as f32;
+                    let player_ratio = unit.get_user_count() as f32 / self.spec.max_players as f32;
                     if player_ratio >= self.scaling.start_threshold {
                         target_unit_count += 1; // Unit has reached the threshold, start a new one
                     }

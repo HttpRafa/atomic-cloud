@@ -27,8 +27,7 @@ service UnitService {
 
     // Transfer Management
     rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream TransferManagement.ResolvedTransferResponse);
-    rpc TransferAllUsers(TransferManagement.TransferAllUsersRequest) returns (google.protobuf.UInt32Value);
-    rpc TransferUser(TransferManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
+    rpc TransferUsers(TransferManagement.TransferUsersRequest) returns (google.protobuf.UInt32Value);
 
     // Channel Management
     rpc SendMessageToChannel(ChannelManagement.ChannelMessageValue) returns (google.protobuf.UInt32Value);
@@ -37,6 +36,9 @@ service UnitService {
 
     // Unit Information
     rpc GetUnits(google.protobuf.Empty) returns (UnitInformation.UnitListResponse);
+
+    // Deployment Information
+    rpc GetDeployments(google.protobuf.Empty) returns (DeploymentInformation.DeploymentListResponse);
 
     // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
@@ -61,21 +63,18 @@ message UserManagement {
 // Transfer Management
 message TransferManagement {
     message TransferTargetValue {
-        string target = 1;
-        TargetType targetType = 2;
+        TargetType targetType = 1;
+        optional string target = 2;
 
         enum TargetType {
             UNIT = 0;
             DEPLOYMENT = 1;
+            FALLBACK = 2;
         }
     }
 
-    message TransferAllUsersRequest {
-        optional TransferTargetValue target = 1;
-    }
-
-    message TransferUserRequest {
-        string userUuid = 1;
+    message TransferUsersRequest {
+        repeated string userUuids = 1;
         TransferTargetValue target = 2;
     }
 
@@ -106,5 +105,12 @@ message UnitInformation {
         string name = 1;
         string uuid = 2;
         optional string deployment = 3;
+    }
+}
+
+// Deployment Information
+message DeploymentInformation {
+    message DeploymentListResponse {
+        repeated string deployments = 1;
     }
 }

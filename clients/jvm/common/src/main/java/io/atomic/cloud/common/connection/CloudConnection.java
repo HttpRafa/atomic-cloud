@@ -1,6 +1,5 @@
 package io.atomic.cloud.common.connection;
 
-import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
@@ -99,15 +98,9 @@ public class CloudConnection {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferAllUsers(TransferManagement.TransferAllUsersRequest target) {
+    public CompletableFuture<UInt32Value> transferUsers(TransferManagement.TransferUsersRequest transfer) {
         var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.transferAllUsers(target, observer);
-        return observer.future();
-    }
-
-    public CompletableFuture<BoolValue> transferUser(TransferManagement.TransferUserRequest transfer) {
-        var observer = new StreamObserverImpl<BoolValue>();
-        this.client.transferUser(transfer, observer);
+        this.client.transferUsers(transfer, observer);
         return observer.future();
     }
 

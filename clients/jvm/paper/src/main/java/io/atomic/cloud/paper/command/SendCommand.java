@@ -9,7 +9,6 @@ import io.atomic.cloud.paper.permission.Permissions;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
-import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -30,20 +29,17 @@ public class SendCommand {
 
                             sender.sendRichMessage("<gray>Transferring <aqua>" + userCount
                                     + " <gray>users to unit <blue>" + unit.getName() + "<dark_gray>...");
-                            CompletableFuture.allOf(users.stream()
-                                            .map((player) -> connection.transferUser(
-                                                    TransferManagement.TransferUserRequest.newBuilder()
-                                                            .setUserUuid(player.getUniqueId()
-                                                                    .toString())
-                                                            .setTarget(
-                                                                    TransferManagement.TransferTargetValue.newBuilder()
-                                                                            .setTargetType(
-                                                                                    TransferManagement
-                                                                                            .TransferTargetValue
-                                                                                            .TargetType.UNIT)
-                                                                            .setTarget(unit.getUuid()))
-                                                            .build()))
-                                            .toArray(CompletableFuture[]::new))
+
+                            connection
+                                    .transferUsers(TransferManagement.TransferUsersRequest.newBuilder()
+                                            .addAllUserUuids(users.stream()
+                                                    .map(Object::toString)
+                                                    .toList())
+                                            .setTarget(TransferManagement.TransferTargetValue.newBuilder()
+                                                    .setTargetType(
+                                                            TransferManagement.TransferTargetValue.TargetType.UNIT)
+                                                    .setTarget(unit.getUuid()))
+                                            .build())
                                     .whenComplete((result, throwable) -> {
                                         if (throwable != null) {
                                             sender.sendRichMessage(

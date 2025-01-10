@@ -29,4 +29,4 @@ services:
 To start the container, execute the following command:
 ```bash
 docker compose up
-``
+```

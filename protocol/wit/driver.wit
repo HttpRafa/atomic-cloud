@@ -59,7 +59,7 @@ interface bridge {
 
     /* Allocation */
     record address {
-        ip: string,
+        host: string,
         port: u16,
     }
 

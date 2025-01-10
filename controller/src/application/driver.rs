@@ -1,6 +1,6 @@
 use anyhow::Result;
 use simplelog::info;
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 use tonic::async_trait;
 
 use crate::application::cloudlet::Cloudlet;
@@ -9,6 +9,8 @@ use crate::application::unit::UnitHandle;
 
 #[cfg(feature = "wasm-drivers")]
 use crate::application::driver::wasm::WasmDriver;
+
+use super::cloudlet::HostAndPort;
 
 #[cfg(feature = "wasm-drivers")]
 mod wasm;
@@ -29,8 +31,8 @@ pub trait GenericDriver: Send + Sync {
 #[async_trait]
 pub trait GenericCloudlet: Send + Sync {
     /* Prepare */
-    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>>;
-    fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()>;
+    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>>;
+    fn deallocate_addresses(&self, addresses: Vec<HostAndPort>) -> Result<()>;
 
     /* Unitss */
     fn start_unit(&self, unit: &UnitHandle) -> Result<()>;

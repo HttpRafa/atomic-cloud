@@ -83,7 +83,10 @@ impl GetUnitMenu {
             info!("      <green><b>Allocation</>: ");
             info!("         <green><b>Allocations</>: ");
             for address in &allocation.addresses {
-                info!("            - <green><b>{}:{}</>", address.ip, address.port);
+                info!(
+                    "            - <green><b>{}:{}</>",
+                    address.host, address.port
+                );
             }
             if let Some(resources) = allocation.resources {
                 info!("         <green><b>Resources per unit</>: ");

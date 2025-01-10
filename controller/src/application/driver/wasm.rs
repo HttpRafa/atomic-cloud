@@ -1,5 +1,4 @@
 use std::fs;
-use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, Weak};
 
 use anyhow::{anyhow, Result};
@@ -16,7 +15,7 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder,
 
 use super::source::Source;
 use super::{DriverCloudletHandle, GenericDriver, Information};
-use crate::application::cloudlet::{Capabilities, Cloudlet, RemoteController};
+use crate::application::cloudlet::{Capabilities, Cloudlet, HostAndPort, RemoteController};
 use crate::storage::Storage;
 
 mod cloudlet_impl;
@@ -431,11 +430,11 @@ impl From<&RemoteController> for bridge::RemoteController {
     }
 }
 
-impl From<&SocketAddr> for bridge::Address {
-    fn from(val: &SocketAddr) -> Self {
+impl From<&HostAndPort> for bridge::Address {
+    fn from(val: &HostAndPort) -> Self {
         bridge::Address {
-            ip: val.ip().to_string(),
-            port: val.port(),
+            host: val.host.clone(),
+            port: val.port,
         }
     }
 }

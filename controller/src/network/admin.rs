@@ -444,8 +444,8 @@ impl AdminService for AdminServiceImpl {
                     .addresses
                     .iter()
                     .map(|addr| proto::common::Address {
-                        ip: addr.ip().to_string(),
-                        port: addr.port() as u32,
+                        host: addr.host.clone(),
+                        port: addr.port as u32,
                     })
                     .collect(),
                 resources: Some(proto::unit_management::UnitResources {

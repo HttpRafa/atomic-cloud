@@ -371,7 +371,7 @@ impl Backend {
                 for allocation in &response.data {
                     if allocation.attributes.assigned
                         || used_allocations.iter().any(|used| {
-                            used.ip == allocation.attributes.ip
+                            used.get_host() == allocation.attributes.get_host()
                                 && used.port == allocation.attributes.port
                         })
                     {

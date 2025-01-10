@@ -227,7 +227,7 @@ message Common {
     }
 
     message Address {
-        string ip = 1;
+        string host = 1;
         uint32 port = 2;
     }
 }

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
+    fmt::Display,
     fs,
-    net::SocketAddr,
     sync::{Arc, RwLock, Weak},
 };
 
@@ -242,13 +242,13 @@ impl Cloudlets {
 pub type AllocationHandle = Arc<Allocation>;
 
 pub struct Allocation {
-    pub addresses: Vec<SocketAddr>,
+    pub addresses: Vec<HostAndPort>,
     pub resources: Resources,
     pub spec: Spec,
 }
 
 impl Allocation {
-    pub fn primary_address(&self) -> &SocketAddr {
+    pub fn primary_address(&self) -> &HostAndPort {
         &self.addresses[0]
     }
 }
@@ -416,6 +416,24 @@ pub enum LifecycleStatus {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RemoteController {
     pub address: Url,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HostAndPort<S = String> {
+    pub host: S,
+    pub port: u16,
+}
+
+impl HostAndPort {
+    pub fn new(host: String, port: u16) -> Self {
+        Self { host, port }
+    }
+}
+
+impl Display for HostAndPort {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}:{}", self.host, self.port)
+    }
 }
 
 mod stored {

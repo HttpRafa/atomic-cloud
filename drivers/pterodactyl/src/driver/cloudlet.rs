@@ -88,7 +88,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             .map(|allocation| {
                 used.push(allocation.clone());
                 Address {
-                    ip: allocation.ip.clone(),
+                    host: allocation.get_host().clone(),
                     port: allocation.port,
                 }
             })
@@ -100,7 +100,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         self.inner.get_allocations_mut().retain(|x| {
             !addresses
                 .iter()
-                .any(|address| *x.ip == address.ip && x.port == address.port)
+                .any(|address| *x.get_host() == address.host && x.port == address.port)
         });
     }
 
@@ -288,7 +288,9 @@ impl PterodactylCloudlet {
     fn find_allocation(&self, address: &Address) -> Option<BAllocation> {
         self.get_allocations()
             .iter()
-            .find(|allocation| allocation.ip == address.ip && allocation.port == address.port)
+            .find(|allocation| {
+                *allocation.get_host() == address.host && allocation.port == address.port
+            })
             .cloned()
     }
     fn find_unit(&self, name: &str) -> Option<PanelUnit> {

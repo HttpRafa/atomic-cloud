@@ -173,8 +173,8 @@ impl UnitService for UnitServiceImpl {
 
                         let transfer = proto::transfer_management::ResolvedTransferResponse {
                             user_uuid: user.uuid.to_string(),
-                            host: address.ip().to_string(),
-                            port: address.port() as u32,
+                            host: address.host.clone(),
+                            port: address.port as u32,
                         };
                         sender
                             .send(Ok(transfer))

@@ -61,6 +61,25 @@ jobs:
       - name: Install Protobuf Compiler and MinGW (for Windows build)
         run: sudo apt update && sudo apt install protobuf-compiler gcc-mingw-w64 -y
 
+      - name: Create release branch and bump version
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          BRANCH=release/${REF:10}
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git checkout -b $BRANCH
+          git push -u origin $BRANCH
+          sed -i 's/client_version=0\.0\.0-nightly/client_version=\${REF:11}/g' clients/jvm/gradle.properties
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/pterodactyl/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' clients/wrapper/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' controller/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' common/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' cli/Cargo.toml
+          git add clients/jvm/gradle.properties drivers/pterodactyl/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
+          git commit -m "ci(release): bump version"
+          git push
+
       - name: Build Projects
         run: |
           cargo build --release --all --all-features --target x86_64-unknown-linux-gnu --verbose
@@ -80,25 +99,6 @@ jobs:
           CURRENT_COMMIT: ${{ github.sha }}
           CURRENT_BUILD: ${{ github.run_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create release branch
-        env:
-          REF: ${{ github.ref }}
-        run: |
-          BRANCH=release/${REF:10}
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git checkout -b $BRANCH
-          git push -u origin $BRANCH
-          sed -i 's/client_version=0\.0\.0-nightly/client_version=\${REF:11}/g' clients/jvm/gradle.properties
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/pterodactyl/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' clients/wrapper/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' controller/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' common/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' cli/Cargo.toml
-          git add clients/jvm/gradle.properties drivers/pterodactyl/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
-          git commit -m "ci(release): bump version"
-          git push
 
       - name: Copy Files
         run: |

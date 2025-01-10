@@ -37,6 +37,9 @@ service UnitService {
     // Unit Information
     rpc GetUnits(google.protobuf.Empty) returns (UnitInformation.UnitListResponse);
 
+    // Deployment Information
+    rpc GetDeployments(google.protobuf.Empty) returns (DeploymentInformation.DeploymentListResponse);
+
     // Housekeeping
     rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
 
@@ -102,5 +105,12 @@ message UnitInformation {
         string name = 1;
         string uuid = 2;
         optional string deployment = 3;
+    }
+}
+
+// Deployment Information
+message DeploymentInformation {
+    message DeploymentListResponse {
+        repeated string deployments = 1;
     }
 }

@@ -33,6 +33,7 @@ public class CloudConnection {
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
     private final CachedObject<UnitInformation.UnitListResponse> unitsInfo = new CachedObject<>();
+    private final CachedObject<DeploymentInformation.DeploymentListResponse> deploymentsInfo = new CachedObject<>();
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -137,6 +138,27 @@ public class CloudConnection {
         this.client.getUnits(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
             this.unitsInfo.setValue(value);
+            return value;
+        });
+    }
+
+    public Optional<DeploymentInformation.DeploymentListResponse> getDeploymentsNow() {
+        var cached = this.deploymentsInfo.getValue();
+        if (cached.isEmpty()) {
+            this.getDeployments(); // Request value from controller
+        }
+        return cached;
+    }
+
+    public CompletableFuture<DeploymentInformation.DeploymentListResponse> getDeployments() {
+        var cached = this.deploymentsInfo.getValue();
+        if (cached.isPresent()) {
+            return CompletableFuture.completedFuture(cached.get());
+        }
+        var observer = new StreamObserverImpl<DeploymentInformation.DeploymentListResponse>();
+        this.client.getDeployments(Empty.getDefaultInstance(), observer);
+        return observer.future().thenApply((value) -> {
+            this.deploymentsInfo.setValue(value);
             return value;
         });
     }

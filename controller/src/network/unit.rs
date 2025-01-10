@@ -384,6 +384,21 @@ impl UnitService for UnitServiceImpl {
         }))
     }
 
+    async fn get_deployments(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::deployment_information::DeploymentListResponse>, Status> {
+        let handle = self.controller.lock_deployments();
+        let mut deployments = Vec::with_capacity(handle.get_amount());
+        for name in handle.get_deployments().keys() {
+            deployments.push(name.clone());
+        }
+
+        Ok(Response::new(
+            proto::deployment_information::DeploymentListResponse { deployments },
+        ))
+    }
+
     async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {
         let requesting_unit = request
             .extensions()

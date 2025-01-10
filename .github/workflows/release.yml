@@ -90,6 +90,12 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git checkout -b $BRANCH
           git push -u origin $BRANCH
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/pterodactyl/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' controller/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' common/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' clients/wrapper/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' cli/Cargo.toml
+          sed -i 's/client_version=0\.0\.0-nightly/client_version=\${REF:11}/g' clients/jvm/gradle.properties
 
       - name: Copy Files
         run: |

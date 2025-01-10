@@ -33,6 +33,7 @@ docker compose up
 
 ## Step 3: Retrieve the Admin Token
 Upon the initial run of the controller, an admin token will be displayed. This token is required to connect using the CLI. For further details, refer to [How to use the CLI](/cli/).
+
 ![First Startup](docker/first_startup.png)
 
 ## Step 4: Retrieve the Admin Token Later (If Needed)

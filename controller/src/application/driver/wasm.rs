@@ -38,13 +38,13 @@ const WASM_DIRECTORY: &str = "wasm";
 
 /* Caching of compiled wasm artifacts and other configuration */
 const CONFIG_FILE: &str = "wasm.toml";
-const DEFAULT_CONFIG: &str = r#"# For more settings, please refer to the documentation:
+const ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
+const DEFAULT_ENGINE_CONFIG: &str = r#"# For more settings, please refer to the documentation:
 # https://bytecodealliance.github.io/wasmtime/cli-cache.html
 
 [cache]
-enabled = true
-
-# This section is crucial for granting the drivers their required permissions
+enabled = true"#;
+const DEFAULT_CONFIG: &str = r#"# This configuration is crucial for granting the drivers their required permissions
 # https://httprafa.github.io/atomic-cloud/controller/drivers/wasm/permissions/
 
 [[drivers]]
@@ -187,7 +187,7 @@ impl WasmDriver {
         let mut engine_config = Config::new();
         engine_config.wasm_component_model(true);
         if let Err(error) =
-            engine_config.cache_config_load(Storage::get_configs_folder().join(CONFIG_FILE))
+            engine_config.cache_config_load(Storage::get_configs_folder().join(ENGINE_CONFIG_FILE))
         {
             warn!(
                 "<red>Failed</> to enable caching for wasmtime engine: <red>{}</>",
@@ -274,6 +274,17 @@ impl WasmDriver {
         drivers: &mut Vec<Arc<dyn GenericDriver>>,
     ) -> WasmConfig {
         // Check if cache configuration exists
+        {
+            let engine_config_file = Storage::get_configs_folder().join(ENGINE_CONFIG_FILE);
+            if !engine_config_file.exists() {
+                fs::write(&engine_config_file, DEFAULT_ENGINE_CONFIG).unwrap_or_else(|error| {
+                    warn!(
+                        "<red>Failed</> to create default wasmtime configuration file: <red>{}</>",
+                        &error
+                    )
+                });
+            }
+        }
         let config_file = Storage::get_configs_folder().join(CONFIG_FILE);
         if !config_file.exists() {
             fs::write(&config_file, DEFAULT_CONFIG).unwrap_or_else(|error| {
@@ -283,6 +294,7 @@ impl WasmDriver {
                 )
             });
         }
+
         let config = WasmConfig::load_from_file(&config_file).unwrap_or_else(|error| {
             warn!(
                 "<red>Failed</> to load wasm configuration file: <red>{}</>",

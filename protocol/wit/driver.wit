@@ -31,6 +31,15 @@ interface http {
     send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
 }
 
+interface process {
+    spawn-process: func(command: string, args: list<string>) -> result<u32, string>;
+    kill-process: func(pid: u32) -> result<bool, string>;
+
+    read-stdout: func(pid: u32) -> result<list<u8>, string>;
+    read-stderr: func(pid: u32) -> result<list<u8>, string>;
+    write-stdin: func(pid: u32, data: list<u8>) -> result<bool, string>;
+}
+
 interface api {
     get-name: func() -> string;
 }
@@ -143,4 +152,5 @@ world driver {
     import api;
     import log;
     import http;
+    import process;
 }

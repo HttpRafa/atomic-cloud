@@ -55,7 +55,12 @@ fn get_version_info() -> Result<(u16, u16, u16, String), Box<dyn std::error::Err
         } else {
             "Stable".to_string()
         };
-        Ok((version_numbers[0], version_numbers[1], version_numbers[2], stage))
+        Ok((
+            version_numbers[0],
+            version_numbers[1],
+            version_numbers[2],
+            stage,
+        ))
     } else {
         Err("Version must have three parts".into())
     }

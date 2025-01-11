@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock, Weak};
 use std::fs;
+use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use anyhow::{anyhow, Result};
 use cloudlet::WasmCloudlet;
@@ -20,10 +20,10 @@ use crate::storage::Storage;
 
 mod config;
 
-mod process;
 mod cloudlet;
 mod http;
 mod log;
+mod process;
 
 pub mod generated {
     use wasmtime::component::bindgen;

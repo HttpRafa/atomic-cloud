@@ -28,7 +28,7 @@ pub struct DriverConfig {
     pub inherit_network: bool,
     pub allow_ip_name_lookup: bool,
     pub allow_http: bool,
-    pub allow_child_processes: bool,
+    pub allow_process: bool,
 
     pub mounts: Vec<MountConfig>,
 }
@@ -43,7 +43,7 @@ impl Default for DriverConfig {
             inherit_network: true,
             allow_ip_name_lookup: true,
             allow_http: true,
-            allow_child_processes: true,
+            allow_process: true,
             mounts: Vec::new(),
         }
     }

@@ -20,7 +20,7 @@ use crate::storage::Storage;
 
 mod config;
 
-mod child_process;
+mod process;
 mod cloudlet;
 mod http;
 mod log;
@@ -55,7 +55,7 @@ inherit_env = false
 inherit_network = true
 allow_ip_name_lookup = true
 allow_http = true
-allow_child_processes = false
+allow_process = false
 mounts = []"#;
 
 struct WasmDriverState {

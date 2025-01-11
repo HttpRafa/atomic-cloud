@@ -1,7 +1,6 @@
 use std::sync::{Arc, Weak};
 
 use anyhow::{anyhow, Result};
-use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
 use crate::application::{
@@ -14,7 +13,7 @@ use crate::application::{
 };
 
 use super::{
-    exports::cloudlet::driver::bridge::{self, Address},
+    generated::exports::cloudlet::driver::bridge::{self, Address},
     WasmDriver,
 };
 
@@ -23,7 +22,6 @@ pub struct WasmCloudlet {
     pub resource: ResourceAny, // This is delete if the handle is dropped
 }
 
-#[async_trait]
 impl GenericCloudlet for WasmCloudlet {
     fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>> {
         if let Some(driver) = self.handle.upgrade() {

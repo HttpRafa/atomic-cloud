@@ -26,9 +26,6 @@ USER ${REMOTE_USER}
 # Install Rustup and set default toolchains
 RUN rustup default nightly
 
-# Install the wasm32-wasi target for nightly
-RUN rustup target add wasm32-wasip1 --toolchain nightly
-
 # Install binstall
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 

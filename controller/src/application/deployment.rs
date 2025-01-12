@@ -244,7 +244,7 @@ impl Deployments {
         );
 
         self.add_deployment(deployment);
-        stored_deployment.save_to_file(&Storage::get_deployment_file(name))?;
+        stored_deployment.save_to_file(&Storage::get_deployment_file(name), true)?;
         info!("<green>Created</> deployment <blue>{}</>", name);
         Ok(CreationResult::Created)
     }
@@ -514,7 +514,7 @@ impl Deployment {
             resources: self.resources.clone(),
             spec: self.spec.clone(),
         };
-        stored_deployment.save_to_file(&Storage::get_deployment_file(&self.name))
+        stored_deployment.save_to_file(&Storage::get_deployment_file(&self.name), true)
     }
 }
 

@@ -4,9 +4,9 @@ use driver::{Pterodactyl, PterodactylCloudletWrapper};
 use exports::cloudlet::driver::bridge::Guest;
 use wit_bindgen::generate;
 
-mod config;
 mod driver;
 mod log;
+mod storage;
 
 generate!({
     world: "driver",

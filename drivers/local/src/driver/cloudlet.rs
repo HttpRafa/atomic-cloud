@@ -1,4 +1,6 @@
-use crate::exports::cloudlet::driver::bridge::{Address, Capabilities, GuestGenericCloudlet, RemoteController, Unit, UnitProposal};
+use crate::exports::cloudlet::driver::bridge::{
+    Address, Capabilities, GuestGenericCloudlet, RemoteController, Unit, UnitProposal,
+};
 
 use super::LocalCloudletWrapper;
 
@@ -18,19 +20,11 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         Ok(Vec::new())
     }
 
-    fn deallocate_addresses(&self, _addresses: Vec<Address>) {
+    fn deallocate_addresses(&self, _addresses: Vec<Address>) {}
 
-    }
+    fn start_unit(&self, _unit: Unit) {}
 
-    fn start_unit(&self, _unit: Unit) {
+    fn restart_unit(&self, _unit: Unit) {}
 
-    }
-
-    fn restart_unit(&self, _unit: Unit) {
-
-    }
-
-    fn stop_unit(&self, _unit: Unit) {
-
-    }
+    fn stop_unit(&self, _unit: Unit) {}
 }

@@ -1,4 +1,12 @@
-use crate::exports::cloudlet::driver::bridge::{Capabilities, GenericCloudlet, GuestGenericDriver, Information, RemoteController};
+use std::fs;
+
+use crate::{
+    error,
+    exports::cloudlet::driver::bridge::{
+        Capabilities, GenericCloudlet, GuestGenericDriver, Information, RemoteController,
+    },
+    storage::Storage,
+};
 
 pub mod cloudlet;
 
@@ -14,16 +22,27 @@ pub struct Local {
 
 impl GuestGenericDriver for Local {
     fn new(cloud_identifier: String) -> Self {
-        Self {
-            cloud_identifier,
-        }
+        Self { cloud_identifier }
     }
 
     fn init(&self) -> Information {
+        let mut ready = true;
+
+        let tmp_dir = Storage::get_temporary_folder();
+        if tmp_dir.exists() {
+            if let Err(error) = fs::remove_dir_all(tmp_dir) {
+                error!(
+                    "<red>Failed</> to remove temporary directory: <red>{}</>",
+                    error
+                );
+                ready = false;
+            }
+        }
+
         Information {
             authors: AUTHORS.iter().map(|&author| author.to_string()).collect(),
             version: VERSION.to_string(),
-            ready: false,
+            ready,
         }
     }
 
@@ -37,5 +56,4 @@ impl GuestGenericDriver for Local {
     }
 }
 
-pub struct LocalCloudletWrapper {
-}
+pub struct LocalCloudletWrapper {}

@@ -25,9 +25,7 @@ if [ "$PTERODACTYL" = "true" ]; then
 
         echo "Download complete."
     fi
-else
-    echo "PTERODACTYL is not set to true. Skipping download."
 fi
 
 # Run the main command
-./controller "$@"
+exec ./controller "$@"

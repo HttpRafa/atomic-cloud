@@ -215,7 +215,7 @@ impl Cloudlets {
 
         match self.add_cloudlet(cloudlet) {
             Ok(_) => {
-                stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(name))?;
+                stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(name), true)?;
                 info!("<green>Created</> cloudlet <blue>{}</>", name);
                 Ok(CreationResult::Created)
             }
@@ -393,7 +393,7 @@ impl Cloudlet {
             status: self.status.read().unwrap().clone(),
             controller: self.controller.clone(),
         };
-        stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(&self.name))
+        stored_cloudlet.save_to_file(&Storage::get_cloudlet_file(&self.name), true)
     }
 }
 

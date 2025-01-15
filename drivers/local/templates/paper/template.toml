@@ -1,0 +1,19 @@
+description = "Paper is a Minecraft game server based on Spigot, designed to greatly improve performance and offer more advanced features and API"
+version = "0.1.0"
+authors = ["HttpRafa"]
+
+[prepare.unix]
+command = "echo"
+args = ["Hey Unix!"]
+
+[prepare.windows]
+command = "echo"
+args = ["Hey Windows!"]
+
+[startup.unix]
+command = "echo"
+args = ["Hello, World!"]
+
+[startup.windows]
+command = "echo"
+args = ["Hello, World!"]

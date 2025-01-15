@@ -1,14 +1,43 @@
 use std::{
     io::{Read, Write},
-    process::Command,
+    path::PathBuf,
+    process::{Command, Stdio},
 };
 
-use super::{generated::cloudlet::driver, WasmDriverState};
+use crate::storage::Storage;
+
+use super::{
+    generated::cloudlet::driver::{
+        self,
+        process::{Directory, Reference},
+    },
+    WasmDriverState,
+};
 
 impl driver::process::Host for WasmDriverState {
-    fn spawn_process(&mut self, command: String, args: Vec<String>) -> Result<u32, String> {
+    fn spawn_process(
+        &mut self,
+        command: String,
+        args: Vec<String>,
+        directory: Directory,
+    ) -> Result<u32, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let command = Command::new(command).args(args).spawn();
+        let process_dir = match &directory.reference {
+            Reference::Controller => PathBuf::from(".").join(&directory.path),
+            Reference::Data => {
+                Storage::get_data_folder_for_driver(&driver.name).join(&directory.path)
+            }
+            Reference::Configs => {
+                Storage::get_config_folder_for_driver(&driver.name).join(&directory.path)
+            }
+        };
+        let command = Command::new(command)
+            .args(args)
+            .current_dir(process_dir)
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn();
         match command {
             Ok(child) => {
                 let pid = child.id();
@@ -39,6 +68,31 @@ impl driver::process::Host for WasmDriverState {
                 .map(|_| true)
         } else {
             Ok(false)
+        }
+    }
+
+    fn try_wait_process(&mut self, pid: u32) -> Result<Option<i32>, String> {
+        let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
+        let mut child_processes = driver
+            .data
+            .child_processes
+            .write()
+            .map_err(|_| "Failed to acquire write lock on child processes")?;
+
+        if let Some(child) = child_processes.get_mut(&pid) {
+            child
+                .try_wait()
+                .map_err(|error| format!("Failed to wait for child process: {}", error))
+                .map(|status| {
+                    if let Some(status) = status {
+                        child_processes.remove(&pid);
+                        Some(status.code().unwrap_or(0))
+                    } else {
+                        None
+                    }
+                })
+        } else {
+            Ok(None)
         }
     }
 

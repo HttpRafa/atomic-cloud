@@ -10,6 +10,15 @@ interface log {
     log-string: func(level: level, message: string);
 }
 
+interface platform {
+    variant os {
+        unix,
+        windows,
+    }
+
+    get-os: func() -> os;
+}
+
 interface http {
     variant method {
         get,
@@ -32,8 +41,20 @@ interface http {
 }
 
 interface process {
-    spawn-process: func(command: string, args: list<string>) -> result<u32, string>;
+    variant reference {
+        controller,
+        configs,
+        data,
+    }
+    record directory {
+        path: string,
+        reference: reference,
+    }
+
+    spawn-process: func(command: string, args: list<string>, directory: directory) -> result<u32, string>;
     kill-process: func(pid: u32) -> result<bool, string>;
+
+    try-wait-process: func(pid: u32) -> result<option<s32>, string>;
 
     read-stdout: func(pid: u32) -> result<list<u8>, string>;
     read-stderr: func(pid: u32) -> result<list<u8>, string>;
@@ -151,6 +172,7 @@ world driver {
     export bridge;
     import api;
     import log;
+    import platform;
     import http;
     import process;
 }

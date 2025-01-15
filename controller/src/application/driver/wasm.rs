@@ -23,6 +23,7 @@ mod config;
 mod cloudlet;
 mod http;
 mod log;
+mod platform;
 mod process;
 
 pub mod generated {

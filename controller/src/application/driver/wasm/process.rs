@@ -96,7 +96,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<String, String> {
+    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<(u32, String), String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut child_processes = driver
             .data
@@ -113,10 +113,10 @@ impl driver::process::Host for WasmDriverState {
                         .ok_or("Failed to open stdout of child process")?;
                     let mut buffer = String::new();
                     let mut reader = BufReader::new(stdout);
-                    reader.read_line(&mut buffer).map_err(|error| {
+                    let bytes = reader.read_line(&mut buffer).map_err(|error| {
                         format!("Failed to read stdout of child process: {}", error)
                     })?;
-                    Ok(buffer)
+                    Ok((bytes as u32, buffer))
                 }
                 StdReader::Stderr => {
                     let stderr = child
@@ -125,10 +125,10 @@ impl driver::process::Host for WasmDriverState {
                         .ok_or("Failed to open stderr of child process")?;
                     let mut buffer = String::new();
                     let mut reader = BufReader::new(stderr);
-                    reader.read_line(&mut buffer).map_err(|error| {
+                    let bytes = reader.read_line(&mut buffer).map_err(|error| {
                         format!("Failed to read stderr of child process: {}", error)
                     })?;
-                    Ok(buffer)
+                    Ok((bytes as u32, buffer))
                 }
             }
         } else {
@@ -136,7 +136,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<Vec<u8>, String> {
+    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<(u32, Vec<u8>), String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut child_processes = driver
             .data
@@ -152,10 +152,10 @@ impl driver::process::Host for WasmDriverState {
                         .as_mut()
                         .ok_or("Failed to open stdout of child process")?;
                     let mut buffer = Vec::new();
-                    output.read_to_end(&mut buffer).map_err(|error| {
+                    let bytes = output.read_to_end(&mut buffer).map_err(|error| {
                         format!("Failed to read stdout of child process: {}", error)
                     })?;
-                    Ok(buffer)
+                    Ok((bytes as u32, buffer))
                 }
                 StdReader::Stderr => {
                     let output = child
@@ -163,10 +163,10 @@ impl driver::process::Host for WasmDriverState {
                         .as_mut()
                         .ok_or("Failed to open stderr of child process")?;
                     let mut buffer = Vec::new();
-                    output.read_to_end(&mut buffer).map_err(|error| {
+                    let bytes = output.read_to_end(&mut buffer).map_err(|error| {
                         format!("Failed to read stderr of child process: {}", error)
                     })?;
-                    Ok(buffer)
+                    Ok((bytes as u32, buffer))
                 }
             }
         } else {

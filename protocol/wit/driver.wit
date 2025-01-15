@@ -58,8 +58,8 @@ interface process {
 
     try-wait: func(pid: u32) -> result<option<s32>, string>;
 
-    read-line: func(pid: u32, std: std-reader) -> result<string, string>;
-    read-to-end: func(pid: u32, std: std-reader) -> result<list<u8>, string>;
+    read-line: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, string>;
+    read-to-end: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, string>;
     write-stdin: func(pid: u32, data: list<u8>) -> result<bool, string>;
 }
 

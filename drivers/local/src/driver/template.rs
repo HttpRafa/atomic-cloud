@@ -103,7 +103,7 @@ impl Templates {
 
         for template in &self.templates {
             info!(
-                "Running preperation script for driver <blue>{}</>",
+                "Running preperation script for template <blue>{}</>",
                 template.name
             );
 
@@ -136,7 +136,8 @@ impl Templates {
                 Ok(pid) => {
                     while try_wait(pid).ok().flatten().is_none() {
                         match read_line(pid, StdReader::Stdout) {
-                            Ok(line) => {
+                            Ok(read) => if read.0 > 0 {
+                                let line = read.1.trim();
                                 info!("<blue>[PREPARE]</> {}", line);
                             }
                             Err(error) => {

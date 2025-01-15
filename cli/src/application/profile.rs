@@ -86,7 +86,7 @@ impl Profiles {
             profiles.add_profile(profile);
         }
 
-        progress.success(format!("Loaded {} profiles(s)", profiles.profiles.len()));
+        progress.success(format!("Loaded {} profile(s)", profiles.profiles.len()));
         progress.end();
         profiles
     }
@@ -177,7 +177,7 @@ impl Profile {
             authorization: self.authorization.clone(),
             url: self.url.clone(),
         };
-        stored_profile.save_to_file(&Storage::get_profile_file(&self.id))
+        stored_profile.save_to_file(&Storage::get_profile_file(&self.id), true)
     }
 
     pub fn compute_id(name: &str) -> String {

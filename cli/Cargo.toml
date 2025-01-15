@@ -12,7 +12,7 @@ simplelog = { version = "0.12.2", features = ["paris"] }
 loading = "0.4.0"
 
 # File management
-dirs = "5.0.1"
+dirs = "6.0.0"
 
 # Input parsing
 inquire = "0.7.5"

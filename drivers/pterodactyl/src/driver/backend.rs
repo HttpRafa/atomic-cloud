@@ -1,5 +1,6 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
+use ::common::config::{LoadFromTomlFile, SaveToTomlFile};
 use allocation::{BAllocation, BCAllocation};
 use anyhow::Result;
 use common::{BBody, BList, BObject};
@@ -14,9 +15,9 @@ use user::BUser;
 
 use crate::{
     cloudlet::driver::http::{send_http_request, Header, Method, Response},
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
     exports::cloudlet::driver::bridge::Unit,
+    storage::Storage,
     warn,
 };
 
@@ -30,8 +31,6 @@ mod common;
 mod node;
 pub mod server;
 mod user;
-
-const BACKEND_FILE: &str = "backend.toml";
 
 /* Endpoints */
 const APPLICATION_ENDPOINT: &str = "api/application";
@@ -101,7 +100,7 @@ impl Backend {
     }
 
     fn load_or_empty() -> Self {
-        let path = Path::new(CONFIG_DIRECTORY).join(BACKEND_FILE);
+        let path = Storage::get_backend_config_file();
         if path.exists() {
             Self::load_from_file(&path).unwrap_or_else(|err| {
                 warn!("Failed to read backend configuration from file: {}", err);

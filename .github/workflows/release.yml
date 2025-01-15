@@ -72,11 +72,12 @@ jobs:
           git push -u origin $BRANCH
           sed -i 's/client_version=0\.0\.0-nightly/client_version=\${REF:11}/g' clients/jvm/gradle.properties
           sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/pterodactyl/Cargo.toml
+          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/local/Cargo.toml
           sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' clients/wrapper/Cargo.toml
           sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' controller/Cargo.toml
           sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' common/Cargo.toml
           sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' cli/Cargo.toml
-          git add clients/jvm/gradle.properties drivers/pterodactyl/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
+          git add clients/jvm/gradle.properties drivers/pterodactyl/Cargo.toml drivers/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
           git commit -m "ci(release): bump version"
           git push
 
@@ -112,6 +113,7 @@ jobs:
           cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
 
           cp ./target/wasm32-wasip2/release/pterodactyl.wasm pterodactyl-driver.wasm
+          cp ./target/wasm32-wasip2/release/local.wasm local-driver.wasm
 
           cp $(find ./clients/jvm/paper/build -name "*-all.jar") paper-client.jar
 
@@ -131,4 +133,5 @@ jobs:
             wrapper-linux-x86_64
             wrapper-windows-x86_64.exe
             pterodactyl-driver.wasm
+            local-driver.wasm
             paper-client.jar

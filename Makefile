@@ -3,7 +3,6 @@
 # Configuration
 WASM_RUSTFLAGS = -Z wasi-exec-model=reactor
 WASM_TARGET = wasm32-wasip2
-WASM_COMPONENT = target/wasm32-wasip2/release/pterodactyl.wasm
 
 # Directories
 RUN_DIR = run
@@ -72,6 +71,7 @@ build-wrapper:
 build-drivers:
 	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
 	cargo build -p pterodactyl --target $(WASM_TARGET) --release
+	cargo build -p local --target $(WASM_TARGET) --release
 
 # Create driver directory if it doesn't exist
 $(DRIVER_DIR):

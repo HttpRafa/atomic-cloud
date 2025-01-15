@@ -176,7 +176,7 @@ impl Auth {
             token: token.to_string(),
         };
         let user_path = Storage::get_user_file(username);
-        if stored_user.save_to_file(&user_path).is_err() {
+        if stored_user.save_to_file(&user_path, true).is_err() {
             error!(
                 "<red>Failed</> to save user to file: <red>{}</>",
                 &user_path.display()

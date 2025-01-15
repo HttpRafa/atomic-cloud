@@ -9,6 +9,7 @@ members = [
 
     # Drivers
     "drivers/pterodactyl",
+    "drivers/local",
 
     # Clients
     "cli",

@@ -30,10 +30,3 @@ To start the container, execute the following command:
 ```bash
 docker compose up
 ```
-
-## Step 3: Retrieve the Admin Token
-Upon the initial run of the controller, an admin token will be displayed. This token is required to connect using the CLI. For further details, refer to [How to use the CLI](/cli/).
-![First Startup](docker/first_startup.png)
-
-## Step 4: Retrieve the Admin Token Later (If Needed)
-In case you lose the token, it can be retrieved from the default admin user's file located in the `auth/users` directory.

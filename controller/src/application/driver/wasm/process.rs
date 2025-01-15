@@ -1,5 +1,5 @@
 use std::{
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -9,7 +9,7 @@ use crate::storage::Storage;
 use super::{
     generated::cloudlet::driver::{
         self,
-        process::{Directory, Reference},
+        process::{Directory, Reference, StdReader},
     },
     WasmDriverState,
 };
@@ -71,7 +71,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn try_wait_process(&mut self, pid: u32) -> Result<Option<i32>, String> {
+    fn try_wait(&mut self, pid: u32) -> Result<Option<i32>, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut child_processes = driver
             .data
@@ -96,7 +96,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_stdout(&mut self, pid: u32) -> Result<Vec<u8>, String> {
+    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<String, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut child_processes = driver
             .data
@@ -105,21 +105,38 @@ impl driver::process::Host for WasmDriverState {
             .map_err(|_| "Failed to acquire write lock on child processes")?;
 
         if let Some(child) = child_processes.get_mut(&pid) {
-            let output = child
-                .stdout
-                .as_mut()
-                .ok_or("Failed to open stdout of child process")?;
-            let mut buffer = Vec::new();
-            output
-                .read_to_end(&mut buffer)
-                .map_err(|error| format!("Failed to read stdout of child process: {}", error))?;
-            Ok(buffer)
+            match std {
+                StdReader::Stdout => {
+                    let stdout = child
+                        .stdout
+                        .as_mut()
+                        .ok_or("Failed to open stdout of child process")?;
+                    let mut buffer = String::new();
+                    let mut reader = BufReader::new(stdout);
+                    reader.read_line(&mut buffer).map_err(|error| {
+                        format!("Failed to read stdout of child process: {}", error)
+                    })?;
+                    Ok(buffer)
+                }
+                StdReader::Stderr => {
+                    let stderr = child
+                        .stderr
+                        .as_mut()
+                        .ok_or("Failed to open stderr of child process")?;
+                    let mut buffer = String::new();
+                    let mut reader = BufReader::new(stderr);
+                    reader.read_line(&mut buffer).map_err(|error| {
+                        format!("Failed to read stderr of child process: {}", error)
+                    })?;
+                    Ok(buffer)
+                }
+            }
         } else {
             Err("Child process does not exist".to_string())
         }
     }
 
-    fn read_stderr(&mut self, pid: u32) -> Result<Vec<u8>, String> {
+    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<Vec<u8>, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut child_processes = driver
             .data
@@ -128,15 +145,30 @@ impl driver::process::Host for WasmDriverState {
             .map_err(|_| "Failed to acquire write lock on child processes")?;
 
         if let Some(child) = child_processes.get_mut(&pid) {
-            let output = child
-                .stderr
-                .as_mut()
-                .ok_or("Failed to open stderr of child process")?;
-            let mut buffer = Vec::new();
-            output
-                .read_to_end(&mut buffer)
-                .map_err(|error| format!("Failed to read stderr of child process: {}", error))?;
-            Ok(buffer)
+            match std {
+                StdReader::Stdout => {
+                    let output = child
+                        .stdout
+                        .as_mut()
+                        .ok_or("Failed to open stdout of child process")?;
+                    let mut buffer = Vec::new();
+                    output.read_to_end(&mut buffer).map_err(|error| {
+                        format!("Failed to read stdout of child process: {}", error)
+                    })?;
+                    Ok(buffer)
+                }
+                StdReader::Stderr => {
+                    let output = child
+                        .stderr
+                        .as_mut()
+                        .ok_or("Failed to open stderr of child process")?;
+                    let mut buffer = Vec::new();
+                    output.read_to_end(&mut buffer).map_err(|error| {
+                        format!("Failed to read stderr of child process: {}", error)
+                    })?;
+                    Ok(buffer)
+                }
+            }
         } else {
             Err("Child process does not exist".to_string())
         }

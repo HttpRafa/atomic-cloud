@@ -7,7 +7,7 @@ use stored::StoredTemplate;
 use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
-        process::{read_stdout, spawn_process, try_wait_process, Directory, Reference},
+        process::{read_line, spawn_process, try_wait, Directory, Reference, StdReader},
     },
     info,
     storage::Storage,
@@ -134,14 +134,10 @@ impl Templates {
                 },
             ) {
                 Ok(pid) => {
-                    while try_wait_process(pid).ok().flatten().is_none() {
-                        match read_stdout(pid)
-                            .map(|data| String::from_utf8_lossy(&data).to_string())
-                        {
-                            Ok(data) => {
-                                for line in data.lines() {
-                                    info!("<blue>[PREPARE]</> {}", line);
-                                }
+                    while try_wait(pid).ok().flatten().is_none() {
+                        match read_line(pid, StdReader::Stdout) {
+                            Ok(line) => {
+                                info!("<blue>[PREPARE]</> {}", line);
                             }
                             Err(error) => {
                                 warn!(

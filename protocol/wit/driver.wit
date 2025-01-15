@@ -15,7 +15,6 @@ interface platform {
         unix,
         windows,
     }
-
     get-os: func() -> os;
 }
 
@@ -46,18 +45,21 @@ interface process {
         configs,
         data,
     }
+    variant std-reader {
+        stdout,
+        stderr,
+    }
     record directory {
         path: string,
         reference: reference,
     }
-
     spawn-process: func(command: string, args: list<string>, directory: directory) -> result<u32, string>;
     kill-process: func(pid: u32) -> result<bool, string>;
 
-    try-wait-process: func(pid: u32) -> result<option<s32>, string>;
+    try-wait: func(pid: u32) -> result<option<s32>, string>;
 
-    read-stdout: func(pid: u32) -> result<list<u8>, string>;
-    read-stderr: func(pid: u32) -> result<list<u8>, string>;
+    read-line: func(pid: u32, std: std-reader) -> result<string, string>;
+    read-to-end: func(pid: u32, std: std-reader) -> result<list<u8>, string>;
     write-stdin: func(pid: u32, data: list<u8>) -> result<bool, string>;
 }
 

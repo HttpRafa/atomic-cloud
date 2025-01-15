@@ -69,7 +69,7 @@ jobs:
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Run Tests
-        run: cargo test --workspace --exclude pterodactyl,local --all-features --verbose
+        run: cargo test --workspace --exclude pterodactyl --exclude local --all-features --verbose
 
       - name: Build & Test JVM Client
         working-directory: clients/jvm

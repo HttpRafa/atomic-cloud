@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use anyhow::Result;
-use inquire::{validator::ValueRequiredValidator, Confirm, CustomType, Select, Text};
+use inquire::{validator::ValueRequiredValidator, Confirm, CustomType, MultiSelect, Select, Text};
 
 mod connection;
 mod create_profile;
@@ -56,6 +56,12 @@ impl MenuUtils {
 
     pub fn select_no_help<T: Display>(message: &str, options: Vec<T>) -> Result<T> {
         Select::new(message, options)
+            .prompt()
+            .map_err(|error| error.into())
+    }
+
+    pub fn multi_select_no_help<T: Display>(message: &str, options: Vec<T>) -> Result<Vec<T>> {
+        MultiSelect::new(message, options)
             .prompt()
             .map_err(|error| error.into())
     }

@@ -1,41 +1,62 @@
+use std::collections::HashMap;
 use std::fs;
-use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use anyhow::{anyhow, Result};
-use cloudlet::driver;
-use cloudlet::driver::http::{Header, Method, Response};
-use cloudlet::driver::log::Level;
-use cloudlet_impl::WasmCloudlet;
-use exports::cloudlet::driver::bridge;
-use simplelog::{debug, error, info, warn};
-use tonic::async_trait;
-use wasmtime::component::{bindgen, Component, Linker, ResourceAny};
+use cloudlet::WasmCloudlet;
+use common::config::LoadFromTomlFile;
+use config::WasmConfig;
+use generated::exports::cloudlet::driver::bridge;
+use generated::Driver;
+use simplelog::{error, info, warn};
+use wasmtime::component::{Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use super::source::Source;
 use super::{DriverCloudletHandle, GenericDriver, Information};
-use crate::application::cloudlet::{Capabilities, Cloudlet, RemoteController};
+use crate::application::cloudlet::{Capabilities, Cloudlet, HostAndPort, RemoteController};
 use crate::storage::Storage;
 
-mod cloudlet_impl;
+mod config;
 
-bindgen!({
-    world: "driver",
-    path: "../protocol/wit/",
-});
+mod cloudlet;
+mod http;
+mod log;
+mod process;
+
+pub mod generated {
+    use wasmtime::component::bindgen;
+
+    bindgen!({
+        world: "driver",
+        path: "../protocol/wit/",
+    });
+}
 
 const WASM_DIRECTORY: &str = "wasm";
 
-/* Caching of compiled wasm artifacts */
-const CACHE_CONFIG_FILE: &str = "wasm.toml";
-const DEFAULT_CACHE_CONFIG: &str = r#"# Comment out certain settings to use default values.
-# For more settings, please refer to the documentation:
+/* Caching of compiled wasm artifacts and other configuration */
+const CONFIG_FILE: &str = "wasm.toml";
+const DEFAULT_CONFIG: &str = r#"# For more settings, please refer to the documentation:
 # https://bytecodealliance.github.io/wasmtime/cli-cache.html
 
 [cache]
-enabled = true"#;
+enabled = true
+
+# This section is crucial for granting the drivers their required permissions
+# https://httprafa.github.io/atomic-cloud/controller/drivers/wasm/permissions/
+
+[[drivers]]
+name = "pterodactyl"
+inherit_stdio = false
+inherit_args = false
+inherit_env = false
+inherit_network = true
+allow_ip_name_lookup = true
+allow_http = true
+allow_process = false
+mounts = []"#;
 
 struct WasmDriverState {
     handle: Weak<WasmDriver>,
@@ -52,87 +73,9 @@ impl WasiView for WasmDriverState {
     }
 }
 
-#[async_trait]
-impl driver::api::Host for WasmDriverState {
+impl generated::cloudlet::driver::api::Host for WasmDriverState {
     fn get_name(&mut self) -> String {
         self.handle.upgrade().unwrap().name.clone()
-    }
-}
-
-#[async_trait]
-impl driver::log::Host for WasmDriverState {
-    fn log_string(&mut self, level: Level, message: String) {
-        match level {
-            Level::Info => info!(
-                "<blue>[{}]</> {}",
-                &self.handle.upgrade().unwrap().name.to_uppercase(),
-                message
-            ),
-            Level::Warn => warn!(
-                "<blue>[{}]</> {}",
-                &self.handle.upgrade().unwrap().name.to_uppercase(),
-                message
-            ),
-            Level::Error => error!(
-                "<blue>[{}] {}",
-                &self.handle.upgrade().unwrap().name.to_uppercase(),
-                message
-            ),
-            Level::Debug => debug!(
-                "[{}] {}",
-                &self.handle.upgrade().unwrap().name.to_uppercase(),
-                message
-            ),
-        }
-    }
-}
-
-#[async_trait]
-impl driver::http::Host for WasmDriverState {
-    fn send_http_request(
-        &mut self,
-        method: Method,
-        url: String,
-        headers: Vec<Header>,
-        body: Option<Vec<u8>>,
-    ) -> Option<Response> {
-        let driver = self.handle.upgrade().unwrap();
-        let mut request = match method {
-            Method::Get => minreq::get(url),
-            Method::Patch => minreq::patch(url),
-            Method::Post => minreq::post(url),
-            Method::Put => minreq::put(url),
-            Method::Delete => minreq::delete(url),
-        };
-        if let Some(body) = body {
-            request = request.with_body(body);
-        }
-        for header in headers {
-            request = request.with_header(&header.key, &header.value);
-        }
-        let response = match request.send() {
-            Ok(response) => response,
-            Err(error) => {
-                warn!(
-                    "<red>Failed</> to send HTTP request for driver <blue>{}</>: <red>{}</>",
-                    &driver.name, error
-                );
-                return None;
-            }
-        };
-        Some(Response {
-            status_code: response.status_code as u32,
-            reason_phrase: response.reason_phrase.clone(),
-            headers: response
-                .headers
-                .iter()
-                .map(|header| Header {
-                    key: header.0.clone(),
-                    value: header.1.clone(),
-                })
-                .collect(),
-            bytes: response.into_bytes(),
-        })
     }
 }
 
@@ -151,12 +94,18 @@ impl WasmDriverHandle {
     }
 }
 
+pub struct WasmDriverData {
+    child_processes: RwLock<HashMap<u32, std::process::Child>>,
+}
+
 pub struct WasmDriver {
     own: Weak<WasmDriver>,
 
     name: String,
     bindings: Driver,
     handle: Mutex<Option<WasmDriverHandle>>,
+
+    data: WasmDriverData,
 }
 
 impl WasmDriver {
@@ -167,7 +116,6 @@ impl WasmDriver {
     }
 }
 
-#[async_trait]
 impl GenericDriver for WasmDriver {
     fn name(&self) -> &String {
         &self.name
@@ -211,7 +159,12 @@ impl GenericDriver for WasmDriver {
 }
 
 impl WasmDriver {
-    fn new(cloud_identifier: &str, name: &str, source: &Source) -> Result<Arc<Self>> {
+    fn new(
+        config: &WasmConfig,
+        cloud_identifier: &str,
+        name: &str,
+        source: &Source,
+    ) -> Result<Arc<Self>> {
         let config_directory = Storage::get_config_folder_for_driver(name);
         let data_directory = Storage::get_data_folder_for_driver(name);
         if !config_directory.exists() {
@@ -231,10 +184,10 @@ impl WasmDriver {
             });
         }
 
-        let mut config = Config::new();
-        config.wasm_component_model(true);
+        let mut engine_config = Config::new();
+        engine_config.wasm_component_model(true);
         if let Err(error) =
-            config.cache_config_load(Storage::get_configs_folder().join(CACHE_CONFIG_FILE))
+            engine_config.cache_config_load(Storage::get_configs_folder().join(CONFIG_FILE))
         {
             warn!(
                 "<red>Failed</> to enable caching for wasmtime engine: <red>{}</>",
@@ -242,15 +195,35 @@ impl WasmDriver {
             );
         }
 
-        let engine = Engine::new(&config)?;
+        let engine = Engine::new(&engine_config)?;
         let component = Component::from_binary(&engine, &source.code)?;
 
         let mut linker = Linker::new(&engine);
         wasmtime_wasi::add_to_linker_sync(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
 
-        let wasi = WasiCtxBuilder::new()
-            .inherit_stdio()
+        let mut wasi = WasiCtxBuilder::new();
+        if let Some(config) = config.get_config(name) {
+            if config.inherit_stdio {
+                wasi.inherit_stdio();
+            }
+            if config.inherit_args {
+                wasi.inherit_args();
+            }
+            if config.inherit_env {
+                wasi.inherit_env();
+            }
+            if config.inherit_network {
+                wasi.inherit_network();
+            }
+            if config.allow_ip_name_lookup {
+                wasi.allow_ip_name_lookup(true);
+            }
+            for mount in &config.mounts {
+                wasi.preopened_dir(&mount.host, &mount.guest, DirPerms::all(), FilePerms::all())?;
+            }
+        }
+        let wasi = wasi
             .preopened_dir(
                 &config_directory,
                 "/configs/",
@@ -259,6 +232,7 @@ impl WasmDriver {
             )?
             .preopened_dir(&data_directory, "/data/", DirPerms::all(), FilePerms::all())?
             .build();
+
         let table = ResourceTable::new();
 
         let mut store = Store::new(
@@ -277,6 +251,9 @@ impl WasmDriver {
                 name: name.to_string(),
                 bindings,
                 handle: Mutex::new(None),
+                data: WasmDriverData {
+                    child_processes: RwLock::new(HashMap::new()),
+                },
             }
         });
         let driver_resource = driver
@@ -292,17 +269,27 @@ impl WasmDriver {
         Ok(driver)
     }
 
-    pub fn load_all(cloud_identifier: &str, drivers: &mut Vec<Arc<dyn GenericDriver>>) {
+    pub fn load_all(
+        cloud_identifier: &str,
+        drivers: &mut Vec<Arc<dyn GenericDriver>>,
+    ) -> WasmConfig {
         // Check if cache configuration exists
-        let cache_config = Storage::get_configs_folder().join(CACHE_CONFIG_FILE);
-        if !cache_config.exists() {
-            fs::write(&cache_config, DEFAULT_CACHE_CONFIG).unwrap_or_else(|error| {
+        let config_file = Storage::get_configs_folder().join(CONFIG_FILE);
+        if !config_file.exists() {
+            fs::write(&config_file, DEFAULT_CONFIG).unwrap_or_else(|error| {
                 warn!(
-                    "<red>Failed</> to create default cache configuration file: <red>{}</>",
+                    "<red>Failed</> to create default wasm configuration file: <red>{}</>",
                     &error
                 )
             });
         }
+        let config = WasmConfig::load_from_file(&config_file).unwrap_or_else(|error| {
+            warn!(
+                "<red>Failed</> to load wasm configuration file: <red>{}</>",
+                &error
+            );
+            WasmConfig::default()
+        });
 
         let old_loaded = drivers.len();
 
@@ -323,7 +310,7 @@ impl WasmDriver {
                     "<red>Failed</> to read driver directory: <red>{}</>",
                     &error
                 );
-                return;
+                return config;
             }
         };
 
@@ -366,7 +353,7 @@ impl WasmDriver {
             };
 
             info!("Compiling driver <blue>{}</>...", &name);
-            let driver = WasmDriver::new(cloud_identifier, &name, &source);
+            let driver = WasmDriver::new(&config, cloud_identifier, &name, &source);
             match driver {
                 Ok(driver) => match driver.init() {
                     Ok(info) => {
@@ -400,6 +387,7 @@ impl WasmDriver {
                 "The Wasm driver feature is <yellow>enabled</>, but no Wasm drivers were loaded."
             );
         }
+        config
     }
 }
 
@@ -431,11 +419,11 @@ impl From<&RemoteController> for bridge::RemoteController {
     }
 }
 
-impl From<&SocketAddr> for bridge::Address {
-    fn from(val: &SocketAddr) -> Self {
+impl From<&HostAndPort> for bridge::Address {
+    fn from(val: &HostAndPort) -> Self {
         bridge::Address {
-            ip: val.ip().to_string(),
-            port: val.port(),
+            host: val.host.clone(),
+            port: val.port,
         }
     }
 }

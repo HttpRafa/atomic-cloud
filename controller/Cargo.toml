@@ -1,6 +1,6 @@
 [package]
 name = "controller"
-version = "0.3.0"
+version = "0.0.0-nightly"
 edition = "2021"
 
 [dependencies]
@@ -17,17 +17,20 @@ anyhow = "1.0.95"
 ctrlc = "3.4.5"
 
 # Unit system
-uuid = { version = "1.11.0", features = ["v4"] }
+uuid = { version = "1.11.1", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.26", features = ["derive"] }
+
+# Regex parsing
+regex = "1.11.1"
 
 # Configuration
 serde = { version = "1.0.217", features = ["derive"] }
 toml = "0.8.19"
 
 # Async runtime
-tokio = { version = "1.42.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros"] }
 tokio-stream = "0.1.17"
 
 # API

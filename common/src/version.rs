@@ -4,6 +4,7 @@ pub enum Stage {
     Stable,
     Beta,
     Alpha,
+    Nightly,
 }
 
 impl Display for Stage {
@@ -12,6 +13,7 @@ impl Display for Stage {
             Stage::Stable => write!(formatter, "stable"),
             Stage::Beta => write!(formatter, "beta"),
             Stage::Alpha => write!(formatter, "alpha"),
+            Stage::Nightly => write!(formatter, "nightly"),
         }
     }
 }

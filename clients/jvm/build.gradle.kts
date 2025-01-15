@@ -51,7 +51,7 @@ allprojects {
     spotless {
         java {
             trimTrailingWhitespace()
-            indentWithSpaces()
+            leadingTabsToSpaces()
             removeUnusedImports()
             palantirJavaFormat()
         }

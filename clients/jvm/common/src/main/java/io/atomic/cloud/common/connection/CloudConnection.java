@@ -1,6 +1,5 @@
 package io.atomic.cloud.common.connection;
 
-import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
@@ -34,6 +33,7 @@ public class CloudConnection {
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
     private final CachedObject<UnitInformation.UnitListResponse> unitsInfo = new CachedObject<>();
+    private final CachedObject<DeploymentInformation.DeploymentListResponse> deploymentsInfo = new CachedObject<>();
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -99,15 +99,9 @@ public class CloudConnection {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferAllUsers(TransferManagement.TransferAllUsersRequest target) {
+    public CompletableFuture<UInt32Value> transferUsers(TransferManagement.TransferUsersRequest transfer) {
         var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.transferAllUsers(target, observer);
-        return observer.future();
-    }
-
-    public CompletableFuture<BoolValue> transferUser(TransferManagement.TransferUserRequest transfer) {
-        var observer = new StreamObserverImpl<BoolValue>();
-        this.client.transferUser(transfer, observer);
+        this.client.transferUsers(transfer, observer);
         return observer.future();
     }
 
@@ -144,6 +138,27 @@ public class CloudConnection {
         this.client.getUnits(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
             this.unitsInfo.setValue(value);
+            return value;
+        });
+    }
+
+    public Optional<DeploymentInformation.DeploymentListResponse> getDeploymentsNow() {
+        var cached = this.deploymentsInfo.getValue();
+        if (cached.isEmpty()) {
+            this.getDeployments(); // Request value from controller
+        }
+        return cached;
+    }
+
+    public CompletableFuture<DeploymentInformation.DeploymentListResponse> getDeployments() {
+        var cached = this.deploymentsInfo.getValue();
+        if (cached.isPresent()) {
+            return CompletableFuture.completedFuture(cached.get());
+        }
+        var observer = new StreamObserverImpl<DeploymentInformation.DeploymentListResponse>();
+        this.client.getDeployments(Empty.getDefaultInstance(), observer);
+        return observer.future().thenApply((value) -> {
+            this.deploymentsInfo.setValue(value);
             return value;
         });
     }

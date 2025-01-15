@@ -35,7 +35,9 @@ service AdminService {
 
     // User Management
     rpc GetUsers(google.protobuf.Empty) returns (UserManagement.UserListResponse);
-    rpc TransferUser(UserManagement.TransferUserRequest) returns (google.protobuf.BoolValue);
+
+    // Transfer Management
+    rpc TransferUsers(TransferManagement.TransferUsersRequest) returns (google.protobuf.UInt32Value);
 
     // Information
     rpc GetProtocolVersion(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
@@ -112,9 +114,8 @@ message DeploymentManagement {
         }
 
         message Scaling {
-            uint32 maxPlayers = 1;
-            float startThreshold = 2;
-            bool stopEmptyUnits = 3;
+            float startThreshold = 1;
+            bool stopEmptyUnits = 2;
         }
     }
 }
@@ -161,10 +162,11 @@ message UnitManagement {
 
     message UnitSpec {
         string image = 1;
-        repeated Common.KeyValue settings = 2;
-        repeated Common.KeyValue environment = 3;
-        optional Retention diskRetention = 4;
-        optional Fallback fallback = 5;
+        uint32 maxPlayers = 2;
+        repeated Common.KeyValue settings = 3;
+        repeated Common.KeyValue environment = 4;
+        optional Retention diskRetention = 5;
+        optional Fallback fallback = 6;
 
         message Fallback {
             bool enabled = 1;
@@ -196,19 +198,23 @@ message UserManagement {
         string name = 1;
         string uuid = 2;
     }
+}
 
+// Transfer Management
+message TransferManagement {
     message TransferTargetValue {
-        string target = 1;
-        TargetType targetType = 2;
+        TargetType targetType = 1;
+        optional string target = 2;
 
         enum TargetType {
             UNIT = 0;
             DEPLOYMENT = 1;
+            FALLBACK = 2;
         }
     }
 
-    message TransferUserRequest {
-        string userUuid = 1;
+    message TransferUsersRequest {
+        repeated string userUuids = 1;
         TransferTargetValue target = 2;
     }
 }
@@ -221,7 +227,7 @@ message Common {
     }
 
     message Address {
-        string ip = 1;
+        string host = 1;
         uint32 port = 2;
     }
 }

@@ -1,8 +1,8 @@
-package io.atomic.cloud.api.unit;
+package io.atomic.cloud.api.objects;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface CloudUnit {
+public interface LocalCloudUnit {
 
     /**
      * Shut down this unit instance.

@@ -1,16 +1,11 @@
-use std::{
-    net::{IpAddr, SocketAddr},
-    str::FromStr,
-    sync::{Arc, Weak},
-};
+use std::sync::{Arc, Weak};
 
 use anyhow::{anyhow, Result};
-use tonic::async_trait;
 use wasmtime::component::ResourceAny;
 
 use crate::application::{
     auth::AuthUnit,
-    cloudlet::Allocation,
+    cloudlet::{Allocation, HostAndPort},
     driver::GenericCloudlet,
     unit::{
         KeyValue, Resources, Retention, Spec, StartRequest, StartRequestHandle, Unit, UnitHandle,
@@ -18,7 +13,7 @@ use crate::application::{
 };
 
 use super::{
-    exports::cloudlet::driver::bridge::{self, Address},
+    generated::exports::cloudlet::driver::bridge::{self, Address},
     WasmDriver,
 };
 
@@ -27,9 +22,8 @@ pub struct WasmCloudlet {
     pub resource: ResourceAny, // This is delete if the handle is dropped
 }
 
-#[async_trait]
 impl GenericCloudlet for WasmCloudlet {
-    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<SocketAddr>> {
+    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
@@ -41,11 +35,8 @@ impl GenericCloudlet for WasmCloudlet {
             {
                 Ok(Ok(addresses)) => addresses
                     .into_iter()
-                    .map(|address| {
-                        let ip = IpAddr::from_str(&address.ip)?;
-                        Ok(SocketAddr::new(ip, address.port))
-                    })
-                    .collect::<Result<Vec<SocketAddr>>>(),
+                    .map(|address| Ok(HostAndPort::new(address.host, address.port)))
+                    .collect::<Result<Vec<HostAndPort>>>(),
                 Ok(Err(error)) => Err(anyhow!(error)),
                 Err(error) => Err(error),
             }
@@ -54,7 +45,7 @@ impl GenericCloudlet for WasmCloudlet {
         }
     }
 
-    fn deallocate_addresses(&self, addresses: Vec<SocketAddr>) -> Result<()> {
+    fn deallocate_addresses(&self, addresses: Vec<HostAndPort>) -> Result<()> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();
             let (_, store) = WasmDriver::get_resource_and_store(&mut handle);

@@ -158,7 +158,7 @@ impl Users {
         self.users.read().unwrap().values().cloned().collect()
     }
 
-    pub fn get_users_on_unit(&self, unit: &UnitHandle) -> Vec<UserHandle> {
+    pub fn _get_users_on_unit(&self, unit: &UnitHandle) -> Vec<UserHandle> {
         self.users
             .read()
             .unwrap()

@@ -1,6 +1,7 @@
 package io.atomic.cloud.paper;
 
 import io.atomic.cloud.paper.command.CloudCommand;
+import io.atomic.cloud.paper.command.DisposeCommand;
 import io.atomic.cloud.paper.command.SendCommand;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;
@@ -29,6 +30,7 @@ public class CloudPluginBootstrap implements PluginBootstrap {
             final var commands = event.registrar();
             CloudCommand.register(commands);
             SendCommand.register(commands);
+            DisposeCommand.register(commands);
         });
     }
 }

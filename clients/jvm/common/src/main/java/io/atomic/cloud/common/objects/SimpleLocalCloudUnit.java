@@ -1,12 +1,12 @@
-package io.atomic.cloud.common.unit;
+package io.atomic.cloud.common.objects;
 
-import io.atomic.cloud.api.unit.CloudUnit;
+import io.atomic.cloud.api.objects.LocalCloudUnit;
 import io.atomic.cloud.common.connection.CloudConnection;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class SimpleCloudUnit implements CloudUnit {
+public class SimpleLocalCloudUnit implements LocalCloudUnit {
 
     protected final CloudConnection connection;
 

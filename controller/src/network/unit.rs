@@ -173,8 +173,8 @@ impl UnitService for UnitServiceImpl {
 
                         let transfer = proto::transfer_management::ResolvedTransferResponse {
                             user_uuid: user.uuid.to_string(),
-                            host: address.ip().to_string(),
-                            port: address.port() as u32,
+                            host: address.host.clone(),
+                            port: address.port as u32,
                         };
                         sender
                             .send(Ok(transfer))
@@ -186,59 +186,10 @@ impl UnitService for UnitServiceImpl {
         Ok(Response::new(StdReceiverStream::new(receiver)))
     }
 
-    async fn transfer_all_users(
+    async fn transfer_users(
         &self,
-        request: Request<proto::transfer_management::TransferAllUsersRequest>,
+        request: Request<proto::transfer_management::TransferUsersRequest>,
     ) -> Result<Response<u32>, Status> {
-        let requesting_unit = request
-            .extensions()
-            .get::<AuthUnitHandle>()
-            .expect("Failed to get unit from extensions. Is tonic broken?")
-            .unit
-            .upgrade()
-            .ok_or_else(|| Status::not_found("The authenticated unit does not exist"))?;
-
-        let transfer = request.into_inner();
-        let target = match transfer.target {
-            Some(target) => Some(
-                match proto::transfer_management::transfer_target_value::TargetType::try_from(
-                    target.target_type,
-                ) {
-                    Ok(
-                        proto::transfer_management::transfer_target_value::TargetType::Deployment,
-                    ) => TransferTarget::Deployment(
-                        self.controller
-                            .lock_deployments()
-                            .find_by_name(&target.target)
-                            .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
-                    ),
-                    _ => TransferTarget::Unit(
-                        self.controller
-                            .get_units()
-                            .get_unit(Uuid::from_str(&target.target).map_err(|error| {
-                                Status::invalid_argument(format!(
-                                    "Failed to parse target UUID: {}",
-                                    error
-                                ))
-                            })?)
-                            .ok_or_else(|| Status::not_found("Unit does not exist"))?,
-                    ),
-                },
-            ),
-            None => None,
-        };
-
-        Ok(Response::new(
-            self.controller
-                .get_users()
-                .transfer_all_users(&requesting_unit, target),
-        ))
-    }
-
-    async fn transfer_user(
-        &self,
-        request: Request<proto::transfer_management::TransferUserRequest>,
-    ) -> Result<Response<bool>, Status> {
         let requesting_unit = request
             .extensions()
             .get::<AuthUnitHandle>()
@@ -252,60 +203,90 @@ impl UnitService for UnitServiceImpl {
             .target
             .ok_or_else(|| Status::invalid_argument("Target must be provided"))?;
 
-        let user_uuid = Uuid::from_str(&transfer.user_uuid).map_err(|error| {
-            Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
-        })?;
-
-        let user = self
-            .controller
-            .get_users()
-            .get_user(user_uuid)
-            .ok_or_else(|| Status::not_found("User is not connected to this controller"))?;
-
-        // Check if the user is connected to the unit that requested the transfer
-        if let CurrentUnit::Connected(unit) = user.unit.read().unwrap().deref() {
-            if let Some(unit) = unit.upgrade() {
-                if !Arc::ptr_eq(&unit, &requesting_unit) {
-                    return Err(Status::permission_denied(
-                        "User is not connected to the requesting unit",
-                    ));
+        let target =
+            match proto::transfer_management::transfer_target_value::TargetType::try_from(
+                target.target_type,
+            ) {
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
+                    TransferTarget::Deployment(
+                        self.controller
+                            .lock_deployments()
+                            .find_by_name(&target.target.ok_or_else(|| {
+                                Status::invalid_argument("Target must be provided")
+                            })?)
+                            .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
+                    )
                 }
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Unit) => {
+                    TransferTarget::Unit(
+                        self.controller
+                            .get_units()
+                            .get_unit(
+                                Uuid::from_str(&target.target.ok_or_else(|| {
+                                    Status::invalid_argument("Target must be provided")
+                                })?)
+                                .map_err(|error| {
+                                    Status::invalid_argument(format!(
+                                        "Failed to parse target UUID: {}",
+                                        error
+                                    ))
+                                })?,
+                            )
+                            .ok_or_else(|| Status::not_found("Unit does not exist"))?,
+                    )
+                }
+                Ok(proto::transfer_management::transfer_target_value::TargetType::Fallback) => {
+                    TransferTarget::Fallback
+                }
+                Err(error) => return Err(Status::invalid_argument(error.to_string())),
+            };
+
+        let mut count = 0;
+        for user_uuid in &transfer.user_uuids {
+            let user_uuid = Uuid::from_str(user_uuid).map_err(|error| {
+                Status::invalid_argument(format!("Failed to parse user UUID: {}", error))
+            })?;
+
+            let user = self
+                .controller
+                .get_users()
+                .get_user(user_uuid)
+                .ok_or_else(|| {
+                    Status::not_found(format!(
+                        "User {} is not connected to this controller",
+                        user_uuid
+                    ))
+                })?;
+
+            // Check if the user is connected to the unit that requested the transfer
+            if let CurrentUnit::Connected(unit) = user.unit.read().unwrap().deref() {
+                if let Some(unit) = unit.upgrade() {
+                    if !Arc::ptr_eq(&unit, &requesting_unit) {
+                        return Err(Status::permission_denied(format!(
+                            "User {} is not connected to the requesting unit",
+                            user_uuid
+                        )));
+                    }
+                }
+            } else {
+                return Err(Status::permission_denied(format!(
+                    "User {} is not connected to the requesting unit",
+                    user_uuid
+                )));
             }
-        } else {
-            return Err(Status::permission_denied(
-                "User is not connected to any unit",
-            ));
+
+            let transfer = self
+                .controller
+                .get_users()
+                .resolve_transfer(&user, &target)
+                .ok_or_else(|| Status::not_found("Failed to resolve transfer"))?;
+
+            if self.controller.get_users().transfer_user(transfer) {
+                count += 1;
+            }
         }
 
-        let target = match proto::transfer_management::transfer_target_value::TargetType::try_from(
-            target.target_type,
-        ) {
-            Ok(proto::transfer_management::transfer_target_value::TargetType::Deployment) => {
-                TransferTarget::Deployment(
-                    self.controller
-                        .lock_deployments()
-                        .find_by_name(&target.target)
-                        .ok_or_else(|| Status::not_found("Deployment does not exist"))?,
-                )
-            }
-            _ => TransferTarget::Unit(
-                self.controller
-                    .get_units()
-                    .get_unit(Uuid::from_str(&target.target).map_err(|error| {
-                        Status::invalid_argument(format!("Failed to parse target UUID: {}", error))
-                    })?)
-                    .ok_or_else(|| Status::not_found("Unit does not exist"))?,
-            ),
-        };
-
-        let transfer = self
-            .controller
-            .get_users()
-            .resolve_transfer(&user, &target)
-            .ok_or_else(|| Status::not_found("Failed to resolve transfer"))?;
-        Ok(Response::new(
-            self.controller.get_users().transfer_user(transfer),
-        ))
+        Ok(Response::new(count))
     }
 
     async fn send_message_to_channel(
@@ -401,6 +382,21 @@ impl UnitService for UnitServiceImpl {
         Ok(Response::new(proto::unit_information::UnitListResponse {
             units,
         }))
+    }
+
+    async fn get_deployments(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<proto::deployment_information::DeploymentListResponse>, Status> {
+        let handle = self.controller.lock_deployments();
+        let mut deployments = Vec::with_capacity(handle.get_amount());
+        for name in handle.get_deployments().keys() {
+            deployments.push(name.clone());
+        }
+
+        Ok(Response::new(
+            proto::deployment_information::DeploymentListResponse { deployments },
+        ))
     }
 
     async fn reset(&self, request: Request<()>) -> Result<Response<()>, Status> {

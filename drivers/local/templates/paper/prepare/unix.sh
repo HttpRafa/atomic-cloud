@@ -6,6 +6,12 @@ MINECRAFT_VERSION="latest"
 BUILD_NUMBER="latest"
 SERVER_JARFILE="server.jar"
 
+# Check if the server jar already exists
+if [ -f "${SERVER_JARFILE}" ]; then
+    echo "The ${SERVER_JARFILE} already exists. Skipping script execution."
+    exit 0
+fi
+
 if [ -n "${DL_PATH}" ]; then
 	echo -e "Using supplied download url: ${DL_PATH}"
 	DOWNLOAD_URL=$(eval echo $(echo ${DL_PATH} | sed -e 's/{{/${/g' -e 's/}}/}/g'))
@@ -46,10 +52,6 @@ else
 fi
 
 echo "Running curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}"
-
-if [ -f ${SERVER_JARFILE} ]; then
-    mv ${SERVER_JARFILE} ${SERVER_JARFILE}.old
-fi
 
 curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}
 

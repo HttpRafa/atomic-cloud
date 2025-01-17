@@ -1,8 +1,18 @@
-use std::{io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf, process::{Command, Stdio}};
+use std::{
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use crate::storage::Storage;
 
-use super::{generated::cloudlet::driver::{self, process::{Directory, Reference, StdReader}}, DriverProcess, WasmDriverState};
+use super::{
+    generated::cloudlet::driver::{
+        self,
+        process::{Directory, Reference, StdReader},
+    },
+    DriverProcess, WasmDriverState,
+};
 
 impl driver::process::Host for WasmDriverState {
     fn spawn_process(
@@ -15,33 +25,67 @@ impl driver::process::Host for WasmDriverState {
         let process_dir = self.get_process_directory(&driver.name, &directory)?;
 
         let mut command = Command::new(command);
-        command.args(args)
+        command
+            .args(args)
             .current_dir(process_dir)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut process = command.spawn().map_err(|e| format!("Failed to spawn process: {}", e))?;
+        let mut process = command
+            .spawn()
+            .map_err(|e| format!("Failed to spawn process: {}", e))?;
         let pid = process.id();
 
-        let stdout = BufReader::new(process.stdout.take().ok_or("Failed to open stdout of process")?);
-        let stderr = BufReader::new(process.stderr.take().ok_or("Failed to open stderr of process")?);
-        let stdin = BufWriter::new(process.stdin.take().ok_or("Failed to open stdin of process")?);
+        let stdout = BufReader::new(
+            process
+                .stdout
+                .take()
+                .ok_or("Failed to open stdout of process")?,
+        );
+        let stderr = BufReader::new(
+            process
+                .stderr
+                .take()
+                .ok_or("Failed to open stderr of process")?,
+        );
+        let stdin = BufWriter::new(
+            process
+                .stdin
+                .take()
+                .ok_or("Failed to open stdin of process")?,
+        );
 
-        driver.data.processes.write()
+        driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?
-            .insert(pid, DriverProcess { process, stdin, stdout, stderr });
+            .insert(
+                pid,
+                DriverProcess {
+                    process,
+                    stdin,
+                    stdout,
+                    stderr,
+                },
+            );
 
         Ok(pid)
     }
 
     fn kill_process(&mut self, pid: u32) -> Result<bool, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(mut process) = processes.remove(&pid) {
-            process.process.kill()
+            process
+                .process
+                .kill()
                 .map_err(|e| format!("Failed to kill process: {}", e))
                 .map(|_| true)
         } else {
@@ -51,7 +95,10 @@ impl driver::process::Host for WasmDriverState {
 
     fn drop_process(&mut self, pid: u32) -> Result<bool, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         Ok(processes.remove(&pid).is_some())
@@ -59,11 +106,16 @@ impl driver::process::Host for WasmDriverState {
 
     fn try_wait(&mut self, pid: u32) -> Result<Option<i32>, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(process) = processes.get_mut(&pid) {
-            process.process.try_wait()
+            process
+                .process
+                .try_wait()
                 .map_err(|e| format!("Failed to wait for process: {}", e))
                 .map(|status| status.and_then(|s| s.code()))
         } else {
@@ -73,7 +125,10 @@ impl driver::process::Host for WasmDriverState {
 
     fn read_line(&mut self, pid: u32, std: StdReader) -> Result<(u32, String), String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(process) = processes.get_mut(&pid) {
@@ -81,7 +136,8 @@ impl driver::process::Host for WasmDriverState {
             let bytes = match std {
                 StdReader::Stdout => process.stdout.read_line(&mut buffer),
                 StdReader::Stderr => process.stderr.read_line(&mut buffer),
-            }.map_err(|e| format!("Failed to read from process: {}", e))?;
+            }
+            .map_err(|e| format!("Failed to read from process: {}", e))?;
             Ok((bytes as u32, buffer))
         } else {
             Err("Process does not exist".to_string())
@@ -90,7 +146,10 @@ impl driver::process::Host for WasmDriverState {
 
     fn read(&mut self, pid: u32, buf_size: u32, std: StdReader) -> Result<(u32, Vec<u8>), String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(process) = processes.get_mut(&pid) {
@@ -98,7 +157,8 @@ impl driver::process::Host for WasmDriverState {
             let bytes = match std {
                 StdReader::Stdout => process.stdout.read(&mut buffer),
                 StdReader::Stderr => process.stderr.read(&mut buffer),
-            }.map_err(|e| format!("Failed to read from process: {}", e))?;
+            }
+            .map_err(|e| format!("Failed to read from process: {}", e))?;
             Ok((bytes as u32, buffer))
         } else {
             Err("Process does not exist".to_string())
@@ -107,7 +167,10 @@ impl driver::process::Host for WasmDriverState {
 
     fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<(u32, Vec<u8>), String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(process) = processes.get_mut(&pid) {
@@ -115,7 +178,8 @@ impl driver::process::Host for WasmDriverState {
             let bytes = match std {
                 StdReader::Stdout => process.stdout.read_to_end(&mut buffer),
                 StdReader::Stderr => process.stderr.read_to_end(&mut buffer),
-            }.map_err(|e| format!("Failed to read from process: {}", e))?;
+            }
+            .map_err(|e| format!("Failed to read from process: {}", e))?;
             Ok((bytes as u32, buffer))
         } else {
             Err("Process does not exist".to_string())
@@ -124,11 +188,16 @@ impl driver::process::Host for WasmDriverState {
 
     fn write_stdin(&mut self, pid: u32, data: Vec<u8>) -> Result<bool, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let mut processes = driver.data.processes.write()
+        let mut processes = driver
+            .data
+            .processes
+            .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
         if let Some(process) = processes.get_mut(&pid) {
-            process.stdin.write_all(&data)
+            process
+                .stdin
+                .write_all(&data)
                 .map_err(|e| format!("Failed to write to stdin of process: {}", e))?;
             Ok(true)
         } else {
@@ -138,11 +207,19 @@ impl driver::process::Host for WasmDriverState {
 }
 
 impl WasmDriverState {
-    fn get_process_directory(&self, driver_name: &str, directory: &Directory) -> Result<PathBuf, String> {
+    fn get_process_directory(
+        &self,
+        driver_name: &str,
+        directory: &Directory,
+    ) -> Result<PathBuf, String> {
         match &directory.reference {
             Reference::Controller => Ok(PathBuf::from(".").join(&directory.path)),
-            Reference::Data => Ok(Storage::get_data_folder_for_driver(driver_name).join(&directory.path)),
-            Reference::Configs => Ok(Storage::get_config_folder_for_driver(driver_name).join(&directory.path)),
+            Reference::Data => {
+                Ok(Storage::get_data_folder_for_driver(driver_name).join(&directory.path))
+            }
+            Reference::Configs => {
+                Ok(Storage::get_config_folder_for_driver(driver_name).join(&directory.path))
+            }
         }
     }
 }

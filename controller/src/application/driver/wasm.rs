@@ -37,8 +37,6 @@ pub mod generated {
     });
 }
 
-const WASM_DIRECTORY: &str = "wasm";
-
 /* Caching of compiled wasm artifacts and other configuration */
 const CONFIG_FILE: &str = "wasm.toml";
 const ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
@@ -320,7 +318,7 @@ impl WasmDriver {
 
         let old_loaded = drivers.len();
 
-        let drivers_directory = Storage::get_drivers_folder().join(WASM_DIRECTORY);
+        let drivers_directory = Storage::get_drivers_folder();
         if !drivers_directory.exists() {
             fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
                 warn!(
@@ -358,10 +356,6 @@ impl WasmDriver {
                     .to_string_lossy()
                     .ends_with(".wasm")
             {
-                warn!(
-                    "The driver directory should only contain wasm files, please remove <blue>{:?}</>",
-                    &entry.file_name()
-                );
                 continue;
             }
 

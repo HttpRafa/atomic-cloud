@@ -4,6 +4,12 @@ $MINECRAFT_VERSION = "latest"
 $BUILD_NUMBER = "latest"
 $SERVER_JARFILE = "server.jar"
 
+# Check if the server jar already exists
+if (Test-Path $ServerJarFile) {
+    Write-Host "The $ServerJarFile already exists. Skipping script execution."
+    exit 0
+}
+
 if ($env:DL_PATH) {
     Write-Host "Using supplied download URL: $($env:DL_PATH)"
     $DOWNLOAD_URL = $env:DL_PATH -replace "{{", '$(' -replace "}}", ')'

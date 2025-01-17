@@ -6,7 +6,8 @@ This makes it easier to change them in the future
 use std::path::PathBuf;
 
 /* Configs */
-//const CONFIG_DIRECTORY: &str = "/configs";
+const CONFIG_DIRECTORY: &str = "/configs";
+const PRIMARY_CONFIG_FILE: &str = "config.toml";
 
 /* Data */
 const DATA_DIRECTORY: &str = "/data";
@@ -25,9 +26,12 @@ pub struct Storage;
 
 impl Storage {
     /* Configs */
-    /*pub fn get_configs_folder() -> PathBuf {
+    pub fn get_configs_folder() -> PathBuf {
         PathBuf::from(CONFIG_DIRECTORY)
-    }*/
+    }
+    pub fn get_primary_config_file() -> PathBuf {
+        Storage::get_configs_folder().join(PRIMARY_CONFIG_FILE)
+    }
 
     /* Data */
     pub fn get_data_folder() -> PathBuf {

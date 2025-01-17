@@ -1,10 +1,12 @@
-use std::rc::Rc;
+use std::{cell::UnsafeCell, rc::Rc, sync::RwLock};
+
+use common::allocator::NumberAllocator;
 
 use crate::exports::cloudlet::driver::bridge::{
     Address, Capabilities, GuestGenericCloudlet, RemoteController, Unit, UnitProposal,
 };
 
-use super::LocalCloudletWrapper;
+use super::{config::Config, LocalCloudletWrapper};
 
 impl GuestGenericCloudlet for LocalCloudletWrapper {
     fn new(
@@ -16,17 +18,45 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
     ) -> Self {
         Self {
             inner: Rc::new(LocalCloudlet {
-                _controller: controller,
+                _name,
+                config: UnsafeCell::new(None),
+                controller,
+                port_allocator: UnsafeCell::new(None),
             }),
         }
     }
 
-    /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
-    fn allocate_addresses(&self, _unit: UnitProposal) -> Result<Vec<Address>, String> {
-        Ok(Vec::new())
+    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
+        let amount = unit.resources.addresses;
+
+        let mut ports = Vec::with_capacity(amount as usize);
+        let mut allocator = self
+            .get_port_allocator()
+            .write()
+            .expect("Failed to lock port allocator");
+        for _ in 0..amount {
+            if let Some(port) = allocator.allocate() {
+                ports.push(Address {
+                    host: self.inner.controller.address.clone(),
+                    port,
+                });
+            } else {
+                return Err("Failed to allocate ports".to_string());
+            }
+        }
+
+        Ok(ports)
     }
 
-    fn deallocate_addresses(&self, _addresses: Vec<Address>) {}
+    fn deallocate_addresses(&self, addresses: Vec<Address>) {
+        let mut allocator = self
+            .get_port_allocator()
+            .write()
+            .expect("Failed to lock port allocator");
+        for address in addresses {
+            allocator.release(address.port);
+        }
+    }
 
     fn start_unit(&self, _unit: Unit) {}
 
@@ -37,5 +67,10 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
 
 pub struct LocalCloudlet {
     /* Informations about the cloudlet */
-    pub _controller: RemoteController,
+    pub _name: String,
+    pub config: UnsafeCell<Option<Rc<Config>>>,
+    pub controller: RemoteController,
+
+    /* Dynamic Resources */
+    pub port_allocator: UnsafeCell<Option<Rc<RwLock<NumberAllocator<u16>>>>>,
 }

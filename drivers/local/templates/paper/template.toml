@@ -7,8 +7,8 @@ command = "bash"
 args = ["-c", "chmod +x prepare/unix.sh && ./prepare/unix.sh"]
 
 [prepare.windows]
-command = "prepare\\windows.bat"
-args = []
+command = "powershell.exe"
+args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "prepare/windows.ps1"]
 
 [startup.unix]
 command = "echo"

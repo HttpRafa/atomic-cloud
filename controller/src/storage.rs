@@ -72,8 +72,7 @@ impl Storage {
         PathBuf::from(DRIVERS_DIRECTORY)
     }
     pub fn get_data_folder_for_driver(name: &str) -> PathBuf {
-        Storage::get_drivers_folder()
-            .join(DATA_DIRECTORY)
+        PathBuf::from(DATA_DIRECTORY)
             .join(name)
     }
     pub fn get_config_folder_for_driver(name: &str) -> PathBuf {

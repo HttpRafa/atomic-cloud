@@ -7,7 +7,7 @@ use stored::StoredTemplate;
 use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
-        process::{read_line, spawn_process, try_wait, Directory, Reference, StdReader},
+        process::{drop_process, read_line, spawn_process, try_wait, Directory, Reference, StdReader},
     },
     info,
     storage::Storage,
@@ -149,6 +149,7 @@ impl Templates {
                             }
                         }
                     }
+                    drop_process(pid).expect("Failed to drop process. This indicates that something is wrong with the controller");
                 }
                 Err(error) => {
                     warn!(

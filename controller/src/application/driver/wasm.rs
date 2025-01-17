@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::{BufReader, BufWriter};
+use std::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use anyhow::{anyhow, Result};
@@ -96,7 +98,19 @@ impl WasmDriverHandle {
 }
 
 pub struct WasmDriverData {
-    child_processes: RwLock<HashMap<u32, std::process::Child>>,
+    processes: RwLock<HashMap<u32, DriverProcess>>,
+}
+
+pub struct DriverProcess {
+    /* Process */
+    process: Child,
+
+    /* Std Readers */
+    stdout: BufReader<ChildStdout>,
+    stderr: BufReader<ChildStderr>,
+
+    /* StdIn Writer */
+    stdin: BufWriter<ChildStdin>,
 }
 
 pub struct WasmDriver {
@@ -253,7 +267,7 @@ impl WasmDriver {
                 bindings,
                 handle: Mutex::new(None),
                 data: WasmDriverData {
-                    child_processes: RwLock::new(HashMap::new()),
+                    processes: RwLock::new(HashMap::new()),
                 },
             }
         });

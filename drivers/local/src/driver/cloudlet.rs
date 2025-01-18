@@ -1,12 +1,20 @@
 use std::{cell::UnsafeCell, rc::Rc, sync::RwLock};
 
-use common::allocator::NumberAllocator;
+use common::{allocator::NumberAllocator, name::TimedName};
+use unit::LocalUnit;
 
-use crate::exports::cloudlet::driver::bridge::{
-    Address, Capabilities, GuestGenericCloudlet, RemoteController, Unit, UnitProposal,
+use crate::{
+    error,
+    exports::cloudlet::driver::bridge::{
+        Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
+        UnitProposal,
+    },
+    storage::Storage,
 };
 
-use super::{config::Config, LocalCloudletWrapper};
+use super::{config::Config, template::Templates, LocalCloudletWrapper};
+
+pub mod unit;
 
 impl GuestGenericCloudlet for LocalCloudletWrapper {
     fn new(
@@ -21,7 +29,9 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
                 _name,
                 config: UnsafeCell::new(None),
                 controller,
+                templates: UnsafeCell::new(None),
                 port_allocator: UnsafeCell::new(None),
+                units: RwLock::new(vec![]),
             }),
         }
     }
@@ -58,7 +68,66 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         }
     }
 
-    fn start_unit(&self, _unit: Unit) {}
+    fn start_unit(&self, unit: Unit) {
+        let spec = &unit.allocation.spec;
+        let name =
+            TimedName::new_no_identifier(&unit.name, spec.disk_retention == Retention::Permanent);
+
+        let template = spec
+            .settings
+            .iter()
+            .find(|s| s.key == "template")
+            .map(|s| s.value.clone());
+        if template.is_none() {
+            error!(
+                "The following required settings to start the unit are missing: <red>template</>"
+            );
+            return;
+        }
+
+        let template = match self
+            .get_templates()
+            .read()
+            .expect("Failed to lock templates")
+            .get_template_by_name(template.as_ref().unwrap())
+        {
+            Some(value) => value,
+            None => {
+                error!(
+                    "Failed to start unit <blue>{}</>: Template <blue>{}</> not found",
+                    name.get_name(),
+                    &template.unwrap()
+                );
+                return;
+            }
+        };
+
+        let folder = Storage::get_unit_folder(&name, &spec.disk_retention);
+        if !folder.exists() {
+            if let Err(error) = template.copy_to_folder(&folder) {
+                error!(
+                    "Failed to start unit <blue>{}</>: Failed to copy template: <red>{}</>",
+                    name.get_name(),
+                    error
+                );
+                return;
+            }
+        }
+
+        match LocalUnit::start(&name, &folder, &template) {
+            Ok(unit) => self
+                .inner
+                .units
+                .write()
+                .expect("Failed to lock units")
+                .push(unit),
+            Err(error) => error!(
+                "Failed to start unit <blue>{}</>: <red>{}</>",
+                name.get_raw_name(),
+                error
+            ),
+        }
+    }
 
     fn restart_unit(&self, _unit: Unit) {}
 
@@ -71,6 +140,10 @@ pub struct LocalCloudlet {
     pub config: UnsafeCell<Option<Rc<Config>>>,
     pub controller: RemoteController,
 
+    /* Templates */
+    pub templates: UnsafeCell<Option<Rc<RwLock<Templates>>>>,
+
     /* Dynamic Resources */
     pub port_allocator: UnsafeCell<Option<Rc<RwLock<NumberAllocator<u16>>>>>,
+    pub units: RwLock<Vec<LocalUnit>>,
 }

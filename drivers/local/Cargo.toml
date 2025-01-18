@@ -19,6 +19,7 @@ anyhow = "1.0.95"
 # Configuration
 serde = { version = "1.0.217", features = ["derive"] }
 toml = "0.8.19"
+walkdir = "2.5.0"
 
 [build-dependencies]
 toml = "0.8.19"

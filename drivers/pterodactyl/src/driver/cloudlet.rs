@@ -1,10 +1,11 @@
+use common::name::TimedName;
 use std::{
     cell::UnsafeCell,
     rc::Rc,
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec,
 };
-use unit::{PanelUnit, UnitName};
+use unit::PanelUnit;
 
 use crate::{
     error,
@@ -54,11 +55,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
 
         let mut used = self.inner.get_allocations_mut();
         if unit.spec.disk_retention == Retention::Permanent {
-            let name = UnitName::new(
-                &self.inner.cloud_identifier,
-                &unit.name,
-                &Retention::Permanent,
-            );
+            let name = TimedName::new(&self.inner.cloud_identifier, &unit.name, true);
 
             // Check if a unit with the same name is already exists
             if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
@@ -106,10 +103,10 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
 
     fn start_unit(&self, unit: Unit) {
         let spec = &unit.allocation.spec;
-        let name = UnitName::new(
+        let name = TimedName::new(
             &self.inner.cloud_identifier,
             &unit.name,
-            &spec.disk_retention,
+            spec.disk_retention == Retention::Permanent,
         );
 
         let allocations = unit
@@ -153,7 +150,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         } else {
             let mut egg = None;
             let mut startup = None;
-            for value in spec.settings.iter() {
+            for value in &spec.settings {
                 match value.key.as_str() {
                     "egg" => match value.value.parse::<u32>() {
                         Ok(id) => {
@@ -216,7 +213,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             self.get_backend().restart_server(&backend_unit);
             info!(
                 "Panel is <yellow>restarting</> the unit <blue>{}</>...",
-                backend_unit.name.generate(),
+                backend_unit.name.get_name(),
             );
         } else {
             error!(
@@ -232,13 +229,13 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 self.get_backend().delete_server(backend_unit.id);
                 info!(
                     "Unit <blue>{}</> successfully <red>deleted</> from the panel",
-                    backend_unit.name.generate()
+                    backend_unit.name.get_name()
                 );
             } else {
                 self.get_backend().stop_server(&backend_unit);
                 info!(
                     "Panel is <red>stopping</> the unit <blue>{}</>...",
-                    backend_unit.name.generate(),
+                    backend_unit.name.get_name(),
                 );
             }
             self.inner.delete_unit(backend_unit.id);
@@ -296,7 +293,7 @@ impl PterodactylCloudlet {
     fn find_unit(&self, name: &str) -> Option<PanelUnit> {
         self.get_units()
             .iter()
-            .find(|unit| unit.name.name == name)
+            .find(|unit| unit.name.get_raw_name() == name)
             .cloned()
     }
     fn delete_unit(&self, id: u32) {

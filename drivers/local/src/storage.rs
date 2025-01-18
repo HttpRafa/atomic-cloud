@@ -5,6 +5,10 @@ This makes it easier to change them in the future
 
 use std::path::PathBuf;
 
+use common::name::TimedName;
+
+use crate::exports::cloudlet::driver::bridge::Retention;
+
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
 const PRIMARY_CONFIG_FILE: &str = "config.toml";
@@ -20,7 +24,7 @@ const TEMPLATE_DATA_FILE: &str = "template.toml";
 
 /* Units */
 const TEMPORARY_DIRECTORY: &str = "temporary";
-//const PERMANENT_DIRECTORY: &str = "permanent";
+const PERMANENT_DIRECTORY: &str = "permanent";
 
 pub struct Storage;
 
@@ -60,7 +64,14 @@ impl Storage {
     pub fn get_temporary_folder() -> PathBuf {
         Self::get_units_folder().join(TEMPORARY_DIRECTORY)
     }
-    /*pub fn get_permanent_folder() -> PathBuf {
+    pub fn get_permanent_folder() -> PathBuf {
         Self::get_units_folder().join(PERMANENT_DIRECTORY)
-    }*/
+    }
+    pub fn get_unit_folder(name: &TimedName, retention: &Retention) -> PathBuf {
+        if retention == &Retention::Permanent {
+            Self::get_permanent_folder().join(name.get_name())
+        } else {
+            Self::get_temporary_folder().join(name.get_name())
+        }
+    }
 }

@@ -35,7 +35,7 @@ pub struct Local {
     port_allocator: UnsafeCell<Option<Rc<RwLock<NumberAllocator<u16>>>>>,
 
     /* Templates */
-    templates: RwLock<Templates>,
+    templates: Rc<RwLock<Templates>>,
 
     /* Cloudlets that this driver handles */
     cloudlets: RwLock<Vec<Rc<LocalCloudlet>>>,
@@ -58,7 +58,7 @@ impl GuestGenericDriver for Local {
             cloud_identifier,
             config: UnsafeCell::new(None),
             port_allocator: UnsafeCell::new(None),
-            templates: RwLock::new(Templates::new()),
+            templates: Rc::new(RwLock::new(Templates::new())),
             cloudlets: RwLock::new(Vec::new()),
         }
     }
@@ -120,6 +120,7 @@ impl GuestGenericDriver for Local {
         unsafe {
             *wrapper.inner.config.get() = Some(self.get_config().clone());
             *wrapper.inner.port_allocator.get() = Some(self.get_port_allocator().clone());
+            *wrapper.inner.templates.get() = Some(self.templates.clone());
         }
         // Add cloudlet to cloudlets list
         let mut cloudlets = self
@@ -140,6 +141,10 @@ impl LocalCloudletWrapper {
     fn _get_config(&self) -> &Rc<Config> {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.inner.config.get() }.as_ref().unwrap()
+    }
+    fn get_templates(&self) -> &Rc<RwLock<Templates>> {
+        // Safe as we are only borrowing the reference immutably
+        unsafe { &*self.inner.templates.get() }.as_ref().unwrap()
     }
     fn get_port_allocator(&self) -> &Rc<RwLock<NumberAllocator<u16>>> {
         // Safe as we are only borrowing the reference immutably

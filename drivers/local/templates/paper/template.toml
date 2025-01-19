@@ -2,6 +2,8 @@ description = "Paper is a Minecraft game server based on Spigot, designed to gre
 version = "0.1.0"
 authors = ["HttpRafa"]
 
+exclusions = ["template.toml", "prepare/"]
+
 [prepare.unix]
 command = "bash"
 args = ["-c", "chmod +x prepare/unix.sh && ./prepare/unix.sh"]

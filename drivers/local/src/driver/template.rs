@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use anyhow::{anyhow, Result};
@@ -13,7 +14,8 @@ use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
         process::{
-            drop_process, read_line, spawn_process, try_wait, Directory, Reference, StdReader,
+            drop_process, read_line, spawn_process, try_wait, write_stdin, Directory, Reference,
+            StdReader,
         },
     },
     info,
@@ -23,7 +25,7 @@ use crate::{
 
 pub struct Templates {
     /* Templates */
-    pub templates: Vec<Template>,
+    pub templates: Vec<Rc<Template>>,
 }
 
 impl Templates {
@@ -118,7 +120,7 @@ impl Templates {
         }
     }
 
-    pub fn get_template_by_name(&self, name: &str) -> Option<Template> {
+    pub fn get_template_by_name(&self, name: &str) -> Option<Rc<Template>> {
         self.templates
             .iter()
             .find(|template| template.name == name)
@@ -126,7 +128,7 @@ impl Templates {
     }
 
     fn add_template(&mut self, template: Template) {
-        self.templates.push(template);
+        self.templates.push(Rc::new(template));
     }
 }
 
@@ -141,6 +143,9 @@ pub struct Template {
     /* Files */
     pub exclusions: Vec<PathBuf>,
 
+    /* Commands */
+    pub shutdown: Option<String>,
+
     /* Scripts */
     pub prepare: PlatformScript,
     pub startup: PlatformScript,
@@ -154,6 +159,7 @@ impl Template {
             version: stored.version.clone(),
             authors: stored.authors.clone(),
             exclusions: stored.exclusions.clone(),
+            shutdown: stored.shutdown.clone(),
             prepare: stored.prepare.clone(),
             startup: stored.startup.clone(),
         }
@@ -242,6 +248,26 @@ impl Template {
         .map_err(|error| anyhow!("Failed to execute entrypoint {}: {}", self.name, error))
     }
 
+    pub fn run_shutdown(&self, pid: u32) -> Result<()> {
+        match &self.shutdown {
+            Some(command) => {
+                write_stdin(pid, command.as_bytes()).map_err(|error| {
+                    anyhow!(
+                        "Failed to send shutdown command to process {}: {}",
+                        pid,
+                        error
+                    )
+                })?;
+            }
+            None => {
+                write_stdin(pid, b"^C").map_err(|error| {
+                    anyhow!("Failed to send Ctl+C command to process {}: {}", pid, error)
+                })?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn copy_to_folder(&self, folder: &Path) -> Result<()> {
         let source = Storage::get_template_folder(&self.name);
         fs::create_dir_all(folder)?;
@@ -313,6 +339,9 @@ mod stored {
 
         /* Files */
         pub exclusions: Vec<PathBuf>,
+
+        /* Commands */
+        pub shutdown: Option<String>,
 
         /* Scripts */
         pub prepare: PlatformScript,

@@ -169,6 +169,15 @@ impl GenericDriver for WasmDriver {
             Err(error) => Err(anyhow!(error)),
         }
     }
+
+    fn tick(&self) -> Result<()> {
+        let mut handle = self.handle.lock().unwrap();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
+        self.bindings
+            .cloudlet_driver_bridge()
+            .generic_driver()
+            .call_tick(store, resource)
+    }
 }
 
 impl WasmDriver {

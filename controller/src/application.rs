@@ -179,6 +179,12 @@ impl Controller {
     }
 
     fn tick(&self) {
+        // Tick all drivers
+        self.drivers.tick();
+
+        // Tick all driver cloudlets
+        self.lock_cloudlets().tick();
+
         // Check if all deployments have started there units etc..
         self.lock_deployments().tick(&self.units);
 

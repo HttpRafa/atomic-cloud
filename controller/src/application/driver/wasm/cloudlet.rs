@@ -23,6 +23,20 @@ pub struct WasmCloudlet {
 }
 
 impl GenericCloudlet for WasmCloudlet {
+    fn tick(&self) -> Result<()> {
+        if let Some(driver) = self.handle.upgrade() {
+            let mut handle = driver.handle.lock().unwrap();
+            let (_, store) = WasmDriver::get_resource_and_store(&mut handle);
+            driver
+                .bindings
+                .cloudlet_driver_bridge()
+                .generic_cloudlet()
+                .call_tick(store, self.resource)
+        } else {
+            Err(anyhow!("Failed to get handle to wasm driver"))
+        }
+    }
+
     fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>> {
         if let Some(driver) = self.handle.upgrade() {
             let mut handle = driver.handle.lock().unwrap();

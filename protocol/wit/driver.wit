@@ -1,183 +1,241 @@
 package cloudlet:driver;
 
+// Interface for logging functionality
 interface log {
+    // Enum for log levels
     variant level {
-        debug,
-        info,
-        warn,
-        error,
+        debug,  // Debug level
+        info,   // Info level
+        warn,   // Warning level
+        error,  // Error level
     }
+    // Function to log a message with a specific log level
     log-string: func(level: level, message: string);
 }
 
+// Interface for platform-specific functionality
 interface platform {
+    // Enum for operating systems
     variant os {
-        unix,
-        windows,
+        unix,    // Unix-based OS
+        windows, // Windows OS
     }
+    // Function to get the current operating system
     get-os: func() -> os;
 }
 
+// Interface for HTTP functionality
 interface http {
+    // Enum for HTTP methods
     variant method {
-        get,
-        patch,
-        post,
-        put,
-        delete,
+        get,     // HTTP GET method
+        patch,   // HTTP PATCH method
+        post,    // HTTP POST method
+        put,     // HTTP PUT method
+        delete,  // HTTP DELETE method
     }
+    // Record for HTTP headers
     record header {
-        key: string,
-        value: string,
+        key: string,   // Header key
+        value: string, // Header value
     }
+    // Record for HTTP response
     record response {
-        status-code: u32,
-        reason-phrase: string,
-        headers: list<header>,
-        bytes: list<u8>,
+        status-code: u32,         // HTTP status code
+        reason-phrase: string,    // HTTP reason phrase
+        headers: list<header>,    // List of HTTP headers
+        bytes: list<u8>,          // Response body as bytes
     }
+    // Function to send an HTTP request
     send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
 }
 
+// Interface for process management functionality
 interface process {
+    // Enum for process references
     variant reference {
-        controller,
-        configs,
-        data,
+        controller, // Controller reference
+        configs,    // Configurations reference
+        data,       // Data reference
     }
+    // Enum for standard readers
     variant std-reader {
-        stdout,
-        stderr,
+        stdout, // Standard output
+        stderr, // Standard error
     }
+    // Record for process directory
     record directory {
-        path: string,
-        reference: reference,
+        path: string,        // Directory path
+        reference: reference, // Directory reference
     }
+    // Function to spawn a new process
     spawn-process: func(command: string, args: list<string>, directory: directory) -> result<u32, string>;
+    // Function to kill a process
     kill-process: func(pid: u32) -> result<bool, string>;
+    // Function to drop a process
     drop-process: func(pid: u32) -> result<bool, string>;
 
+    // Function to try waiting for a process to finish
     try-wait: func(pid: u32) -> result<option<s32>, string>;
 
+    // Function to read a line from a process's standard output or error
     read-line: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, string>;
 
+    // Function to read a specified number of bytes from a process's standard output or error
     read: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, string>;
+    // Function to read all remaining bytes from a process's standard output or error
     read-to-end: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, string>;
+    // Function to write data to a process's standard input
     write-stdin: func(pid: u32, data: list<u8>) -> result<bool, string>;
 }
 
+// Interface for API functionality
 interface api {
+    // Function to get the name of the API
     get-name: func() -> string;
 }
 
+// Interface for bridge functionality
 interface bridge {
+    // Type alias for UUID
     type uuid = string;
 
     /* Init */
+    // Record for bridge information
     record information {
-        authors: list<string>,
-        version: string,
-        ready: bool,
+        authors: list<string>, // List of authors
+        version: string,       // Version of the bridge
+        ready: bool,           // Ready status
     }
 
     /* Cloudlet | Start */
+    // Record for cloudlet capabilities
     record capabilities {
-        memory: option<u32>,
-        max-allocations: option<u32>,
-        child: option<string>,
+        memory: option<u32>,        // Optional memory capability
+        max-allocations: option<u32>, // Optional maximum allocations
+        child: option<string>,      // Optional child capability
     }
 
+    // Record for remote controller
     record remote-controller {
-        address: string,
+        address: string, // Controller address
     }
     /* Cloudlet | End */
 
     /* Allocation */
+    // Record for address
     record address {
-        host: string,
-        port: u16,
+        host: string, // Host address
+        port: u16,    // Port number
     }
 
     /* Unit | Start */
+    // Record for unit resources
     record resources {
-        memory: u32,
-        swap: u32,
-        cpu: u32,
-        io: u32,
-        disk: u32,
-        addresses: u32,
+        memory: u32,     // Memory resource
+        swap: u32,       // Swap resource
+        cpu: u32,        // CPU resource
+        io: u32,         // IO resource
+        disk: u32,       // Disk resource
+        addresses: u32,  // Addresses resource
     }
 
+    // Record for unit setting
     record setting {
-        key: string,
-        value: string,
+        key: string,   // Setting key
+        value: string, // Setting value
     }
 
+    // Enum for disk retention policy
     variant retention {
-        permanent,
-        temporary,
+        permanent, // Permanent retention
+        temporary, // Temporary retention
     }
 
+    // Record for key-value pair
     record key-value {
-        key: string,
-        value: string,
+        key: string,   // Key
+        value: string, // Value
     }
 
+    // Record for unit specification
     record spec {
-        settings: list<key-value>,
-        environment: list<key-value>,
-        disk-retention: retention,
-        image: string,
+        settings: list<key-value>,    // List of settings
+        environment: list<key-value>, // List of environment variables
+        disk-retention: retention,    // Disk retention policy
+        image: string,                // Image
     }
 
+    // Record for unit allocation
     record allocation {
-        addresses: list<address>,
-        resources: resources,
-        spec: spec,
+        addresses: list<address>, // List of addresses
+        resources: resources,     // Resources
+        spec: spec,               // Specification
     }
 
+    // Record for authentication
     record auth {
-        token: string,
+        token: string, // Authentication token
     }
 
+    // Record for unit proposal
     record unit-proposal {
-        name: string,
-        deployment: option<string>,
-        resources: resources,
-        spec: spec,
+        name: string,                // Unit name
+        deployment: option<string>,  // Optional deployment
+        resources: resources,        // Resources
+        spec: spec,                  // Specification
     }
 
+    // Record for unit
     record unit {
-        name: string,
-        uuid: uuid,
-        deployment: option<string>,
-        allocation: allocation,
-        auth: auth,
+        name: string,                // Unit name
+        uuid: uuid,                  // Unit UUID
+        deployment: option<string>,  // Optional deployment
+        allocation: allocation,      // Allocation
+        auth: auth,                  // Authentication
     }
     /* Unit | End */
 
+    // Resource for generic cloudlet
     resource generic-cloudlet {
+        // Constructor for generic cloudlet
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
+        // Function to handle cloudlet tick
+        tick: func();
+
+        // Function to allocate addresses for a unit
         allocate-addresses: func(unit: unit-proposal) -> result<list<address>, string>;
+        // Function to deallocate addresses
         deallocate-addresses: func(addresses: list<address>);
 
+        // Function to start a unit
         start-unit: func(unit: unit);
+        // Function to restart a unit
         restart-unit: func(unit: unit);
+        // Function to stop a unit
         stop-unit: func(unit: unit);
     }
 
+    // Resource for generic driver
     resource generic-driver {
+        // Constructor for generic driver
         constructor(cloud-identifier: string);
+        // Function to initialize the driver
         init: func() -> information;
+        // Function to initialize a cloudlet
         init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, string>;
+
+        // Function to handle driver tick
+        tick: func();
     }
 }
 
+// World definition for the driver
 world driver {
-    export bridge;
-    import api;
-    import log;
-    import platform;
-    import http;
-    import process;
+    export bridge;    // Export bridge interface
+    import api;       // Import API interface
+    import log;       // Import log interface
+    import platform;  // Import platform interface
+    import http;      // Import HTTP interface
+    import process;   // Import process interface
 }

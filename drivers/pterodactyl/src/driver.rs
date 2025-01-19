@@ -96,15 +96,10 @@ impl GuestGenericDriver for Pterodactyl {
             Err("Cloudlet lacks the required child capability".to_string())
         }
     }
+
+    fn tick(&self) {}
 }
 
 pub struct PterodactylCloudletWrapper {
     pub inner: Rc<PterodactylCloudlet>,
-}
-
-impl PterodactylCloudletWrapper {
-    fn get_backend(&self) -> &Rc<Backend> {
-        // Safe as we are only borrowing the reference immutably
-        unsafe { &*self.inner.backend.get() }.as_ref().unwrap()
-    }
 }

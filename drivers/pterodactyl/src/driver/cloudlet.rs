@@ -49,6 +49,8 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         }
     }
 
+    fn tick(&self) {}
+
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
     fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
         let amount = unit.resources.addresses;
@@ -58,9 +60,10 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             let name = TimedName::new(&self.inner.cloud_identifier, &unit.name, true);
 
             // Check if a unit with the same name is already exists
-            if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
+            if let Some(backend_unit) = self.inner.get_backend().get_server_by_name(&name) {
                 // Get the allocations that are already used by this server
                 let mut allocations = self
+                    .inner
                     .get_backend()
                     .get_allocations_by_server(&backend_unit.identifier);
 
@@ -79,6 +82,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         }
 
         let allocations = self
+            .inner
             .get_backend()
             .get_free_allocations(&used, self.inner.id, amount)
             .iter()
@@ -126,7 +130,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             .collect::<Vec<_>>();
 
         // Check if a unit with the same name is already exists
-        if let Some(backend_unit) = self.get_backend().get_server_by_name(&name) {
+        if let Some(backend_unit) = self.inner.get_backend().get_server_by_name(&name) {
             if spec.disk_retention == Retention::Temporary {
                 error!(
                     "Unit <blue>{}</> already exists on the panel, but the disk retention is temporary",
@@ -139,9 +143,12 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 "Unit <blue>{}</> already exists on the panel, updating settings and starting...",
                 unit.name
             );
-            self.get_backend()
+            self.inner
+                .get_backend()
                 .update_settings(self, allocations[0].id, &backend_unit, &unit);
-            self.get_backend().start_server(&backend_unit.identifier);
+            self.inner
+                .get_backend()
+                .start_server(&backend_unit.identifier);
             self.inner.get_units_mut().push(PanelUnit::new(
                 backend_unit.id,
                 backend_unit.identifier,
@@ -183,7 +190,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             }
 
             // Create a new unit
-            if let Some(unit) = self.get_backend().create_server(
+            if let Some(unit) = self.inner.get_backend().create_server(
                 &name,
                 &unit,
                 self,
@@ -210,7 +217,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
 
     fn restart_unit(&self, unit: Unit) {
         if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
-            self.get_backend().restart_server(&backend_unit);
+            self.inner.get_backend().restart_server(&backend_unit);
             info!(
                 "Panel is <yellow>restarting</> the unit <blue>{}</>...",
                 backend_unit.name.get_name(),
@@ -226,13 +233,13 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
     fn stop_unit(&self, unit: Unit) {
         if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
             if unit.allocation.spec.disk_retention == Retention::Temporary {
-                self.get_backend().delete_server(backend_unit.id);
+                self.inner.get_backend().delete_server(backend_unit.id);
                 info!(
                     "Unit <blue>{}</> successfully <red>deleted</> from the panel",
                     backend_unit.name.get_name()
                 );
             } else {
-                self.get_backend().stop_server(&backend_unit);
+                self.inner.get_backend().stop_server(&backend_unit);
                 info!(
                     "Panel is <red>stopping</> the unit <blue>{}</>...",
                     backend_unit.name.get_name(),
@@ -265,6 +272,11 @@ pub struct PterodactylCloudlet {
 }
 
 impl PterodactylCloudlet {
+    fn get_backend(&self) -> &Rc<Backend> {
+        // Safe as we are only borrowing the reference immutably
+        unsafe { &*self.backend.get() }.as_ref().unwrap()
+    }
+
     fn get_allocations(&self) -> RwLockReadGuard<Vec<BAllocation>> {
         // Safe as we are only run on the same thread
         self.allocations.read().unwrap()

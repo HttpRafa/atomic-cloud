@@ -1,4 +1,8 @@
-use std::{cell::UnsafeCell, rc::Rc, sync::RwLock};
+use std::{
+    cell::UnsafeCell,
+    rc::Rc,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use common::{allocator::NumberAllocator, name::TimedName};
 use unit::LocalUnit;
@@ -9,6 +13,7 @@ use crate::{
         Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
         UnitProposal,
     },
+    info,
     storage::Storage,
 };
 
@@ -36,11 +41,17 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         }
     }
 
+    fn tick(&self) {
+        let mut units = self.inner.get_units_mut();
+        units.retain_mut(|unit| unit.tick());
+    }
+
     fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
         let amount = unit.resources.addresses;
 
         let mut ports = Vec::with_capacity(amount as usize);
         let mut allocator = self
+            .inner
             .get_port_allocator()
             .write()
             .expect("Failed to lock port allocator");
@@ -60,6 +71,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
 
     fn deallocate_addresses(&self, addresses: Vec<Address>) {
         let mut allocator = self
+            .inner
             .get_port_allocator()
             .write()
             .expect("Failed to lock port allocator");
@@ -73,30 +85,27 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         let name =
             TimedName::new_no_identifier(&unit.name, spec.disk_retention == Retention::Permanent);
 
-        let template = spec
-            .settings
-            .iter()
-            .find(|s| s.key == "template")
-            .map(|s| s.value.clone());
-        if template.is_none() {
-            error!(
-                "The following required settings to start the unit are missing: <red>template</>"
-            );
-            return;
-        }
+        let template_name = match spec.settings.iter().find(|s| s.key == "template") {
+            Some(setting) => setting.value.clone(),
+            None => {
+                error!("Missing required setting: <red>template</>");
+                return;
+            }
+        };
 
         let template = match self
+            .inner
             .get_templates()
             .read()
             .expect("Failed to lock templates")
-            .get_template_by_name(template.as_ref().unwrap())
+            .get_template_by_name(&template_name)
         {
-            Some(value) => value,
+            Some(template) => template,
             None => {
                 error!(
-                    "Failed to start unit <blue>{}</>: Template <blue>{}</> not found",
-                    name.get_name(),
-                    &template.unwrap()
+                    "Template <blue>{}</> not found for unit <blue>{}</>",
+                    template_name,
+                    name.get_name()
                 );
                 return;
             }
@@ -104,46 +113,111 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
 
         let folder = Storage::get_unit_folder(&name, &spec.disk_retention);
         if !folder.exists() {
-            if let Err(error) = template.copy_to_folder(&folder) {
+            if let Err(err) = template.copy_to_folder(&folder) {
                 error!(
-                    "Failed to start unit <blue>{}</>: Failed to copy template: <red>{}</>",
+                    "Failed to copy template for unit <blue>{}</>: <red>{}</>",
                     name.get_name(),
-                    error
+                    err
                 );
                 return;
             }
         }
 
-        match LocalUnit::start(&name, &folder, &template) {
-            Ok(unit) => self
-                .inner
-                .units
-                .write()
-                .expect("Failed to lock units")
-                .push(unit),
-            Err(error) => error!(
+        let mut local_unit = LocalUnit::new(&name, &folder, template);
+        if let Err(err) = local_unit.start() {
+            error!(
                 "Failed to start unit <blue>{}</>: <red>{}</>",
-                name.get_raw_name(),
-                error
-            ),
+                name.get_name(),
+                err
+            );
+            return;
+        }
+
+        info!(
+            "Successfully <green>created</> child process for unit <blue>{}</>",
+            local_unit.name.get_raw_name()
+        );
+        self.inner.get_units_mut().push(local_unit);
+    }
+
+    fn restart_unit(&self, unit: Unit) {
+        let mut units = self.inner.get_units_mut();
+        if let Some(local_unit) = units
+            .iter_mut()
+            .find(|u| u.name.get_raw_name() == unit.name)
+        {
+            if let Err(err) = local_unit.restart() {
+                error!(
+                    "<red>Failed</> to restart unit <blue>{}</>: <red>{}</>",
+                    unit.name, err
+                );
+                return;
+            }
+            info!(
+                "Child process of unit <blue>{}</> is <yellow>restarting</>",
+                unit.name
+            );
+        } else {
+            error!("<red>Failed</> to restart unit <blue>{}</>: Unit was <red>never started</> by this driver", unit.name);
         }
     }
 
-    fn restart_unit(&self, _unit: Unit) {}
-
-    fn stop_unit(&self, _unit: Unit) {}
+    fn stop_unit(&self, unit: Unit) {
+        let mut units = self.inner.get_units_mut();
+        if let Some(local_unit) = units
+            .iter_mut()
+            .find(|u| u.name.get_raw_name() == unit.name)
+        {
+            if let Err(err) = local_unit.stop() {
+                error!(
+                    "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
+                    unit.name, err
+                );
+                return;
+            }
+            info!(
+                "Child process of unit <blue>{}</> is <red>stopping</>",
+                unit.name
+            );
+        } else {
+            error!("<red>Failed</> to stop unit <blue>{}</>: Unit was <red>never started</> by this driver", unit.name);
+        }
+    }
 }
 
 pub struct LocalCloudlet {
     /* Informations about the cloudlet */
-    pub _name: String,
+    _name: String,
     pub config: UnsafeCell<Option<Rc<Config>>>,
-    pub controller: RemoteController,
+    controller: RemoteController,
 
     /* Templates */
     pub templates: UnsafeCell<Option<Rc<RwLock<Templates>>>>,
 
     /* Dynamic Resources */
     pub port_allocator: UnsafeCell<Option<Rc<RwLock<NumberAllocator<u16>>>>>,
-    pub units: RwLock<Vec<LocalUnit>>,
+    units: RwLock<Vec<LocalUnit>>,
+}
+
+impl LocalCloudlet {
+    fn _get_config(&self) -> &Rc<Config> {
+        // Safe as we are only borrowing the reference immutably
+        unsafe { &*self.config.get() }.as_ref().unwrap()
+    }
+    fn get_templates(&self) -> &Rc<RwLock<Templates>> {
+        // Safe as we are only borrowing the reference immutably
+        unsafe { &*self.templates.get() }.as_ref().unwrap()
+    }
+    fn get_port_allocator(&self) -> &Rc<RwLock<NumberAllocator<u16>>> {
+        // Safe as we are only borrowing the reference immutably
+        unsafe { &*self.port_allocator.get() }.as_ref().unwrap()
+    }
+    fn _get_units(&self) -> RwLockReadGuard<Vec<LocalUnit>> {
+        // Safe as we are only run on the same thread
+        self.units.read().unwrap()
+    }
+    fn get_units_mut(&self) -> RwLockWriteGuard<Vec<LocalUnit>> {
+        // Safe as we are only run on the same thread
+        self.units.write().unwrap()
+    }
 }

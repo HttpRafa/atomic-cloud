@@ -1,4 +1,5 @@
 use anyhow::Result;
+use simplelog::error;
 use simplelog::info;
 use std::sync::Arc;
 use tonic::async_trait;
@@ -26,10 +27,16 @@ pub trait GenericDriver: Send + Sync {
     fn name(&self) -> &String;
     fn init(&self) -> Result<Information>;
     fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle>;
+
+    /* Ticking */
+    fn tick(&self) -> Result<()>;
 }
 
 #[async_trait]
 pub trait GenericCloudlet: Send + Sync {
+    /* Ticking */
+    fn tick(&self) -> Result<()>;
+
     /* Prepare */
     fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>>;
     fn deallocate_addresses(&self, addresses: Vec<HostAndPort>) -> Result<()>;
@@ -58,6 +65,18 @@ impl Drivers {
 
         info!("Loaded <blue>{} driver(s)</>", drivers.len());
         Self { drivers }
+    }
+
+    pub fn tick(&self) {
+        for driver in &self.drivers {
+            if let Err(error) = driver.tick() {
+                error!(
+                    "Failed to tick driver <red>{}</>: <red>{}</>",
+                    driver.name(),
+                    error
+                );
+            }
+        }
     }
 
     pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {

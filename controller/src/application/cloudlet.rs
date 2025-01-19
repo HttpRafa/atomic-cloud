@@ -116,6 +116,17 @@ impl Cloudlets {
         cloudlets
     }
 
+    pub fn tick(&self) {
+        for cloudlet in self.cloudlets.values() {
+            if let Err(error) = cloudlet.get_inner().tick() {
+                error!(
+                    "<red>Failed</> to tick cloudlet <blue>{}</>: <red>{}</>",
+                    cloudlet.name, error
+                );
+            }
+        }
+    }
+
     pub fn get_amount(&self) -> usize {
         self.cloudlets.len()
     }

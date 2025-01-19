@@ -131,25 +131,10 @@ impl GuestGenericDriver for Local {
         info!("Cloudlet <blue>{}</> was <green>added</>", name);
         Ok(GenericCloudlet::new(wrapper))
     }
+
+    fn tick(&self) {}
 }
 
 pub struct LocalCloudletWrapper {
     pub inner: Rc<LocalCloudlet>,
-}
-
-impl LocalCloudletWrapper {
-    fn _get_config(&self) -> &Rc<Config> {
-        // Safe as we are only borrowing the reference immutably
-        unsafe { &*self.inner.config.get() }.as_ref().unwrap()
-    }
-    fn get_templates(&self) -> &Rc<RwLock<Templates>> {
-        // Safe as we are only borrowing the reference immutably
-        unsafe { &*self.inner.templates.get() }.as_ref().unwrap()
-    }
-    fn get_port_allocator(&self) -> &Rc<RwLock<NumberAllocator<u16>>> {
-        // Safe as we are only borrowing the reference immutably
-        unsafe { &*self.inner.port_allocator.get() }
-            .as_ref()
-            .unwrap()
-    }
 }

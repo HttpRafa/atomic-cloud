@@ -8,12 +8,14 @@ use crate::{error, storage::Storage, warn};
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     /* Network */
+    pub address: String,
     pub ports: Range<u16>,
 }
 
 impl Config {
     fn new_empty() -> Self {
         Self {
+            address: "127.0.0.1".to_string(),
             ports: 27000..28000,
         }
     }

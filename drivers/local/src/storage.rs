@@ -67,11 +67,20 @@ impl Storage {
     pub fn get_permanent_folder() -> PathBuf {
         Self::get_units_folder().join(PERMANENT_DIRECTORY)
     }
+
     pub fn get_unit_folder(name: &TimedName, retention: &Retention) -> PathBuf {
         if retention == &Retention::Permanent {
             Self::get_permanent_folder().join(name.get_name())
         } else {
             Self::get_temporary_folder().join(name.get_name())
+        }
+    }
+
+    pub fn get_unit_folder_outside(name: &TimedName, retention: &Retention) -> PathBuf {
+        if retention == &Retention::Permanent {
+            PathBuf::from(UNITS_DIRECTORY).join(PERMANENT_DIRECTORY).join(name.get_name())
+        } else {
+            PathBuf::from(UNITS_DIRECTORY).join(TEMPORARY_DIRECTORY).join(name.get_name())
         }
     }
 }

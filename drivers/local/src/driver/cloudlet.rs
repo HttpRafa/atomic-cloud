@@ -27,13 +27,13 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         _name: String,
         _id: Option<u32>,
         _capabilities: Capabilities,
-        controller: RemoteController,
+        _controller: RemoteController,
     ) -> Self {
         Self {
             inner: Rc::new(LocalCloudlet {
                 _name,
                 config: UnsafeCell::new(None),
-                controller,
+                _controller,
                 templates: UnsafeCell::new(None),
                 port_allocator: UnsafeCell::new(None),
                 units: RwLock::new(vec![]),
@@ -58,7 +58,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         for _ in 0..amount {
             if let Some(port) = allocator.allocate() {
                 ports.push(Address {
-                    host: self.inner.controller.address.clone(),
+                    host: self.inner.get_config().address.clone(),
                     port,
                 });
             } else {
@@ -123,7 +123,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             }
         }
 
-        let mut local_unit = LocalUnit::new(&name, &folder, template);
+        let mut local_unit = LocalUnit::new(&name, &Storage::get_unit_folder_outside(&name, &spec.disk_retention), template);
         if let Err(err) = local_unit.start() {
             error!(
                 "Failed to start unit <blue>{}</>: <red>{}</>",
@@ -189,7 +189,7 @@ pub struct LocalCloudlet {
     /* Informations about the cloudlet */
     _name: String,
     pub config: UnsafeCell<Option<Rc<Config>>>,
-    controller: RemoteController,
+    _controller: RemoteController,
 
     /* Templates */
     pub templates: UnsafeCell<Option<Rc<RwLock<Templates>>>>,
@@ -200,7 +200,7 @@ pub struct LocalCloudlet {
 }
 
 impl LocalCloudlet {
-    fn _get_config(&self) -> &Rc<Config> {
+    fn get_config(&self) -> &Rc<Config> {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.config.get() }.as_ref().unwrap()
     }

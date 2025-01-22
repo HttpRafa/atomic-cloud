@@ -78,9 +78,13 @@ impl Storage {
 
     pub fn get_unit_folder_outside(name: &TimedName, retention: &Retention) -> PathBuf {
         if retention == &Retention::Permanent {
-            PathBuf::from(UNITS_DIRECTORY).join(PERMANENT_DIRECTORY).join(name.get_name())
+            PathBuf::from(UNITS_DIRECTORY)
+                .join(PERMANENT_DIRECTORY)
+                .join(name.get_name())
         } else {
-            PathBuf::from(UNITS_DIRECTORY).join(TEMPORARY_DIRECTORY).join(name.get_name())
+            PathBuf::from(UNITS_DIRECTORY)
+                .join(TEMPORARY_DIRECTORY)
+                .join(name.get_name())
         }
     }
 }

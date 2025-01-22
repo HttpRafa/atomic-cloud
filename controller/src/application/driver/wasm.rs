@@ -170,6 +170,15 @@ impl GenericDriver for WasmDriver {
         }
     }
 
+    fn dispose(&self) -> Result<()> {
+        let mut handle = self.handle.lock().unwrap();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
+        self.bindings
+            .cloudlet_driver_bridge()
+            .generic_driver()
+            .call_dispose(store, resource)
+    }
+
     fn tick(&self) -> Result<()> {
         let mut handle = self.handle.lock().unwrap();
         let (resource, store) = Self::get_resource_and_store(&mut handle);

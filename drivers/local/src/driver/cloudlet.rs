@@ -123,7 +123,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             }
         }
 
-        let mut local_unit = LocalUnit::new(&name, &Storage::get_unit_folder_outside(&name, &spec.disk_retention), template);
+        let mut local_unit = LocalUnit::new(&name, &spec.disk_retention, template);
         if let Err(err) = local_unit.start() {
             error!(
                 "Failed to start unit <blue>{}</>: <red>{}</>",
@@ -175,10 +175,17 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
                 );
                 return;
             }
-            info!(
-                "Child process of unit <blue>{}</> is <red>stopping</>",
-                unit.name
-            );
+            if unit.allocation.spec.disk_retention == Retention::Temporary {
+                info!(
+                    "Child process of unit <blue>{}</> was <red>killed</>",
+                    unit.name
+                );
+            } else {
+                info!(
+                    "Child process of unit <blue>{}</> is <red>stopping</>",
+                    unit.name
+                );
+            }
         } else {
             error!("<red>Failed</> to stop unit <blue>{}</>: Unit was <red>never started</> by this driver", unit.name);
         }
@@ -200,6 +207,20 @@ pub struct LocalCloudlet {
 }
 
 impl LocalCloudlet {
+    /* Dispose */
+    pub fn is_ready_to_exit(&self, last: bool) -> bool {
+        let mut units = self.get_units_mut();
+        if last {
+            for unit in units.iter_mut() {
+                if let Err(err) = unit.kill() {
+                    error!("Failed to stop unit {}: {}", unit.name.get_raw_name(), err);
+                }
+            }
+        }
+        units.retain_mut(|unit| unit.tick());
+        units.is_empty()
+    }
+
     fn get_config(&self) -> &Rc<Config> {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.config.get() }.as_ref().unwrap()

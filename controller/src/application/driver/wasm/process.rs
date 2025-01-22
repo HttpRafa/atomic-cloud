@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
@@ -9,7 +10,7 @@ use crate::storage::Storage;
 use super::{
     generated::cloudlet::driver::{
         self,
-        process::{Directory, Reference, StdReader},
+        process::{Directory, KeyValue, Reference, StdReader},
     },
     DriverProcess, WasmDriverState,
 };
@@ -19,16 +20,22 @@ impl driver::process::Host for WasmDriverState {
         &mut self,
         command: String,
         args: Vec<String>,
+        environment: Vec<KeyValue>,
         directory: Directory,
     ) -> Result<u32, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let process_dir = self.get_process_directory(&driver.name, &directory)?;
+        let environment: HashMap<_, _> = environment
+            .into_iter()
+            .map(|kv| (kv.key, kv.value))
+            .collect();
 
         let mut command = Command::new(command);
         command
             .args(args)
             .current_dir(process_dir)
-            .stdin(Stdio::piped())
+            .envs(environment)
+            .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 

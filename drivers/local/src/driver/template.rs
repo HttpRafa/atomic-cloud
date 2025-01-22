@@ -14,8 +14,8 @@ use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
         process::{
-            drop_process, read_line, spawn_process, try_wait, write_stdin, Directory, Reference,
-            StdReader,
+            drop_process, read_line, spawn_process, try_wait, write_stdin, Directory, KeyValue,
+            Reference, StdReader,
         },
     },
     info,
@@ -143,6 +143,9 @@ pub struct Template {
     /* Files */
     pub exclusions: Vec<PathBuf>,
 
+    /* Environment */
+    pub environment: Vec<KeyValue>,
+
     /* Commands */
     pub shutdown: Option<String>,
 
@@ -159,6 +162,14 @@ impl Template {
             version: stored.version.clone(),
             authors: stored.authors.clone(),
             exclusions: stored.exclusions.clone(),
+            environment: stored
+                .environment
+                .iter()
+                .map(|value| KeyValue {
+                    key: value.0.clone(),
+                    value: value.1.clone(),
+                })
+                .collect(),
             shutdown: stored.shutdown.clone(),
             prepare: stored.prepare.clone(),
             startup: stored.startup.clone(),
@@ -185,6 +196,7 @@ impl Template {
         match spawn_process(
             &prepare.command,
             &prepare.args,
+            &self.environment,
             &Directory {
                 path: Storage::get_template_folder_outside(&self.name)
                     .to_string_lossy()
@@ -240,6 +252,7 @@ impl Template {
         spawn_process(
             &startup.command,
             &startup.args,
+            &self.environment,
             &Directory {
                 path: folder.to_string_lossy().to_string(),
                 reference: Reference::Data,
@@ -322,8 +335,7 @@ pub struct Script {
 }
 
 mod stored {
-
-    use std::path::PathBuf;
+    use std::{collections::HashMap, path::PathBuf};
 
     use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
@@ -339,6 +351,9 @@ mod stored {
 
         /* Files */
         pub exclusions: Vec<PathBuf>,
+
+        /* Environment */
+        pub environment: HashMap<String, String>,
 
         /* Commands */
         pub shutdown: Option<String>,

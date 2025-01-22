@@ -97,6 +97,8 @@ impl GuestGenericDriver for Pterodactyl {
         }
     }
 
+    fn dispose(&self) {}
+
     fn tick(&self) {}
 }
 

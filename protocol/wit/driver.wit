@@ -68,8 +68,14 @@ interface process {
         path: string,        // Directory path
         reference: reference, // Directory reference
     }
+    // Record for key-value pair
+    record key-value {
+        key: string,   // Key
+        value: string, // Value
+    }
+
     // Function to spawn a new process
-    spawn-process: func(command: string, args: list<string>, directory: directory) -> result<u32, string>;
+    spawn-process: func(command: string, args: list<string>, environment: list<key-value>, directory: directory) -> result<u32, string>;
     // Function to kill a process
     kill-process: func(pid: u32) -> result<bool, string>;
     // Function to drop a process
@@ -224,6 +230,8 @@ interface bridge {
         init: func() -> information;
         // Function to initialize a cloudlet
         init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, string>;
+        // Function that is called when the driver is stopped
+        dispose: func();
 
         // Function to handle driver tick
         tick: func();

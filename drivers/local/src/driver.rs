@@ -1,4 +1,10 @@
-use std::{cell::UnsafeCell, fs, rc::Rc, sync::RwLock};
+use std::{
+    cell::UnsafeCell,
+    fs,
+    rc::Rc,
+    sync::RwLock,
+    time::{Duration, Instant},
+};
 
 use cloudlet::LocalCloudlet;
 use common::allocator::NumberAllocator;
@@ -130,6 +136,36 @@ impl GuestGenericDriver for Local {
         cloudlets.push(wrapper.inner.clone());
         info!("Cloudlet <blue>{}</> was <green>added</>", name);
         Ok(GenericCloudlet::new(wrapper))
+    }
+
+    fn dispose(&self) {
+        let cloudlets = self
+            .cloudlets
+            .read()
+            .expect("Failed to get lock on cloudlets");
+        info!("Gracefully exiting all cloudlets...");
+        let start_time = Instant::now();
+        let timeout = Duration::from_secs(15);
+        let mut last_attempt = false;
+
+        while !last_attempt {
+            if start_time.elapsed() > timeout {
+                last_attempt = true;
+            }
+
+            if cloudlets
+                .iter()
+                .all(|cloudlet| cloudlet.is_ready_to_exit(last_attempt))
+            {
+                break;
+            }
+        }
+
+        info!("All cloudlets have gracefully exited. Shutting down...");
+        info!("Deleting temporary directory...");
+        if let Err(error) = fs::remove_dir_all(Storage::get_temporary_folder()) {
+            error!("<red>Failed</> to remove temporary directory: {}", error);
+        }
     }
 
     fn tick(&self) {}

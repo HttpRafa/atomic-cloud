@@ -1,5 +1,25 @@
 package cloudlet:driver;
 
+// Types required for this protocol
+interface types {
+    // Enum for references
+    variant reference {
+        controller, // Controller reference
+        configs,    // Configurations reference
+        data,       // Data reference
+    }
+    // Record for directory
+    record directory {
+        path: string,           // Directory path
+        reference: reference,   // Directory reference
+    }
+    // Record for key-value pair
+    record key-value {
+        key: string,   // Key
+        value: string, // Value
+    }
+}
+
 // Interface for logging functionality
 interface log {
     // Enum for log levels
@@ -22,6 +42,13 @@ interface platform {
     }
     // Function to get the current operating system
     get-os: func() -> os;
+}
+
+// Interface for file functionality
+interface file {
+    use types.{directory}; // Use directory type from types interface
+    // Function to delete directories recursively
+    remove-dir-all: func(directory: directory) -> result<bool, string>;
 }
 
 // Interface for HTTP functionality
@@ -52,26 +79,12 @@ interface http {
 
 // Interface for process management functionality
 interface process {
-    // Enum for process references
-    variant reference {
-        controller, // Controller reference
-        configs,    // Configurations reference
-        data,       // Data reference
-    }
+    use types.{key-value, directory}; // Use directory type from types interface
+
     // Enum for standard readers
     variant std-reader {
         stdout, // Standard output
         stderr, // Standard error
-    }
-    // Record for process directory
-    record directory {
-        path: string,        // Directory path
-        reference: reference, // Directory reference
-    }
-    // Record for key-value pair
-    record key-value {
-        key: string,   // Key
-        value: string, // Value
     }
 
     // Function to spawn a new process
@@ -103,6 +116,8 @@ interface api {
 
 // Interface for bridge functionality
 interface bridge {
+    use types.{key-value}; // Use key-value type from types interface
+
     // Type alias for UUID
     type uuid = string;
 
@@ -156,12 +171,6 @@ interface bridge {
     variant retention {
         permanent, // Permanent retention
         temporary, // Temporary retention
-    }
-
-    // Record for key-value pair
-    record key-value {
-        key: string,   // Key
-        value: string, // Value
     }
 
     // Record for unit specification
@@ -244,6 +253,7 @@ world driver {
     import api;       // Import API interface
     import log;       // Import log interface
     import platform;  // Import platform interface
+    import file;      // Import file interface
     import http;      // Import HTTP interface
     import process;   // Import process interface
 }

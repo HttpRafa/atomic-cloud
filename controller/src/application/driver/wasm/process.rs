@@ -10,7 +10,8 @@ use crate::storage::Storage;
 use super::{
     generated::cloudlet::driver::{
         self,
-        process::{Directory, KeyValue, Reference, StdReader},
+        process::{Directory, KeyValue, StdReader},
+        types::Reference,
     },
     DriverProcess, WasmDriverState,
 };
@@ -24,7 +25,7 @@ impl driver::process::Host for WasmDriverState {
         directory: Directory,
     ) -> Result<u32, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
-        let process_dir = self.get_process_directory(&driver.name, &directory)?;
+        let process_dir = self.get_directory(&driver.name, &directory)?;
         let environment: HashMap<_, _> = environment
             .into_iter()
             .map(|kv| (kv.key, kv.value))
@@ -35,7 +36,7 @@ impl driver::process::Host for WasmDriverState {
             .args(args)
             .current_dir(process_dir)
             .envs(environment)
-            .stdin(Stdio::null())
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -214,7 +215,7 @@ impl driver::process::Host for WasmDriverState {
 }
 
 impl WasmDriverState {
-    fn get_process_directory(
+    pub fn get_directory(
         &self,
         driver_name: &str,
         directory: &Directory,

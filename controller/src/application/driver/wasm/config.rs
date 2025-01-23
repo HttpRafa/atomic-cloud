@@ -35,6 +35,7 @@ pub struct DriverConfig {
     pub allow_ip_name_lookup: bool,
     pub allow_http: bool,
     pub allow_process: bool,
+    pub allow_remove_dir_all: bool,
 
     pub mounts: Vec<MountConfig>,
 }
@@ -50,6 +51,7 @@ impl Default for DriverConfig {
             allow_ip_name_lookup: true,
             allow_http: true,
             allow_process: true,
+            allow_remove_dir_all: true,
             mounts: Vec::new(),
         }
     }

@@ -23,6 +23,7 @@ use crate::storage::Storage;
 mod config;
 
 mod cloudlet;
+mod file;
 mod http;
 mod log;
 mod platform;
@@ -73,6 +74,8 @@ impl WasiView for WasmDriverState {
         &mut self.table
     }
 }
+
+impl generated::cloudlet::driver::types::Host for WasmDriverState {}
 
 impl generated::cloudlet::driver::api::Host for WasmDriverState {
     fn get_name(&mut self) -> String {

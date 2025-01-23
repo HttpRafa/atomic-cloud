@@ -1,5 +1,4 @@
 use std::{
-    fs,
     path::PathBuf,
     rc::Rc,
     time::{Duration, Instant},
@@ -9,7 +8,18 @@ use anyhow::{anyhow, Result};
 use common::name::TimedName;
 
 use crate::{
-    cloudlet::driver::process::{drop_process, kill_process, read_line, try_wait, StdReader}, debug, driver::template::Template, error, exports::cloudlet::driver::bridge::Retention, info, storage::Storage, warn
+    cloudlet::driver::{
+        file::{remove_dir_all, Directory},
+        process::{drop_process, kill_process, read_line, try_wait, StdReader},
+        types::Reference,
+    },
+    debug,
+    driver::template::Template,
+    error,
+    exports::cloudlet::driver::bridge::Retention,
+    info,
+    storage::Storage,
+    warn,
 };
 
 const STOP_TIMEOUT: Duration = Duration::from_secs(30);
@@ -27,7 +37,7 @@ pub struct LocalUnit {
     pub changed: Instant,
     pub pid: Option<u32>,
     pub name: TimedName,
-    pub internal_folder: PathBuf,
+    pub _internal_folder: PathBuf,
     pub child_folder: PathBuf,
     pub retention: Retention,
     pub template: Rc<Template>,
@@ -40,7 +50,7 @@ impl LocalUnit {
             changed: Instant::now(),
             pid: None,
             name: name.clone(),
-            internal_folder: Storage::get_unit_folder(name, retention),
+            _internal_folder: Storage::get_unit_folder(name, retention),
             child_folder: Storage::get_unit_folder_outside(name, retention),
             retention: *retention,
             template,
@@ -60,12 +70,8 @@ impl LocalUnit {
                             debug!("<blue>[{}]</> {}", self.name.get_raw_name(), line);
                         }
                     }
-                    Err(error) => {
-                        last_size = 0;
-                        debug!(
-                            "Failed to read stdout of process <blue>{}</>: <red>{}</>",
-                            pid, error
-                        );
+                    Err(_) => {
+                        break;
                     }
                 }
             }
@@ -142,7 +148,10 @@ impl LocalUnit {
 
     fn cleanup(&self) {
         if self.retention == Retention::Temporary {
-            if let Err(error) = fs::remove_dir_all(&self.internal_folder) {
+            if let Err(error) = remove_dir_all(&Directory {
+                path: self.child_folder.to_string_lossy().to_string(),
+                reference: Reference::Data,
+            }) {
                 error!(
                     "Failed to remove folder for unit {}: {}",
                     self.name.get_raw_name(),

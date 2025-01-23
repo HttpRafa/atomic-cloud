@@ -15,8 +15,9 @@ use crate::{
         platform::{get_os, Os},
         process::{
             drop_process, read_line, spawn_process, try_wait, write_stdin, Directory, KeyValue,
-            Reference, StdReader,
+            StdReader,
         },
+        types::Reference,
     },
     info,
     storage::Storage,

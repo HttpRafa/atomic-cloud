@@ -64,6 +64,9 @@ impl Storage {
     pub fn get_temporary_folder() -> PathBuf {
         Self::get_units_folder().join(TEMPORARY_DIRECTORY)
     }
+    pub fn get_temporary_folder_outside() -> PathBuf {
+        PathBuf::from(UNITS_DIRECTORY).join(TEMPORARY_DIRECTORY)
+    }
     pub fn get_permanent_folder() -> PathBuf {
         Self::get_units_folder().join(PERMANENT_DIRECTORY)
     }
@@ -82,9 +85,7 @@ impl Storage {
                 .join(PERMANENT_DIRECTORY)
                 .join(name.get_name())
         } else {
-            PathBuf::from(UNITS_DIRECTORY)
-                .join(TEMPORARY_DIRECTORY)
-                .join(name.get_name())
+            Storage::get_temporary_folder_outside().join(name.get_name())
         }
     }
 }

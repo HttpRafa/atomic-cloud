@@ -12,7 +12,11 @@ use config::Config;
 use template::Templates;
 
 use crate::{
-    error,
+    cloudlet::driver::{
+        file::{remove_dir_all, Directory},
+        types::Reference,
+    },
+    debug, error,
     exports::cloudlet::driver::bridge::{
         Capabilities, GenericCloudlet, GuestGenericCloudlet, GuestGenericDriver, Information,
         RemoteController,
@@ -73,8 +77,14 @@ impl GuestGenericDriver for Local {
         let mut ready = true;
 
         let tmp_dir = Storage::get_temporary_folder();
+        debug!("Checking directories...");
         if tmp_dir.exists() {
-            if let Err(error) = fs::remove_dir_all(tmp_dir) {
+            if let Err(error) = remove_dir_all(&Directory {
+                path: Storage::get_temporary_folder_outside()
+                    .to_string_lossy()
+                    .to_string(),
+                reference: Reference::Data,
+            }) {
                 error!(
                     "<red>Failed</> to remove temporary directory: <red>{}</>",
                     error
@@ -82,6 +92,7 @@ impl GuestGenericDriver for Local {
                 ready = false;
             }
         }
+        debug!("Directories are ready");
 
         // Load configuration
         {

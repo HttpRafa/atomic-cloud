@@ -27,13 +27,13 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         _name: String,
         _id: Option<u32>,
         _capabilities: Capabilities,
-        _controller: RemoteController,
+        controller: RemoteController,
     ) -> Self {
         Self {
             inner: Rc::new(LocalCloudlet {
                 _name,
                 config: UnsafeCell::new(None),
-                _controller,
+                controller,
                 templates: UnsafeCell::new(None),
                 port_allocator: UnsafeCell::new(None),
                 units: RwLock::new(vec![]),
@@ -123,11 +123,11 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             }
         }
 
-        let mut local_unit = LocalUnit::new(&name, &spec.disk_retention, template);
+        let mut local_unit = LocalUnit::new(self, unit, &name, template);
         if let Err(err) = local_unit.start() {
             error!(
                 "Failed to start unit <blue>{}</>: <red>{}</>",
-                name.get_name(),
+                name.get_raw_name(),
                 err
             );
             return;
@@ -135,7 +135,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
 
         info!(
             "Successfully <green>created</> child process for unit <blue>{}</>",
-            local_unit.name.get_raw_name()
+            name.get_raw_name()
         );
         self.inner.get_units_mut().push(local_unit);
     }
@@ -196,7 +196,7 @@ pub struct LocalCloudlet {
     /* Informations about the cloudlet */
     _name: String,
     pub config: UnsafeCell<Option<Rc<Config>>>,
-    _controller: RemoteController,
+    controller: RemoteController,
 
     /* Templates */
     pub templates: UnsafeCell<Option<Rc<RwLock<Templates>>>>,

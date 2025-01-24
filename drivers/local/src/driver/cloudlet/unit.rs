@@ -11,18 +11,23 @@ use crate::{
     cloudlet::driver::{
         file::{remove_dir_all, Directory},
         process::{drop_process, kill_process, read_line, try_wait, StdReader},
-        types::Reference,
+        types::{KeyValue, Reference},
     },
-    debug,
-    driver::template::Template,
+    driver::{template::Template, LocalCloudletWrapper},
     error,
-    exports::cloudlet::driver::bridge::Retention,
+    exports::cloudlet::driver::bridge::{Retention, Unit},
     info,
     storage::Storage,
     warn,
 };
 
+/* Timeouts */
 const STOP_TIMEOUT: Duration = Duration::from_secs(30);
+
+/* Variables */
+const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
+const UNIT_TOKEN: &str = "UNIT_TOKEN";
+const UNIT_PORT: &str = "UNIT_PORT";
 
 #[derive(PartialEq)]
 pub enum UnitState {
@@ -33,26 +38,47 @@ pub enum UnitState {
 }
 
 pub struct LocalUnit {
+    pub unit: Unit,
     pub state: UnitState,
     pub changed: Instant,
     pub pid: Option<u32>,
     pub name: TimedName,
     pub _internal_folder: PathBuf,
     pub child_folder: PathBuf,
-    pub retention: Retention,
     pub template: Rc<Template>,
 }
 
 impl LocalUnit {
-    pub fn new(name: &TimedName, retention: &Retention, template: Rc<Template>) -> Self {
+    pub fn new(
+        node: &LocalCloudletWrapper,
+        mut unit: Unit,
+        name: &TimedName,
+        template: Rc<Template>,
+    ) -> Self {
+        let environment = &mut unit.allocation.spec.environment;
+        environment.push(KeyValue {
+            key: CONTROLLER_ADDRESS.to_string(),
+            value: node.inner.controller.address.clone(),
+        });
+        environment.push(KeyValue {
+            key: UNIT_TOKEN.to_string(),
+            value: unit.auth.token.clone(),
+        });
+        environment.push(KeyValue {
+            key: UNIT_PORT.to_string(),
+            value: unit.allocation.addresses[0].port.to_string(),
+        });
         Self {
             state: UnitState::Stopped,
             changed: Instant::now(),
             pid: None,
+            _internal_folder: Storage::get_unit_folder(name, &unit.allocation.spec.disk_retention),
+            child_folder: Storage::get_unit_folder_outside(
+                name,
+                &unit.allocation.spec.disk_retention,
+            ),
+            unit,
             name: name.clone(),
-            _internal_folder: Storage::get_unit_folder(name, retention),
-            child_folder: Storage::get_unit_folder_outside(name, retention),
-            retention: *retention,
             template,
         }
     }
@@ -67,7 +93,7 @@ impl LocalUnit {
                         last_size = read.0;
                         if read.0 > 0 {
                             let line = read.1.trim();
-                            debug!("<blue>[{}]</> {}", self.name.get_raw_name(), line);
+                            info!("<blue>[{}]</> {}", self.name.get_raw_name(), line);
                         }
                     }
                     Err(_) => {
@@ -147,7 +173,7 @@ impl LocalUnit {
     }
 
     fn cleanup(&self) {
-        if self.retention == Retention::Temporary {
+        if self.unit.allocation.spec.disk_retention == Retention::Temporary {
             if let Err(error) = remove_dir_all(&Directory {
                 path: self.child_folder.to_string_lossy().to_string(),
                 reference: Reference::Data,
@@ -162,7 +188,10 @@ impl LocalUnit {
     }
 
     pub fn start(&mut self) -> Result<()> {
-        self.pid = Some(self.template.run_startup(&self.child_folder)?);
+        self.pid = Some(self.template.run_startup(
+            &self.child_folder,
+            self.unit.allocation.spec.environment.clone(),
+        )?);
         self.state = UnitState::Running;
         self.changed = Instant::now();
         Ok(())
@@ -179,7 +208,7 @@ impl LocalUnit {
 
     pub fn stop(&mut self) -> Result<()> {
         if let Some(pid) = self.pid {
-            if self.retention == Retention::Temporary {
+            if self.unit.allocation.spec.disk_retention == Retention::Temporary {
                 self.kill()?;
             } else {
                 self.template.run_shutdown(pid)?;

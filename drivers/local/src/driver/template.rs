@@ -234,7 +234,7 @@ impl Template {
         }
     }
 
-    pub fn run_startup(&self, folder: &Path) -> Result<u32> {
+    pub fn run_startup(&self, folder: &Path, mut environment: Vec<KeyValue>) -> Result<u32> {
         let startup = match get_os() {
             Os::Unix => &self.startup.unix,
             Os::Windows => &self.startup.windows,
@@ -249,11 +249,12 @@ impl Template {
                 ))
             }
         };
+        environment.extend_from_slice(&self.environment);
 
         spawn_process(
             &startup.command,
             &startup.args,
-            &self.environment,
+            &environment,
             &Directory {
                 path: folder.to_string_lossy().to_string(),
                 reference: Reference::Data,

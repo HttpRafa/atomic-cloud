@@ -7,7 +7,10 @@ use std::path::PathBuf;
 
 use common::name::TimedName;
 
-use crate::exports::cloudlet::driver::bridge::Retention;
+use crate::{
+    cloudlet::driver::types::{Directory, Reference},
+    exports::cloudlet::driver::bridge::Retention,
+};
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
@@ -44,31 +47,53 @@ impl Storage {
     pub fn get_units_folder() -> PathBuf {
         Self::get_data_folder().join(UNITS_DIRECTORY)
     }
+    pub fn get_units_folder_host() -> PathBuf {
+        PathBuf::from(UNITS_DIRECTORY)
+    }
 
     /* Templates */
     pub fn get_templates_folder() -> PathBuf {
         Self::get_data_folder().join(TEMPLATES_DIRECTORY)
     }
+    pub fn get_templates_folder_host() -> PathBuf {
+        PathBuf::from(TEMPLATES_DIRECTORY)
+    }
     pub fn get_template_folder(name: &str) -> PathBuf {
         Self::get_data_folder().join(TEMPLATES_DIRECTORY).join(name)
     }
+    pub fn get_template_folder_host_converted(name: &str) -> Directory {
+        Directory {
+            reference: Reference::Data,
+            path: Self::get_templates_folder_host()
+                .join(name)
+                .to_string_lossy()
+                .to_string(),
+        }
+    }
     pub fn get_template_data_file(name: &str) -> PathBuf {
         Self::get_template_folder(name).join(TEMPLATE_DATA_FILE)
-    }
-
-    pub fn get_template_folder_outside(name: &str) -> PathBuf {
-        PathBuf::from(TEMPLATES_DIRECTORY).join(name)
     }
 
     /* Units */
     pub fn get_temporary_folder() -> PathBuf {
         Self::get_units_folder().join(TEMPORARY_DIRECTORY)
     }
-    pub fn get_temporary_folder_outside() -> PathBuf {
-        PathBuf::from(UNITS_DIRECTORY).join(TEMPORARY_DIRECTORY)
+    pub fn get_temporary_folder_host() -> PathBuf {
+        Self::get_units_folder_host().join(TEMPORARY_DIRECTORY)
+    }
+    pub fn get_temporary_folder_host_converted() -> Directory {
+        Directory {
+            reference: Reference::Data,
+            path: Self::get_temporary_folder_host()
+                .to_string_lossy()
+                .to_string(),
+        }
     }
     pub fn get_permanent_folder() -> PathBuf {
         Self::get_units_folder().join(PERMANENT_DIRECTORY)
+    }
+    pub fn get_permanent_folder_host() -> PathBuf {
+        Self::get_units_folder_host().join(PERMANENT_DIRECTORY)
     }
 
     pub fn get_unit_folder(name: &TimedName, retention: &Retention) -> PathBuf {
@@ -79,13 +104,15 @@ impl Storage {
         }
     }
 
-    pub fn get_unit_folder_outside(name: &TimedName, retention: &Retention) -> PathBuf {
-        if retention == &Retention::Permanent {
-            PathBuf::from(UNITS_DIRECTORY)
-                .join(PERMANENT_DIRECTORY)
-                .join(name.get_name())
+    pub fn get_unit_folder_host_converted(name: &TimedName, retention: &Retention) -> Directory {
+        let path = if retention == &Retention::Permanent {
+            Self::get_permanent_folder_host().join(name.get_name())
         } else {
-            Storage::get_temporary_folder_outside().join(name.get_name())
+            Self::get_temporary_folder_host().join(name.get_name())
+        };
+        Directory {
+            reference: Reference::Data,
+            path: path.to_string_lossy().to_string(),
         }
     }
 }

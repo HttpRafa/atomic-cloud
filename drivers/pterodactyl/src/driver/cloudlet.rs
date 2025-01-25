@@ -8,6 +8,7 @@ use std::{
 use unit::PanelUnit;
 
 use crate::{
+    cloudlet::driver::types::ScopedErrors,
     error,
     exports::cloudlet::driver::bridge::{
         Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
@@ -49,7 +50,9 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         }
     }
 
-    fn tick(&self) {}
+    fn tick(&self) -> Result<(), ScopedErrors> {
+        Ok(())
+    }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
     fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {

@@ -29,7 +29,7 @@ pub trait GenericDriver: Send + Sync {
     fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle>;
 
     /* Cleanup */
-    fn dispose(&self) -> Result<()>;
+    fn cleanup(&self) -> Result<()>;
 
     /* Ticking */
     fn tick(&self) -> Result<()>;
@@ -70,9 +70,9 @@ impl Drivers {
         Self { drivers }
     }
 
-    pub fn dispose(&self) {
+    pub fn cleanup(&self) {
         for driver in &self.drivers {
-            if let Err(error) = driver.dispose() {
+            if let Err(error) = driver.cleanup() {
                 error!(
                     "Failed to dispose resources of driver <red>{}</>: <red>{}</>",
                     driver.name(),

@@ -58,6 +58,7 @@ inherit_network = true
 allow_ip_name_lookup = true
 allow_http = true
 allow_process = false
+allow_remove_dir_all = false
 mounts = []"#;
 
 struct WasmDriverState {
@@ -173,22 +174,44 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    fn dispose(&self) -> Result<()> {
+    fn cleanup(&self) -> Result<()> {
         let mut handle = self.handle.lock().unwrap();
         let (resource, store) = Self::get_resource_and_store(&mut handle);
-        self.bindings
+        match self
+            .bindings
             .cloudlet_driver_bridge()
             .generic_driver()
-            .call_dispose(store, resource)
+            .call_cleanup(store, resource)
+        {
+            Ok(result) => result.map_err(|errors| {
+                anyhow!(errors
+                    .iter()
+                    .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
+                    .collect::<Vec<_>>()
+                    .join("\n"))
+            }),
+            Err(error) => Err(error),
+        }
     }
 
     fn tick(&self) -> Result<()> {
         let mut handle = self.handle.lock().unwrap();
         let (resource, store) = Self::get_resource_and_store(&mut handle);
-        self.bindings
+        match self
+            .bindings
             .cloudlet_driver_bridge()
             .generic_driver()
             .call_tick(store, resource)
+        {
+            Ok(result) => result.map_err(|errors| {
+                anyhow!(errors
+                    .iter()
+                    .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
+                    .collect::<Vec<_>>()
+                    .join("\n"))
+            }),
+            Err(error) => Err(error),
+        }
     }
 }
 

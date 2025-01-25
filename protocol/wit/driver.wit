@@ -2,6 +2,15 @@ package cloudlet:driver;
 
 // Types required for this protocol
 interface types {
+    type error-message = string; // Type alias for error
+    type scoped-errors = list<scoped-error>; // Type alias for scoped errors
+
+    // Result type for error handling
+    record scoped-error {
+        scope: string,          // Scope of the error
+        message: error-message, // Error message
+    }
+
     // Enum for references
     variant reference {
         controller, // Controller reference
@@ -46,9 +55,9 @@ interface platform {
 
 // Interface for file functionality
 interface file {
-    use types.{directory}; // Use directory type from types interface
+    use types.{error-message, directory}; // Use directory type from types interface
     // Function to delete directories recursively
-    remove-dir-all: func(directory: directory) -> result<bool, string>;
+    remove-dir-all: func(directory: directory) -> result<_, error-message>;
 }
 
 // Interface for HTTP functionality
@@ -79,7 +88,7 @@ interface http {
 
 // Interface for process management functionality
 interface process {
-    use types.{key-value, directory}; // Use directory type from types interface
+    use types.{error-message, key-value, directory}; // Use directory type from types interface
 
     // Enum for standard readers
     variant std-reader {
@@ -88,24 +97,25 @@ interface process {
     }
 
     // Function to spawn a new process
-    spawn-process: func(command: string, args: list<string>, environment: list<key-value>, directory: directory) -> result<u32, string>;
+    spawn-process: func(command: string, args: list<string>, environment: list<key-value>, directory: directory) -> result<u32, error-message>;
     // Function to kill a process
-    kill-process: func(pid: u32) -> result<bool, string>;
+    kill-process: func(pid: u32) -> result<_, error-message>;
     // Function to drop a process
-    drop-process: func(pid: u32) -> result<bool, string>;
+    drop-process: func(pid: u32) -> result<bool, error-message>;
 
     // Function to try waiting for a process to finish
-    try-wait: func(pid: u32) -> result<option<s32>, string>;
+    try-wait: func(pid: u32) -> result<option<s32>, error-message>;
 
     // Function to read a line from a process's standard output or error
-    read-line: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, string>;
+    read-line: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, error-message>;
+    has-data-left: func(pid: u32, std: std-reader) -> result<bool, error-message>;
 
     // Function to read a specified number of bytes from a process's standard output or error
-    read: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, string>;
+    read: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
     // Function to read all remaining bytes from a process's standard output or error
-    read-to-end: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, string>;
+    read-to-end: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
     // Function to write data to a process's standard input
-    write-stdin: func(pid: u32, data: list<u8>) -> result<bool, string>;
+    write-stdin: func(pid: u32, data: list<u8>) -> result<_, error-message>;
 }
 
 // Interface for API functionality
@@ -116,7 +126,7 @@ interface api {
 
 // Interface for bridge functionality
 interface bridge {
-    use types.{key-value}; // Use key-value type from types interface
+    use types.{error-message, scoped-errors, key-value}; // Use key-value type from types interface
 
     // Type alias for UUID
     type uuid = string;
@@ -216,10 +226,10 @@ interface bridge {
         // Constructor for generic cloudlet
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
         // Function to handle cloudlet tick
-        tick: func();
+        tick: func() -> result<_, scoped-errors>;
 
         // Function to allocate addresses for a unit
-        allocate-addresses: func(unit: unit-proposal) -> result<list<address>, string>;
+        allocate-addresses: func(unit: unit-proposal) -> result<list<address>, error-message>;
         // Function to deallocate addresses
         deallocate-addresses: func(addresses: list<address>);
 
@@ -238,12 +248,12 @@ interface bridge {
         // Function to initialize the driver
         init: func() -> information;
         // Function to initialize a cloudlet
-        init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, string>;
+        init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, error-message>;
         // Function that is called when the driver is stopped
-        dispose: func();
+        cleanup: func() -> result<_, scoped-errors>;
 
         // Function to handle driver tick
-        tick: func();
+        tick: func() -> result<_, scoped-errors>;
     }
 }
 

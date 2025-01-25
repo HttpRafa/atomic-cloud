@@ -14,10 +14,9 @@ use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
         process::{
-            drop_process, read_line, spawn_process, try_wait, write_stdin, Directory, KeyValue,
-            StdReader,
+            drop_process, read_line, spawn_process, try_wait, write_stdin, KeyValue, StdReader,
         },
-        types::Reference,
+        types::Directory,
     },
     info,
     storage::Storage,
@@ -198,12 +197,7 @@ impl Template {
             &prepare.command,
             &prepare.args,
             &self.environment,
-            &Directory {
-                path: Storage::get_template_folder_outside(&self.name)
-                    .to_string_lossy()
-                    .to_string(),
-                reference: Reference::Data,
-            },
+            &Storage::get_template_folder_host_converted(&self.name),
         ) {
             Ok(pid) => {
                 while try_wait(pid).ok().flatten().is_none() {
@@ -234,7 +228,7 @@ impl Template {
         }
     }
 
-    pub fn run_startup(&self, folder: &Path, mut environment: Vec<KeyValue>) -> Result<u32> {
+    pub fn run_startup(&self, directory: &Directory, environment: &[KeyValue]) -> Result<u32> {
         let startup = match get_os() {
             Os::Unix => &self.startup.unix,
             Os::Windows => &self.startup.windows,
@@ -244,23 +238,16 @@ impl Template {
             Some(script) => script,
             None => {
                 return Err(anyhow!(
-                    "The template <blue>{}</> does not seem to support the current platform",
+                    "The template {} does not seem to support the current platform",
                     self.name
                 ))
             }
         };
+        let mut environment = environment.to_vec();
         environment.extend_from_slice(&self.environment);
 
-        spawn_process(
-            &startup.command,
-            &startup.args,
-            &environment,
-            &Directory {
-                path: folder.to_string_lossy().to_string(),
-                reference: Reference::Data,
-            },
-        )
-        .map_err(|error| anyhow!("Failed to execute entrypoint {}: {}", self.name, error))
+        spawn_process(&startup.command, &startup.args, &environment, directory)
+            .map_err(|error| anyhow!("Failed to execute entrypoint {}: {}", self.name, error))
     }
 
     pub fn run_shutdown(&self, pid: u32) -> Result<()> {

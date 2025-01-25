@@ -1,9 +1,13 @@
-use std::ops::Range;
+use std::{ops::Range, time::Duration};
 
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use serde::{Deserialize, Serialize};
 
 use crate::{error, storage::Storage, warn};
+
+/* Timeouts */
+pub const UNIT_STOP_TIMEOUT: Duration = Duration::from_secs(30);
+pub const CLEANUP_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {

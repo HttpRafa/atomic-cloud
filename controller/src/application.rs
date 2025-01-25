@@ -115,7 +115,7 @@ impl Controller {
 
         // Let the drivers cleanup there messes
         info!("Letting the drivers <red>cleanup</>...");
-        self.drivers.dispose();
+        self.drivers.cleanup();
 
         // Stop network stack
         info!("<red>Stopping</> network stack...");

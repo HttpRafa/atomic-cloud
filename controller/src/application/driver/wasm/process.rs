@@ -11,7 +11,7 @@ use super::{
     generated::cloudlet::driver::{
         self,
         process::{Directory, KeyValue, StdReader},
-        types::Reference,
+        types::{ErrorMessage, Reference},
     },
     DriverProcess, WasmDriverState,
 };
@@ -82,7 +82,7 @@ impl driver::process::Host for WasmDriverState {
         Ok(pid)
     }
 
-    fn kill_process(&mut self, pid: u32) -> Result<bool, String> {
+    fn kill_process(&mut self, pid: u32) -> Result<(), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -95,13 +95,12 @@ impl driver::process::Host for WasmDriverState {
                 .process
                 .kill()
                 .map_err(|e| format!("Failed to kill process: {}", e))
-                .map(|_| true)
         } else {
-            Ok(false)
+            Ok(())
         }
     }
 
-    fn drop_process(&mut self, pid: u32) -> Result<bool, String> {
+    fn drop_process(&mut self, pid: u32) -> Result<bool, ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -112,7 +111,7 @@ impl driver::process::Host for WasmDriverState {
         Ok(processes.remove(&pid).is_some())
     }
 
-    fn try_wait(&mut self, pid: u32) -> Result<Option<i32>, String> {
+    fn try_wait(&mut self, pid: u32) -> Result<Option<i32>, ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -131,7 +130,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<(u32, String), String> {
+    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<(u32, String), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -145,14 +144,39 @@ impl driver::process::Host for WasmDriverState {
                 StdReader::Stdout => process.stdout.read_line(&mut buffer),
                 StdReader::Stderr => process.stderr.read_line(&mut buffer),
             }
-            .map_err(|e| format!("Failed to read from process: {}", e))?;
+            .map_err(|error| format!("Failed to read from process: {}", error))?;
             Ok((bytes as u32, buffer))
         } else {
             Err("Process does not exist".to_string())
         }
     }
 
-    fn read(&mut self, pid: u32, buf_size: u32, std: StdReader) -> Result<(u32, Vec<u8>), String> {
+    fn has_data_left(&mut self, pid: u32, std: StdReader) -> Result<bool, ErrorMessage> {
+        let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
+        let mut processes = driver
+            .data
+            .processes
+            .write()
+            .map_err(|_| "Failed to acquire write lock on processes")?;
+
+        if let Some(process) = processes.get_mut(&pid) {
+            let has_data = match std {
+                StdReader::Stdout => process.stdout.has_data_left(),
+                StdReader::Stderr => process.stderr.has_data_left(),
+            }
+            .map_err(|error| format!("Failed to check buffer of process: {}", error))?;
+            Ok(has_data)
+        } else {
+            Err("Process does not exist".to_string())
+        }
+    }
+
+    fn read(
+        &mut self,
+        pid: u32,
+        buf_size: u32,
+        std: StdReader,
+    ) -> Result<(u32, Vec<u8>), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -173,7 +197,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<(u32, Vec<u8>), String> {
+    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<(u32, Vec<u8>), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -194,7 +218,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn write_stdin(&mut self, pid: u32, data: Vec<u8>) -> Result<bool, String> {
+    fn write_stdin(&mut self, pid: u32, data: Vec<u8>) -> Result<(), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -207,7 +231,7 @@ impl driver::process::Host for WasmDriverState {
                 .stdin
                 .write_all(&data)
                 .map_err(|e| format!("Failed to write to stdin of process: {}", e))?;
-            Ok(true)
+            Ok(())
         } else {
             Err("Process does not exist".to_string())
         }

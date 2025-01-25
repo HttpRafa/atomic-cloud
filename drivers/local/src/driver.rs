@@ -1,20 +1,14 @@
-use std::{
-    cell::UnsafeCell,
-    fs,
-    rc::Rc,
-    sync::RwLock,
-    time::{Duration, Instant},
-};
+use std::{cell::UnsafeCell, fs, rc::Rc, sync::RwLock, time::Instant};
 
 use cloudlet::LocalCloudlet;
-use common::allocator::NumberAllocator;
-use config::Config;
+use common::{allocator::NumberAllocator, tick::TickResult};
+use config::{Config, CLEANUP_TIMEOUT};
 use template::Templates;
 
 use crate::{
     cloudlet::driver::{
-        file::{remove_dir_all, Directory},
-        types::Reference,
+        file::remove_dir_all,
+        types::{ErrorMessage, ScopedErrors},
     },
     debug, error,
     exports::cloudlet::driver::bridge::{
@@ -79,12 +73,7 @@ impl GuestGenericDriver for Local {
         let tmp_dir = Storage::get_temporary_folder();
         debug!("Checking directories...");
         if tmp_dir.exists() {
-            if let Err(error) = remove_dir_all(&Directory {
-                path: Storage::get_temporary_folder_outside()
-                    .to_string_lossy()
-                    .to_string(),
-                reference: Reference::Data,
-            }) {
+            if let Err(error) = remove_dir_all(&Storage::get_temporary_folder_host_converted()) {
                 error!(
                     "<red>Failed</> to remove temporary directory: <red>{}</>",
                     error
@@ -126,7 +115,7 @@ impl GuestGenericDriver for Local {
         name: String,
         capabilities: Capabilities,
         controller: RemoteController,
-    ) -> Result<GenericCloudlet, String> {
+    ) -> Result<GenericCloudlet, ErrorMessage> {
         let wrapper = LocalCloudletWrapper::new(
             self.cloud_identifier.clone(),
             name.clone(),
@@ -149,37 +138,44 @@ impl GuestGenericDriver for Local {
         Ok(GenericCloudlet::new(wrapper))
     }
 
-    fn dispose(&self) {
+    fn cleanup(&self) -> Result<(), ScopedErrors> {
         let cloudlets = self
             .cloudlets
             .read()
             .expect("Failed to get lock on cloudlets");
-        info!("Gracefully exiting all cloudlets...");
+        info!("Starting cleanup process...");
         let start_time = Instant::now();
-        let timeout = Duration::from_secs(15);
         let mut last_attempt = false;
 
         while !last_attempt {
-            if start_time.elapsed() > timeout {
+            if start_time.elapsed() > CLEANUP_TIMEOUT {
                 last_attempt = true;
             }
 
-            if cloudlets
-                .iter()
-                .all(|cloudlet| cloudlet.is_ready_to_exit(last_attempt))
-            {
+            let all_stopped = cloudlets.iter().try_fold(true, |all_stopped, cloudlet| {
+                match cloudlet.try_exit(last_attempt) {
+                    Ok(TickResult::Ok) => Ok(false),
+                    Ok(_) => Ok(all_stopped),
+                    Err(error) => Err(error),
+                }
+            })?;
+
+            if all_stopped {
                 break;
             }
         }
 
-        info!("All cloudlets have gracefully exited. Shutting down...");
-        info!("Deleting temporary directory...");
+        info!("All units should be <red>stopped</> now. Removing temporary files...");
         if let Err(error) = fs::remove_dir_all(Storage::get_temporary_folder()) {
             error!("<red>Failed</> to remove temporary directory: {}", error);
         }
+        info!("Driver cleanup <green>finished</>");
+        Ok(())
     }
 
-    fn tick(&self) {}
+    fn tick(&self) -> Result<(), ScopedErrors> {
+        Ok(())
+    }
 }
 
 pub struct LocalCloudletWrapper {

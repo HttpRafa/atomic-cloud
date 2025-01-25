@@ -4,10 +4,12 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use common::{allocator::NumberAllocator, name::TimedName};
+use anyhow::Result;
+use common::{allocator::NumberAllocator, name::TimedName, tick::TickResult};
 use unit::LocalUnit;
 
 use crate::{
+    cloudlet::driver::types::{ErrorMessage, ScopedError, ScopedErrors},
     error,
     exports::cloudlet::driver::bridge::{
         Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
@@ -20,6 +22,28 @@ use crate::{
 use super::{config::Config, template::Templates, LocalCloudletWrapper};
 
 pub mod unit;
+
+impl LocalCloudlet {
+    pub fn tick(&self) -> Result<(), ScopedErrors> {
+        let mut units = self.get_units_mut();
+        let mut errors = ScopedErrors::new();
+        units.retain_mut(|unit| match unit.tick() {
+            Ok(result) => result == TickResult::Ok,
+            Err(err) => {
+                errors.push(ScopedError {
+                    scope: unit.name.get_raw_name().to_string(),
+                    message: err.to_string(),
+                });
+                true
+            }
+        });
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
 
 impl GuestGenericCloudlet for LocalCloudletWrapper {
     fn new(
@@ -41,12 +65,11 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         }
     }
 
-    fn tick(&self) {
-        let mut units = self.inner.get_units_mut();
-        units.retain_mut(|unit| unit.tick());
+    fn tick(&self) -> Result<(), ScopedErrors> {
+        self.inner.tick()
     }
 
-    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
+    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, ErrorMessage> {
         let amount = unit.resources.addresses;
 
         let mut ports = Vec::with_capacity(amount as usize);
@@ -85,26 +108,18 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         let name =
             TimedName::new_no_identifier(&unit.name, spec.disk_retention == Retention::Permanent);
 
-        let template_name = match spec.settings.iter().find(|s| s.key == "template") {
-            Some(setting) => setting.value.clone(),
-            None => {
-                error!("Missing required setting: <red>template</>");
-                return;
-            }
-        };
-
         let template = match self
             .inner
             .get_templates()
             .read()
             .expect("Failed to lock templates")
-            .get_template_by_name(&template_name)
+            .get_template_by_name(&spec.image)
         {
             Some(template) => template,
             None => {
                 error!(
                     "Template <blue>{}</> not found for unit <blue>{}</>",
-                    template_name,
+                    &spec.image,
                     name.get_name()
                 );
                 return;
@@ -208,17 +223,32 @@ pub struct LocalCloudlet {
 
 impl LocalCloudlet {
     /* Dispose */
-    pub fn is_ready_to_exit(&self, last: bool) -> bool {
-        let mut units = self.get_units_mut();
-        if last {
+    pub fn try_exit(&self, force: bool) -> Result<TickResult, ScopedErrors> {
+        if force {
+            let mut units = self.get_units_mut();
+            let mut errors = ScopedErrors::new();
             for unit in units.iter_mut() {
-                if let Err(err) = unit.kill() {
-                    error!("Failed to stop unit {}: {}", unit.name.get_raw_name(), err);
+                if let Err(error) = unit.kill() {
+                    errors.push(ScopedError {
+                        scope: unit.name.get_raw_name().to_string(),
+                        message: error.to_string(),
+                    });
                 }
             }
+            if !errors.is_empty() {
+                return Err(errors);
+            }
         }
-        units.retain_mut(|unit| unit.tick());
-        units.is_empty()
+        match self.tick() {
+            Ok(()) => {
+                if self.get_units().is_empty() {
+                    Ok(TickResult::Drop)
+                } else {
+                    Ok(TickResult::Ok)
+                }
+            }
+            Err(errors) => Err(errors),
+        }
     }
 
     fn get_config(&self) -> &Rc<Config> {
@@ -233,7 +263,7 @@ impl LocalCloudlet {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.port_allocator.get() }.as_ref().unwrap()
     }
-    fn _get_units(&self) -> RwLockReadGuard<Vec<LocalUnit>> {
+    fn get_units(&self) -> RwLockReadGuard<Vec<LocalUnit>> {
         // Safe as we are only run on the same thread
         self.units.read().unwrap()
     }

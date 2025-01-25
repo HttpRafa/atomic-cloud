@@ -1,28 +1,20 @@
-use std::{
-    path::PathBuf,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::{path::PathBuf, rc::Rc, time::Instant};
 
 use anyhow::{anyhow, Result};
-use common::name::TimedName;
+use common::{name::TimedName, tick::TickResult};
 
 use crate::{
     cloudlet::driver::{
-        file::{remove_dir_all, Directory},
-        process::{drop_process, kill_process, read_line, try_wait, StdReader},
-        types::{KeyValue, Reference},
+        file::remove_dir_all,
+        process::{drop_process, kill_process, try_wait},
+        types::{Directory, KeyValue},
     },
-    driver::{template::Template, LocalCloudletWrapper},
-    error,
+    driver::{config::UNIT_STOP_TIMEOUT, template::Template, LocalCloudletWrapper},
     exports::cloudlet::driver::bridge::{Retention, Unit},
     info,
     storage::Storage,
     warn,
 };
-
-/* Timeouts */
-const STOP_TIMEOUT: Duration = Duration::from_secs(30);
 
 /* Variables */
 const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
@@ -44,7 +36,7 @@ pub struct LocalUnit {
     pub pid: Option<u32>,
     pub name: TimedName,
     pub _internal_folder: PathBuf,
-    pub child_folder: PathBuf,
+    pub host_folder: Directory,
     pub template: Rc<Template>,
 }
 
@@ -73,7 +65,7 @@ impl LocalUnit {
             changed: Instant::now(),
             pid: None,
             _internal_folder: Storage::get_unit_folder(name, &unit.allocation.spec.disk_retention),
-            child_folder: Storage::get_unit_folder_outside(
+            host_folder: Storage::get_unit_folder_host_converted(
                 name,
                 &unit.allocation.spec.disk_retention,
             ),
@@ -83,115 +75,71 @@ impl LocalUnit {
         }
     }
 
-    pub fn tick(&mut self) -> bool {
-        // TODO: Remove this if we have a system that can handle screens
-        if let Some(pid) = self.pid {
-            let mut last_size = 10000;
-            while last_size > 0 {
-                match read_line(pid, StdReader::Stdout) {
-                    Ok(read) => {
-                        last_size = read.0;
-                        if read.0 > 0 {
-                            let line = read.1.trim();
-                            info!("<blue>[{}]</> {}", self.name.get_raw_name(), line);
-                        }
-                    }
-                    Err(_) => {
-                        break;
-                    }
-                }
-            }
-        }
-
+    pub fn tick(&mut self) -> Result<TickResult> {
         match self.state {
             UnitState::Restarting | UnitState::Stopping => {
-                let pid = self
-                    .pid
-                    .expect("Unit is marked as restarting/stopping without a PID");
+                let pid = match self.pid {
+                    Some(pid) => pid,
+                    None => {
+                        self.state = UnitState::Stopped;
+                        return Ok(TickResult::Drop);
+                    }
+                };
 
-                if self.changed.elapsed() > STOP_TIMEOUT {
+                if self.changed.elapsed() > UNIT_STOP_TIMEOUT {
                     warn!(
-                        "Failed to stop unit {} in time, killing it",
+                        "Unit {} failed to stop in time, killing it",
                         self.name.get_raw_name()
                     );
-                    if let Err(error) = kill_process(pid) {
-                        error!(
-                            "Failed to kill unit {}: {}",
-                            self.name.get_raw_name(),
-                            error
-                        );
-                    }
+                    kill_process(pid).map_err(|error| anyhow!(error))?;
                 } else {
                     match try_wait(pid) {
                         Ok(Some(code)) => {
                             info!(
-                                "Unit {} stopped with exit code {}",
+                                "Unit <blue>{}</> <red>stopped</> with exit code <red>{}</>",
                                 self.name.get_raw_name(),
                                 code
                             );
-                            if let Err(error) = drop_process(pid) {
-                                error!(
-                                    "Failed to drop unit {}: {}",
-                                    self.name.get_raw_name(),
-                                    error
-                                );
-                            }
+                            drop_process(pid).map_err(|error| anyhow!(error))?;
                         }
-                        Ok(None) => return true,
+                        Ok(None) => return Ok(TickResult::Ok),
                         Err(error) => {
                             warn!("Failed to get status for unit {}, killing it", error);
-                            if let Err(error) = kill_process(pid) {
-                                error!(
-                                    "Failed to kill unit {}: {}",
-                                    self.name.get_raw_name(),
-                                    error
-                                );
-                            }
+                            kill_process(pid).map_err(|error| anyhow!(error))?;
                         }
                     }
                 }
 
                 self.pid = None;
                 self.changed = Instant::now();
-                self.state = UnitState::Stopped;
-
                 if self.state == UnitState::Restarting {
-                    if let Err(error) = self.start() {
-                        warn!("Failed to restart unit: {}", error);
-                    }
-                    return true;
+                    self.start()?;
+                } else {
+                    self.state = UnitState::Stopped;
                 }
-                self.cleanup();
-                false
+                self.state = UnitState::Stopped;
+                Ok(TickResult::Ok)
             }
             UnitState::Stopped => {
-                self.cleanup();
-                false
+                self.cleanup()?;
+                Ok(TickResult::Drop)
             }
-            _ => true,
+            _ => Ok(TickResult::Ok),
         }
     }
 
-    fn cleanup(&self) {
+    fn cleanup(&self) -> Result<()> {
         if self.unit.allocation.spec.disk_retention == Retention::Temporary {
-            if let Err(error) = remove_dir_all(&Directory {
-                path: self.child_folder.to_string_lossy().to_string(),
-                reference: Reference::Data,
-            }) {
-                error!(
-                    "Failed to remove folder for unit {}: {}",
-                    self.name.get_raw_name(),
-                    error
-                );
-            }
+            remove_dir_all(&self.host_folder).map_err(|error| anyhow!(error))?;
         }
+        Ok(())
     }
 
     pub fn start(&mut self) -> Result<()> {
-        self.pid = Some(self.template.run_startup(
-            &self.child_folder,
-            self.unit.allocation.spec.environment.clone(),
-        )?);
+        self.pid = Some(
+            self.template
+                .run_startup(&self.host_folder, &self.unit.allocation.spec.environment)?,
+        );
         self.state = UnitState::Running;
         self.changed = Instant::now();
         Ok(())

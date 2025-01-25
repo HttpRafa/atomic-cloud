@@ -17,4 +17,4 @@ else
   echo "server-port=$PORT" > "$PROPERTIES_FILE"
 fi
 
-java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar $SERVER_JARFILE nogui
+exec java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar $SERVER_JARFILE nogui

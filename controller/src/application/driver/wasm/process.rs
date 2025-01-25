@@ -5,6 +5,8 @@ use std::{
     process::{Command, Stdio},
 };
 
+use simplelog::debug;
+
 use crate::storage::Storage;
 
 use super::{
@@ -31,6 +33,7 @@ impl driver::process::Host for WasmDriverState {
             .map(|kv| (kv.key, kv.value))
             .collect();
 
+        debug!("Spawning process: {} {:?}", command, args);
         let mut command = Command::new(command);
         command
             .args(args)
@@ -90,6 +93,7 @@ impl driver::process::Host for WasmDriverState {
             .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
+        debug!("Killing process: {}", pid);
         if let Some(mut process) = processes.remove(&pid) {
             process
                 .process
@@ -108,6 +112,7 @@ impl driver::process::Host for WasmDriverState {
             .write()
             .map_err(|_| "Failed to acquire write lock on processes")?;
 
+        debug!("Dropping process: {}", pid);
         Ok(processes.remove(&pid).is_some())
     }
 

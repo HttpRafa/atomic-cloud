@@ -183,19 +183,26 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             .iter_mut()
             .find(|u| u.name.get_raw_name() == unit.name)
         {
-            if let Err(err) = local_unit.stop() {
-                error!(
-                    "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
-                    unit.name, err
-                );
-                return;
-            }
             if unit.allocation.spec.disk_retention == Retention::Temporary {
+                if let Err(err) = local_unit.kill() {
+                    error!(
+                        "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
+                        unit.name, err
+                    );
+                    return;
+                }
                 info!(
                     "Child process of unit <blue>{}</> was <red>killed</>",
                     unit.name
                 );
             } else {
+                if let Err(err) = local_unit.stop() {
+                    error!(
+                        "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
+                        unit.name, err
+                    );
+                    return;
+                }
                 info!(
                     "Child process of unit <blue>{}</> is <red>stopping</>",
                     unit.name

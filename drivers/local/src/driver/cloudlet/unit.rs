@@ -156,13 +156,9 @@ impl LocalUnit {
 
     pub fn stop(&mut self) -> Result<()> {
         if let Some(pid) = self.pid {
-            if self.unit.allocation.spec.disk_retention == Retention::Temporary {
-                self.kill()?;
-            } else {
-                self.template.run_shutdown(pid)?;
-                self.state = UnitState::Stopping;
-                self.changed = Instant::now();
-            }
+            self.template.run_shutdown(pid)?;
+            self.state = UnitState::Stopping;
+            self.changed = Instant::now();
         }
         Ok(())
     }

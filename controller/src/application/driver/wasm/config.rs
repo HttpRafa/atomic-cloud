@@ -1,6 +1,7 @@
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use simplelog::warn;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct WasmConfig {
@@ -12,10 +13,15 @@ impl SaveToTomlFile for WasmConfig {}
 
 impl WasmConfig {
     pub fn get_config(&self, name: &str) -> Option<&DriverConfig> {
-        let regex = Regex::new(name).ok()?;
         self.drivers
             .iter()
-            .find(|driver| regex.is_match(&driver.name))
+            .find(|driver| match Regex::new(&driver.name) {
+                Ok(regex) => regex.is_match(name),
+                Err(error) => {
+                    warn!("Failed to compile driver name regex: {}", error);
+                    false
+                }
+            })
     }
 }
 
@@ -29,6 +35,7 @@ pub struct DriverConfig {
     pub allow_ip_name_lookup: bool,
     pub allow_http: bool,
     pub allow_process: bool,
+    pub allow_remove_dir_all: bool,
 
     pub mounts: Vec<MountConfig>,
 }
@@ -44,6 +51,7 @@ impl Default for DriverConfig {
             allow_ip_name_lookup: true,
             allow_http: true,
             allow_process: true,
+            allow_remove_dir_all: true,
             mounts: Vec::new(),
         }
     }

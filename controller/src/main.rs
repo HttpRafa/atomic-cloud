@@ -1,3 +1,5 @@
+#![feature(buf_read_has_data_left)]
+
 use std::time::Instant;
 
 use args::Args;

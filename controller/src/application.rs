@@ -113,6 +113,10 @@ impl Controller {
         info!("<red>Stopping</> all units...");
         self.units.stop_all_instant();
 
+        // Let the drivers cleanup there messes
+        info!("Letting the drivers <red>cleanup</>...");
+        self.drivers.cleanup();
+
         // Stop network stack
         info!("<red>Stopping</> network stack...");
         network_handle.shutdown();
@@ -179,6 +183,12 @@ impl Controller {
     }
 
     fn tick(&self) {
+        // Tick all drivers
+        self.drivers.tick();
+
+        // Tick all driver cloudlets
+        self.lock_cloudlets().tick();
+
         // Check if all deployments have started there units etc..
         self.lock_deployments().tick(&self.units);
 

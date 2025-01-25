@@ -1,5 +1,9 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
+use ::common::{
+    config::{LoadFromTomlFile, SaveToTomlFile},
+    name::TimedName,
+};
 use allocation::{BAllocation, BCAllocation};
 use anyhow::Result;
 use common::{BBody, BList, BObject};
@@ -14,24 +18,19 @@ use user::BUser;
 
 use crate::{
     cloudlet::driver::http::{send_http_request, Header, Method, Response},
-    config::{LoadFromTomlFile, SaveToTomlFile, CONFIG_DIRECTORY},
     debug, error,
     exports::cloudlet::driver::bridge::Unit,
+    storage::Storage,
     warn,
 };
 
-use super::{
-    cloudlet::unit::{PanelUnit, UnitName},
-    PterodactylCloudletWrapper,
-};
+use super::{cloudlet::unit::PanelUnit, PterodactylCloudletWrapper};
 
 pub mod allocation;
 mod common;
 mod node;
 pub mod server;
 mod user;
-
-const BACKEND_FILE: &str = "backend.toml";
 
 /* Endpoints */
 const APPLICATION_ENDPOINT: &str = "api/application";
@@ -101,7 +100,7 @@ impl Backend {
     }
 
     fn load_or_empty() -> Self {
-        let path = Path::new(CONFIG_DIRECTORY).join(BACKEND_FILE);
+        let path = Storage::get_backend_config_file();
         if path.exists() {
             Self::load_from_file(&path).unwrap_or_else(|err| {
                 warn!("Failed to read backend configuration from file: {}", err);
@@ -274,7 +273,7 @@ impl Backend {
 
     pub fn create_server(
         &self,
-        name: &UnitName,
+        name: &TimedName,
         server: &Unit,
         node: &PterodactylCloudletWrapper,
         allocations: &[BAllocation],
@@ -297,7 +296,7 @@ impl Backend {
         environment.insert(UNIT_TOKEN.to_string(), server.auth.token.clone());
 
         let backend_server = BCServer {
-            name: name.generate(),
+            name: name.get_name_cloned(),
             node: node.inner.id,
             user: self.resolved.as_ref().unwrap().user,
             egg: egg.id,
@@ -317,7 +316,7 @@ impl Backend {
         .map(|data| data.attributes)
     }
 
-    pub fn get_server_by_name(&self, name: &UnitName) -> Option<BServer> {
+    pub fn get_server_by_name(&self, name: &TimedName) -> Option<BServer> {
         self.api_find_on_pages::<BServer>(
             Method::Get,
             &Endpoint::Application,
@@ -326,7 +325,7 @@ impl Backend {
                 object
                     .data
                     .iter()
-                    .find(|server| server.attributes.name == name.generate())
+                    .find(|server| server.attributes.name == name.get_name())
                     .map(|server| server.attributes.clone())
             },
         )

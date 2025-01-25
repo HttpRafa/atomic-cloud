@@ -94,7 +94,7 @@ impl Config {
             save = true;
         }
         if save {
-            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file()) {
+            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file(), true) {
                 error!(
                     "<red>Failed</> to save generated configuration to file: <red>{}</>",
                     &error

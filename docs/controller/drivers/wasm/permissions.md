@@ -9,13 +9,7 @@ nano wasm.toml
 ```
 
 ```toml
-# For more settings, please refer to the documentation:
-# https://bytecodealliance.github.io/wasmtime/cli-cache.html
-
-[cache]
-enabled = true
-
-# This section is crucial for granting the drivers their required permissions
+# This configuration is crucial for granting the drivers their required permissions
 # https://httprafa.github.io/atomic-cloud/controller/drivers/wasm/permissions/
 
 [[drivers]]

@@ -63,20 +63,22 @@ jobs:
 
       - name: Create release branch and bump version
         env:
-          REF: ${{ github.ref }}
+          TAG_NAME: ${{ github.ref_name }}
         run: |
-          BRANCH=release/${REF:10}
+          # Remove the 'v' prefix from the tag name
+          VERSION=${TAG_NAME#v}
+          BRANCH=release/${TAG_NAME}
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git checkout -b $BRANCH
           git push -u origin $BRANCH
-          sed -i 's/client_version=0\.0\.0-nightly/client_version=\${REF:11}/g' clients/jvm/gradle.properties
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/pterodactyl/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' drivers/local/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' clients/wrapper/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' controller/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' common/Cargo.toml
-          sed -i 's/version = "0\.0\.0-nightly"/version = "\${REF:11}"/g' cli/Cargo.toml
+          sed -i "s/client_version=0\\.0\\.0-nightly/client_version=${VERSION}/g" clients/jvm/gradle.properties
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" drivers/pterodactyl/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" drivers/local/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" clients/wrapper/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" controller/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" common/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" cli/Cargo.toml
           git add clients/jvm/gradle.properties drivers/pterodactyl/Cargo.toml drivers/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
           git commit -m "ci(release): bump version"
           git push

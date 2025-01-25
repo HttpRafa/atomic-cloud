@@ -1,21 +1,24 @@
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader, BufWriter, Read, Write},
+    io::{BufRead, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
 
 use simplelog::debug;
 
-use crate::storage::Storage;
+use crate::{
+    application::driver::process::{DriverProcess, ProcessStream},
+    storage::Storage,
+};
 
 use super::{
     generated::cloudlet::driver::{
         self,
-        process::{Directory, KeyValue, StdReader},
+        process::{Directory, KeyValue, ReaderMode, StdReader},
         types::{ErrorMessage, Reference},
     },
-    DriverProcess, WasmDriverState,
+    WasmDriverState,
 };
 
 impl driver::process::Host for WasmDriverState {
@@ -25,6 +28,7 @@ impl driver::process::Host for WasmDriverState {
         args: Vec<String>,
         environment: Vec<KeyValue>,
         directory: Directory,
+        mode: ReaderMode,
     ) -> Result<u32, String> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let process_dir = self.get_directory(&driver.name, &directory)?;
@@ -43,29 +47,10 @@ impl driver::process::Host for WasmDriverState {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut process = command
+        let process = command
             .spawn()
             .map_err(|e| format!("Failed to spawn process: {}", e))?;
         let pid = process.id();
-
-        let stdout = BufReader::new(
-            process
-                .stdout
-                .take()
-                .ok_or("Failed to open stdout of process")?,
-        );
-        let stderr = BufReader::new(
-            process
-                .stderr
-                .take()
-                .ok_or("Failed to open stderr of process")?,
-        );
-        let stdin = BufWriter::new(
-            process
-                .stdin
-                .take()
-                .ok_or("Failed to open stdin of process")?,
-        );
 
         driver
             .data
@@ -74,12 +59,14 @@ impl driver::process::Host for WasmDriverState {
             .map_err(|_| "Failed to acquire write lock on processes")?
             .insert(
                 pid,
-                DriverProcess {
+                DriverProcess::new(
                     process,
-                    stdin,
-                    stdout,
-                    stderr,
-                },
+                    match mode {
+                        ReaderMode::Direct => true,
+                        ReaderMode::Async => false,
+                    },
+                )
+                .map_err(|error| error.to_string())?,
             );
 
         Ok(pid)
@@ -96,7 +83,7 @@ impl driver::process::Host for WasmDriverState {
         debug!("Killing process: {}", pid);
         if let Some(mut process) = processes.remove(&pid) {
             process
-                .process
+                .get_process()
                 .kill()
                 .map_err(|e| format!("Failed to kill process: {}", e))
         } else {
@@ -126,7 +113,7 @@ impl driver::process::Host for WasmDriverState {
 
         if let Some(process) = processes.get_mut(&pid) {
             process
-                .process
+                .get_process()
                 .try_wait()
                 .map_err(|e| format!("Failed to wait for process: {}", e))
                 .map(|status| status.and_then(|s| s.code()))
@@ -135,7 +122,11 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_line(&mut self, pid: u32, std: StdReader) -> Result<(u32, String), ErrorMessage> {
+    fn read_line_direct(
+        &mut self,
+        pid: u32,
+        std: StdReader,
+    ) -> Result<(u32, String), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -146,8 +137,20 @@ impl driver::process::Host for WasmDriverState {
         if let Some(process) = processes.get_mut(&pid) {
             let mut buffer = String::new();
             let bytes = match std {
-                StdReader::Stdout => process.stdout.read_line(&mut buffer),
-                StdReader::Stderr => process.stderr.read_line(&mut buffer),
+                StdReader::Stdout => match process.get_stdout() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read_line(&mut buffer),
+                StdReader::Stderr => match process.get_stderr() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read_line(&mut buffer),
             }
             .map_err(|error| format!("Failed to read from process: {}", error))?;
             Ok((bytes as u32, buffer))
@@ -156,7 +159,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn has_data_left(&mut self, pid: u32, std: StdReader) -> Result<bool, ErrorMessage> {
+    fn has_data_left_direct(&mut self, pid: u32, std: StdReader) -> Result<bool, ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -166,8 +169,20 @@ impl driver::process::Host for WasmDriverState {
 
         if let Some(process) = processes.get_mut(&pid) {
             let has_data = match std {
-                StdReader::Stdout => process.stdout.has_data_left(),
-                StdReader::Stderr => process.stderr.has_data_left(),
+                StdReader::Stdout => match process.get_stdout() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .has_data_left(),
+                StdReader::Stderr => match process.get_stderr() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .has_data_left(),
             }
             .map_err(|error| format!("Failed to check buffer of process: {}", error))?;
             Ok(has_data)
@@ -176,7 +191,7 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read(
+    fn read_direct(
         &mut self,
         pid: u32,
         buf_size: u32,
@@ -192,8 +207,20 @@ impl driver::process::Host for WasmDriverState {
         if let Some(process) = processes.get_mut(&pid) {
             let mut buffer = Vec::with_capacity(buf_size as usize);
             let bytes = match std {
-                StdReader::Stdout => process.stdout.read(&mut buffer),
-                StdReader::Stderr => process.stderr.read(&mut buffer),
+                StdReader::Stdout => match process.get_stdout() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read(&mut buffer),
+                StdReader::Stderr => match process.get_stderr() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read(&mut buffer),
             }
             .map_err(|e| format!("Failed to read from process: {}", e))?;
             Ok((bytes as u32, buffer))
@@ -202,7 +229,11 @@ impl driver::process::Host for WasmDriverState {
         }
     }
 
-    fn read_to_end(&mut self, pid: u32, std: StdReader) -> Result<(u32, Vec<u8>), ErrorMessage> {
+    fn read_to_end_direct(
+        &mut self,
+        pid: u32,
+        std: StdReader,
+    ) -> Result<(u32, Vec<u8>), ErrorMessage> {
         let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
         let mut processes = driver
             .data
@@ -213,11 +244,57 @@ impl driver::process::Host for WasmDriverState {
         if let Some(process) = processes.get_mut(&pid) {
             let mut buffer = Vec::new();
             let bytes = match std {
-                StdReader::Stdout => process.stdout.read_to_end(&mut buffer),
-                StdReader::Stderr => process.stderr.read_to_end(&mut buffer),
+                StdReader::Stdout => match process.get_stdout() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read_to_end(&mut buffer),
+                StdReader::Stderr => match process.get_stderr() {
+                    ProcessStream::Direct(stream) => stream,
+                    ProcessStream::Async(_) => {
+                        return Err("Cannot read from stream that is handeled async".to_string())
+                    }
+                }
+                .read_to_end(&mut buffer),
             }
             .map_err(|e| format!("Failed to read from process: {}", e))?;
             Ok((bytes as u32, buffer))
+        } else {
+            Err("Process does not exist".to_string())
+        }
+    }
+
+    fn read_line_async(
+        &mut self,
+        pid: u32,
+        std: StdReader,
+    ) -> Result<Option<String>, ErrorMessage> {
+        let driver = self.handle.upgrade().ok_or("Failed to upgrade handle")?;
+        let mut processes = driver
+            .data
+            .processes
+            .write()
+            .map_err(|_| "Failed to acquire write lock on processes")?;
+
+        if let Some(process) = processes.get_mut(&pid) {
+            Ok(match std {
+                StdReader::Stdout => match process.get_stdout() {
+                    ProcessStream::Direct(_) => {
+                        return Err("Cannot read from stream that is handeled directly".to_string())
+                    }
+                    ProcessStream::Async(stream) => stream,
+                }
+                .try_recv(),
+                StdReader::Stderr => match process.get_stderr() {
+                    ProcessStream::Direct(_) => {
+                        return Err("Cannot read from stream that is handeled directly".to_string())
+                    }
+                    ProcessStream::Async(stream) => stream,
+                }
+                .try_recv(),
+            })
         } else {
             Err("Process does not exist".to_string())
         }
@@ -233,7 +310,7 @@ impl driver::process::Host for WasmDriverState {
 
         if let Some(process) = processes.get_mut(&pid) {
             process
-                .stdin
+                .get_stdin()
                 .write_all(&data)
                 .map_err(|e| format!("Failed to write to stdin of process: {}", e))?;
             Ok(())

@@ -13,6 +13,8 @@ use crate::application::driver::wasm::WasmDriver;
 
 use super::cloudlet::HostAndPort;
 
+mod process;
+
 #[cfg(feature = "wasm-drivers")]
 mod wasm;
 

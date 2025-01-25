@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use std::fs;
-use std::io::{BufReader, BufWriter};
-use std::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use anyhow::{anyhow, Result};
@@ -15,6 +13,7 @@ use wasmtime::component::{Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
+use super::process::DriverProcess;
 use super::source::Source;
 use super::{DriverCloudletHandle, GenericDriver, Information};
 use crate::application::cloudlet::{Capabilities, Cloudlet, HostAndPort, RemoteController};
@@ -101,18 +100,6 @@ impl WasmDriverHandle {
 
 pub struct WasmDriverData {
     processes: RwLock<HashMap<u32, DriverProcess>>,
-}
-
-pub struct DriverProcess {
-    /* Process */
-    process: Child,
-
-    /* Std Readers */
-    stdout: BufReader<ChildStdout>,
-    stderr: BufReader<ChildStderr>,
-
-    /* StdIn Writer */
-    stdin: BufWriter<ChildStdin>,
 }
 
 pub struct WasmDriver {

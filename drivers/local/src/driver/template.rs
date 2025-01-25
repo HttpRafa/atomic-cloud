@@ -14,7 +14,8 @@ use crate::{
     cloudlet::driver::{
         platform::{get_os, Os},
         process::{
-            drop_process, read_line, spawn_process, try_wait, write_stdin, KeyValue, StdReader,
+            drop_process, read_line_direct, spawn_process, try_wait, write_stdin, KeyValue,
+            ReaderMode, StdReader,
         },
         types::Directory,
     },
@@ -198,10 +199,11 @@ impl Template {
             &prepare.args,
             &self.environment,
             &Storage::get_template_folder_host_converted(&self.name),
+            ReaderMode::Direct,
         ) {
             Ok(pid) => {
                 while try_wait(pid).ok().flatten().is_none() {
-                    match read_line(pid, StdReader::Stdout) {
+                    match read_line_direct(pid, StdReader::Stdout) {
                         Ok(read) => {
                             if read.0 > 0 {
                                 let line = read.1.trim();
@@ -246,8 +248,14 @@ impl Template {
         let mut environment = environment.to_vec();
         environment.extend_from_slice(&self.environment);
 
-        spawn_process(&startup.command, &startup.args, &environment, directory)
-            .map_err(|error| anyhow!("Failed to execute entrypoint {}: {}", self.name, error))
+        spawn_process(
+            &startup.command,
+            &startup.args,
+            &environment,
+            directory,
+            ReaderMode::Async,
+        )
+        .map_err(|error| anyhow!("Failed to execute entrypoint {}: {}", self.name, error))
     }
 
     pub fn run_shutdown(&self, pid: u32) -> Result<()> {

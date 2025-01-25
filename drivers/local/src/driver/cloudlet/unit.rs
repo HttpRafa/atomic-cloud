@@ -6,7 +6,7 @@ use common::{name::TimedName, tick::TickResult};
 use crate::{
     cloudlet::driver::{
         file::remove_dir_all,
-        process::{drop_process, kill_process, try_wait},
+        process::{drop_process, kill_process, read_line_async, try_wait, StdReader},
         types::{Directory, KeyValue},
     },
     driver::{config::UNIT_STOP_TIMEOUT, template::Template, LocalCloudletWrapper},
@@ -76,6 +76,12 @@ impl LocalUnit {
     }
 
     pub fn tick(&mut self) -> Result<TickResult> {
+        if let Some(pid) = self.pid {
+            while let Some(line) = read_line_async(pid, StdReader::Stdout).ok().flatten() {
+                info!("<blue>[{}]</> {}", self.name.get_raw_name(), line.trim());
+            }
+        }
+
         match self.state {
             UnitState::Restarting | UnitState::Stopping => {
                 let pid = match self.pid {

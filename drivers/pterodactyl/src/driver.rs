@@ -4,6 +4,7 @@ use std::cell::UnsafeCell;
 use std::rc::Rc;
 use std::sync::RwLock;
 
+use crate::cloudlet::driver::types::ScopedErrors;
 use crate::exports::cloudlet::driver::bridge::{
     Capabilities, GenericCloudlet, GuestGenericCloudlet, GuestGenericDriver, Information,
     RemoteController,
@@ -96,15 +97,16 @@ impl GuestGenericDriver for Pterodactyl {
             Err("Cloudlet lacks the required child capability".to_string())
         }
     }
+
+    fn cleanup(&self) -> Result<(), ScopedErrors> {
+        Ok(())
+    }
+
+    fn tick(&self) -> Result<(), ScopedErrors> {
+        Ok(())
+    }
 }
 
 pub struct PterodactylCloudletWrapper {
     pub inner: Rc<PterodactylCloudlet>,
-}
-
-impl PterodactylCloudletWrapper {
-    fn get_backend(&self) -> &Rc<Backend> {
-        // Safe as we are only borrowing the reference immutably
-        unsafe { &*self.inner.backend.get() }.as_ref().unwrap()
-    }
 }

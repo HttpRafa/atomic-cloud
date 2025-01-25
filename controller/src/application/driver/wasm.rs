@@ -13,6 +13,7 @@ use wasmtime::component::{Component, Linker, ResourceAny};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
+use super::process::DriverProcess;
 use super::source::Source;
 use super::{DriverCloudletHandle, GenericDriver, Information};
 use crate::application::cloudlet::{Capabilities, Cloudlet, HostAndPort, RemoteController};
@@ -21,8 +22,10 @@ use crate::storage::Storage;
 mod config;
 
 mod cloudlet;
+mod file;
 mod http;
 mod log;
+mod platform;
 mod process;
 
 pub mod generated {
@@ -34,17 +37,15 @@ pub mod generated {
     });
 }
 
-const WASM_DIRECTORY: &str = "wasm";
-
 /* Caching of compiled wasm artifacts and other configuration */
 const CONFIG_FILE: &str = "wasm.toml";
-const DEFAULT_CONFIG: &str = r#"# For more settings, please refer to the documentation:
+const ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
+const DEFAULT_ENGINE_CONFIG: &str = r#"# For more settings, please refer to the documentation:
 # https://bytecodealliance.github.io/wasmtime/cli-cache.html
 
 [cache]
-enabled = true
-
-# This section is crucial for granting the drivers their required permissions
+enabled = true"#;
+const DEFAULT_CONFIG: &str = r#"# This configuration is crucial for granting the drivers their required permissions
 # https://httprafa.github.io/atomic-cloud/controller/drivers/wasm/permissions/
 
 [[drivers]]
@@ -56,6 +57,7 @@ inherit_network = true
 allow_ip_name_lookup = true
 allow_http = true
 allow_process = false
+allow_remove_dir_all = false
 mounts = []"#;
 
 struct WasmDriverState {
@@ -72,6 +74,8 @@ impl WasiView for WasmDriverState {
         &mut self.table
     }
 }
+
+impl generated::cloudlet::driver::types::Host for WasmDriverState {}
 
 impl generated::cloudlet::driver::api::Host for WasmDriverState {
     fn get_name(&mut self) -> String {
@@ -95,7 +99,7 @@ impl WasmDriverHandle {
 }
 
 pub struct WasmDriverData {
-    child_processes: RwLock<HashMap<u32, std::process::Child>>,
+    processes: RwLock<HashMap<u32, DriverProcess>>,
 }
 
 pub struct WasmDriver {
@@ -156,6 +160,46 @@ impl GenericDriver for WasmDriver {
             Err(error) => Err(anyhow!(error)),
         }
     }
+
+    fn cleanup(&self) -> Result<()> {
+        let mut handle = self.handle.lock().unwrap();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
+        match self
+            .bindings
+            .cloudlet_driver_bridge()
+            .generic_driver()
+            .call_cleanup(store, resource)
+        {
+            Ok(result) => result.map_err(|errors| {
+                anyhow!(errors
+                    .iter()
+                    .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
+                    .collect::<Vec<_>>()
+                    .join("\n"))
+            }),
+            Err(error) => Err(error),
+        }
+    }
+
+    fn tick(&self) -> Result<()> {
+        let mut handle = self.handle.lock().unwrap();
+        let (resource, store) = Self::get_resource_and_store(&mut handle);
+        match self
+            .bindings
+            .cloudlet_driver_bridge()
+            .generic_driver()
+            .call_tick(store, resource)
+        {
+            Ok(result) => result.map_err(|errors| {
+                anyhow!(errors
+                    .iter()
+                    .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
+                    .collect::<Vec<_>>()
+                    .join("\n"))
+            }),
+            Err(error) => Err(error),
+        }
+    }
 }
 
 impl WasmDriver {
@@ -187,7 +231,7 @@ impl WasmDriver {
         let mut engine_config = Config::new();
         engine_config.wasm_component_model(true);
         if let Err(error) =
-            engine_config.cache_config_load(Storage::get_configs_folder().join(CONFIG_FILE))
+            engine_config.cache_config_load(Storage::get_configs_folder().join(ENGINE_CONFIG_FILE))
         {
             warn!(
                 "<red>Failed</> to enable caching for wasmtime engine: <red>{}</>",
@@ -252,7 +296,7 @@ impl WasmDriver {
                 bindings,
                 handle: Mutex::new(None),
                 data: WasmDriverData {
-                    child_processes: RwLock::new(HashMap::new()),
+                    processes: RwLock::new(HashMap::new()),
                 },
             }
         });
@@ -274,6 +318,17 @@ impl WasmDriver {
         drivers: &mut Vec<Arc<dyn GenericDriver>>,
     ) -> WasmConfig {
         // Check if cache configuration exists
+        {
+            let engine_config_file = Storage::get_configs_folder().join(ENGINE_CONFIG_FILE);
+            if !engine_config_file.exists() {
+                fs::write(&engine_config_file, DEFAULT_ENGINE_CONFIG).unwrap_or_else(|error| {
+                    warn!(
+                        "<red>Failed</> to create default wasmtime configuration file: <red>{}</>",
+                        &error
+                    )
+                });
+            }
+        }
         let config_file = Storage::get_configs_folder().join(CONFIG_FILE);
         if !config_file.exists() {
             fs::write(&config_file, DEFAULT_CONFIG).unwrap_or_else(|error| {
@@ -283,6 +338,7 @@ impl WasmDriver {
                 )
             });
         }
+
         let config = WasmConfig::load_from_file(&config_file).unwrap_or_else(|error| {
             warn!(
                 "<red>Failed</> to load wasm configuration file: <red>{}</>",
@@ -293,7 +349,7 @@ impl WasmDriver {
 
         let old_loaded = drivers.len();
 
-        let drivers_directory = Storage::get_drivers_folder().join(WASM_DIRECTORY);
+        let drivers_directory = Storage::get_drivers_folder();
         if !drivers_directory.exists() {
             fs::create_dir_all(&drivers_directory).unwrap_or_else(|error| {
                 warn!(
@@ -331,10 +387,6 @@ impl WasmDriver {
                     .to_string_lossy()
                     .ends_with(".wasm")
             {
-                warn!(
-                    "The driver directory should only contain wasm files, please remove <blue>{:?}</>",
-                    &entry.file_name()
-                );
                 continue;
             }
 

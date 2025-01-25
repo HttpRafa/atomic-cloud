@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    collections::HashMap,
     fs,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -9,7 +9,10 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use common::config::{LoadFromTomlFile, SaveToTomlFile};
+use common::{
+    allocator::NumberAllocator,
+    config::{LoadFromTomlFile, SaveToTomlFile},
+};
 use serde::{Deserialize, Serialize};
 use shared::StoredDeployment;
 use simplelog::{debug, error, info, warn};
@@ -244,7 +247,7 @@ impl Deployments {
         );
 
         self.add_deployment(deployment);
-        stored_deployment.save_to_file(&Storage::get_deployment_file(name))?;
+        stored_deployment.save_to_file(&Storage::get_deployment_file(name), true)?;
         info!("<green>Created</> deployment <blue>{}</>", name);
         Ok(CreationResult::Created)
     }
@@ -313,7 +316,7 @@ pub struct Deployment {
     pub spec: Spec,
 
     /* What do i need to know? */
-    id_allocator: RwLock<IdAllocator>,
+    id_allocator: RwLock<NumberAllocator<usize>>,
     units: RwLock<Vec<AssociatedUnit>>,
 }
 
@@ -332,7 +335,7 @@ impl Deployment {
             scaling: stored_deployment.scaling,
             resources: stored_deployment.resources.clone(),
             spec: stored_deployment.spec.clone(),
-            id_allocator: RwLock::new(IdAllocator::new()),
+            id_allocator: RwLock::new(NumberAllocator::new(1..usize::MAX)),
             units: RwLock::new(Vec::new()),
         })
     }
@@ -430,7 +433,9 @@ impl Deployment {
                 break;
             }
 
-            let unit_id = id_allocator.get_id();
+            let unit_id = id_allocator
+                .allocate()
+                .expect("We reached the maximum unit count. Wow this is a lot of units");
             let request = units.queue_unit(StartRequest {
                 canceled: AtomicBool::new(false),
                 when: None,
@@ -474,7 +479,7 @@ impl Deployment {
         self.id_allocator
             .write()
             .expect("Failed to lock id allocator")
-            .release_id(unit.deployment.as_ref().unwrap().unit_id);
+            .release(unit.deployment.as_ref().unwrap().unit_id);
     }
 
     pub fn get_free_unit(&self) -> Option<UnitHandle> {
@@ -514,42 +519,7 @@ impl Deployment {
             resources: self.resources.clone(),
             spec: self.spec.clone(),
         };
-        stored_deployment.save_to_file(&Storage::get_deployment_file(&self.name))
-    }
-}
-
-struct IdAllocator {
-    next_id: usize,
-    available_ids: BTreeSet<usize>,
-    active_ids: HashSet<usize>,
-}
-
-impl IdAllocator {
-    fn new() -> Self {
-        Self {
-            next_id: 1,
-            available_ids: BTreeSet::new(),
-            active_ids: HashSet::new(),
-        }
-    }
-
-    fn get_id(&mut self) -> usize {
-        if let Some(&id) = self.available_ids.iter().next() {
-            self.available_ids.remove(&id);
-            self.active_ids.insert(id);
-            id
-        } else {
-            let id = self.next_id;
-            self.next_id += 1;
-            self.active_ids.insert(id);
-            id
-        }
-    }
-
-    fn release_id(&mut self, id: usize) {
-        if self.active_ids.remove(&id) {
-            self.available_ids.insert(id);
-        }
+        stored_deployment.save_to_file(&Storage::get_deployment_file(&self.name), true)
     }
 }
 

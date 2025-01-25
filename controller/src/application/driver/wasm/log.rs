@@ -19,12 +19,12 @@ impl driver::log::Host for WasmDriverState {
                 message
             ),
             Level::Error => error!(
-                "<blue>[{}] {}",
+                "<blue>[{}]</> {}",
                 &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),
             Level::Debug => debug!(
-                "[{}] {}",
+                "<blue>[{}]</> {}",
                 &self.handle.upgrade().unwrap().name.to_uppercase(),
                 message
             ),

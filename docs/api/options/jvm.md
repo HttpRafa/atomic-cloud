@@ -12,3 +12,12 @@ To include the API in your Maven project, add the following dependency to your `
   <version>0.1.0-SNAPSHOT</version>
 </dependency>
 ```
+
+## Gradle
+To include the API in your Gradle project, add the following dependency to your `build.gradle` file:
+
+```kotlin
+dependencies {
+    implementation("io.atomic.cloud:api:0.1.0-SNAPSHOT")
+}
+```

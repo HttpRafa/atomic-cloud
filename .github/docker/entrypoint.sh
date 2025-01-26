@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Define the destination folder
-DEST_FOLDER="drivers/wasm"
+DEST_FOLDER="drivers/"
 
 # Create the destination folder if it does not exist
 if [ ! -d "$DEST_FOLDER" ]; then

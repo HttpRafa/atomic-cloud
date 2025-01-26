@@ -63,5 +63,5 @@ tasks {
 fun getFullVersion(): String {
     val commit = System.getenv("CURRENT_COMMIT") ?: "unknown"
     val build = System.getenv("CURRENT_BUILD") ?: "0"
-    return "${project.properties["client_version"]}-alpha.$commit+build.$build"
+    return "${project.properties["client_version"]}.$commit+build.$build"
 }

@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use tonic::{service::Interceptor, Request, Status};
 
-use crate::application::Controller;
+use crate::application::{auth::AuthValidator, Controller};
 
 #[derive(Clone)]
 pub struct AdminInterceptor {
-    pub controller: Arc<Controller>,
+    pub validator: AuthValidator,
 }
 
 impl Interceptor for AdminInterceptor {
@@ -30,7 +30,7 @@ impl Interceptor for AdminInterceptor {
 
 #[derive(Clone)]
 pub struct UnitInterceptor {
-    pub controller: Arc<Controller>,
+    pub validator: AuthValidator,
 }
 
 impl Interceptor for UnitInterceptor {

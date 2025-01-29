@@ -22,7 +22,8 @@ include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
     CloudInit::init_logging(args.debug, false, Storage::get_latest_log_file());
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
@@ -31,8 +32,8 @@ fn main() {
     info!("<green>Starting</> cloud version <blue>v{}</>...", VERSION);
     info!("Loading configuration...");
 
-    let configuration = Config::new_filled();
-    let controller = Controller::new(configuration);
+    let configuration = Config::load();
+    let controller = Controller::new(configuration).await;
     info!("Loaded cloud in <blue>{:.2?}</>", start_time.elapsed());
-    controller.start();
+    controller.start().await;
 }

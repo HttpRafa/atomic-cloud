@@ -17,24 +17,24 @@ const DEFAULT_EMPTY_UNIT_TIMEOUT: Duration = Duration::from_secs(120);
 const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0";
 const DEFAULT_BIND_PORT: u16 = 12892;
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize)]
 pub struct NetworkConfig {
-    pub bind: Option<SocketAddr>,
+    pub bind: SocketAddr,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize)]
 pub struct Timings {
-    pub startup: Option<Duration>,
-    pub restart: Option<Duration>,
-    pub healthbeat: Option<Duration>,
-    pub transfer: Option<Duration>,
-    pub empty_unit: Option<Duration>,
+    pub startup: Duration,
+    pub restart: Duration,
+    pub healthbeat: Duration,
+    pub transfer: Duration,
+    pub empty_unit: Duration,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     /* Cloud Identification */
-    pub identifier: Option<String>,
+    pub identifier: String,
 
     /* Network */
     pub network: NetworkConfig,
@@ -44,77 +44,52 @@ pub struct Config {
 }
 
 impl Config {
-    fn load_or_empty() -> Self {
-        let path = Storage::get_primary_config_file();
-        if !path.exists() {
-            return Self::default();
+    fn default() -> Self {
+        Self {
+            identifier: Uuid::new_v4().to_string(),
+            network: NetworkConfig {
+                bind: SocketAddr::new(
+                    DEFAULT_BIND_ADDRESS.parse().unwrap(),
+                    DEFAULT_BIND_PORT,
+                ),
+            },
+            timings: Timings {
+                startup: DEFAULT_EXPECTED_STARTUP_TIME,
+                restart: DEFAULT_EXPECTED_RESTART_TIME,
+                healthbeat: DEFAULT_HEALTH_CHECK_TIMEOUT,
+                transfer: DEFAULT_TRANSFER_TIMEOUT,
+                empty_unit: DEFAULT_EMPTY_UNIT_TIMEOUT,
+            },
         }
-        Self::load_from_file(&path).unwrap_or_else(|error| {
-            warn!(
-                "<red>Failed</> to read configuration from file: <red>{}</>",
-                error
-            );
-            Self::default()
-        })
     }
 
-    pub fn new_filled() -> Self {
-        let mut config = Self::load_or_empty();
-
-        let mut save = false;
-        if config.identifier.is_none() {
-            config.identifier = Some(Uuid::new_v4().to_string());
-            save = true;
-        }
-        if config.network.bind.is_none() {
-            config.network.bind = Some(SocketAddr::new(
-                DEFAULT_BIND_ADDRESS.parse().unwrap(),
-                DEFAULT_BIND_PORT,
-            ));
-            save = true;
-        }
-        if config.timings.startup.is_none() {
-            config.timings.startup = Some(DEFAULT_EXPECTED_STARTUP_TIME);
-            save = true;
-        }
-        if config.timings.restart.is_none() {
-            config.timings.restart = Some(DEFAULT_EXPECTED_RESTART_TIME);
-            save = true;
-        }
-        if config.timings.healthbeat.is_none() {
-            config.timings.healthbeat = Some(DEFAULT_HEALTH_CHECK_TIMEOUT);
-            save = true;
-        }
-        if config.timings.transfer.is_none() {
-            config.timings.transfer = Some(DEFAULT_TRANSFER_TIMEOUT);
-            save = true;
-        }
-        if config.timings.empty_unit.is_none() {
-            config.timings.empty_unit = Some(DEFAULT_EMPTY_UNIT_TIMEOUT);
-            save = true;
-        }
-        if save {
-            if let Err(error) = config.save_to_file(&Storage::get_primary_config_file(), true) {
-                error!(
-                    "<red>Failed</> to save generated configuration to file: <red>{}</>",
-                    &error
+    pub fn load() -> Self {
+        let path = Storage::get_primary_config_file();
+        let mut config = if path.exists() {
+            Self::load_from_file(&path).unwrap_or_else(|error| {
+                warn!(
+                    "<red>Failed</> to read configuration from file: <red>{}</>",
+                    error
                 );
-            }
-        }
+                Self::default()
+            })
+        } else {
+            Self::default()
+        };
 
-        // Check config values are overridden by environment variables
-        if let Ok(identifier) = std::env::var("INSTANCE_IDENTIFIER") {
-            config.identifier = Some(identifier);
-        }
-        if let Ok(address) = std::env::var("BIND_ADDRESS") {
-            if let Ok(address) = address.parse() {
-                config.network.bind.replace(address);
-            } else {
-                error!("<red>Failed</> to parse BIND_ADDRESS environment variable");
-            }
-        }
+                // Check config values are overridden by environment variables
+                if let Ok(identifier) = std::env::var("INSTANCE_IDENTIFIER") {
+                    config.identifier = identifier;
+                }
+                if let Ok(address) = std::env::var("BIND_ADDRESS") {
+                    if let Ok(address) = address.parse() {
+                        config.network.bind = address;
+                    } else {
+                        error!("<red>Failed</> to parse BIND_ADDRESS environment variable");
+                    }
+                }
 
-        config
+                config
     }
 }
 

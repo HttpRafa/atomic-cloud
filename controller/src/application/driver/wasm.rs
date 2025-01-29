@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fs;
-use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use anyhow::{anyhow, Result};
 use cloudlet::WasmCloudlet;
@@ -9,13 +8,15 @@ use config::WasmConfig;
 use generated::exports::cloudlet::driver::bridge;
 use generated::Driver;
 use simplelog::{error, info, warn};
-use wasmtime::component::{Component, Linker, ResourceAny};
-use wasmtime::{Config, Engine, Store};
+use tokio::sync::{Mutex, MutexGuard};
+use tonic::async_trait;
+use wasmtime::component::{Component, Linker, Resource, ResourceAny};
+use wasmtime::{AsContextMut, Config, Engine, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use super::process::DriverProcess;
 use super::source::Source;
-use super::{DriverCloudletHandle, GenericDriver, Information};
+use super::{BoxedCloudlet, BoxedDriver, GenericCloudlet, GenericDriver, Information};
 use crate::application::cloudlet::{Capabilities, Cloudlet, HostAndPort, RemoteController};
 use crate::storage::Storage;
 
@@ -34,6 +35,7 @@ pub mod generated {
     bindgen!({
         world: "driver",
         path: "../protocol/wit/",
+        async: true,
     });
 }
 
@@ -61,7 +63,12 @@ allow_remove_dir_all = false
 mounts = []"#;
 
 struct WasmDriverState {
-    handle: Weak<WasmDriver>,
+    /* Generic Information */
+
+    /* Processes */
+    processes: HashMap<u32, DriverProcess>,
+
+    /* Wasmtime */
     wasi: WasiCtx,
     table: ResourceTable,
 }
@@ -76,99 +83,67 @@ impl WasiView for WasmDriverState {
 }
 
 impl generated::cloudlet::driver::types::Host for WasmDriverState {}
-
-impl generated::cloudlet::driver::api::Host for WasmDriverState {
-    fn get_name(&mut self) -> String {
-        self.handle.upgrade().unwrap().name.clone()
-    }
-}
-
-struct WasmDriverHandle {
-    store: Store<WasmDriverState>,
-    resource: ResourceAny, // This is delete when the store is dropped
-}
-
-impl WasmDriverHandle {
-    fn new(store: Store<WasmDriverState>, resource: ResourceAny) -> Self {
-        WasmDriverHandle { store, resource }
-    }
-
-    fn get(&mut self) -> (ResourceAny, &mut Store<WasmDriverState>) {
-        (self.resource, &mut self.store)
-    }
-}
-
-pub struct WasmDriverData {
-    processes: RwLock<HashMap<u32, DriverProcess>>,
-}
+impl generated::cloudlet::driver::api::Host for WasmDriverState {}
 
 pub struct WasmDriver {
-    own: Weak<WasmDriver>,
-
     name: String,
     bindings: Driver,
-    handle: Mutex<Option<WasmDriverHandle>>,
-
-    data: WasmDriverData,
+    store: Mutex<Store<WasmDriverState>>,
+    instance: ResourceAny, // This is delete when the store is dropped
 }
 
 impl WasmDriver {
-    fn get_resource_and_store(
-        handle: &mut Option<WasmDriverHandle>,
-    ) -> (ResourceAny, &mut Store<WasmDriverState>) {
-        handle.as_mut().unwrap().get()
+    async fn get_required(&self) -> (&Driver, ResourceAny, &Mutex<Store<WasmDriverState>>) {
+        (&self.bindings, self.instance, &self.store)
     }
 }
 
+#[async_trait]
 impl GenericDriver for WasmDriver {
-    fn name(&self) -> &String {
+    fn name(&self) -> &str {
         &self.name
     }
 
-    fn init(&self) -> Result<Information> {
-        let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = Self::get_resource_and_store(&mut handle);
-        match self
-            .bindings
+    async fn init(&self) -> Result<Information> {
+        let (bindings, instance, store) = self.get_required().await;
+        let mut store = store.lock().await;
+        match bindings
             .cloudlet_driver_bridge()
             .generic_driver()
-            .call_init(store, resource)
+            .call_init(store.as_context_mut(), instance).await
         {
             Ok(information) => Ok(information.into()),
             Err(error) => Err(error),
         }
     }
 
-    fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle> {
-        let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = Self::get_resource_and_store(&mut handle);
-        match self
-            .bindings
+    async fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<BoxedCloudlet> {
+        let (bindings, instance, store) = self.get_required().await;
+        let mut store = store.lock().await;
+        match bindings
             .cloudlet_driver_bridge()
             .generic_driver()
             .call_init_cloudlet(
-                store,
-                resource,
+                store.as_context_mut(),
+                instance,
                 &cloudlet.name,
                 &(&cloudlet.capabilities).into(),
                 &(&cloudlet.controller).into(),
-            )? {
-            Ok(cloudlet) => Ok(Arc::new(WasmCloudlet {
-                handle: self.own.clone(),
-                resource: cloudlet,
+            ).await? {
+            Ok(cloudlet) => Ok(Box::new(WasmCloudlet {
+                instance: cloudlet,
             })),
             Err(error) => Err(anyhow!(error)),
         }
     }
 
-    fn cleanup(&self) -> Result<()> {
-        let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = Self::get_resource_and_store(&mut handle);
-        match self
-            .bindings
+    async fn cleanup(&self) -> Result<()> {
+        let (bindings, instance, store) = self.get_required().await;
+        let mut store = store.lock().await;
+        match bindings
             .cloudlet_driver_bridge()
             .generic_driver()
-            .call_cleanup(store, resource)
+            .call_cleanup(store.as_context_mut(), instance).await
         {
             Ok(result) => result.map_err(|errors| {
                 anyhow!(errors
@@ -181,14 +156,13 @@ impl GenericDriver for WasmDriver {
         }
     }
 
-    fn tick(&self) -> Result<()> {
-        let mut handle = self.handle.lock().unwrap();
-        let (resource, store) = Self::get_resource_and_store(&mut handle);
-        match self
-            .bindings
+    async fn tick(&self) -> Result<()> {
+        let (bindings, instance, store) = self.get_required().await;
+        let mut store = store.lock().await;
+        match bindings
             .cloudlet_driver_bridge()
             .generic_driver()
-            .call_tick(store, resource)
+            .call_tick(store.as_context_mut(), instance).await
         {
             Ok(result) => result.map_err(|errors| {
                 anyhow!(errors
@@ -203,12 +177,12 @@ impl GenericDriver for WasmDriver {
 }
 
 impl WasmDriver {
-    fn new(
+    async fn new(
         config: &WasmConfig,
         cloud_identifier: &str,
         name: &str,
         source: &Source,
-    ) -> Result<Arc<Self>> {
+    ) -> Result<Self> {
         let config_directory = Storage::get_config_folder_for_driver(name);
         let data_directory = Storage::get_data_folder_for_driver(name);
         if !config_directory.exists() {
@@ -230,6 +204,7 @@ impl WasmDriver {
 
         let mut engine_config = Config::new();
         engine_config.wasm_component_model(true);
+        engine_config.async_support(true);
         if let Err(error) =
             engine_config.cache_config_load(Storage::get_configs_folder().join(ENGINE_CONFIG_FILE))
         {
@@ -243,7 +218,7 @@ impl WasmDriver {
         let component = Component::from_binary(&engine, &source.code)?;
 
         let mut linker = Linker::new(&engine);
-        wasmtime_wasi::add_to_linker_sync(&mut linker)?;
+        wasmtime_wasi::add_to_linker_async(&mut linker)?;
         Driver::add_to_linker(&mut linker, |state: &mut WasmDriverState| state)?;
 
         let mut wasi = WasiCtxBuilder::new();
@@ -278,44 +253,30 @@ impl WasmDriver {
             .build();
 
         let table = ResourceTable::new();
-
         let mut store = Store::new(
             &engine,
             WasmDriverState {
-                handle: Weak::new(),
+                processes: HashMap::new(),
                 wasi,
                 table,
             },
         );
-        let bindings = Driver::instantiate(&mut store, &component, &linker)?;
-        let driver = Arc::new_cyclic(|handle| {
-            store.data_mut().handle = handle.clone();
-            WasmDriver {
-                own: handle.clone(),
-                name: name.to_string(),
-                bindings,
-                handle: Mutex::new(None),
-                data: WasmDriverData {
-                    processes: RwLock::new(HashMap::new()),
-                },
-            }
-        });
-        let driver_resource = driver
-            .bindings
+        let bindings = Driver::instantiate_async(&mut store, &component, &linker).await?;
+        let instance = bindings
             .cloudlet_driver_bridge()
             .generic_driver()
-            .call_constructor(&mut store, cloud_identifier)?;
-        driver
-            .handle
-            .lock()
-            .unwrap()
-            .replace(WasmDriverHandle::new(store, driver_resource));
-        Ok(driver)
+            .call_constructor(&mut store, cloud_identifier).await?;
+        Ok(WasmDriver {
+            name: name.to_string(),
+            bindings,
+            store: Mutex::new(store),
+            instance,
+        })
     }
 
-    pub fn load_all(
+    pub async fn load_all(
         cloud_identifier: &str,
-        drivers: &mut Vec<Arc<dyn GenericDriver>>,
+        drivers: &mut Vec<BoxedDriver>,
     ) -> WasmConfig {
         // Check if cache configuration exists
         {
@@ -405,9 +366,9 @@ impl WasmDriver {
             };
 
             info!("Compiling driver <blue>{}</>...", &name);
-            let driver = WasmDriver::new(&config, cloud_identifier, &name, &source);
+            let driver = WasmDriver::new(&config, cloud_identifier, &name, &source).await;
             match driver {
-                Ok(driver) => match driver.init() {
+                Ok(driver) => match driver.init().await {
                     Ok(info) => {
                         if info.ready {
                             info!(
@@ -415,7 +376,7 @@ impl WasmDriver {
                                 &driver.name, &info.version,
                                 &info.authors.join(", ")
                             );
-                            drivers.push(driver);
+                            drivers.push(Box::new(driver));
                         } else {
                             warn!(
                                 "Driver <blue>{}</> marked itself as <yellow>not ready</>, skipping...",

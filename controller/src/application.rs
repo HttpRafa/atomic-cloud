@@ -29,67 +29,58 @@ static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
 
 const TICK_RATE: u64 = 1;
 
-pub type ControllerHandle = Arc<Controller>;
-pub type WeakControllerHandle = Weak<Controller>;
-
 pub struct Controller {
-    handle: WeakControllerHandle,
-
-    /* Immutable */
-    pub(crate) configuration: Config,
-    pub(crate) drivers: Drivers,
-
     /* Runtime State */
-    runtime: RwLock<Option<Runtime>>,
-    running: AtomicBool,
+    running: Arc<AtomicBool>,
+
+    /* Configuration */
+    configuration: Config,
+
+    /* Drivers */
+    drivers: Drivers,
 
     /* Authentication */
     auth: Auth,
-
-    /* Accessed rarely */
-    cloudlets: RwLock<Cloudlets>,
-    deployments: RwLock<Deployments>,
-
-    /* Accessed frequently */
-    units: Units,
     users: Users,
+
+    /* Resources */
+    cloudlets: Cloudlets,
+    deployments: Deployments,
+    units: Units,
 
     /* Event Bus */
     event_bus: EventBus,
 }
 
 impl Controller {
-    pub fn new(configuration: Config) -> Arc<Self> {
-        Arc::new_cyclic(move |handle| {
-            let auth = Auth::load_all();
-            let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
-            let cloudlets = Cloudlets::load_all(handle.clone(), &drivers);
-            let deployments = Deployments::load_all(handle.clone(), &cloudlets);
-            let units = Units::new(handle.clone());
-            let users = Users::new(handle.clone());
-            let event_bus = EventBus::new(/*handle.clone()*/);
-            Self {
-                handle: handle.clone(),
-                configuration,
-                drivers,
-                runtime: RwLock::new(Some(
-                    Builder::new_multi_thread()
-                        .enable_all()
-                        .build()
-                        .expect("Failed to create Tokio runtime"),
-                )),
-                running: AtomicBool::new(true),
-                auth,
-                cloudlets: RwLock::new(cloudlets),
-                deployments: RwLock::new(deployments),
-                units,
-                users,
-                event_bus,
-            }
-        })
+    pub async fn new(configuration: Config) -> Self {
+        let auth = Auth::load_all().await;
+        let drivers = Drivers::load_all(&configuration.identifier).await;
+        let cloudlets = Cloudlets::load_all(handle.clone(), &drivers);
+        let deployments = Deployments::load_all(handle.clone(), &cloudlets);
+        let units = Units::new(handle.clone());
+        let users = Users::new(handle.clone());
+        let event_bus = EventBus::new(/*handle.clone()*/);
+        Self {
+            configuration,
+            drivers,
+            runtime: RwLock::new(Some(
+                Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .expect("Failed to create Tokio runtime"),
+            )),
+            running: Arc::new(AtomicBool::new(true)),
+            auth,
+            cloudlets: RwLock::new(cloudlets),
+            deployments: RwLock::new(deployments),
+            units,
+            users,
+            event_bus,
+        }
     }
 
-    pub fn start(&self) {
+    pub async fn start(&self) {
         // Set up signal handlers
         self.setup_interrupts();
 
@@ -117,13 +108,6 @@ impl Controller {
         info!("<red>Stopping</> network stack...");
         network_handle.shutdown();
 
-        // Wait for all tokio task to finish
-        info!("<red>Stopping</> async runtime...");
-        (*self.runtime.write().unwrap())
-            .take()
-            .unwrap()
-            .shutdown_timeout(SHUTDOWN_WAIT);
-
         // Let the drivers cleanup there messes
         info!("Letting the drivers <red>cleanup</>...");
         self.drivers.cleanup();
@@ -134,28 +118,8 @@ impl Controller {
         self.running.store(false, Ordering::Relaxed);
     }
 
-    pub fn lock_cloudlets(&self) -> RwLockReadGuard<Cloudlets> {
-        self.cloudlets
-            .read()
-            .expect("Failed to get lock to cloudlets")
-    }
-
-    pub fn lock_deployments(&self) -> RwLockReadGuard<Deployments> {
-        self.deployments
-            .read()
-            .expect("Failed to get lock to deployments")
-    }
-
-    pub fn lock_cloudlets_mut(&self) -> RwLockWriteGuard<Cloudlets> {
-        self.cloudlets
-            .write()
-            .expect("Failed to get lock to cloudlets")
-    }
-
-    pub fn lock_deployments_mut(&self) -> RwLockWriteGuard<Deployments> {
-        self.deployments
-            .write()
-            .expect("Failed to get lock to deployments")
+    pub fn get_config(&self) -> &Config {
+        &self.configuration
     }
 
     pub fn get_drivers(&self) -> &Drivers {
@@ -201,14 +165,11 @@ impl Controller {
 
     fn setup_interrupts(&self) {
         // Set up signal handlers
-        let controller = self.handle.clone();
+        let running = self.running.clone();
         ctrlc::set_handler(move || {
             info!("<red>Interrupt</> signal received. Stopping...");
-            if let Some(controller) = controller.upgrade() {
-                controller.request_stop();
-            }
-        })
-        .expect("Failed to set Ctrl+C handler");
+            running.store(false, Ordering::Relaxed);
+        }).expect("Failed to set Ctrl+C handler");
     }
 }
 

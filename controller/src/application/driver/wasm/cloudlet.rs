@@ -4,7 +4,6 @@ use anyhow::{anyhow, Result};
 use wasmtime::component::ResourceAny;
 
 use crate::application::{
-    auth::AuthUnit,
     cloudlet::{Allocation, HostAndPort},
     driver::GenericCloudlet,
     unit::{
@@ -18,8 +17,7 @@ use super::{
 };
 
 pub struct WasmCloudlet {
-    pub handle: Weak<WasmDriver>,
-    pub resource: ResourceAny, // This is delete if the handle is dropped
+    pub instance: ResourceAny, // This is delete if the handle is dropped
 }
 
 impl GenericCloudlet for WasmCloudlet {

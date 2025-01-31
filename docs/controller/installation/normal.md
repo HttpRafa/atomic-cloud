@@ -20,13 +20,3 @@ Download the latest Driver version [here](https://github.com/HttpRafa/atomic-clo
 ## Step 4: Start the CLI
 
 Start the CLI in a Terminal on your Device where you want to Controll the Cloud from. After that select "Add new controller" and Follow the Steps that will be displayed.
-
-
-## Step 5: Create a Node
-
-Create a Node with the CLI using the option "Create Node".
-
-
-## Step 6: Create a Deployment
-
-Create a Deployment with the CLI using the option "Create Deployment".

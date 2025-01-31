@@ -19,4 +19,4 @@ Download the latest Driver version [here](https://github.com/HttpRafa/atomic-clo
 
 ## Step 4: Start the CLI
 
-Start the CLI in a Terminal on your Device where you want to Controll the Cloud from.
+Start the CLI in a Terminal on your Device where you want to Controll the Cloud from. After that

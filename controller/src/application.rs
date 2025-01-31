@@ -113,10 +113,6 @@ impl Controller {
         info!("<red>Stopping</> all units...");
         self.units.stop_all_instant();
 
-        // Let the drivers cleanup there messes
-        info!("Letting the drivers <red>cleanup</>...");
-        self.drivers.cleanup();
-
         // Stop network stack
         info!("<red>Stopping</> network stack...");
         network_handle.shutdown();
@@ -127,6 +123,10 @@ impl Controller {
             .take()
             .unwrap()
             .shutdown_timeout(SHUTDOWN_WAIT);
+
+        // Let the drivers cleanup there messes
+        info!("Letting the drivers <red>cleanup</>...");
+        self.drivers.cleanup();
     }
 
     pub fn request_stop(&self) {

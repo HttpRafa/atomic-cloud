@@ -10,6 +10,7 @@ services:
       - "12892:12892"
     environment:
       - PTERODACTYL=true
+      - LOCAL=true
     volumes:
       - ./run/logs:/app/logs
       - ./run/auth:/app/auth

@@ -3,7 +3,7 @@
     "dockerFile": "Dockerfile",
     "build": {
         "args": {
-            "REMOTE_USER": "${localEnv:USER}",
+            "REMOTE_USER": "${localEnv:USER:code}",
             "REMOTE_UID": "${localEnv:REMOTE_UID:1000}",
             "REMOTE_GID": "${localEnv:REMOTE_GID:1000}"
         }
@@ -31,5 +31,6 @@
                 "github.vscode-github-actions"
             ]
         }
-    }
+    },
+    "remoteUser": "${localEnv:USER:code}"
 }

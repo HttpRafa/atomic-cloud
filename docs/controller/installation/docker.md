@@ -11,11 +11,12 @@ Next, add the following content to the file:
 ```yaml
 services:
   controller:
-    image: ghcr.io/httprafa/atomic-cloud:v0.3.0-alpha
+    image: ghcr.io/httprafa/atomic-cloud:latest
     ports:
       - "12892:12892"
     environment:
       - PTERODACTYL=true # Enable Pterodactyl driver installation
+      - LOCAL=true       # Enable Local driver installation
     volumes:
       - ./logs:/app/logs
       - ./auth:/app/auth

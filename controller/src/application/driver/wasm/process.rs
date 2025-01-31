@@ -22,7 +22,7 @@ use super::{
 };
 
 impl driver::process::Host for WasmDriverState {
-    async fn spawn_process(
+    fn spawn_process(
         &mut self,
         command: String,
         args: Vec<String>,

@@ -6,7 +6,11 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthValidator, cloudlet::{Capabilities, LifecycleStatus, RemoteController}, deployment::{ScalingPolicy, StartConstraints}, unit::{FallbackPolicy, KeyValue, Resources, Retention, Spec}, user::transfer::TransferTarget, ControllerHandle, CreationResult
+        cloudlet::{Capabilities, LifecycleStatus, RemoteController},
+        deployment::{ScalingPolicy, StartConstraints},
+        unit::{FallbackPolicy, KeyValue, Resources, Retention, Spec},
+        user::transfer::TransferTarget,
+        ControllerHandle, CreationResult,
     },
     VERSION,
 };
@@ -19,6 +23,7 @@ pub mod proto {
 }
 
 pub struct AdminServiceImpl {
+    pub controller: ControllerHandle,
 }
 
 #[async_trait]

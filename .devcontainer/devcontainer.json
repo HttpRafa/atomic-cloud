@@ -11,11 +11,7 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "terminal.integrated.profiles.linux": {
-                    "nu": {
-                        "path": "nu"
-                    }
-                }
+                "terminal.integrated.shell.linux": "/bin/bash"
             },
             "extensions": [
                 // Extensions for Rust development

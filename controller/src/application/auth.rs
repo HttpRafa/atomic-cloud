@@ -1,90 +1,47 @@
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{
+    collections::HashMap,
+    fs,
+    sync::{Arc, RwLock},
+};
 
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use simplelog::{error, info, warn};
 use stored::StoredUser;
-use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::storage::Storage;
 
+use super::unit::{UnitHandle, WeakUnitHandle};
+
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
-pub type AuthToken = String;
+pub type AuthUserHandle = Arc<AuthUser>;
+pub type AuthUnitHandle = Arc<AuthUnit>;
 
-#[derive(Clone)]
-pub enum Authorization {
-    User(String), // Username
-    Unit(Uuid),   // UUID
+pub struct AuthUser {
+    pub username: String,
+    pub token: String,
 }
 
-pub type AuthValidator = Arc<AuthValidatorInner>;
-
-pub struct AuthValidatorInner {
-    pub tokens: RwLock<HashMap<AuthToken, Authorization>>,
-}
-
-impl AuthValidatorInner {
-    pub async fn get_auth(&self, token: &str) -> Option<Authorization> {
-        self.tokens.read().await.get(token).cloned()
-    }
-
-    pub async fn register_unit(&self, uuid: Uuid) -> String {
-        let token = format!(
-            "sctl_{}{}",
-            Uuid::new_v4().as_simple(),
-            Uuid::new_v4().as_simple()
-        );
-
-        self.tokens
-            .write()
-            .await
-            .insert(token.clone(), Authorization::Unit(uuid));
-
-        token
-    }
-
-    pub async fn unregister(&self, token: &str) {
-        self.tokens.write().await.remove(token);
-    }
-
-    pub async fn register_user(&self, username: &str) -> Option<String> {
-        let token = format!(
-            "actl_{}{}",
-            Uuid::new_v4().as_simple(),
-            Uuid::new_v4().as_simple()
-        );
-        let stored_user = StoredUser {
-            token: token.to_string(),
-        };
-        let user_path = Storage::get_user_file(username);
-        if stored_user.save_to_file(&user_path, true).is_err() {
-            error!(
-                "<red>Failed</> to save user to file: <red>{}</>",
-                &user_path.display()
-            );
-            return None;
-        }
-        self.tokens.write().await.insert(token.clone(), Authorization::User(username.to_string()));
-
-        Some(token)
-    }
+pub struct AuthUnit {
+    pub unit: WeakUnitHandle,
+    pub token: String,
 }
 
 pub struct Auth {
-    pub validator: AuthValidator,
+    pub users: RwLock<HashMap<String, AuthUserHandle>>,
+    pub units: RwLock<HashMap<String, AuthUnitHandle>>,
 }
 
 impl Auth {
-    pub fn new(users: HashMap<AuthToken, Authorization>) -> Self {
+    pub fn new(users: HashMap<String, AuthUserHandle>) -> Self {
         Auth {
-            validator: Arc::new(AuthValidatorInner {
-                tokens: RwLock::new(users),
-            }),
+            users: RwLock::new(users),
+            units: RwLock::new(HashMap::new()),
         }
     }
 
-    pub async fn load_all() -> Self {
+    pub fn load_all() -> Self {
         info!("Loading users...");
 
         let users_directory = Storage::get_users_folder();
@@ -120,7 +77,7 @@ impl Auth {
                 continue;
             }
 
-            let username = match path.file_stem() {
+            let name = match path.file_stem() {
                 Some(name) => name.to_string_lossy().to_string(),
                 None => continue,
             };
@@ -130,7 +87,7 @@ impl Auth {
                 Err(error) => {
                     error!(
                         "<red>Failed</> to read user <blue>{}</> from file(<blue>{:?}</>): <red>{}</>",
-                        &username,
+                        &name,
                         &path,
                         &error
                     );
@@ -138,31 +95,31 @@ impl Auth {
                 }
             };
 
+            let user = AuthUser {
+                username: name.clone(),
+                token: user.token,
+            };
             if users
                 .values()
-                .filter_map(|entry| match entry {
-                    Authorization::User(name) => Some(name),
-                    _ => None,
-                })
-                .any(|name| name.eq_ignore_ascii_case(&username))
+                .any(|u| u.username.eq_ignore_ascii_case(&user.username))
             {
-                error!("User with the name <red>{}</> already exists", &username);
+                error!("User with the name <red>{}</> already exists", &name);
                 continue;
             }
-            info!("Loaded user <blue>{}</>", &username);
-            users.insert(user.token.clone(), Authorization::User(username));
+            users.insert(user.token.clone(), Arc::new(user));
+            info!("Loaded user <blue>{}</>", &name);
         }
 
         let amount = users.len();
         let auth = Auth::new(users);
         if amount == 0 {
-            let token = auth.get_validator()
-                .register_user(DEFAULT_ADMIN_USERNAME).await
+            let user = auth
+                .register_user(DEFAULT_ADMIN_USERNAME)
                 .expect("Failed to create default admin user");
             info!("<red>-----------------------------------</>");
             info!("<red>No users found, created default admin user</>");
             info!("<red>Username: </>{}", DEFAULT_ADMIN_USERNAME);
-            info!("<red>Token: </>{}", &token);
+            info!("<red>Token: </>{}", &user.token);
             info!("<red>-----------------------------------</>");
             info!("<bright-blue><b>Welcome to Atomic Cloud</>");
             info!("<red>-----------------------------------</>");
@@ -172,8 +129,68 @@ impl Auth {
         auth
     }
 
-    pub fn get_validator(&self) -> AuthValidator {
-        self.validator.clone()
+    pub fn get_user(&self, token: &str) -> Option<AuthUserHandle> {
+        self.users.read().unwrap().get(token).cloned()
+    }
+
+    pub fn get_unit(&self, token: &str) -> Option<AuthUnitHandle> {
+        self.units.read().unwrap().get(token).cloned()
+    }
+
+    pub fn register_unit(&self, unit: WeakUnitHandle) -> AuthUnitHandle {
+        let token = format!(
+            "sctl_{}{}",
+            Uuid::new_v4().as_simple(),
+            Uuid::new_v4().as_simple()
+        );
+
+        let unit = Arc::new(AuthUnit {
+            unit,
+            token: token.clone(),
+        });
+        self.units
+            .write()
+            .unwrap()
+            .insert(token.clone(), unit.clone());
+
+        unit
+    }
+
+    pub fn unregister_unit(&self, unit: &UnitHandle) {
+        self.units.write().unwrap().retain(|_, value| {
+            if let Some(ref_unit) = value.unit.upgrade() {
+                !Arc::ptr_eq(&ref_unit, unit)
+            } else {
+                true
+            }
+        })
+    }
+
+    pub fn register_user(&self, username: &str) -> Option<AuthUserHandle> {
+        let token = format!(
+            "actl_{}{}",
+            Uuid::new_v4().as_simple(),
+            Uuid::new_v4().as_simple()
+        );
+        let stored_user = StoredUser {
+            token: token.to_string(),
+        };
+        let user_path = Storage::get_user_file(username);
+        if stored_user.save_to_file(&user_path, true).is_err() {
+            error!(
+                "<red>Failed</> to save user to file: <red>{}</>",
+                &user_path.display()
+            );
+            return None;
+        }
+
+        let user = Arc::new(AuthUser {
+            username: username.to_string(),
+            token: token.clone(),
+        });
+        self.users.write().unwrap().insert(token, user.clone());
+
+        Some(user)
     }
 }
 

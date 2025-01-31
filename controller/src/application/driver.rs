@@ -24,57 +24,57 @@ pub struct Information {
     ready: bool,
 }
 
-pub type BoxedDriver = Box<dyn GenericDriver>;
-pub type BoxedCloudlet = Box<dyn GenericCloudlet>;
-
 #[async_trait]
 pub trait GenericDriver: Send + Sync {
-    fn name(&self) -> &str;
-    async fn init(&self) -> Result<Information>;
-    async fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<BoxedCloudlet>;
+    fn name(&self) -> &String;
+    fn init(&self) -> Result<Information>;
+    fn init_cloudlet(&self, cloudlet: &Cloudlet) -> Result<DriverCloudletHandle>;
 
     /* Cleanup */
-    async fn cleanup(&self) -> Result<()>;
+    fn cleanup(&self) -> Result<()>;
 
     /* Ticking */
-    async fn tick(&self) -> Result<()>;
+    fn tick(&self) -> Result<()>;
 }
 
 #[async_trait]
 pub trait GenericCloudlet: Send + Sync {
     /* Ticking */
-    async fn tick(&self) -> Result<()>;
+    fn tick(&self) -> Result<()>;
 
     /* Prepare */
-    async fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>>;
-    async fn deallocate_addresses(&self, addresses: Vec<HostAndPort>) -> Result<()>;
+    fn allocate_addresses(&self, request: &StartRequestHandle) -> Result<Vec<HostAndPort>>;
+    fn deallocate_addresses(&self, addresses: Vec<HostAndPort>) -> Result<()>;
 
     /* Unitss */
-    async fn start_unit(&self, unit: &UnitHandle) -> Result<()>;
-    async fn restart_unit(&self, unit: &UnitHandle) -> Result<()>;
-    async fn stop_unit(&self, unit: &UnitHandle) -> Result<()>;
+    fn start_unit(&self, unit: &UnitHandle) -> Result<()>;
+    fn restart_unit(&self, unit: &UnitHandle) -> Result<()>;
+    fn stop_unit(&self, unit: &UnitHandle) -> Result<()>;
 }
 
+pub type DriverHandle = Arc<dyn GenericDriver>;
+pub type DriverCloudletHandle = Arc<dyn GenericCloudlet>;
+
 pub struct Drivers {
-    drivers: Vec<BoxedDriver>,
+    drivers: Vec<DriverHandle>,
 }
 
 impl Drivers {
-    pub async fn load_all(cloud_identifier: &str) -> Self {
+    pub fn load_all(cloud_identifier: &str) -> Self {
         info!("Loading drivers...");
 
         let mut drivers = Vec::new();
 
         #[cfg(feature = "wasm-drivers")]
-        WasmDriver::load_all(cloud_identifier, &mut drivers).await;
+        WasmDriver::load_all(cloud_identifier, &mut drivers);
 
         info!("Loaded <blue>{} driver(s)</>", drivers.len());
         Self { drivers }
     }
 
-    pub async fn cleanup(&self) {
+    pub fn cleanup(&self) {
         for driver in &self.drivers {
-            if let Err(error) = driver.cleanup().await {
+            if let Err(error) = driver.cleanup() {
                 error!(
                     "Failed to dispose resources of driver <red>{}</>: <red>{}</>",
                     driver.name(),
@@ -84,9 +84,9 @@ impl Drivers {
         }
     }
 
-    pub async fn tick(&self) {
+    pub fn tick(&self) {
         for driver in &self.drivers {
-            if let Err(error) = driver.tick().await {
+            if let Err(error) = driver.tick() {
                 error!(
                     "Failed to tick driver <red>{}</>: <red>{}</>",
                     driver.name(),
@@ -96,14 +96,15 @@ impl Drivers {
         }
     }
 
-    pub fn find_by_name(&self, name: &str) -> Option<&Box<dyn GenericDriver>> {
+    pub fn find_by_name(&self, name: &str) -> Option<Arc<dyn GenericDriver>> {
         self.drivers
             .iter()
             .find(|driver| driver.name().eq_ignore_ascii_case(name))
+            .cloned()
     }
 
-    pub fn get_drivers(&self) -> &Vec<Box<dyn GenericDriver>> {
-        &self.drivers
+    pub fn get_drivers(&self) -> Vec<DriverHandle> {
+        self.drivers.clone()
     }
 }
 

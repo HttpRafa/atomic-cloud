@@ -10,3 +10,13 @@ Download the latest released version [here](https://github.com/HttpRafa/atomic-c
 ## Step 2: Start the Controller
 
 Start the Controller via Terminal in the desired Directory. After the Start up of the Controller write down the auth-token that will show up because it will be needed later. If you lost the auth token it can be retrieved [here](https://httprafa.github.io/atomic-cloud/controller/usage/retrieve_token/).
+
+
+## Step 3: Download the Driver
+
+Download the latest Driver version [here](https://github.com/HttpRafa/atomic-cloud/releases).
+
+
+## Step 4: Start the CLI
+
+Start the CLI in a Terminal on your Device where you want to Controll the Cloud from.

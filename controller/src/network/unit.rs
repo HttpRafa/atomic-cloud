@@ -27,6 +27,7 @@ pub mod proto {
 }
 
 pub struct UnitServiceImpl {
+    pub controller: ControllerHandle,
 }
 
 #[async_trait]

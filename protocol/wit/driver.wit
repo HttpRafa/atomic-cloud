@@ -126,7 +126,10 @@ interface process {
 }
 
 // Interface for API functionality
-interface api {}
+interface api {
+    // Function to get the name of the API
+    get-name: func() -> string;
+}
 
 // Interface for bridge functionality
 interface bridge {

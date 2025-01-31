@@ -9,7 +9,7 @@ RUN pacman-key --init
 RUN pacman -Syu --noconfirm
 
 # Install required packages
-RUN pacman -S base-devel nushell git less nano openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
+RUN pacman -S base-devel git less vi openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
 
 # Install gRPC UI
 RUN aur-install grpcui-bin
@@ -22,13 +22,6 @@ EOF
 ENV HOME=/home/${REMOTE_USER}
 
 USER ${REMOTE_USER}
-
-# Switch to nano as default editor
-ENV EDITOR=nano
-
-# Disable nu welcome message
-RUN mkdir -p ~/.config/nushell/
-RUN echo "\$env.config.show_banner = false" >> ~/.config/nushell/config.nu
 
 # Install Rustup and set default toolchains
 RUN rustup default nightly

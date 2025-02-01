@@ -1,276 +1,209 @@
-package cloudlet:plugin;
+package plugin:system;
 
-// Types required for this protocol
 interface types {
-    type error-message = string; // Type alias for error
-    type scoped-errors = list<scoped-error>; // Type alias for scoped errors
+    type error-message = string;
+    type scoped-errors = list<scoped-error>;
 
-    // Result type for error handling
     record scoped-error {
-        scope: string,          // Scope of the error
-        message: error-message, // Error message
+        scope: string,
+        message: error-message,
     }
 
-    // Enum for references
     variant reference {
-        controller, // Controller reference
-        configs,    // Configurations reference
-        data,       // Data reference
+        controller,
+        configs,
+        data,
     }
-    // Record for directory
+
     record directory {
-        path: string,           // Directory path
-        reference: reference,   // Directory reference
+        path: string,
+        reference: reference,
     }
-    // Record for key-value pair
+
     record key-value {
-        key: string,   // Key
-        value: string, // Value
+        key: string,
+        value: string,
     }
 }
 
-// Interface for logging functionality
 interface log {
-    // Enum for log levels
     variant level {
-        debug,  // Debug level
-        info,   // Info level
-        warn,   // Warning level
-        error,  // Error level
+        debug,
+        info,
+        warn,
+        error,
     }
-    // Function to log a message with a specific log level
     log-string: func(level: level, message: string);
 }
 
-// Interface for platform-specific functionality
 interface platform {
-    // Enum for operating systems
     variant os {
-        unix,    // Unix-based OS
-        windows, // Windows OS
+        unix,
+        windows,
     }
-    // Function to get the current operating system
     get-os: func() -> os;
 }
 
-// Interface for file functionality
 interface file {
-    use types.{error-message, directory}; // Use directory type from types interface
-    // Function to delete directories recursively
+    use types.{error-message, directory};
     remove-dir-all: func(directory: directory) -> result<_, error-message>;
 }
 
-// Interface for HTTP functionality
 interface http {
-    // Enum for HTTP methods
     variant method {
-        get,     // HTTP GET method
-        patch,   // HTTP PATCH method
-        post,    // HTTP POST method
-        put,     // HTTP PUT method
-        delete,  // HTTP DELETE method
+        get,
+        patch,
+        post,
+        put,
+        delete,
     }
-    // Record for HTTP headers
+
     record header {
-        key: string,   // Header key
-        value: string, // Header value
+        key: string,
+        value: string,
     }
-    // Record for HTTP response
+
     record response {
-        status-code: u32,         // HTTP status code
-        reason-phrase: string,    // HTTP reason phrase
-        headers: list<header>,    // List of HTTP headers
-        bytes: list<u8>,          // Response body as bytes
+        status-code: u32,
+        reason-phrase: string,
+        headers: list<header>,
+        bytes: list<u8>,
     }
-    // Function to send an HTTP request
+
     send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
 }
 
-// Interface for process management functionality
 interface process {
-    use types.{error-message, key-value, directory}; // Use directory type from types interface
+    use types.{error-message, key-value, directory};
 
-    // Enum for reader modes
     variant reader-mode {
-        direct,    // Allows you to directly controll the read process
-        async,   // Reads data asynchronously
+        direct,
+        async,
     }
-    // Enum for standard readers
+
     variant std-reader {
-        stdout, // Standard output
-        stderr, // Standard error
+        stdout,
+        stderr,
     }
 
-    // Function to spawn a new process
     spawn-process: func(command: string, args: list<string>, environment: list<key-value>, directory: directory, mode: reader-mode) -> result<u32, error-message>;
-    // Function to kill a process
     kill-process: func(pid: u32) -> result<_, error-message>;
-    // Function to drop a process
     drop-process: func(pid: u32) -> result<bool, error-message>;
-
-    // Function to try waiting for a process to finish
     try-wait: func(pid: u32) -> result<option<s32>, error-message>;
-
-    // Function to read a specified number of bytes from a process's standard output or error
     read-direct: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
-    // Function to read all remaining bytes from a process's standard output or error
     read-to-end-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
-    // Function to read a line from a process's standard output or error
     read-line-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, error-message>;
     has-data-left-direct: func(pid: u32, std: std-reader) -> result<bool, error-message>;
-    // Function read line using async mode
     read-line-async: func(pid: u32, std: std-reader) -> result<option<string>, error-message>;
-
-    // Function to write data to a process's standard input
     write-stdin: func(pid: u32, data: list<u8>) -> result<_, error-message>;
 }
 
-// Interface for API functionality
 interface api {
-    // Function to get the name of the API
     get-name: func() -> string;
 }
 
-// Interface for bridge functionality
 interface bridge {
-    use types.{error-message, scoped-errors, key-value}; // Use key-value type from types interface
+    use types.{error-message, scoped-errors, key-value};
 
-    // Type alias for UUID
     type uuid = string;
 
-    /* Init */
-    // Record for bridge information
     record information {
-        authors: list<string>, // List of authors
-        version: string,       // Version of the bridge
-        ready: bool,           // Ready status
+        authors: list<string>,
+        version: string,
+        ready: bool,
     }
 
-    /* Cloudlet | Start */
-    // Record for cloudlet capabilities
     record capabilities {
-        memory: option<u32>,        // Optional memory capability
-        max-allocations: option<u32>, // Optional maximum allocations
-        child: option<string>,      // Optional child capability
+        memory: option<u32>,
+        max-allocations: option<u32>,
+        child: option<string>,
     }
 
-    // Record for remote controller
     record remote-controller {
-        address: string, // Controller address
+        address: string,
     }
-    /* Cloudlet | End */
 
-    /* Allocation */
-    // Record for address
     record address {
-        host: string, // Host address
-        port: u16,    // Port number
+        host: string,
+        port: u16,
     }
 
-    /* Unit | Start */
-    // Record for unit resources
     record resources {
-        memory: u32,     // Memory resource
-        swap: u32,       // Swap resource
-        cpu: u32,        // CPU resource
-        io: u32,         // IO resource
-        disk: u32,       // Disk resource
-        addresses: u32,  // Addresses resource
+        memory: u32,
+        swap: u32,
+        cpu: u32,
+        io: u32,
+        disk: u32,
+        addresses: u32,
     }
 
-    // Record for unit setting
     record setting {
-        key: string,   // Setting key
-        value: string, // Setting value
+        key: string,
+        value: string,
     }
 
-    // Enum for disk retention policy
     variant retention {
-        permanent, // Permanent retention
-        temporary, // Temporary retention
+        permanent,
+        temporary,
     }
 
-    // Record for unit specification
     record spec {
-        settings: list<key-value>,    // List of settings
-        environment: list<key-value>, // List of environment variables
-        disk-retention: retention,    // Disk retention policy
-        image: string,                // Image
+        settings: list<key-value>,
+        environment: list<key-value>,
+        disk-retention: retention,
+        image: string,
     }
 
-    // Record for unit allocation
     record allocation {
-        addresses: list<address>, // List of addresses
-        resources: resources,     // Resources
-        spec: spec,               // Specification
+        addresses: list<address>,
+        resources: resources,
+        spec: spec,
     }
 
-    // Record for authentication
     record auth {
-        token: string, // Authentication token
+        token: string,
     }
 
-    // Record for unit proposal
-    record unit-proposal {
-        name: string,                // Unit name
-        deployment: option<string>,  // Optional deployment
-        resources: resources,        // Resources
-        spec: spec,                  // Specification
+    record instance-proposal {
+        name: string,
+        deployment: option<string>,
+        resources: resources,
+        spec: spec,
     }
 
-    // Record for unit
-    record unit {
-        name: string,                // Unit name
-        uuid: uuid,                  // Unit UUID
-        deployment: option<string>,  // Optional deployment
-        allocation: allocation,      // Allocation
-        auth: auth,                  // Authentication
+    record instance {
+        name: string,
+        uuid: uuid,
+        deployment: option<string>,
+        allocation: allocation,
+        auth: auth,
     }
-    /* Unit | End */
 
-    // Resource for generic cloudlet
-    resource generic-cloudlet {
-        // Constructor for generic cloudlet
+    resource generic-node {
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
-        // Function to handle cloudlet tick
         tick: func() -> result<_, scoped-errors>;
-
-        // Function to allocate addresses for a unit
-        allocate-addresses: func(unit: unit-proposal) -> result<list<address>, error-message>;
-        // Function to deallocate addresses
+        allocate-addresses: func(instance: instance-proposal) -> result<list<address>, error-message>;
         deallocate-addresses: func(addresses: list<address>);
-
-        // Function to start a unit
-        start-unit: func(unit: unit);
-        // Function to restart a unit
-        restart-unit: func(unit: unit);
-        // Function to stop a unit
-        stop-unit: func(unit: unit);
+        start-instance: func(instance: instance);
+        restart-instance: func(instance: instance);
+        stop-instance: func(instance: instance);
     }
 
-    // Resource for generic driver
-    resource generic-driver {
-        // Constructor for generic driver
+    resource generic-plugin {
         constructor(cloud-identifier: string);
-        // Function to initialize the driver
         init: func() -> information;
-        // Function to initialize a cloudlet
-        init-cloudlet: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-cloudlet, error-message>;
-        // Function that is called when the driver is stopped
-        cleanup: func() -> result<_, scoped-errors>;
-
-        // Function to handle driver tick
+        init-node: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-node, error-message>;
         tick: func() -> result<_, scoped-errors>;
+        shutdown: func() -> result<_, scoped-errors>;
     }
 }
 
-// World definition for the driver
-world driver {
-    export bridge;    // Export bridge interface
-    import api;       // Import API interface
-    import log;       // Import log interface
-    import platform;  // Import platform interface
-    import file;      // Import file interface
-    import http;      // Import HTTP interface
-    import process;   // Import process interface
+world plugin {
+    export bridge;
+    import api;
+    import log;
+    import platform;
+    import file;
+    import http;
+    import process;
 }

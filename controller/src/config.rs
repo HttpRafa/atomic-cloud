@@ -1,18 +1,13 @@
-use std::{net::SocketAddr, str::FromStr, time::Duration};
+use std::{fs, net::SocketAddr, str::FromStr, time::Duration};
 
+use anyhow::Result;
 use common::config::{LoadFromTomlFile, SaveToTomlFile};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::storage::Storage;
 
-const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(150);
-const DEFAULT_RESTART_TIMEOUT: Duration = Duration::from_secs(120);
-const DEFAULT_HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(15);
-const DEFAULT_TRANSFER_TIMEOUT: Duration = Duration::from_secs(10);
-const DEFAULT_EMPTY_INSTANCE_TIMEOUT: Duration = Duration::from_secs(60);
-
-const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0:8080";
+const DEFAULT_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
 #[derive(Deserialize, Serialize)]
 struct Network {
@@ -36,14 +31,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn parse() -> Self {
+    pub fn parse() -> Result<Self> {
         let path = Storage::get_primary_config_file();
         if path.exists() {
-            Self::from_file(&path).expect("Failed to load configuration file")
+            Self::from_file(&path)
         } else {
-            let default = Self::default();
-            default.write(&path, true).expect("Failed to write default configuration file");
-            default
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&path, DEFAULT_CONFIG)?;
+            Self::from_file(&path)
         }
     }
 
@@ -76,23 +73,4 @@ impl Config {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            identifier: Uuid::new_v4().to_string(),
-            network: Network {
-                bind: SocketAddr::from_str(DEFAULT_BIND_ADDRESS).expect("Invalid default bind address"),
-            },
-            timeouts: Timeouts {
-                startup: DEFAULT_STARTUP_TIMEOUT,
-                restart: DEFAULT_RESTART_TIMEOUT,
-                heartbeat: DEFAULT_HEARTBEAT_TIMEOUT,
-                transfer: DEFAULT_TRANSFER_TIMEOUT,
-                empty_instance: DEFAULT_EMPTY_INSTANCE_TIMEOUT,
-            },
-        }
-    }
-}
-
 impl LoadFromTomlFile for Config {}
-impl SaveToTomlFile for Config {}

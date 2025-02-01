@@ -23,8 +23,12 @@ const USERS_DIRECTORY: &str = "users";
 const CONFIG_DIRECTORY: &str = "configs";
 const PRIMARY_CONFIG_FILE: &str = "config.toml";
 
-/* Drivers */
-const DRIVERS_DIRECTORY: &str = "drivers";
+/* Wasm Configs */
+const WASM_PLUGINS_CONFIG_FILE: &str = "wasm-plugins.toml";
+const WASM_ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
+
+/* Plugins */
+const PLUGINS_DIRECTORY: &str = "plugins";
 const DATA_DIRECTORY: &str = "data";
 
 pub struct Storage;
@@ -36,45 +40,53 @@ impl Storage {
     }
 
     /* Cloudlets */
-    pub fn get_cloudlets_folder() -> PathBuf {
+    pub fn get_cloudlets_directory() -> PathBuf {
         PathBuf::from(CLOUDLETS_DIRECTORY)
     }
     pub fn get_cloudlet_file(name: &str) -> PathBuf {
-        Storage::get_cloudlets_folder().join(format!("{}.toml", name))
+        Storage::get_cloudlets_directory().join(format!("{}.toml", name))
     }
 
     /* Deployments */
-    pub fn get_deployments_folder() -> PathBuf {
+    pub fn get_deployments_directory() -> PathBuf {
         PathBuf::from(DEPLOYMENTS_DIRECTORY)
     }
     pub fn get_deployment_file(name: &str) -> PathBuf {
-        Storage::get_deployments_folder().join(format!("{}.toml", name))
+        Storage::get_deployments_directory().join(format!("{}.toml", name))
     }
 
     /* Auth */
-    pub fn get_users_folder() -> PathBuf {
+    pub fn get_users_directory() -> PathBuf {
         PathBuf::from(AUTH_DIRECTORY).join(USERS_DIRECTORY)
     }
     pub fn get_user_file(name: &str) -> PathBuf {
-        Storage::get_users_folder().join(format!("{}.toml", name))
+        Storage::get_users_directory().join(format!("{}.toml", name))
     }
 
     /* Configs */
-    pub fn get_configs_folder() -> PathBuf {
+    pub fn get_configs_directory() -> PathBuf {
         PathBuf::from(CONFIG_DIRECTORY)
     }
     pub fn get_primary_config_file() -> PathBuf {
-        Storage::get_configs_folder().join(PRIMARY_CONFIG_FILE)
+        Storage::get_configs_directory().join(PRIMARY_CONFIG_FILE)
     }
 
-    /* Drivers */
-    pub fn get_drivers_folder() -> PathBuf {
-        PathBuf::from(DRIVERS_DIRECTORY)
+    /* Wasm Configs */
+    pub fn get_wasm_plugins_config_file() -> PathBuf {
+        Storage::get_configs_directory().join(WASM_PLUGINS_CONFIG_FILE)
     }
-    pub fn get_data_folder_for_driver(name: &str) -> PathBuf {
+    pub fn get_wasm_engine_config_file() -> PathBuf {
+        Storage::get_configs_directory().join(WASM_ENGINE_CONFIG_FILE)
+    }
+
+    /* Plugins */
+    pub fn get_plugins_directory() -> PathBuf {
+        PathBuf::from(PLUGINS_DIRECTORY)
+    }
+    pub fn get_data_directory_for_plugin(name: &str) -> PathBuf {
         PathBuf::from(DATA_DIRECTORY).join(name)
     }
-    pub fn get_config_folder_for_driver(name: &str) -> PathBuf {
-        Storage::get_configs_folder().join(name)
+    pub fn get_config_directory_for_plugin(name: &str) -> PathBuf {
+        Storage::get_configs_directory().join(name)
     }
 }

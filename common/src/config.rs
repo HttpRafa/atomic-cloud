@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub trait SaveToTomlFile: Serialize {
-    fn write(&self, path: &Path, create_parent: bool) -> Result<()> {
+    fn save(&self, path: &Path, create_parent: bool) -> Result<()> {
         if create_parent {
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent)?;

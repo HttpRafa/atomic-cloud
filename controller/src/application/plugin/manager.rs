@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use simplelog::info;
 
-use crate::{application::TickService, config::Config};
+use crate::{config::Config};
 
 use super::WrappedPlugin;
 
@@ -32,15 +32,16 @@ impl PluginManager {
     }
 }
 
-impl TickService for PluginManager {
-    async fn tick(&mut self) -> Result<()> {
+// Ticking
+impl PluginManager {
+    pub async fn tick(&mut self) -> Result<()> {
         for plugin in self.plugins.values() {
             plugin.tick();
         }
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<()> {
+    pub async fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }

@@ -8,7 +8,7 @@ use stored::StoredNode;
 use crate::{
     application::{
         plugin::{manager::PluginManager, WrappedNode},
-        TickService,
+        
     },
     storage::Storage,
 };
@@ -52,7 +52,7 @@ impl NodeManager {
             {
                 Ok(instance) => {
                     info!("Loaded node {}", name);
-                    nodes.insert(name.clone(), Node::init(&name, value, instance));
+                    nodes.insert(name.clone(), Node::new(&name, value, instance));
                 }
                 Err(error) => error!("Failed to initialize node {}: {}", name, error),
             }
@@ -61,10 +61,14 @@ impl NodeManager {
         info!("Loaded {} node(s)", nodes.len());
         Ok(Self { nodes })
     }
+
+    pub fn has_node(&self, name: &str) -> bool {
+        self.nodes.contains_key(name)
+    }
 }
 
 impl Node {
-    pub fn init(name: &str, node: StoredNode, instance: WrappedNode) -> Self {
+    pub fn new(name: &str, node: StoredNode, instance: WrappedNode) -> Self {
         Self {
             plugin: node.get_plugin().to_string(),
             instance,
@@ -76,15 +80,16 @@ impl Node {
     }
 }
 
-impl TickService for NodeManager {
-    async fn tick(&mut self) -> Result<()> {
+// Ticking
+impl NodeManager {
+    pub async fn tick(&mut self) -> Result<()> {
         for node in self.nodes.values() {
-            node.tick();
+            node.tick()?;
         }
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<()> {
+    pub async fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }

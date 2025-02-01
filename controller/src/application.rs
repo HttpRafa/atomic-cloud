@@ -51,7 +51,7 @@ impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;
-        let groups = GroupManager::init().await?;
+        let groups = GroupManager::init(&nodes).await?;
         let servers = ServerManager::init().await?;
 
         Ok(Self {
@@ -94,7 +94,7 @@ impl Controller {
         self.nodes.tick().await?;
 
         // Tick group manager
-        self.groups.tick().await?;
+        self.groups.tick(&self.servers).await?;
 
         // Tick server manager
         self.servers.tick().await?;
@@ -129,9 +129,4 @@ impl Controller {
         })
         .map_err(|error| error.into())
     }
-}
-
-pub trait TickService {
-    async fn tick(&mut self) -> Result<()>;
-    async fn shutdown(&mut self) -> Result<()>;
 }

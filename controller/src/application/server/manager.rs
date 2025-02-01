@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use anyhow::Result;
 use uuid::Uuid;
 
-use crate::application::TickService;
-
 use super::Server;
 
 pub struct ServerManager {
@@ -17,14 +15,19 @@ impl ServerManager {
             servers: HashMap::new(),
         })
     }
+
+    pub fn get_server(&self, uuid: &Uuid) -> Option<&Server> {
+        self.servers.get(uuid)
+    }
 }
 
-impl TickService for ServerManager {
-    async fn tick(&mut self) -> Result<()> {
+// Ticking
+impl ServerManager {
+    pub async fn tick(&mut self) -> Result<()> {
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<()> {
+    pub async fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }

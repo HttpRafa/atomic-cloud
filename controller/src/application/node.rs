@@ -22,8 +22,14 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn tick(&self) -> JoinHandle<Result<()>> {
-        self.instance.tick()
+    pub fn tick(&self) -> Result<()> {
+        if self.status == LifecycleStatus::Inactive {
+            // Do not tick this node because it is inactive
+            return Ok(());
+        }
+
+        self.instance.tick();
+        Ok(())
     }
 }
 

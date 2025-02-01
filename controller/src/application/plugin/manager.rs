@@ -16,7 +16,7 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub async fn init(config: &Config) -> Result<Self> {
-        info!("Initializing plugin system...");
+        info!("Loading plugins...");
 
         let mut plugins = HashMap::new();
 
@@ -25,6 +25,10 @@ impl PluginManager {
 
         info!("Loaded {} plugin(s)", plugins.len());
         Ok(Self { plugins })
+    }
+
+    pub fn get_plugin(&self, name: &str) -> Option<&WrappedPlugin> {
+        self.plugins.get(name)
     }
 }
 

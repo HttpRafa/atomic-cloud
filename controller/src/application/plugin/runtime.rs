@@ -6,7 +6,7 @@ pub(crate) mod source {
     use std::{
         fmt::{self, Display, Formatter},
         fs,
-        path::PathBuf,
+        path::{Path, PathBuf},
     };
 
     use anyhow::Result;
@@ -23,7 +23,7 @@ pub(crate) mod source {
     }
 
     impl Source {
-        pub fn from_file(path: &PathBuf) -> Result<Self> {
+        pub fn from_file(path: &Path) -> Result<Self> {
             Ok(Source {
                 path: path.to_owned(),
                 source: fs::read(path)?,

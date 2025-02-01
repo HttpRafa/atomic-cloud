@@ -18,14 +18,11 @@ use tokio::{
     time::interval,
 };
 
-use crate::{
-    config::Config,
-    task::WrappedTask,
-};
+use crate::{config::Config, task::WrappedTask};
 
-mod plugin;
-mod node;
 mod group;
+mod node;
+mod plugin;
 mod server;
 
 const TICK_RATE: u64 = 20;
@@ -52,13 +49,18 @@ pub struct Controller {
 
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
+        let plugins = PluginManager::init(&config).await?;
+        let nodes = NodeManager::init(&plugins).await?;
+        let groups = GroupManager::init().await?;
+        let servers = ServerManager::init().await?;
+
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
             tasks: channel(TASK_BUFFER),
-            plugins: PluginManager::init(&config).await?,
-            nodes: NodeManager::init().await?,
-            groups: GroupManager::init().await?,
-            servers: ServerManager::init().await?,
+            plugins,
+            nodes,
+            groups,
+            servers,
             config,
         })
     }

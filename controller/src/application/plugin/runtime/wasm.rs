@@ -2,15 +2,21 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use generated::exports::plugin::system::bridge;
+use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
+use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
-use crate::application::plugin::{GenericPlugin, Information};
+use crate::application::{
+    node::{Capabilities, RemoteController},
+    plugin::{GenericPlugin, Information, WrappedNode},
+};
 
 pub(crate) mod config;
 mod ext;
 pub mod init;
+mod node;
 
 pub mod generated {
     use wasmtime::component::bindgen;
@@ -37,20 +43,44 @@ pub(crate) struct Plugin {
     instance: ResourceAny,
 }
 
+#[async_trait]
 impl GenericPlugin for Plugin {
-    fn init(&self) -> JoinHandle<Result<Information>> {
+    async fn init(&self) -> Result<Information> {
         let (bindings, store, instance) = self.get();
-        spawn(async move {
-            match bindings
-                .plugin_system_bridge()
-                .generic_plugin()
-                .call_init(store.lock().await.as_context_mut(), instance)
-                .await
-            {
-                Ok(information) => Ok(information.into()),
-                Err(error) => Err(error),
-            }
-        })
+        let mut store = store.lock().await;
+        match bindings
+            .plugin_system_bridge()
+            .generic_plugin()
+            .call_init(store.as_context_mut(), instance)
+            .await
+        {
+            Ok(information) => Ok(information.into()),
+            Err(error) => Err(error),
+        }
+    }
+
+    async fn init_node(
+        &self,
+        name: &str,
+        capabilities: &Capabilities,
+        remote: &RemoteController,
+    ) -> Result<WrappedNode> {
+        let (bindings, store, instance) = self.get();
+        match bindings
+            .plugin_system_bridge()
+            .generic_plugin()
+            .call_init_node(
+                store.clone().lock().await.as_context_mut(),
+                instance,
+                name,
+                &capabilities.into(),
+                &remote.into(),
+            )
+            .await?
+        {
+            Ok(instance) => Ok(Box::new(PluginNode::new(bindings, store, instance))),
+            Err(error) => Err(anyhow!(error)),
+        }
     }
 
     fn tick(&self) -> JoinHandle<Result<()>> {
@@ -102,6 +132,24 @@ impl From<bridge::Information> for Information {
             authors: val.authors,
             version: val.version,
             ready: val.ready,
+        }
+    }
+}
+
+impl From<&Capabilities> for bridge::Capabilities {
+    fn from(val: &Capabilities) -> Self {
+        bridge::Capabilities {
+            memory: val.get_memory(),
+            max_allocations: val.get_max_allocations(),
+            child: val.get_child().map(|value| value.to_string()),
+        }
+    }
+}
+
+impl From<&RemoteController> for bridge::RemoteController {
+    fn from(val: &RemoteController) -> Self {
+        bridge::RemoteController {
+            address: val.get_address().to_string(),
         }
     }
 }

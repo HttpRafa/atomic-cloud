@@ -1,5 +1,8 @@
 use anyhow::Result;
 use tokio::task::JoinHandle;
+use tonic::async_trait;
+
+use super::node::{Capabilities, RemoteController};
 
 pub mod manager;
 mod runtime;
@@ -7,8 +10,15 @@ mod runtime;
 pub type WrappedPlugin = Box<dyn GenericPlugin>;
 pub type WrappedNode = Box<dyn GenericNode>;
 
+#[async_trait]
 pub trait GenericPlugin {
-    fn init(&self) -> JoinHandle<Result<Information>>;
+    async fn init(&self) -> Result<Information>;
+    async fn init_node(
+        &self,
+        name: &str,
+        capabilities: &Capabilities,
+        remote: &RemoteController,
+    ) -> Result<WrappedNode>;
 
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;

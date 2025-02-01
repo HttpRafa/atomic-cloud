@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::Result;
+use common::file::for_each_content;
 use simplelog::{error, info, warn};
 use tokio::sync::Mutex;
 use wasmtime::{
@@ -39,27 +40,11 @@ pub async fn init_wasm_plugins(
     }
 
     let amount = plugins.len();
-    for entry in fs::read_dir(directory)? {
-        let entry = match entry {
-            Ok(entry) => entry,
-            Err(error) => {
-                error!("Failed to read plugin entry: {}", error);
-                continue;
-            }
-        };
-
-        let path = entry.path();
-        if path.is_dir()
-            || !path
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .ends_with(".wasm")
-        {
+    for (path, file_name, name) in for_each_content(&directory)? {
+        if !file_name.ends_with(".wasm") {
             continue;
         }
 
-        let name = path.file_stem().unwrap().to_string_lossy().to_string();
         let source = match Source::from_file(&path) {
             Ok(source) => source,
             Err(error) => {
@@ -102,7 +87,7 @@ pub async fn init_wasm_plugins(
         .await;
         match plugin {
             Ok(plugin) => match plugin.init().await {
-                Ok(Ok(information)) => {
+                Ok(information) => {
                     if information.ready {
                         info!(
                             "Loaded plugin {} v{} by {}",
@@ -112,17 +97,10 @@ pub async fn init_wasm_plugins(
                         );
                         plugins.insert(name, Box::new(plugin));
                     } else {
-                        warn!(
-                            "Plugin {} marked itself as not ready, skipping...",
-                            name
-                        );
+                        warn!("Plugin {} marked itself as not ready, skipping...", name);
                     }
                 }
-                Ok(Err(error)) => error!("Failed to initialize plugin {}: {}", name, error),
-                Err(error) => error!(
-                    "Failed to join plugin initialization task {}: {}",
-                    name, error
-                ),
+                Err(error) => error!("Failed to initialize plugin {}: {}", name, error),
             },
             Err(error) => error!(
                 "Failed to compile plugin {} at location {}: {}",

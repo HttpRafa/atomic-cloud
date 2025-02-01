@@ -1,4 +1,4 @@
-# Welcome to Atomic Cloud
+# Welcome
 
 Welcome to the **Atomic Cloud** project! Please note that the cloud is currently in its **early development stages**, and you might encounter occasional bugs. If you experience any issues, please report them by opening an issue on our [GitHub repository](https://github.com/HttpRafa/atomic-cloud).
 

@@ -1,15 +1,33 @@
-# What is the controller?
+# What is the Controller?
 
-The controller is a crucial component of the cloud. It manages the nodes and is responsible for overseeing the servers initiated by the cloud.
+The **Controller** is a vital component of the Atomic Cloud platform. It acts as the central management unit by:
 
+- **Overseeing Nodes:**  
+  It monitors and manages the nodes in the cloud infrastructure.
 
-# How to use the controller?
+- **Managing Servers:**  
+  It is responsible for initiating and supervising the servers launched by the cloud.
+
+By coordinating these operations, the Controller ensures a seamless and efficient cloud experience.
+
+---
+
+# How to Use the Controller
+
+Managing the Controller is straightforward with the CLI. Here are the basic operations:
 
 ## Create a Node
 
-Create a Node with the CLI using the option "Create Node".
-
+1. **Launch the CLI:**  
+   Open your terminal and start the CLI.
+2. **Select "Create Node":**  
+   From the available options, choose **"Create Node"** to add a new node to your cloud network.
 
 ## Create a Deployment
 
-Create a Deployment with the CLI using the option "Create Deployment".
+1. **Launch the CLI:**  
+   Open your terminal and start the CLI.
+2. **Select "Create Deployment":**  
+   Choose **"Create Deployment"** from the menu to initiate a new server deployment within your cloud infrastructure.
+
+These simple steps enable you to manage and expand your cloud resources efficiently using the CLI.

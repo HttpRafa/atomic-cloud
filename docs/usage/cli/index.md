@@ -1,18 +1,24 @@
-# CLI
+# Command Line Interface (CLI)
 
-This page provides instructions on how to download and use the CLI for controlling the controller.
+This guide provides instructions on how to download, install, and use the CLI tool for managing the controller.
 
 ## Download the CLI
 
-You can download the latest CLI binary from the [GitHub releases page](https://github.com/HttpRafa/atomic-cloud/releases/).
+Download the latest CLI binary from the [GitHub releases page](https://github.com/HttpRafa/atomic-cloud/releases/).
 
 ## Installation
 
-1. Download the appropriate binary for your operating system.
-2. Place the binary in a directory that is included in your system's PATH.
+1. **Download:**  
+   Choose and download the binary appropriate for your operating system.
+2. **Set Up PATH:**  
+   Place the downloaded binary in a directory that is included in your system's PATH. This ensures you can run the CLI from any terminal session.
 
 ## Usage
 
-Run the CLI from your terminal and follow the instructions provided by the CLI to control the controller.
+- **Launching the CLI:**  
+  Open your terminal and run the CLI command.
+- **Interactive Guidance:**  
+  Follow the on-screen instructions provided by the CLI to control the controller and manage your cloud resources.
 
-We’re actively working to provide more detailed and useful content here. Please check back soon for updates.
+> **Note:**  
+> We’re actively working to expand and enhance this documentation. Please check back soon for more detailed content and additional usage examples.

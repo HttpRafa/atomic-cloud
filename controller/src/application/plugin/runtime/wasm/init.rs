@@ -106,15 +106,15 @@ pub async fn init_wasm_plugins(
                     if information.ready {
                         info!(
                             "Loaded plugin {} v{} by {}",
-                            plugin.name,
+                            name,
                             information.version,
                             information.authors.join(", ")
                         );
-                        plugins.insert(plugin.name.clone(), Box::new(plugin));
+                        plugins.insert(name, Box::new(plugin));
                     } else {
                         warn!(
                             "Plugin {} marked itself as not ready, skipping...",
-                            plugin.name
+                            name
                         );
                     }
                 }
@@ -216,7 +216,6 @@ impl Plugin {
             .await?;
 
         Ok(Plugin {
-            name: name.to_string(),
             bindings: Arc::new(bindings),
             store: Arc::new(Mutex::new(store)),
             instance,

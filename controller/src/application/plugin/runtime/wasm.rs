@@ -32,17 +32,12 @@ pub(crate) struct PluginState {
 }
 
 pub(crate) struct Plugin {
-    name: String,
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,
     instance: ResourceAny,
 }
 
 impl GenericPlugin for Plugin {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
     fn init(&self) -> JoinHandle<Result<Information>> {
         let (bindings, store, instance) = self.get();
         spawn(async move {

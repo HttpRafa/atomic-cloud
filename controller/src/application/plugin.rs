@@ -8,7 +8,6 @@ pub type WrappedPlugin = Box<dyn GenericPlugin>;
 pub type WrappedNode = Box<dyn GenericNode>;
 
 pub trait GenericPlugin {
-    fn name(&self) -> &str;
     fn init(&self) -> JoinHandle<Result<Information>>;
 
     /* Ticking */

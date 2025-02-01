@@ -159,14 +159,14 @@ interface bridge {
         token: string,
     }
 
-    record instance-proposal {
+    record server-proposal {
         name: string,
         deployment: option<string>,
         resources: resources,
         spec: spec,
     }
 
-    record instance {
+    record server {
         name: string,
         uuid: uuid,
         deployment: option<string>,
@@ -177,11 +177,11 @@ interface bridge {
     resource generic-node {
         constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
         tick: func() -> result<_, scoped-errors>;
-        allocate-addresses: func(instance: instance-proposal) -> result<list<address>, error-message>;
+        allocate-addresses: func(server: server-proposal) -> result<list<address>, error-message>;
         deallocate-addresses: func(addresses: list<address>);
-        start-instance: func(instance: instance);
-        restart-instance: func(instance: instance);
-        stop-instance: func(instance: instance);
+        start-server: func(server: server);
+        restart-server: func(server: server);
+        stop-server: func(server: server);
     }
 
     resource generic-plugin {

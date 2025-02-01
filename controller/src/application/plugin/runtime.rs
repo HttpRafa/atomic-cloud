@@ -33,9 +33,5 @@ pub(crate) mod source {
         pub fn get_source(&self) -> &[u8] {
             &self.source
         }
-
-        pub fn get_path(&self) -> &PathBuf {
-            &self.path
-        }
     }
 }

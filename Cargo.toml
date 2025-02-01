@@ -17,7 +17,7 @@ members = [
 ]
 
 [workspace.metadata]
-protocol-version = 5
+protocol-version = 6
 
 [profile.release]
 lto = true

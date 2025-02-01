@@ -9,11 +9,11 @@ use std::path::PathBuf;
 const LOGS_DIRECTORY: &str = "logs";
 const LATEST_LOG_FILE: &str = "latest.log";
 
-/* Cloudlets */
-const CLOUDLETS_DIRECTORY: &str = "cloudlets";
+/* Nodes */
+const NODES_DIRECTORY: &str = "nodes";
 
-/* Deployments */
-const DEPLOYMENTS_DIRECTORY: &str = "deployments";
+/* Groups */
+const GROUPS_DIRECTORY: &str = "groups";
 
 /* Auth */
 const AUTH_DIRECTORY: &str = "auth";
@@ -39,20 +39,20 @@ impl Storage {
         PathBuf::from(LOGS_DIRECTORY).join(LATEST_LOG_FILE)
     }
 
-    /* Cloudlets */
-    pub fn get_cloudlets_directory() -> PathBuf {
-        PathBuf::from(CLOUDLETS_DIRECTORY)
+    /* Nodes */
+    pub fn get_nodes_directory() -> PathBuf {
+        PathBuf::from(NODES_DIRECTORY)
     }
-    pub fn get_cloudlet_file(name: &str) -> PathBuf {
-        Storage::get_cloudlets_directory().join(format!("{}.toml", name))
+    pub fn get_node_file(name: &str) -> PathBuf {
+        Storage::get_nodes_directory().join(format!("{}.toml", name))
     }
 
-    /* Deployments */
-    pub fn get_deployments_directory() -> PathBuf {
-        PathBuf::from(DEPLOYMENTS_DIRECTORY)
+    /* Groups */
+    pub fn get_groups_directory() -> PathBuf {
+        PathBuf::from(GROUPS_DIRECTORY)
     }
-    pub fn get_deployment_file(name: &str) -> PathBuf {
-        Storage::get_deployments_directory().join(format!("{}.toml", name))
+    pub fn get_group_file(name: &str) -> PathBuf {
+        Storage::get_groups_directory().join(format!("{}.toml", name))
     }
 
     /* Auth */

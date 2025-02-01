@@ -7,7 +7,10 @@ use std::{
 };
 
 use anyhow::Result;
+use group::manager::GroupManager;
+use node::manager::NodeManager;
 use plugin::manager::PluginManager;
+use server::manager::ServerManager;
 use simplelog::info;
 use tokio::{
     select,
@@ -17,10 +20,13 @@ use tokio::{
 
 use crate::{
     config::Config,
-    task::{Task, WrappedTask},
+    task::WrappedTask,
 };
 
 mod plugin;
+mod node;
+mod group;
+mod server;
 
 const TICK_RATE: u64 = 20;
 const TASK_BUFFER: usize = 128;
@@ -35,7 +41,10 @@ pub struct Controller {
     tasks: (TaskSender, Receiver<WrappedTask>),
 
     /* Components */
-    plugin: PluginManager,
+    plugins: PluginManager,
+    nodes: NodeManager,
+    groups: GroupManager,
+    servers: ServerManager,
 
     /* Config */
     config: Config,
@@ -46,7 +55,10 @@ impl Controller {
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
             tasks: channel(TASK_BUFFER),
-            plugin: PluginManager::init(&config).await?,
+            plugins: PluginManager::init(&config).await?,
+            nodes: NodeManager::init().await?,
+            groups: GroupManager::init().await?,
+            servers: ServerManager::init().await?,
             config,
         })
     }
@@ -74,7 +86,16 @@ impl Controller {
 
     async fn tick(&mut self) -> Result<()> {
         // Tick plugin manager
-        self.plugin.tick().await?;
+        self.plugins.tick().await?;
+
+        // Tick node manager
+        self.nodes.tick().await?;
+
+        // Tick group manager
+        self.groups.tick().await?;
+
+        // Tick server manager
+        self.servers.tick().await?;
 
         Ok(())
     }
@@ -82,8 +103,17 @@ impl Controller {
     async fn shutdown(&mut self) -> Result<()> {
         info!("Starting shutdown sequence...");
 
+        // Shutdown server manager
+        self.servers.shutdown().await?;
+
+        // Shutdown group manager
+        self.groups.shutdown().await?;
+
+        // Shutdown node manager
+        self.nodes.shutdown().await?;
+
         // Shutdown plugin manager
-        self.plugin.shutdown().await?;
+        self.plugins.shutdown().await?;
 
         info!("Shutdown complete. Bye :)");
         Ok(())

@@ -93,13 +93,8 @@ interface process {
     read-direct: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
     read-to-end-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
     read-line-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, error-message>;
-    has-data-left-direct: func(pid: u32, std: std-reader) -> result<bool, error-message>;
     read-line-async: func(pid: u32, std: std-reader) -> result<option<string>, error-message>;
     write-stdin: func(pid: u32, data: list<u8>) -> result<_, error-message>;
-}
-
-interface api {
-    get-name: func() -> string;
 }
 
 interface bridge {
@@ -200,10 +195,9 @@ interface bridge {
 
 world plugin {
     export bridge;
-    import api;
     import log;
     import platform;
     import file;
     import http;
-    import process;
+    //import process;
 }

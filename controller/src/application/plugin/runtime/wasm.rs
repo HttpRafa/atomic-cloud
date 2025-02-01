@@ -9,6 +9,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 use crate::application::plugin::{GenericPlugin, Information};
 
 pub(crate) mod config;
+mod ext;
 pub mod init;
 
 pub mod generated {
@@ -22,6 +23,9 @@ pub mod generated {
 }
 
 pub(crate) struct PluginState {
+    /* Plugin */
+    name: String,
+
     /* Wasmtime */
     wasi: WasiCtx,
     resources: ResourceTable,

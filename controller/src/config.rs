@@ -1,13 +1,13 @@
-use std::{fs, net::SocketAddr, str::FromStr, time::Duration};
+use std::{fs, net::SocketAddr, time::Duration};
 
 use anyhow::Result;
-use common::config::{LoadFromTomlFile, SaveToTomlFile};
+use common::config::LoadFromTomlFile;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::storage::Storage;
 
-const DEFAULT_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
+const DEFAULT_CONFIG: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
 #[derive(Deserialize, Serialize)]
 struct Network {

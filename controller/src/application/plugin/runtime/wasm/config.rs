@@ -1,15 +1,21 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
-use common::config::{LoadFromTomlFile};
+use common::config::LoadFromTomlFile;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::warn;
 
 use crate::storage::Storage;
 
-const DEFAULT_PLUGINS_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/wasm-plugins.toml"));
-const DEFAULT_ENGINE_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/wasm-engine.toml"));
+const DEFAULT_PLUGINS_CONFIG: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/configs/wasm-plugins.toml"
+));
+const DEFAULT_ENGINE_CONFIG: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/configs/wasm-engine.toml"
+));
 
 #[derive(Serialize, Deserialize)]
 pub struct PluginsConfig {
@@ -31,10 +37,49 @@ pub struct PluginConfig {
     mounts: Vec<Mount>,
 }
 
+impl PluginConfig {
+    pub fn has_inherit_stdio(&self) -> bool {
+        self.inherit_stdio
+    }
+    pub fn has_inherit_args(&self) -> bool {
+        self.inherit_args
+    }
+    pub fn has_inherit_env(&self) -> bool {
+        self.inherit_env
+    }
+    pub fn has_inherit_network(&self) -> bool {
+        self.inherit_network
+    }
+    pub fn has_allow_ip_name_lookup(&self) -> bool {
+        self.allow_ip_name_lookup
+    }
+    pub fn has_allow_http(&self) -> bool {
+        self.allow_http
+    }
+    pub fn has_allow_process(&self) -> bool {
+        self.allow_process
+    }
+    pub fn has_allow_remove_dir_all(&self) -> bool {
+        self.allow_remove_dir_all
+    }
+    pub fn get_mounts(&self) -> &[Mount] {
+        &self.mounts
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Mount {
     host: String,
     guest: String,
+}
+
+impl Mount {
+    pub fn get_host(&self) -> &str {
+        &self.host
+    }
+    pub fn get_guest(&self) -> &str {
+        &self.guest
+    }
 }
 
 impl PluginsConfig {
@@ -74,23 +119,6 @@ pub fn verify_engine_config() -> Result<PathBuf> {
         }
         fs::write(&path, DEFAULT_ENGINE_CONFIG)?;
         Ok(path)
-    }
-}
-
-impl Default for PluginConfig {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            inherit_stdio: true,
-            inherit_args: true,
-            inherit_env: true,
-            inherit_network: true,
-            allow_ip_name_lookup: true,
-            allow_http: true,
-            allow_process: true,
-            allow_remove_dir_all: true,
-            mounts: Vec::new(),
-        }
     }
 }
 

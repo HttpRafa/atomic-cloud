@@ -177,7 +177,7 @@ impl Profile {
             authorization: self.authorization.clone(),
             url: self.url.clone(),
         };
-        stored_profile.write(&Storage::get_profile_file(&self.id), true)
+        stored_profile.save(&Storage::get_profile_file(&self.id), true)
     }
 
     pub fn compute_id(name: &str) -> String {

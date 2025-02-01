@@ -26,15 +26,15 @@ pub(crate) mod source {
         pub fn from_file(path: &PathBuf) -> Result<Self> {
             Ok(Source {
                 path: path.to_owned(),
-                source: fs::read(&path)?,
+                source: fs::read(path)?,
             })
         }
 
-        pub fn source(&self) -> &[u8] {
+        pub fn get_source(&self) -> &[u8] {
             &self.source
         }
 
-        pub fn path(&self) -> &PathBuf {
+        pub fn get_path(&self) -> &PathBuf {
             &self.path
         }
     }

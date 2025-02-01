@@ -1,5 +1,3 @@
-#![feature(buf_read_has_data_left)]
-
 use anyhow::Result;
 use application::Controller;
 use clap::{ArgAction, Parser};

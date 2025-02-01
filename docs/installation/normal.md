@@ -12,9 +12,9 @@ Download the latest released version [here](https://github.com/HttpRafa/atomic-c
 Start the Controller via Terminal in the desired Directory. After the Start up of the Controller write down the auth-token that will show up because it will be needed later. If you lost the auth token it can be retrieved [here](https://httprafa.github.io/atomic-cloud/usage/retrieve_token.md).
 
 
-## Step 3: Download the Driver
+## Step 3: Download the Plugin
 
-Download the latest Driver version [here](https://github.com/HttpRafa/atomic-cloud/releases). Insert the Driver into the drivers folder and Restart the Controller.
+Download the latest Plugin version [here](https://github.com/HttpRafa/atomic-cloud/releases). Insert the Plugin into the `plugins` folder and Restart the Controller.
 
 
 ## Step 4: Start the CLI

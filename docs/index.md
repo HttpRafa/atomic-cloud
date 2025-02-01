@@ -6,7 +6,7 @@ Welcome to the Atomic Cloud project. Please note that the cloud is currently in 
 This documentation is a work in progress. We apologize for any grammatical errors or incomplete sections you may come across. We welcome contributions from the community. If you wish to help improve the documentation, please feel free to submit a Pull Request.
 
 ## Installation
-The Atomic Cloud consists of two main components: the Controller and the CLI.
+The Atomic Cloud consists of two main components: the Controller and the CLI. The Recommended Installation through a Docker Image can be found [here](installation/docker.md). If you aren't using Docker the normal installation can be found [here](installation/normal.md).
 
 ### Controller
 The [Controller](usage/controller/index.md) should be installed in an environment that can operate continuously, such as a Raspberry Pi or a cloud server. It is responsible for managing the core functionalities of the cloud system.

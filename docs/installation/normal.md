@@ -1,22 +1,30 @@
-# Normal
+# Manual Installation
 
-The manual way to install the cloud. Follow the steps below for installation:  
+Follow the steps below to manually install Atomic Cloud.
 
-## Step 1: Download the CLI and the Controller  
+## Step 1: Download the CLI and Controller
 
-Download the latest released version [here](https://github.com/HttpRafa/atomic-cloud/releases). You need the right Version of the Controller for the OS where it is running on. The Cli should be the Version for the OS of the PC where you want to manage the Cloud from.
+ Download the latest release from our [GitHub releases page](https://github.com/HttpRafa/atomic-cloud/releases).
 
+ **Controller:** Choose the version that corresponds to the operating system where the Controller will run.
+
+ **CLI:** Choose the version that matches the operating system on your local machine, from which you will manage the cloud.
 
 ## Step 2: Start the Controller
 
-Start the Controller via Terminal in the desired Directory. After the Start up of the Controller write down the auth-token that will show up because it will be needed later. If you lost the auth token it can be retrieved [here](https://httprafa.github.io/atomic-cloud/usage/retrieve_token.md).
+1. Open a terminal and navigate to the directory where the Controller is located.
+2. Start the Controller.
+3. **Important:** After startup, note the authentication token that is displayed. You will need this token later.  
+   If you lose the token, you can retrieve it from our [token retrieval guide](https://httprafa.github.io/atomic-cloud/usage/retrieve_token.md).
 
+## Step 3: Download and Install the Plugin
 
-## Step 3: Download the Plugin
-
-Download the latest Plugin version [here](https://github.com/HttpRafa/atomic-cloud/releases). Insert the Plugin into the `plugins` folder and Restart the Controller.
-
+1. Download the latest plugin version from our [GitHub releases page](https://github.com/HttpRafa/atomic-cloud/releases).
+2. Place the plugin file into the `plugins` folder.
+3. Restart the Controller to load the new plugin.
 
 ## Step 4: Start the CLI
 
-Start the CLI in a Terminal on your Device where you want to Controll the Cloud from. After that select "Add new controller" and Follow the Steps that will be displayed.
+1. Open a terminal on your local device where you want to control the cloud.
+2. Start the CLI application.
+3. When prompted, select **"Add new controller"** and follow the on-screen instructions to complete the setup.

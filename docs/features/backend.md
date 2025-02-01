@@ -1,11 +1,19 @@
 # Modular Backend
 
-Atomic Cloud features a versatile "driver system" that enables the cloud to utilize various methods to initiate the server. Examples of supported backends include Pterodactyl, Docker, and traditional servers (similar to CloudNet).
+Atomic Cloud is built on a versatile driver system that abstracts and streamlines the process of initiating servers. This modular approach allows the platform to support various backends, ensuring flexibility and scalability. Currently, Atomic Cloud supports several backend types, including:
+
+- **Pterodactyl**
+- **Docker**
+- **Traditional Servers** (similar to CloudNet)
 
 ## Supported Languages for Driver Development
 
-Drivers are implemented using WebAssembly and adhere to the WASI standard, which imposes certain compatibility constraints. It is highly recommended to develop drivers in Rust or utilize TeaVM for Java to ensure optimal performance and compatibility.
+Drivers for Atomic Cloud are implemented using WebAssembly and adhere to the WASI standard. Due to compatibility constraints inherent to WASI, it is highly recommended to develop drivers in one of the following languages to ensure optimal performance and compatibility:
+
+- **Rust**
+- **Java** (using [TeaVM](https://www.teavm.org/) for transpilation)
 
 ## Currently Available Drivers
 
-1. Pterodactyl (with plans to support Pelican in the future)
+- **Pterodactyl Driver:** Enables integration with the Pterodactyl backend.  
+  *Future plans include support for the Pelican backend.*

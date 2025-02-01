@@ -23,11 +23,11 @@ Managing the Controller is straightforward with the CLI. Here are the basic oper
 2. **Select "Create Node":**  
    From the available options, choose **"Create Node"** to add a new node to your cloud network.
 
-## Create a Deployment
+## Create a Group
 
 1. **Launch the CLI:**  
    Open your terminal and start the CLI.
-2. **Select "Create Deployment":**  
-   Choose **"Create Deployment"** from the menu to initiate a new server deployment within your cloud infrastructure.
+2. **Select "Create Group":**  
+   Choose **"Create Group"** from the menu to initiate a new server Group within your cloud infrastructure.
 
 These simple steps enable you to manage and expand your cloud resources efficiently using the CLI.

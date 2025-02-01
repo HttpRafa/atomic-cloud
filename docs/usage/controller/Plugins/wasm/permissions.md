@@ -1,39 +1,65 @@
 # Permissions
 
-WASM Plugins operate within a sandbox environment, which means they have very limited access to the host system by default. The WASI standard and the controller provide APIs to enable integration with network or local resources. However, you must grant the appropriate permissions to the Plugin you install to allow such access.
+WASM plugins operate within a sandbox environment, meaning they have very limited access to the host system by default. Both the WASI standard and the Controller provide APIs to facilitate integration with network or local resources. However, you must explicitly grant the necessary permissions to each plugin to enable such access.
 
-You can configure the permissions in the `configs/wasm.toml` file:
+You can configure these permissions in the `configs/wasm.toml` file. For example:
 
-```bash
-nano wasm.toml
-```
+1. **Open the Configuration File:**
 
-```toml
-# This configuration is crucial for granting the plugins their required permissions
-# https://httprafa.github.io/atomic-cloud/controller/plugins/wasm/permissions/
+   ```bash
+   nano wasm.toml
+   ```
 
-[[Plugins]]
-name = "local"
-inherit_stdio = true
-inherit_args = true
-inherit_env = true
-inherit_network = true
-allow_ip_name_lookup = true
-allow_http = true
-allow_child_processes = true
+2. **Configure Plugin Permissions:**
 
-[[plugins.mounts]]
-host = "/var/run/docker.sock"
-guest = "/var/run/docker.sock"
+   ```toml
+   # This configuration is crucial for granting the plugins their required permissions.
+   # For more details, see: https://httprafa.github.io/atomic-cloud/controller/plugins/wasm/permissions/
 
-[[plugins]]
-name = "pterodactyl"
-inherit_stdio = false
-inherit_args = false
-inherit_env = false
-inherit_network = true
-allow_ip_name_lookup = true
-allow_http = true
-allow_child_processes = false
-mounts = []
-```
+   [[Plugins]]
+   name = "local"
+   inherit_stdio = true
+   inherit_args = true
+   inherit_env = true
+   inherit_network = true
+   allow_ip_name_lookup = true
+   allow_http = true
+   allow_child_processes = true
+
+   [[plugins.mounts]]
+   host = "/var/run/docker.sock"
+   guest = "/var/run/docker.sock"
+
+   [[plugins]]
+   name = "pterodactyl"
+   inherit_stdio = false
+   inherit_args = false
+   inherit_env = false
+   inherit_network = true
+   allow_ip_name_lookup = true
+   allow_http = true
+   allow_child_processes = false
+   mounts = []
+   ```
+
+### Explanation of Configuration Options
+
+- **inherit_stdio, inherit_args, inherit_env:**  
+  These options control whether the plugin inherits the standard I/O streams, command-line arguments, and environment variables from the host.
+
+- **inherit_network:**  
+  Determines if the plugin can access the network interfaces of the host.
+
+- **allow_ip_name_lookup:**  
+  Enables the plugin to perform DNS lookups.
+
+- **allow_http:**  
+  Permits the plugin to make HTTP requests.
+
+- **allow_child_processes:**  
+  Specifies whether the plugin can spawn child processes.
+
+- **mounts:**  
+  Configures file or socket mounts between the host and the plugin environment. For instance, mounting the Docker socket allows a plugin to interact with Docker on the host.
+
+This setup ensures that plugins run securely while still having the flexibility to integrate with local or network resources as required.

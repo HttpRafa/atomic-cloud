@@ -109,8 +109,7 @@ impl GenericNode for PluginNode {
         })
     }
 
-    fn start(&self, token: &str, server: &Server) -> JoinHandle<Result<()>> {
-        let token = token.to_string();
+    fn start(&self, server: &Server) -> JoinHandle<Result<()>> {
         let server = server.into();
 
         let (bindings, store, instance) = self.get();
@@ -121,7 +120,6 @@ impl GenericNode for PluginNode {
                 .call_start(
                     store.lock().await.as_context_mut(),
                     instance,
-                    &token,
                     &server,
                 )
                 .await
@@ -239,6 +237,7 @@ impl From<&Server> for bridge::Server {
             uuid: val.uuid().to_string(),
             deployment: val.group().clone(),
             allocation: val.allocation().into(),
+            token: val.token().clone()
         }
     }
 }

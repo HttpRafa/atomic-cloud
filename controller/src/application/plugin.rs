@@ -40,7 +40,7 @@ pub trait GenericNode {
     fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>>;
 
     /* Servers */
-    fn start(&self, token: &str, server: &Server) -> JoinHandle<Result<()>>;
+    fn start(&self, server: &Server) -> JoinHandle<Result<()>>;
     fn restart(&self, server: &Server) -> JoinHandle<Result<()>>;
     fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
 }

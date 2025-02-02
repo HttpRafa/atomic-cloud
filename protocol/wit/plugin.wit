@@ -167,6 +167,7 @@ interface bridge {
         uuid: uuid,
         deployment: option<string>,
         allocation: allocation,
+        token: string,
     }
 
     resource generic-node {
@@ -174,7 +175,7 @@ interface bridge {
         tick: func() -> result<_, scoped-errors>;
         allocate: func(server: server-proposal) -> result<list<address>, error-message>;
         free: func(addresses: list<address>);
-        start: func(token: string, server: server);
+        start: func(server: server);
         restart: func(server: server);
         stop: func(server: server);
     }

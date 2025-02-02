@@ -22,6 +22,8 @@ pub struct Server {
     node: String,
     #[getset(get = "pub")]
     allocation: Allocation,
+    #[getset(get = "pub")]
+    token: String,
 
     /* Users */
     #[getset(get = "pub")]

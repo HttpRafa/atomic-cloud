@@ -119,7 +119,11 @@ impl ServerManager {
             ))
         }
     }
-    pub fn free(request: &StopRequest, servers: &mut HashMap<Uuid, Server>, nodes: &NodeManager) -> Result<JoinHandle<Result<()>>> {
+    pub fn free(
+        request: &StopRequest,
+        servers: &mut HashMap<Uuid, Server>,
+        nodes: &NodeManager,
+    ) -> Result<JoinHandle<Result<()>>> {
         if let Some(server) = servers.get(&request.server) {
             if let Some(node) = nodes.get_node(&server.node) {
                 Ok(node.free(&server.allocation.ports))

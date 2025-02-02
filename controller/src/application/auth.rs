@@ -1,4 +1,3 @@
-
 use uuid::Uuid;
 
 pub mod validator;

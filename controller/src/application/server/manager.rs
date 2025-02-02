@@ -20,7 +20,7 @@ use crate::{
 
 use super::{Resources, Server, Spec, State};
 
- mod action;
+mod action;
 
 pub struct ServerManager {
     /* Servers */
@@ -117,20 +117,22 @@ impl ServerManager {
                     if handle.is_finished() {
                         handle.await??;
                         debug!("Stopping server {}", request.server);
-                    match Self::stop(&request, &mut self.servers, nodes, groups, validator).await {
-                        Ok(handle) => {
-                            reinsert = true;
-                            ActionStage::Running(handle)
+                        match Self::stop(&request, &mut self.servers, nodes, groups, validator)
+                            .await
+                        {
+                            Ok(handle) => {
+                                reinsert = true;
+                                ActionStage::Running(handle)
+                            }
+                            Err(error) => {
+                                warn!("Failed to stop server {}: {}", request.server, error);
+                                ActionStage::Failed
+                            }
                         }
-                        Err(error) => {
-                            warn!("Failed to stop server {}: {}", request.server, error);
-                            ActionStage::Failed
-                        }
+                    } else {
+                        reinsert = true;
+                        ActionStage::Freeing(handle)
                     }
-                } else {
-                    reinsert = true;
-                    ActionStage::Freeing(handle)
-                }
                 }
                 ActionStage::Running(handle) => {
                     if handle.is_finished() {

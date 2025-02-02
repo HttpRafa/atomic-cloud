@@ -7,7 +7,7 @@ The Atomic Cloud platform features a sophisticated API suite designed to enhance
 
 2. **Server Management and Player Transitions:**  
    The API suite provides powerful tools to:
-   - **Initiate Server:** Easily start new server instances as needed.
+   - **Initiate Server:** Easily start new server as needed.
    - **Manage Player Transitions:** Handle player migrations between servers smoothly, enhancing both the gaming experience and operational performance.
 
 These features work together to create a dynamic and efficient environment for managing game server operations.

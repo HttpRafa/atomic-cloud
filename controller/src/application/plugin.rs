@@ -1,8 +1,12 @@
 use anyhow::Result;
+use common::network::HostAndPort;
 use tokio::task::JoinHandle;
 use tonic::async_trait;
 
-use super::node::{Capabilities, RemoteController};
+use super::{
+    node::{Capabilities, RemoteController},
+    server::{manager::StartRequest, Server},
+};
 
 pub mod manager;
 mod runtime;
@@ -20,6 +24,9 @@ pub trait GenericPlugin {
         remote: &RemoteController,
     ) -> Result<WrappedNode>;
 
+    /* Shutdown */
+    fn shutdown(&self) -> JoinHandle<Result<()>>;
+
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;
 }
@@ -27,6 +34,15 @@ pub trait GenericPlugin {
 pub trait GenericNode {
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;
+
+    /* Prepare */
+    fn allocate(&self, request: &StartRequest) -> JoinHandle<Result<Vec<HostAndPort>>>;
+    fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>>;
+
+    /* Servers */
+    fn start(&self, token: &str, server: &Server) -> JoinHandle<Result<()>>;
+    fn restart(&self, server: &Server) -> JoinHandle<Result<()>>;
+    fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
 }
 
 pub struct Information {

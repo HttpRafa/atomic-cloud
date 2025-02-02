@@ -2,6 +2,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use common::config::LoadFromTomlFile;
+use getset::Getters;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::warn;

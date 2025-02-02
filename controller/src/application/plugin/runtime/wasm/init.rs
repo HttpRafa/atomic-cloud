@@ -126,7 +126,10 @@ impl Plugin {
         config_directory: &Path,
     ) -> Result<Self> {
         let mut engine_config = wasmtime::Config::new();
-        engine_config.wasm_component_model(true).async_support(true);
+        engine_config
+            .wasm_component_model(true)
+            .async_support(true)
+            .epoch_interruption(true);
         if let Err(error) = engine_config.cache_config_load(Storage::wasm_engine_config_file()) {
             warn!("Failed to enable caching for wasmtime engine: {}", error);
         }

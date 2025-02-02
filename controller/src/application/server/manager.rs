@@ -5,7 +5,6 @@ use getset::Getters;
 use tokio::time::Instant;
 use uuid::Uuid;
 
-
 use super::{Resources, Server, Spec};
 
 pub struct ServerManager {
@@ -67,9 +66,13 @@ pub struct StartRequest {
     /* Server */
     #[getset(get = "pub")]
     name: String,
+    #[getset(get = "pub")]
     group: Option<String>,
+    #[getset(get = "pub")]
     nodes: Vec<String>,
+    #[getset(get = "pub")]
     resources: Resources,
+    #[getset(get = "pub")]
     spec: Spec,
     priority: i32,
 }

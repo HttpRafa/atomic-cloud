@@ -34,6 +34,7 @@ toml = "0.8.19"
 
 # Async runtime
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros"] }
+futures = "0.3.31"
 
 # API
 url = { version = "2.5.4", features = ["serde"] }

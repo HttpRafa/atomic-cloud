@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 use uuid::Uuid;
 
+use super::node::Allocation;
+
 pub mod manager;
 
 #[derive(Getters, MutGetters)]
@@ -18,6 +20,8 @@ pub struct Server {
     group: Option<String>,
     #[getset(get = "pub")]
     node: String,
+    #[getset(get = "pub")]
+    allocation: Allocation,
 
     /* Users */
     #[getset(get = "pub")]

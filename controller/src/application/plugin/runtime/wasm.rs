@@ -83,6 +83,27 @@ impl GenericPlugin for Plugin {
         }
     }
 
+    fn shutdown(&self) -> JoinHandle<Result<()>> {
+        let (bindings, store, instance) = self.get();
+        spawn(async move {
+            match bindings
+                .plugin_system_bridge()
+                .generic_plugin()
+                .call_shutdown(store.lock().await.as_context_mut(), instance)
+                .await
+            {
+                Ok(result) => result.map_err(|errors| {
+                    anyhow!(errors
+                        .iter()
+                        .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
+                        .collect::<Vec<_>>()
+                        .join("\n"))
+                }),
+                Err(error) => Err(error),
+            }
+        })
+    }
+
     fn tick(&self) -> JoinHandle<Result<()>> {
         let (bindings, store, instance) = self.get();
         spawn(async move {
@@ -139,9 +160,9 @@ impl From<bridge::Information> for Information {
 impl From<&Capabilities> for bridge::Capabilities {
     fn from(val: &Capabilities) -> Self {
         bridge::Capabilities {
-            memory: val.get_memory(),
-            max_allocations: val.get_max_allocations(),
-            child: val.get_child().map(|value| value.to_string()),
+            memory: *val.memory(),
+            max_allocations: *val.max_allocations(),
+            child: val.child().as_ref().map(|value| value.to_string()),
         }
     }
 }
@@ -149,7 +170,7 @@ impl From<&Capabilities> for bridge::Capabilities {
 impl From<&RemoteController> for bridge::RemoteController {
     fn from(val: &RemoteController) -> Self {
         bridge::RemoteController {
-            address: val.get_address().to_string(),
+            address: val.address().to_string(),
         }
     }
 }

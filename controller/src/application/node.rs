@@ -1,8 +1,13 @@
 use anyhow::Result;
+use common::network::HostAndPort;
+use getset::Getters;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use super::plugin::WrappedNode;
+use super::{
+    plugin::WrappedNode,
+    server::{Resources, Spec},
+};
 
 pub mod manager;
 
@@ -32,10 +37,23 @@ impl Node {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Getters)]
+pub struct Allocation {
+    #[getset(get = "pub")]
+    pub ports: Vec<HostAndPort>,
+    #[getset(get = "pub")]
+    pub resources: Resources,
+    #[getset(get = "pub")]
+    pub spec: Spec,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, Getters)]
 pub struct Capabilities {
+    #[getset(get = "pub")]
     memory: Option<u32>,
+    #[getset(get = "pub")]
     max_allocations: Option<u32>,
+    #[getset(get = "pub")]
     child: Option<String>,
 }
 
@@ -48,25 +66,8 @@ pub enum LifecycleStatus {
     Active,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Getters)]
 pub struct RemoteController {
+    #[getset(get = "pub")]
     address: Url,
-}
-
-impl Capabilities {
-    pub fn get_memory(&self) -> Option<u32> {
-        self.memory
-    }
-    pub fn get_max_allocations(&self) -> Option<u32> {
-        self.max_allocations
-    }
-    pub fn get_child(&self) -> Option<&str> {
-        self.child.as_deref()
-    }
-}
-
-impl RemoteController {
-    pub fn get_address(&self) -> &Url {
-        &self.address
-    }
 }

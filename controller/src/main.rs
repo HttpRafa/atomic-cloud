@@ -1,3 +1,5 @@
+#![feature(extract_if)]
+
 use anyhow::Result;
 use application::Controller;
 use clap::{ArgAction, Parser};

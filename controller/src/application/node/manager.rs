@@ -31,12 +31,12 @@ impl NodeManager {
         {
             info!("Loading node {}", name);
 
-            let plugin = match plugins.get_plugin(value.get_plugin()) {
+            let plugin = match plugins.get_plugin(value.plugin()) {
                 Some(plugin) => plugin,
                 None => {
                     warn!(
                         "Plugin {} is not loaded, skipping node {}",
-                        value.get_plugin(),
+                        value.plugin(),
                         name
                     );
                     continue;
@@ -44,7 +44,7 @@ impl NodeManager {
             };
 
             match plugin
-                .init_node(&name, value.get_capabilities(), value.get_controller())
+                .init_node(&name, value.capabilities(), value.controller())
                 .await
             {
                 Ok(instance) => {
@@ -62,17 +62,21 @@ impl NodeManager {
     pub fn has_node(&self, name: &str) -> bool {
         self.nodes.contains_key(name)
     }
+
+    pub fn get_node(&self, name: &str) -> Option<&Node> {
+        self.nodes.get(name)
+    }
 }
 
 impl Node {
     pub fn new(name: &str, node: StoredNode, instance: WrappedNode) -> Self {
         Self {
-            plugin: node.get_plugin().to_string(),
+            plugin: node.plugin().to_string(),
             instance,
             name: name.to_owned(),
-            capabilities: node.get_capabilities().clone(),
-            status: node.get_status().clone(),
-            controller: node.get_controller().clone(),
+            capabilities: node.capabilities().clone(),
+            status: node.status().clone(),
+            controller: node.controller().clone(),
         }
     }
 }
@@ -93,34 +97,24 @@ impl NodeManager {
 
 mod stored {
     use common::config::{LoadFromTomlFile, SaveToTomlFile};
+    use getset::Getters;
     use serde::{Deserialize, Serialize};
 
     use crate::application::node::{Capabilities, LifecycleStatus, RemoteController};
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Getters)]
     pub struct StoredNode {
         /* Settings */
+        #[getset(get = "pub")]
         plugin: String,
+        #[getset(get = "pub")]
         capabilities: Capabilities,
+        #[getset(get = "pub")]
         status: LifecycleStatus,
 
         /* Controller */
+        #[getset(get = "pub")]
         controller: RemoteController,
-    }
-
-    impl StoredNode {
-        pub fn get_plugin(&self) -> &str {
-            &self.plugin
-        }
-        pub fn get_capabilities(&self) -> &Capabilities {
-            &self.capabilities
-        }
-        pub fn get_status(&self) -> &LifecycleStatus {
-            &self.status
-        }
-        pub fn get_controller(&self) -> &RemoteController {
-            &self.controller
-        }
     }
 
     impl LoadFromTomlFile for StoredNode {}

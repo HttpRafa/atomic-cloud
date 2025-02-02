@@ -129,6 +129,29 @@ impl Group {
 
         Ok(())
     }
+
+    pub fn set_server_active(&mut self, server_uuid: &Uuid) {
+        self.servers.retain(|server| {
+            if let AssociatedServer::Queueing(uuid) = server {
+                if uuid == server_uuid {
+                    return false;
+                }
+            }
+            true
+        });
+        self.servers.push(AssociatedServer::Active(*server_uuid));
+    }
+
+    pub fn remove_server(&mut self, server_uuid: &Uuid) {
+        self.servers.retain(|server| {
+            if let AssociatedServer::Active(uuid) = server {
+                if uuid == server_uuid {
+                    return false;
+                }
+            }
+            true
+        });
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

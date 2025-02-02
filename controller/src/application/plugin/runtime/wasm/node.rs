@@ -117,11 +117,7 @@ impl GenericNode for PluginNode {
             match bindings
                 .plugin_system_bridge()
                 .generic_node()
-                .call_start(
-                    store.lock().await.as_context_mut(),
-                    instance,
-                    &server,
-                )
+                .call_start(store.lock().await.as_context_mut(), instance, &server)
                 .await
             {
                 Ok(()) => Ok(()),
@@ -237,7 +233,7 @@ impl From<&Server> for bridge::Server {
             uuid: val.uuid().to_string(),
             deployment: val.group().clone(),
             allocation: val.allocation().into(),
-            token: val.token().clone()
+            token: val.token().clone(),
         }
     }
 }

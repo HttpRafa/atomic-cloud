@@ -2,11 +2,12 @@ use anyhow::Result;
 use common::network::HostAndPort;
 use getset::Getters;
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 use url::Url;
 
 use super::{
     plugin::WrappedNode,
-    server::{Resources, Spec},
+    server::{manager::StartRequest, Resources, Server, Spec},
 };
 
 pub mod manager;
@@ -34,6 +35,22 @@ impl Node {
 
         self.instance.tick();
         Ok(())
+    }
+
+    pub fn allocate(&self, request: &StartRequest) -> JoinHandle<Result<Vec<HostAndPort<String>>>> {
+        self.instance.allocate(request)
+    }
+    pub fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>> {
+        self.instance.free(ports)
+    }
+    pub fn start(&self, server: &Server) -> JoinHandle<Result<()>> {
+        self.instance.start(server)
+    }
+    pub fn restart(&self, server: &Server) -> JoinHandle<Result<()>> {
+        self.instance.restart(server)
+    }
+    pub fn stop(&self, server: &Server) -> JoinHandle<Result<()>> {
+        self.instance.stop(server)
     }
 }
 

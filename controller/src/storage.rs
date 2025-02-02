@@ -16,7 +16,6 @@ const NODES_DIRECTORY: &str = "nodes";
 const GROUPS_DIRECTORY: &str = "groups";
 
 /* Auth */
-const AUTH_DIRECTORY: &str = "auth";
 const USERS_DIRECTORY: &str = "users";
 
 /* Configs */
@@ -57,7 +56,7 @@ impl Storage {
 
     /* Auth */
     pub fn users_directory() -> PathBuf {
-        PathBuf::from(AUTH_DIRECTORY).join(USERS_DIRECTORY)
+        PathBuf::from(USERS_DIRECTORY)
     }
     pub fn user_file(name: &str) -> PathBuf {
         Storage::users_directory().join(format!("{}.toml", name))

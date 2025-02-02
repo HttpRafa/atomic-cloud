@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::Result;
+use auth::validator::{AuthValidator, WrappedAuthValidator};
 use getset::{Getters, MutGetters};
 use group::manager::GroupManager;
 use node::manager::NodeManager;
@@ -21,6 +22,7 @@ use tokio::{
 
 use crate::{config::Config, task::WrappedTask};
 
+mod auth;
 mod group;
 mod node;
 mod plugin;
@@ -39,6 +41,9 @@ pub struct Controller {
     /* Tasks */
     tasks: (TaskSender, Receiver<WrappedTask>),
 
+    /* Auth */
+    validator: WrappedAuthValidator,
+
     /* Components */
     #[getset(get = "pub", get_mut = "pub")]
     plugins: PluginManager,
@@ -56,6 +61,8 @@ pub struct Controller {
 
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
+        let validator = AuthValidator::init()?;
+
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;
         let groups = GroupManager::init(&nodes).await?;
@@ -64,6 +71,7 @@ impl Controller {
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
             tasks: channel(TASK_BUFFER),
+            validator,
             plugins,
             nodes,
             groups,
@@ -104,7 +112,9 @@ impl Controller {
         self.groups.tick(&self.config, &mut self.servers).await?;
 
         // Tick server manager
-        self.servers.tick().await?;
+        self.servers
+            .tick(&self.config, &self.nodes, &mut self.groups, &self.validator)
+            .await?;
 
         Ok(())
     }

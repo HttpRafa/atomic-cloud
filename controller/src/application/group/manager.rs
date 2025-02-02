@@ -32,7 +32,7 @@ impl GroupManager {
         {
             info!("Loading group {}", name);
 
-            value.get_nodes_mut().retain(|node| {
+            value.nodes_mut().retain(|node| {
                 if !nodes.has_node(node) {
                     warn!("Node {} is not loaded, skipping node {}", node, name);
                     return false;
@@ -47,18 +47,22 @@ impl GroupManager {
         info!("Loaded {} group(s)", groups.len());
         Ok(Self { groups })
     }
+
+    pub fn get_group_mut(&mut self, name: &str) -> Option<&mut Group> {
+        self.groups.get_mut(name)
+    }
 }
 
 impl Group {
     pub fn new(name: &str, group: StoredGroup) -> Self {
         Self {
             name: name.to_string(),
-            status: group.get_status().clone(),
-            nodes: group.get_nodes().clone(),
-            constraints: group.get_constraints().clone(),
-            scaling: group.get_scaling().clone(),
-            resources: group.get_resources().clone(),
-            spec: group.get_spec().clone(),
+            status: group.status().clone(),
+            nodes: group.nodes().clone(),
+            constraints: group.constraints().clone(),
+            scaling: group.scaling().clone(),
+            resources: group.resources().clone(),
+            spec: group.spec().clone(),
             id_allocator: NumberAllocator::new(1..usize::MAX),
             servers: vec![],
         }
@@ -81,6 +85,7 @@ impl GroupManager {
 
 mod stored {
     use common::config::{LoadFromTomlFile, SaveToTomlFile};
+    use getset::{Getters, MutGetters};
     use serde::{Deserialize, Serialize};
 
     use crate::application::{
@@ -89,43 +94,25 @@ mod stored {
         server::{Resources, Spec},
     };
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Getters, MutGetters)]
     pub struct StoredGroup {
         /* Settings */
+        #[getset(get = "pub", get_mut = "pub")]
         status: LifecycleStatus,
 
         /* Where? */
+        #[getset(get = "pub", get_mut = "pub")]
         nodes: Vec<String>,
+        #[getset(get = "pub", get_mut = "pub")]
         constraints: StartConstraints,
+        #[getset(get = "pub", get_mut = "pub")]
         scaling: ScalingPolicy,
 
         /* How? */
+        #[getset(get = "pub", get_mut = "pub")]
         resources: Resources,
+        #[getset(get = "pub", get_mut = "pub")]
         spec: Spec,
-    }
-
-    impl StoredGroup {
-        pub fn get_status(&self) -> &LifecycleStatus {
-            &self.status
-        }
-        pub fn get_nodes(&self) -> &Vec<String> {
-            &self.nodes
-        }
-        pub fn get_nodes_mut(&mut self) -> &mut Vec<String> {
-            &mut self.nodes
-        }
-        pub fn get_constraints(&self) -> &StartConstraints {
-            &self.constraints
-        }
-        pub fn get_scaling(&self) -> &ScalingPolicy {
-            &self.scaling
-        }
-        pub fn get_resources(&self) -> &Resources {
-            &self.resources
-        }
-        pub fn get_spec(&self) -> &Spec {
-            &self.spec
-        }
     }
 
     impl LoadFromTomlFile for StoredGroup {}

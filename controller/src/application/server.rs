@@ -33,6 +33,8 @@ pub struct Server {
     #[getset(get = "pub", get_mut = "pub")]
     health: Health,
     #[getset(get = "pub", get_mut = "pub")]
+    state: State,
+    #[getset(get = "pub", get_mut = "pub")]
     flags: Flags,
 }
 
@@ -59,6 +61,15 @@ pub enum DiskRetention {
     Temporary,
     #[serde(rename = "permanent")]
     Permanent,
+}
+
+#[derive(PartialEq, Clone)]
+pub enum State {
+    Starting,
+    Preparing,
+    Restarting,
+    Running,
+    Stopping,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Getters)]
@@ -91,6 +102,7 @@ pub struct Health {
     timeout: Duration,
 }
 
+#[derive(Default)]
 pub struct Flags {
     /* Required for the deployment system */
     pub stop: Option<Instant>,

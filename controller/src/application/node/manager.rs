@@ -6,10 +6,7 @@ use simplelog::{error, info, warn};
 use stored::StoredNode;
 
 use crate::{
-    application::{
-        plugin::{manager::PluginManager, WrappedNode},
-        
-    },
+    application::plugin::{manager::PluginManager, WrappedNode},
     storage::Storage,
 };
 
@@ -24,7 +21,7 @@ impl NodeManager {
         info!("Loading nodes...");
         let mut nodes = HashMap::new();
 
-        let directory = Storage::get_nodes_directory();
+        let directory = Storage::nodes_directory();
         if !directory.exists() {
             fs::create_dir_all(&directory)?;
         }

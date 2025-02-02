@@ -1,28 +1,48 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
+use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
+use tokio::time::Instant;
 use uuid::Uuid;
 
 pub mod manager;
 
+#[derive(Getters, MutGetters)]
 pub struct Server {
     /* Settings */
+    #[getset(get = "pub")]
     name: String,
+    #[getset(get = "pub")]
     uuid: Uuid,
+    #[getset(get = "pub")]
     group: Option<String>,
+    #[getset(get = "pub")]
     node: String,
 
     /* Users */
+    #[getset(get = "pub")]
     connected_users: u32,
+
+    /* States */
+    #[getset(get = "pub", get_mut = "pub")]
+    health: Health,
+    #[getset(get = "pub", get_mut = "pub")]
+    flags: Flags,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Getters)]
 pub struct Resources {
+    #[getset(get = "pub")]
     memory: u32,
+    #[getset(get = "pub")]
     swap: u32,
+    #[getset(get = "pub")]
     cpu: u32,
+    #[getset(get = "pub")]
     io: u32,
+    #[getset(get = "pub")]
     disk: u32,
+    #[getset(get = "pub")]
     ports: u32,
 }
 
@@ -35,79 +55,67 @@ pub enum DiskRetention {
     Permanent,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Getters)]
 pub struct FallbackPolicy {
+    #[getset(get = "pub")]
     enabled: bool,
+    #[getset(get = "pub")]
     priority: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Getters)]
 pub struct Spec {
+    #[getset(get = "pub")]
     settings: HashMap<String, String>,
+    #[getset(get = "pub")]
     environment: HashMap<String, String>,
+    #[getset(get = "pub")]
     disk_retention: DiskRetention,
+    #[getset(get = "pub")]
     image: String,
 
+    #[getset(get = "pub")]
     max_players: u32,
+    #[getset(get = "pub")]
     fallback: FallbackPolicy,
 }
 
-impl Server {
-    pub fn get_name(&self) -> &String {
-        &self.name
+pub struct Health {
+    next_check: Instant,
+    timeout: Duration,
+}
+
+pub struct Flags {
+    /* Required for the deployment system */
+    pub stop: Option<Instant>,
+}
+
+impl Flags {
+    pub fn is_stop_set(&self) -> bool {
+        self.stop.is_some()
     }
-    pub fn get_uuid(&self) -> &Uuid {
-        &self.uuid
+    pub fn should_stop(&self) -> bool {
+        self.stop.is_some_and(|stop| stop < Instant::now())
     }
-    pub fn get_group(&self) -> &Option<String> {
-        &self.group
+    pub fn replace_stop(&mut self, timeout: Duration) {
+        self.stop = Some(Instant::now() + timeout);
     }
-    pub fn get_node(&self) -> &String {
-        &self.node
-    }
-    pub fn get_connected_users(&self) -> u32 {
-        self.connected_users
+    pub fn clear_stop(&mut self) {
+        self.stop = None;
     }
 }
 
-impl Resources {
-    pub fn get_memory(&self) -> u32 {
-        self.memory
+impl Health {
+    pub fn new(startup_time: Duration, timeout: Duration) -> Self {
+        Self {
+            next_check: Instant::now() + startup_time,
+            timeout,
+        }
     }
-    pub fn get_swap(&self) -> u32 {
-        self.swap
+    pub fn reset(&mut self) {
+        self.next_check = Instant::now() + self.timeout;
     }
-    pub fn get_cpu(&self) -> u32 {
-        self.cpu
-    }
-    pub fn get_io(&self) -> u32 {
-        self.io
-    }
-    pub fn get_disk(&self) -> u32 {
-        self.disk
-    }
-    pub fn get_ports(&self) -> u32 {
-        self.ports
-    }
-}
-
-impl Spec {
-    pub fn get_settings(&self) -> &HashMap<String, String> {
-        &self.settings
-    }
-    pub fn get_environment(&self) -> &HashMap<String, String> {
-        &self.environment
-    }
-    pub fn get_disk_retention(&self) -> &DiskRetention {
-        &self.disk_retention
-    }
-    pub fn get_image(&self) -> &String {
-        &self.image
-    }
-    pub fn get_max_players(&self) -> u32 {
-        self.max_players
-    }
-    pub fn get_fallback(&self) -> &FallbackPolicy {
-        &self.fallback
+    pub fn is_dead(&self) -> bool {
+        Instant::now() > self.next_check
     }
 }

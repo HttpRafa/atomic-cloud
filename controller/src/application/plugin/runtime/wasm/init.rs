@@ -34,7 +34,7 @@ pub async fn init_wasm_plugins(
     verify_engine_config()?;
     let plugins_config = PluginsConfig::parse()?;
 
-    let directory = Storage::get_plugins_directory();
+    let directory = Storage::plugins_directory();
     if !directory.exists() {
         fs::create_dir_all(&directory)?;
     }
@@ -56,8 +56,8 @@ pub async fn init_wasm_plugins(
             }
         };
 
-        let config_directory = Storage::get_config_directory_for_plugin(&name);
-        let data_directory = Storage::get_data_directory_for_plugin(&name);
+        let config_directory = Storage::config_directory_for_plugin(&name);
+        let data_directory = Storage::data_directory_for_plugin(&name);
         if !config_directory.exists() {
             fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
                 warn!(
@@ -127,8 +127,7 @@ impl Plugin {
     ) -> Result<Self> {
         let mut engine_config = wasmtime::Config::new();
         engine_config.wasm_component_model(true).async_support(true);
-        if let Err(error) = engine_config.cache_config_load(Storage::get_wasm_engine_config_file())
-        {
+        if let Err(error) = engine_config.cache_config_load(Storage::wasm_engine_config_file()) {
             warn!("Failed to enable caching for wasmtime engine: {}", error);
         }
 
@@ -190,7 +189,7 @@ impl Plugin {
         let instance = bindings
             .plugin_system_bridge()
             .generic_plugin()
-            .call_constructor(&mut store, global_config.get_identifier())
+            .call_constructor(&mut store, global_config.identifier())
             .await?;
 
         Ok(Plugin {

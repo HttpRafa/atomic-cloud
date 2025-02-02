@@ -7,6 +7,7 @@ use stored::StoredGroup;
 
 use crate::{
     application::{node::manager::NodeManager, server::manager::ServerManager},
+    config::Config,
     storage::Storage,
 };
 
@@ -21,7 +22,7 @@ impl GroupManager {
         info!("Loading groups...");
         let mut groups = HashMap::new();
 
-        let directory = Storage::get_groups_directory();
+        let directory = Storage::groups_directory();
         if !directory.exists() {
             fs::create_dir_all(&directory)?;
         }
@@ -66,9 +67,9 @@ impl Group {
 
 // Ticking
 impl GroupManager {
-    pub async fn tick(&mut self, servers: &ServerManager) -> Result<()> {
+    pub async fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
         for group in self.groups.values_mut() {
-            group.tick(servers)?;
+            group.tick(config, servers)?;
         }
         Ok(())
     }

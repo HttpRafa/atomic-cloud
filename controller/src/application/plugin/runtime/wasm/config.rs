@@ -84,7 +84,7 @@ impl Mount {
 
 impl PluginsConfig {
     pub fn parse() -> Result<Self> {
-        let path = Storage::get_wasm_plugins_config_file();
+        let path = Storage::wasm_plugins_config_file();
         if path.exists() {
             Self::from_file(&path)
         } else {
@@ -110,7 +110,7 @@ impl PluginsConfig {
 }
 
 pub fn verify_engine_config() -> Result<PathBuf> {
-    let path = Storage::get_wasm_engine_config_file();
+    let path = Storage::wasm_engine_config_file();
     if path.exists() {
         Ok(path)
     } else {

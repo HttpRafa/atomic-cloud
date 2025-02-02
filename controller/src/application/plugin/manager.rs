@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use simplelog::info;
 
-use crate::{config::Config};
+use crate::config::Config;
 
 use super::WrappedPlugin;
 

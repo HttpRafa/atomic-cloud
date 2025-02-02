@@ -20,7 +20,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 #[tokio::main]
 async fn main() -> Result<()> {
     let arguments = Arguments::parse();
-    CloudInit::init_logging(arguments.debug, false, Storage::get_latest_log_file());
+    CloudInit::init_logging(arguments.debug, false, Storage::latest_log_file());
     CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
     let beginning = Instant::now();
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
 }
 
 #[derive(Parser)]
-pub struct Arguments {
+struct Arguments {
     #[clap(short, long, help = "Enable debug mode", action = ArgAction::SetTrue)]
-    pub debug: bool,
+    debug: bool,
 }

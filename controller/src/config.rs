@@ -20,7 +20,7 @@ struct Timeouts {
     restart: Duration,
     heartbeat: Duration,
     transfer: Duration,
-    empty_instance: Duration,
+    empty_server: Duration,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -32,7 +32,7 @@ pub struct Config {
 
 impl Config {
     pub fn parse() -> Result<Self> {
-        let path = Storage::get_primary_config_file();
+        let path = Storage::primary_config_file();
         if path.exists() {
             Self::from_file(&path)
         } else {
@@ -44,32 +44,32 @@ impl Config {
         }
     }
 
-    pub fn get_identifier(&self) -> &str {
+    pub fn identifier(&self) -> &str {
         &self.identifier
     }
 
-    pub fn get_network_bind(&self) -> &SocketAddr {
+    pub fn network_bind(&self) -> &SocketAddr {
         &self.network.bind
     }
 
-    pub fn get_startup_timeout(&self) -> &Duration {
+    pub fn startup_timeout(&self) -> &Duration {
         &self.timeouts.startup
     }
 
-    pub fn get_restart_timeout(&self) -> &Duration {
+    pub fn restart_timeout(&self) -> &Duration {
         &self.timeouts.restart
     }
 
-    pub fn get_heartbeat_timeout(&self) -> &Duration {
+    pub fn heartbeat_timeout(&self) -> &Duration {
         &self.timeouts.heartbeat
     }
 
-    pub fn get_transfer_timeout(&self) -> &Duration {
+    pub fn transfer_timeout(&self) -> &Duration {
         &self.timeouts.transfer
     }
 
-    pub fn get_empty_instance_timeout(&self) -> &Duration {
-        &self.timeouts.empty_instance
+    pub fn empty_server_timeout(&self) -> &Duration {
+        &self.timeouts.empty_server
     }
 }
 

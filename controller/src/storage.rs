@@ -35,58 +35,58 @@ pub struct Storage;
 
 impl Storage {
     /* Logs */
-    pub fn get_latest_log_file() -> PathBuf {
+    pub fn latest_log_file() -> PathBuf {
         PathBuf::from(LOGS_DIRECTORY).join(LATEST_LOG_FILE)
     }
 
     /* Nodes */
-    pub fn get_nodes_directory() -> PathBuf {
+    pub fn nodes_directory() -> PathBuf {
         PathBuf::from(NODES_DIRECTORY)
     }
-    pub fn get_node_file(name: &str) -> PathBuf {
-        Storage::get_nodes_directory().join(format!("{}.toml", name))
+    pub fn node_file(name: &str) -> PathBuf {
+        Storage::nodes_directory().join(format!("{}.toml", name))
     }
 
     /* Groups */
-    pub fn get_groups_directory() -> PathBuf {
+    pub fn groups_directory() -> PathBuf {
         PathBuf::from(GROUPS_DIRECTORY)
     }
-    pub fn get_group_file(name: &str) -> PathBuf {
-        Storage::get_groups_directory().join(format!("{}.toml", name))
+    pub fn group_file(name: &str) -> PathBuf {
+        Storage::groups_directory().join(format!("{}.toml", name))
     }
 
     /* Auth */
-    pub fn get_users_directory() -> PathBuf {
+    pub fn users_directory() -> PathBuf {
         PathBuf::from(AUTH_DIRECTORY).join(USERS_DIRECTORY)
     }
-    pub fn get_user_file(name: &str) -> PathBuf {
-        Storage::get_users_directory().join(format!("{}.toml", name))
+    pub fn user_file(name: &str) -> PathBuf {
+        Storage::users_directory().join(format!("{}.toml", name))
     }
 
     /* Configs */
-    pub fn get_configs_directory() -> PathBuf {
+    pub fn configs_directory() -> PathBuf {
         PathBuf::from(CONFIG_DIRECTORY)
     }
-    pub fn get_primary_config_file() -> PathBuf {
-        Storage::get_configs_directory().join(PRIMARY_CONFIG_FILE)
+    pub fn primary_config_file() -> PathBuf {
+        Storage::configs_directory().join(PRIMARY_CONFIG_FILE)
     }
 
     /* Wasm Configs */
-    pub fn get_wasm_plugins_config_file() -> PathBuf {
-        Storage::get_configs_directory().join(WASM_PLUGINS_CONFIG_FILE)
+    pub fn wasm_plugins_config_file() -> PathBuf {
+        Storage::configs_directory().join(WASM_PLUGINS_CONFIG_FILE)
     }
-    pub fn get_wasm_engine_config_file() -> PathBuf {
-        Storage::get_configs_directory().join(WASM_ENGINE_CONFIG_FILE)
+    pub fn wasm_engine_config_file() -> PathBuf {
+        Storage::configs_directory().join(WASM_ENGINE_CONFIG_FILE)
     }
 
     /* Plugins */
-    pub fn get_plugins_directory() -> PathBuf {
+    pub fn plugins_directory() -> PathBuf {
         PathBuf::from(PLUGINS_DIRECTORY)
     }
-    pub fn get_data_directory_for_plugin(name: &str) -> PathBuf {
+    pub fn data_directory_for_plugin(name: &str) -> PathBuf {
         PathBuf::from(DATA_DIRECTORY).join(name)
     }
-    pub fn get_config_directory_for_plugin(name: &str) -> PathBuf {
-        Storage::get_configs_directory().join(name)
+    pub fn config_directory_for_plugin(name: &str) -> PathBuf {
+        Storage::configs_directory().join(name)
     }
 }

@@ -21,11 +21,9 @@ impl PluginState {
     pub fn get_directory(&self, name: &str, directory: &Directory) -> Result<PathBuf, String> {
         match &directory.reference {
             Reference::Controller => Ok(PathBuf::from(".").join(&directory.path)),
-            Reference::Data => {
-                Ok(Storage::get_data_directory_for_plugin(name).join(&directory.path))
-            }
+            Reference::Data => Ok(Storage::data_directory_for_plugin(name).join(&directory.path)),
             Reference::Configs => {
-                Ok(Storage::get_config_directory_for_plugin(name).join(&directory.path))
+                Ok(Storage::config_directory_for_plugin(name).join(&directory.path))
             }
         }
     }

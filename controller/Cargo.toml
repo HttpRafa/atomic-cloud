@@ -13,6 +13,9 @@ simplelog = { version = "0.12.2", features = ["paris"] }
 # Error handling
 anyhow = "1.0.95"
 
+# Getters and setters
+getset = "0.1.4"
+
 # Signal handling
 ctrlc = "3.4.5"
 

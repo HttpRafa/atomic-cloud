@@ -30,8 +30,8 @@ nanos = 0
 secs = 10
 nanos = 0
 
-# The maximum time the controller will wait for an empty instance to be filled.
-# If this timeout is reached, the instance will be stopped.
-[timeouts.empty_instance]
+# The maximum time the controller will wait for an empty server to be filled.
+# If this timeout is reached, the server will be stopped.
+[timeouts.empty_server]
 secs = 60
 nanos = 0

@@ -1,6 +1,5 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
 use url::Url;
 
 use super::plugin::WrappedNode;

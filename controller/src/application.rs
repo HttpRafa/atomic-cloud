@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::Result;
+use getset::{Getters, MutGetters};
 use group::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
@@ -30,6 +31,7 @@ const TASK_BUFFER: usize = 128;
 
 pub type TaskSender = Sender<WrappedTask>;
 
+#[derive(Getters, MutGetters)]
 pub struct Controller {
     /* State */
     running: Arc<AtomicBool>,
@@ -38,12 +40,17 @@ pub struct Controller {
     tasks: (TaskSender, Receiver<WrappedTask>),
 
     /* Components */
+    #[getset(get = "pub", get_mut = "pub")]
     plugins: PluginManager,
+    #[getset(get = "pub", get_mut = "pub")]
     nodes: NodeManager,
+    #[getset(get = "pub", get_mut = "pub")]
     groups: GroupManager,
+    #[getset(get = "pub", get_mut = "pub")]
     servers: ServerManager,
 
     /* Config */
+    #[getset(get = "pub")]
     config: Config,
 }
 
@@ -94,7 +101,7 @@ impl Controller {
         self.nodes.tick().await?;
 
         // Tick group manager
-        self.groups.tick(&self.servers).await?;
+        self.groups.tick(&self.config, &mut self.servers).await?;
 
         // Tick server manager
         self.servers.tick().await?;

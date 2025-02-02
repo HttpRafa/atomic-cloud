@@ -4,7 +4,7 @@ Templates in Atomic Cloud are pre-defined structures that help you quickly creat
 
 ## What are Templates?
 
-Templates serve as blueprints for your deployments. They define the desired configuration of resources, whether that’s a virtual machine, storage account, networking component, or even a fully configured Minecraft server setup. By using templates, you can ensure consistency and repeatability in your deployments.
+Templates serve as blueprints for your groups. They define the desired configuration of resources, whether that’s a virtual machine, storage account, networking component, or even a fully configured Minecraft server setup. By using templates, you can ensure consistency and repeatability in your groups.
 
 ## How Do Templates Work?
 
@@ -13,13 +13,13 @@ Templates work by describing the desired state of your resources in a structured
 ### Key Components of a Template
 
 1. **Parameters**:  
-   These are inputs that allow you to customize the deployment. For example, you might specify the server name, memory allocation, or game-specific settings like port numbers and world seeds.
+   These are inputs that allow you to customize the group. For example, you might specify the server name, memory allocation, or game-specific settings like port numbers and world seeds.
 
 2. **Resources**:  
    These define the actual components to be created. In a Minecraft server template, resources could include the server jar file, configuration files, mods, or plugins required to run the server.
 
 3. **Outputs**:  
-   These are values returned after the deployment, such as resource IDs, connection URLs, or IP addresses that you might need to connect to your server.
+   These are values returned after the deployment is complete, such as resource IDs, connection URLs, or IP addresses that you might need to connect to your server.
 
 ### Example Template Structure
 
@@ -92,6 +92,6 @@ serverUrl = "http://{parameters.serverName}.atomiccloud.example.com:{parameters.
   Parameters allow you to adjust key settings (like server name, port, and maximum players) without modifying the underlying resource definitions.
 
 - **Simplicity:**  
-  With a pre-defined structure, you can quickly spin up a new Minecraft server with all necessary configurations and files, reducing manual setup time.
+  With a pre-defined structure, you can quickly spin up a new Minecraft server with all the necessary configurations and files, reducing manual setup time.
 
 By using templates, you can streamline the process of deploying and managing resources in Atomic Cloud, ensuring that your infrastructure is consistent, scalable, and easy to manage—just like setting up your ideal Minecraft server.

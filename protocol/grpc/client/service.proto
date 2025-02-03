@@ -32,7 +32,7 @@ service ClientService {
 
   // Transfer operations
   rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream Transfer.Res);
-  rpc RequestTransfer(Transfer.Req) returns (google.protobuf.UInt32Value);
+  rpc RequestTransfers(Transfer.Req) returns (google.protobuf.UInt32Value);
 
   // Channel operations
   rpc PublishMessage(Channel.Msg) returns (google.protobuf.UInt32Value);

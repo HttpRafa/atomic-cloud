@@ -6,8 +6,8 @@ use tonic::async_trait;
 
 use crate::application::{Controller, TaskSender};
 
-type BoxedTask = Box<dyn GenericTask>;
-type BoxedAny = Box<dyn Any>;
+type BoxedTask = Box<dyn GenericTask + Send>;
+pub type BoxedAny = Box<dyn Any + Send>;
 
 pub struct Task {
     task: BoxedTask,
@@ -15,12 +15,12 @@ pub struct Task {
 }
 
 impl Task {
-    pub async fn create<T: 'static>(controller: TaskSender, task: BoxedTask) -> Result<T> {
+    pub async fn create<T: Send + 'static>(queue: TaskSender, task: BoxedTask) -> Result<T> {
         let (sender, receiver) = channel();
-        controller
+        queue
             .send(Task { task, sender })
             .await
-            .map_err(|_| anyhow!("Failed to send task to controller"))?;
+            .map_err(|_| anyhow!("Failed to send task to task queue"))?;
         Ok(*receiver.await??.downcast::<T>().map_err(|_| {
             anyhow!(
                 "Failed to downcast task result to the expected type. Check task implementation"

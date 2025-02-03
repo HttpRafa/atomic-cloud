@@ -7,6 +7,6 @@ message Channel {
     string name = 1;
     uint32 id = 2;
     string data = 3;
-    uint64 time = 4;   // timestamp (e.g. epoch time)
+    uint64 timestamp = 4;   // timestamp (e.g. epoch time)
   }
 }

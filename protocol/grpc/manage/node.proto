@@ -6,7 +6,7 @@ message Node {
   message Item {
     string name = 1;
     string plugin = 2;
-    uint32 mem = 3;
+    uint32 memory = 3;
     uint32 max = 4;
     string child = 5;
     string ctrlAddr = 6;

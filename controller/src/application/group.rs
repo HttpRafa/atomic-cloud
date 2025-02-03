@@ -70,14 +70,14 @@ impl Group {
                                 if server.flags().should_stop() && to_stop > 0 {
                                     debug!(
                                     "Server {} is empty and reached the timeout, stopping it...",
-                                    server.name()
+                                    server.id()
                                 );
-                                    requests.push(StopRequest::new(None, server.uuid()));
+                                    requests.push(StopRequest::new(None, server.id()));
                                     to_stop -= 1;
                                 } else {
                                     debug!(
                                         "Server {} is empty, starting stop timer...",
-                                        server.name()
+                                        server.id()
                                     );
                                     server
                                         .flags_mut()
@@ -86,7 +86,7 @@ impl Group {
                             } else if server.flags().is_stop_set() {
                                 debug!(
                                     "Server {} is no longer empty, clearing stop timer...",
-                                    server.name()
+                                    server.id()
                                 );
                                 server.flags_mut().clear_stop();
                             }
@@ -118,10 +118,10 @@ impl Group {
                 &self.spec,
             );
             self.servers
-                .push(AssociatedServer::Queueing(*request.uuid()));
+                .push(AssociatedServer::Queueing(*request.id().uuid()));
             debug!(
                 "Scheduled server({}) start for group {}",
-                request.name(),
+                request.id(),
                 self.name
             );
             servers.schedule_start(request);

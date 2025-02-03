@@ -1,9 +1,10 @@
-use std::{collections::HashMap, fs, vec};
+use std::{collections::HashMap, vec};
 
 use anyhow::Result;
 use common::{allocator::NumberAllocator, file::for_each_content_toml};
 use simplelog::{info, warn};
 use stored::StoredGroup;
+use tokio::fs;
 
 use crate::{
     application::{node::manager::NodeManager, server::manager::ServerManager},
@@ -24,7 +25,7 @@ impl GroupManager {
 
         let directory = Storage::groups_directory();
         if !directory.exists() {
-            fs::create_dir_all(&directory)?;
+            fs::create_dir_all(&directory).await?;
         }
 
         for (_, _, name, mut value) in

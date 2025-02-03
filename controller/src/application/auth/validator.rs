@@ -1,10 +1,10 @@
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use common::{config::SaveToTomlFile, file::for_each_content_toml};
 use simplelog::{error, info};
 use stored::StoredUser;
-use tokio::sync::RwLock;
+use tokio::{fs, sync::RwLock};
 use uuid::Uuid;
 
 use crate::storage::Storage;
@@ -18,13 +18,13 @@ pub struct AuthValidator {
 }
 
 impl AuthValidator {
-    pub fn init() -> Result<WrappedAuthValidator> {
+    pub async fn init() -> Result<WrappedAuthValidator> {
         info!("Loading users...");
         let mut tokens = HashMap::new();
 
         let directory = Storage::users_directory();
         if !directory.exists() {
-            fs::create_dir_all(&directory)?;
+            fs::create_dir_all(&directory).await?;
         }
 
         for (_, _, name, value) in

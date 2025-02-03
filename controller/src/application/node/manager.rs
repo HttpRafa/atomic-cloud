@@ -1,9 +1,10 @@
-use std::{collections::HashMap, fs};
+use std::collections::HashMap;
 
 use anyhow::Result;
 use common::file::for_each_content_toml;
 use simplelog::{error, info, warn};
 use stored::StoredNode;
+use tokio::fs;
 
 use crate::{
     application::plugin::{manager::PluginManager, WrappedNode},
@@ -23,7 +24,7 @@ impl NodeManager {
 
         let directory = Storage::nodes_directory();
         if !directory.exists() {
-            fs::create_dir_all(&directory)?;
+            fs::create_dir_all(&directory).await?;
         }
 
         for (_, _, name, value) in

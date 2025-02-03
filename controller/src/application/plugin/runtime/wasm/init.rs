@@ -1,14 +1,9 @@
-use std::{
-    collections::HashMap,
-    fs::{self},
-    path::Path,
-    sync::Arc,
-};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
 use common::file::for_each_content;
 use simplelog::{error, info, warn};
-use tokio::sync::Mutex;
+use tokio::{fs, sync::Mutex};
 use wasmtime::{
     component::{Component, Linker},
     Engine, Store,
@@ -36,7 +31,7 @@ pub async fn init_wasm_plugins(
 
     let directory = Storage::plugins_directory();
     if !directory.exists() {
-        fs::create_dir_all(&directory)?;
+        fs::create_dir_all(&directory).await?;
     }
 
     let amount = plugins.len();
@@ -59,20 +54,24 @@ pub async fn init_wasm_plugins(
         let config_directory = Storage::config_directory_for_plugin(&name);
         let data_directory = Storage::data_directory_for_plugin(&name);
         if !config_directory.exists() {
-            fs::create_dir_all(&config_directory).unwrap_or_else(|error| {
-                warn!(
-                    "Failed to create configs directory for driver {}: {}",
-                    name, error
-                )
-            });
+            fs::create_dir_all(&config_directory)
+                .await
+                .unwrap_or_else(|error| {
+                    warn!(
+                        "Failed to create configs directory for driver {}: {}",
+                        name, error
+                    )
+                });
         }
         if !data_directory.exists() {
-            fs::create_dir_all(&data_directory).unwrap_or_else(|error| {
-                warn!(
-                    "Failed to create data directory for driver {}: {}",
-                    name, error
-                )
-            });
+            fs::create_dir_all(&data_directory)
+                .await
+                .unwrap_or_else(|error| {
+                    warn!(
+                        "Failed to create data directory for driver {}: {}",
+                        name, error
+                    )
+                });
         }
 
         info!("Compiling plugin '{}'...", name);

@@ -13,12 +13,12 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::validator::WrappedAuthValidator, group::manager::GroupManager,
-        node::manager::NodeManager,
+        node::manager::NodeManager, user::manager::UserManager,
     },
     config::Config,
 };
 
-use super::{Resources, Server, Spec, State};
+use super::{NameAndUuid, Resources, Server, Spec, State};
 
 mod action;
 
@@ -33,13 +33,13 @@ pub struct ServerManager {
 }
 
 impl ServerManager {
-    pub async fn init() -> Result<Self> {
-        Ok(Self {
+    pub fn init() -> Self {
+        Self {
             servers: HashMap::new(),
             start_requests: BinaryHeap::new(),
             restart_requests: vec![],
             stop_requests: vec![],
-        })
+        }
     }
 
     pub fn get_server(&self, uuid: &Uuid) -> Option<&Server> {
@@ -70,6 +70,7 @@ impl ServerManager {
         config: &Config,
         nodes: &NodeManager,
         groups: &mut GroupManager,
+        users: &mut UserManager,
         validator: &WrappedAuthValidator,
     ) -> Result<()> {
         // Check health of servers
@@ -77,14 +78,14 @@ impl ServerManager {
             if server.health.is_dead() {
                 match server.state {
                     State::Starting | State::Running => {
-                        warn!("Unit {} failed to establish online status within the expected startup time of {:.2?}.", server.name, config.restart_timeout());
+                        warn!("Unit {} failed to establish online status within the expected startup time of {:.2?}.", server.id, config.restart_timeout());
                     }
                     _ => {
-                        warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.name, server.health.timeout);
+                        warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.id, server.health.timeout);
                     }
                 }
                 self.restart_requests
-                    .push(RestartRequest::new(None, &server.uuid));
+                    .push(RestartRequest::new(None, server.id()));
             }
         }
 
@@ -117,8 +118,15 @@ impl ServerManager {
                     if handle.is_finished() {
                         handle.await??;
                         debug!("Stopping server {}", request.server);
-                        match Self::stop(&request, &mut self.servers, nodes, groups, validator)
-                            .await
+                        match Self::stop(
+                            &request,
+                            &mut self.servers,
+                            nodes,
+                            groups,
+                            users,
+                            validator,
+                        )
+                        .await
                         {
                             Ok(handle) => {
                                 reinsert = true;
@@ -199,10 +207,7 @@ impl ServerManager {
         let mut requests = vec![];
         while let Some(mut request) = self.start_requests.pop() {
             if request.nodes.is_empty() {
-                warn!(
-                    "Server {} has no nodes available to start on.",
-                    request.name
-                );
+                warn!("Server {} has no nodes available to start on.", request.id);
                 continue;
             }
 
@@ -216,7 +221,7 @@ impl ServerManager {
             let mut reinsert = false;
             request.stage = match mem::replace(&mut request.stage, StartStage::Queued) {
                 StartStage::Queued => {
-                    debug!("Allocating resources for server {}", request.name);
+                    debug!("Allocating resources for server {}", request.id);
                     match Self::allocate(0, &request, nodes) {
                         Ok(handle) => {
                             reinsert = true;
@@ -225,7 +230,7 @@ impl ServerManager {
                         Err(error) => {
                             warn!(
                                 "Failed to allocate resources for server {}: {}",
-                                request.name, error
+                                request.id, error
                             );
                             reinsert = false;
                             StartStage::Failed
@@ -237,7 +242,7 @@ impl ServerManager {
                     if handle.is_finished() {
                         let ports = handle.await?;
                         if let Ok(ports) = ports {
-                            debug!("Creating server {}", request.name);
+                            debug!("Creating server {}", request.id);
                             match Self::start(
                                 index,
                                 &request,
@@ -252,7 +257,7 @@ impl ServerManager {
                             {
                                 Ok(handle) => StartStage::Creating(handle),
                                 Err(error) => {
-                                    warn!("Failed to create server {}: {}", request.name, error);
+                                    warn!("Failed to create server {}: {}", request.id, error);
                                     reinsert = false;
                                     StartStage::Failed
                                 }
@@ -263,7 +268,7 @@ impl ServerManager {
                                 Err(error) => {
                                     warn!(
                                         "Failed to allocate resources for server {}: {}",
-                                        request.name, error
+                                        request.id, error
                                     );
                                     reinsert = false;
                                     StartStage::Failed
@@ -277,7 +282,7 @@ impl ServerManager {
                 StartStage::Creating(handle) => {
                     if handle.is_finished() {
                         handle.await??;
-                        debug!("Server {} has been created", request.name);
+                        debug!("Server {} has been created", request.id);
                         StartStage::Started
                     } else {
                         reinsert = true;
@@ -303,13 +308,11 @@ impl ServerManager {
 #[derive(Getters)]
 pub struct StartRequest {
     /* Request */
-    #[getset(get = "pub")]
-    uuid: Uuid,
     when: Option<Instant>,
 
     /* Server */
     #[getset(get = "pub")]
-    name: String,
+    id: NameAndUuid,
     #[getset(get = "pub")]
     group: Option<String>,
     #[getset(get = "pub")]
@@ -330,7 +333,7 @@ pub struct StartRequest {
 pub struct RestartRequest {
     /* Request */
     when: Option<Instant>,
-    server: Uuid,
+    server: NameAndUuid,
 
     /* Stage */
     #[getset(get = "pub")]
@@ -341,7 +344,7 @@ pub struct RestartRequest {
 pub struct StopRequest {
     /* Request */
     when: Option<Instant>,
-    server: Uuid,
+    server: NameAndUuid,
 
     /* Stage */
     #[getset(get = "pub")]
@@ -375,10 +378,9 @@ impl StartRequest {
         spec: &Spec,
     ) -> Self {
         Self {
-            uuid: Uuid::new_v4(),
+            id: NameAndUuid::generate(name),
             when,
             priority,
-            name,
             group,
             nodes: nodes.to_vec(),
             resources: resources.clone(),
@@ -389,20 +391,20 @@ impl StartRequest {
 }
 
 impl RestartRequest {
-    pub fn new(when: Option<Instant>, server: &Uuid) -> Self {
+    pub fn new(when: Option<Instant>, server: &NameAndUuid) -> Self {
         Self {
             when,
-            server: *server,
+            server: server.clone(),
             stage: ActionStage::Queued,
         }
     }
 }
 
 impl StopRequest {
-    pub fn new(when: Option<Instant>, server: &Uuid) -> Self {
+    pub fn new(when: Option<Instant>, server: &NameAndUuid) -> Self {
         Self {
             when,
-            server: *server,
+            server: server.clone(),
             stage: ActionStage::Queued,
         }
     }

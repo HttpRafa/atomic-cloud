@@ -1,4 +1,8 @@
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    time::Duration,
+};
 
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
@@ -13,9 +17,7 @@ pub mod manager;
 pub struct Server {
     /* Settings */
     #[getset(get = "pub")]
-    name: String,
-    #[getset(get = "pub")]
-    uuid: Uuid,
+    id: NameAndUuid,
     #[getset(get = "pub")]
     group: Option<String>,
     #[getset(get = "pub")]
@@ -36,6 +38,14 @@ pub struct Server {
     state: State,
     #[getset(get = "pub", get_mut = "pub")]
     flags: Flags,
+}
+
+#[derive(Clone, Getters, MutGetters)]
+pub struct NameAndUuid {
+    #[getset(get = "pub", get_mut = "pub")]
+    name: String,
+    #[getset(get = "pub", get_mut = "pub")]
+    uuid: Uuid,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Getters)]
@@ -135,5 +145,23 @@ impl Health {
     }
     pub fn is_dead(&self) -> bool {
         Instant::now() > self.next_check
+    }
+}
+
+impl NameAndUuid {
+    pub fn generate(name: String) -> Self {
+        Self {
+            name,
+            uuid: Uuid::new_v4(),
+        }
+    }
+    pub fn new(name: String, uuid: Uuid) -> Self {
+        Self { name, uuid }
+    }
+}
+
+impl Display for NameAndUuid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }

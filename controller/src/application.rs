@@ -19,19 +19,21 @@ use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
     time::interval,
 };
+use user::manager::UserManager;
 
-use crate::{config::Config, task::WrappedTask};
+use crate::{config::Config, task::Task};
 
 mod auth;
 mod group;
 mod node;
 mod plugin;
 mod server;
+mod user;
 
 const TICK_RATE: u64 = 20;
 const TASK_BUFFER: usize = 128;
 
-pub type TaskSender = Sender<WrappedTask>;
+pub type TaskSender = Sender<Task>;
 
 #[derive(Getters, MutGetters)]
 pub struct Controller {
@@ -39,7 +41,7 @@ pub struct Controller {
     running: Arc<AtomicBool>,
 
     /* Tasks */
-    tasks: (TaskSender, Receiver<WrappedTask>),
+    tasks: (TaskSender, Receiver<Task>),
 
     /* Auth */
     validator: WrappedAuthValidator,
@@ -53,6 +55,8 @@ pub struct Controller {
     groups: GroupManager,
     #[getset(get = "pub", get_mut = "pub")]
     servers: ServerManager,
+    #[getset(get = "pub", get_mut = "pub")]
+    users: UserManager,
 
     /* Config */
     #[getset(get = "pub")]
@@ -61,12 +65,14 @@ pub struct Controller {
 
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
-        let validator = AuthValidator::init()?;
+        let validator = AuthValidator::init().await?;
 
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;
         let groups = GroupManager::init(&nodes).await?;
-        let servers = ServerManager::init().await?;
+
+        let servers = ServerManager::init();
+        let users = UserManager::init();
 
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
@@ -76,6 +82,7 @@ impl Controller {
             nodes,
             groups,
             servers,
+            users,
             config,
         })
     }
@@ -89,7 +96,7 @@ impl Controller {
         while self.running.load(Ordering::Relaxed) {
             select! {
                 _ = interval.tick() => self.tick().await?,
-                task = self.tasks.1.recv() => if let Some(mut task) = task {
+                task = self.tasks.1.recv() => if let Some(task) = task {
                     task.run(self).await?;
                 }
             }
@@ -113,14 +120,26 @@ impl Controller {
 
         // Tick server manager
         self.servers
-            .tick(&self.config, &self.nodes, &mut self.groups, &self.validator)
+            .tick(
+                &self.config,
+                &self.nodes,
+                &mut self.groups,
+                &mut self.users,
+                &self.validator,
+            )
             .await?;
+
+        // Tick user manager
+        self.users.tick().await?;
 
         Ok(())
     }
 
     async fn shutdown(&mut self) -> Result<()> {
         info!("Starting shutdown sequence...");
+
+        // Shutdown user manager
+        self.users.shutdown().await?;
 
         // Shutdown server manager
         self.servers.shutdown().await?;

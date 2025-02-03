@@ -12,6 +12,7 @@ use crate::{
         group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
         server::{Flags, Health, Server, State},
+        user::manager::UserManager,
     },
     config::Config,
 };
@@ -32,7 +33,7 @@ impl ServerManager {
                 Err(anyhow!(
                     "Node {} not found while trying to allocate ports for server {}",
                     name,
-                    request.name
+                    request.id
                 ))
             }
         } else {
@@ -55,8 +56,7 @@ impl ServerManager {
             let node = nodes.get_node(name);
             if let Some(node) = node {
                 let mut server = Server {
-                    uuid: request.uuid,
-                    name: request.name.clone(),
+                    id: request.id.clone(),
                     group: request.group.clone(),
                     node: name.clone(),
                     allocation: Allocation {
@@ -65,7 +65,7 @@ impl ServerManager {
                         spec: request.spec.clone(),
                     },
                     connected_users: 0,
-                    token: validator.register_server(request.uuid).await,
+                    token: validator.register_server(request.id.uuid).await,
                     health: Health::new(*config.startup_timeout(), *config.heartbeat_timeout()),
                     state: State::Starting,
                     flags: Flags::default(),
@@ -73,19 +73,19 @@ impl ServerManager {
                 let handle = node.start(&server);
                 if let Some(group) = &server.group {
                     if let Some(group) = groups.get_group_mut(group) {
-                        group.set_server_active(&server.uuid);
+                        group.set_server_active(&server.id.uuid);
                     } else {
-                        warn!("Group {} not found while trying to start server {}. Removing group from server", group, request.name);
+                        warn!("Group {} not found while trying to start server {}. Removing group from server", group, request.id);
                         server.group = None;
                     }
                 }
-                servers.insert(server.uuid, server);
+                servers.insert(server.id.uuid, server);
                 Ok(handle)
             } else {
                 Err(anyhow!(
                     "Node {} not found while trying to allocate ports for server {}",
                     name,
-                    request.name
+                    request.id
                 ))
             }
         } else {
@@ -100,7 +100,7 @@ impl ServerManager {
         config: &Config,
         nodes: &NodeManager,
     ) -> Result<JoinHandle<Result<()>>> {
-        if let Some(server) = servers.get_mut(&request.server) {
+        if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
                 server.state = State::Restarting;
                 server.health = Health::new(*config.startup_timeout(), *config.heartbeat_timeout());
@@ -124,7 +124,7 @@ impl ServerManager {
         servers: &mut HashMap<Uuid, Server>,
         nodes: &NodeManager,
     ) -> Result<JoinHandle<Result<()>>> {
-        if let Some(server) = servers.get(&request.server) {
+        if let Some(server) = servers.get(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
                 Ok(node.free(&server.allocation.ports))
             } else {
@@ -146,21 +146,22 @@ impl ServerManager {
         servers: &mut HashMap<Uuid, Server>,
         nodes: &NodeManager,
         groups: &mut GroupManager,
+        users: &mut UserManager,
         validator: &WrappedAuthValidator,
     ) -> Result<JoinHandle<Result<()>>> {
-        if let Some(server) = servers.get_mut(&request.server) {
+        if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
                 if let Some(group) = &server.group {
                     if let Some(group) = groups.get_group_mut(group) {
-                        group.remove_server(&server.uuid);
+                        group.remove_server(server.id.uuid());
                     } else {
-                        error!("Group {} not found while trying to stop server {}. Removing group from server", group, server.name);
+                        error!("Group {} not found while trying to stop server {}. Removing group from server", group, server.id);
                         server.group = None;
                     }
                 }
                 validator.unregister(&server.token).await;
 
-                // TODO: Cleanup connected users
+                users.remove_users_on_server(server.id.uuid());
                 // TODO: Cleanup subscriptions
 
                 Ok(node.stop(server))

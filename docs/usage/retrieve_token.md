@@ -1,6 +1,6 @@
 ## Retrieve the Admin Token on First Launch
 
-When you run the controller for the first time, an admin token will be displayed in the console. You will need this token to connect via the CLI. For more information, please refer to the [How to use the CLI](https://httprafa.github.io/atomic-cloud/usage/cli/index.md) guide.
+When you run the controller for the first time, an admin token will be displayed in the console. You will need this token to connect via the CLI. For more information, please refer to the [How to use the CLI](../usage/cli/index.md) guide.
 
 ![First Startup](images/first_startup.png)
 

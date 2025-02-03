@@ -40,7 +40,7 @@ tonic = "0.12.3"
 
 # Drivers
 wasmtime = { version = "28.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
-wasmtime-wasi = { version = "28.0.1", optional = true }
+wasmtime-wasi = { version = "29.0.1", optional = true }
 minreq = { version = "2.13.0", features = ["https-rustls"], optional = true }
 
 [build-dependencies]

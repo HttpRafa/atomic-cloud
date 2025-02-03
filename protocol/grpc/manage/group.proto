@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package manage;
+
+import "manage/server.proto";
+
+message Group {
+  message Item {
+    string name = 1;
+    repeated string nodes = 2;
+    Constraints cons = 3;
+    Scaling scaling = 4;
+    Server.Resources res = 5;
+    Server.Spec spec = 6;
+  }
+  message Constraints {
+    uint32 min = 1;
+    uint32 max = 2;
+    int32 prio = 3;
+  }
+  message Scaling {
+    float startThreshold = 1;
+    bool stopEmpty = 2;
+  }
+  message List {
+    repeated string groups = 1;
+  }
+}

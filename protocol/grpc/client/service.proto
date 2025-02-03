@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.client";
+
+package client;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+import "client/user.proto";
+import "client/transfer.proto";
+import "client/channel.proto";
+import "client/server.proto";
+import "client/group.proto";
+
+service ClientService {
+  // Heartbeat
+  rpc Beat(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Ready state
+  rpc SetReady(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc SetNotReady(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Health
+  rpc SetRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // User operations
+  rpc UserConnected(User.ConnectedReq) returns (google.protobuf.Empty);
+  rpc UserDisconnected(User.DisconnectedReq) returns (google.protobuf.Empty);
+
+  // Transfer operations
+  rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream Transfer.Res);
+  rpc RequestTransfer(Transfer.Req) returns (google.protobuf.UInt32Value);
+
+  // Channel operations
+  rpc PublishMessage(Channel.Msg) returns (google.protobuf.UInt32Value);
+  rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
+  rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream Channel.Msg);
+
+  // Server/Group info
+  rpc GetServers(google.protobuf.Empty) returns (Server.List);
+  rpc GetGroups(google.protobuf.Empty) returns (Group.List);
+
+  // Housekeeping
+  rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Version info
+  rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
+  rpc GetCtrlVer(google.protobuf.Empty) returns (google.protobuf.StringValue);
+}

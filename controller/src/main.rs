@@ -10,6 +10,7 @@ use storage::Storage;
 use tokio::time::Instant;
 
 mod application;
+mod network;
 mod config;
 mod storage;
 mod task;

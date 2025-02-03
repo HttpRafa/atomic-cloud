@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package manage;
+
+message Resource {
+  enum Category {
+    NODE = 0;
+    GROUP = 1;
+    SERVER = 2;
+  }
+  message SetReq {
+    enum Status {
+      ACTIVE = 0;
+      INACTIVE = 1;
+    }
+    Category cat = 1;
+    string id = 2;
+    Status status = 3;
+  }
+  message DelReq {
+    Category cat = 1;
+    string id = 2;
+  }
+}

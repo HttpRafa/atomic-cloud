@@ -81,8 +81,8 @@ fn generate_grpc_code() -> Result<(), Box<dyn std::error::Error>> {
         .build_client(false)
         .compile_protos(
             &[
-                format!("{}/admin/admin.proto", PROTO_PATH),
-                format!("{}/unit/unit.proto", PROTO_PATH),
+                format!("{}/manage/service.proto", PROTO_PATH),
+                format!("{}/client/service.proto", PROTO_PATH),
             ],
             &[PROTO_PATH],
         )?;

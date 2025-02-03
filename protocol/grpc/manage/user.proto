@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package manage;
+
+message User {
+  message List {
+    repeated Item users = 1;
+  }
+  message Item {
+    string name = 1;
+    string id = 2;
+  }
+}

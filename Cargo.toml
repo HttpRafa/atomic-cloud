@@ -8,12 +8,12 @@ members = [
     "controller",
 
     # Drivers
-    "plugins/pterodactyl",
-    "plugins/local",
+    #"plugins/pterodactyl",
+    #"plugins/local",
 
     # Clients
-    "cli",
-    "clients/wrapper",
+    #"cli",
+    #"clients/wrapper",
 ]
 
 [workspace.metadata]

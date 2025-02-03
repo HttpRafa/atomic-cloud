@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+import "manage/resource.proto";
+import "manage/plugin.proto";
+import "manage/node.proto";
+import "manage/group.proto";
+import "manage/server.proto";
+import "manage/user.proto";
+import "manage/transfer.proto";
+
+service ManageService {
+  rpc RequestStop(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+  // Resource operations
+  rpc SetResource(Resource.SetReq) returns (google.protobuf.Empty);
+  rpc DeleteResource(Resource.DelReq) returns (google.protobuf.Empty);
+
+  // Plugin operations
+  rpc GetPlugins(google.protobuf.Empty) returns (Plugin.List);
+
+  // Node operations
+  rpc CreateNode(Node.Item) returns (google.protobuf.Empty);
+  rpc GetNode(google.protobuf.StringValue) returns (Node.Item);
+  rpc GetNodes(google.protobuf.Empty) returns (Node.List);
+
+  // Group operations
+  rpc CreateGroup(Group.Item) returns (google.protobuf.Empty);
+  rpc GetGroup(google.protobuf.StringValue) returns (Group.Item);
+  rpc GetGroups(google.protobuf.Empty) returns (Group.List);
+
+  // Server operations
+  rpc GetServer(google.protobuf.StringValue) returns (Server.Detail);
+  rpc GetServers(google.protobuf.Empty) returns (Server.List);
+
+  // User operations
+  rpc GetUsers(google.protobuf.Empty) returns (User.List);
+
+  // Transfer operations
+  rpc TransferUsers(Transfer.Req) returns (google.protobuf.UInt32Value);
+
+  // Version info
+  rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
+  rpc GetCtrlVer(google.protobuf.Empty) returns (google.protobuf.StringValue);
+}

@@ -15,7 +15,7 @@ Follow the steps below to manually install Atomic Cloud.
 1. Open a terminal and navigate to the directory where the Controller is located.
 2. Start the Controller.
 3. **Important:** After startup, note the authentication token that is displayed. You will need this token later.  
-   If you lose the token, you can retrieve it from our [token retrieval guide](https://httprafa.github.io/atomic-cloud/usage/retrieve_token.md).
+   If you lose the token, you can retrieve it from our [token retrieval guide](../usage/retrieve_token.md).
 
 ## Step 3: Download and Install the Plugin
 

@@ -12,7 +12,7 @@ message Transfer {
     Type type = 1;
     string target = 2;
   }
-  message Req {
+  message TransferReq {
     repeated string ids = 1;
     Target target = 2;
   }

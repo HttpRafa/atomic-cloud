@@ -1,12 +1,12 @@
 use anyhow::Result;
 use tonic::async_trait;
-use uuid::Uuid;
 
-use crate::{application::Controller, task::{BoxedAny, GenericTask}};
+use crate::{
+    application::Controller,
+    task::{BoxedAny, GenericTask},
+};
 
-pub struct RequestStopTask {
-    server: Uuid,
-}
+pub struct RequestStopTask();
 
 #[async_trait]
 impl GenericTask for RequestStopTask {

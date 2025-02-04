@@ -3,15 +3,15 @@
 use anyhow::Result;
 use application::Controller;
 use clap::{ArgAction, Parser};
-use common::init::CloudInit;
+use common::{error::CloudError, init::CloudInit};
 use config::Config;
 use simplelog::info;
 use storage::Storage;
 use tokio::time::Instant;
 
 mod application;
-mod network;
 mod config;
+mod network;
 mod storage;
 mod task;
 
@@ -21,20 +21,26 @@ include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let arguments = Arguments::parse();
-    CloudInit::init_logging(arguments.debug, false, Storage::latest_log_file());
-    CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
+async fn main() {
+    if let Err(error) = run().await {
+        CloudError::print_fancy(&error, true);
+    }
 
-    let beginning = Instant::now();
-    info!("Starting cloud version v{}...", VERSION);
-    info!("Initializing controller...");
+    async fn run() -> Result<()> {
+        let arguments = Arguments::parse();
+        CloudInit::init_logging(arguments.debug, false, Storage::latest_log_file());
+        CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);
 
-    let mut controller = Controller::init(Config::parse()?).await?;
-    info!("Loaded cloud in {:.2?}", beginning.elapsed());
-    controller.run().await?;
+        let beginning = Instant::now();
+        info!("Starting cloud version v{}...", VERSION);
+        info!("Initializing controller...");
 
-    Ok(())
+        let mut controller = Controller::init(Config::parse()?).await?;
+        info!("Loaded cloud in {:.2?}", beginning.elapsed());
+        controller.run().await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Parser)]

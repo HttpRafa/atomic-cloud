@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Result;
-use auth::validator::{AuthValidator, WrappedAuthValidator};
+use auth::service::AuthService;
 use getset::{Getters, MutGetters};
 use group::manager::GroupManager;
 use node::manager::NodeManager;
@@ -21,9 +21,9 @@ use tokio::{
 };
 use user::manager::UserManager;
 
-use crate::{config::Config, task::Task};
+use crate::{config::Config, network::NetworkStack, task::Task};
 
-mod auth;
+pub mod auth;
 mod group;
 mod node;
 mod plugin;
@@ -44,7 +44,7 @@ pub struct Controller {
     tasks: (TaskSender, Receiver<Task>),
 
     /* Auth */
-    validator: WrappedAuthValidator,
+    auth: Arc<AuthService>,
 
     /* Components */
     #[getset(get = "pub", get_mut = "pub")]
@@ -65,7 +65,7 @@ pub struct Controller {
 
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
-        let validator = AuthValidator::init().await?;
+        let auth = AuthService::init().await?;
 
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;
@@ -77,7 +77,7 @@ impl Controller {
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
             tasks: channel(TASK_BUFFER),
-            validator,
+            auth,
             plugins,
             nodes,
             groups,
@@ -91,6 +91,8 @@ impl Controller {
         // Setup signal handlers
         self.setup_handlers()?;
 
+        let network = NetworkStack::start(&self.config, &self.auth, &self.tasks.0);
+
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
         while self.running.load(Ordering::Relaxed) {
@@ -103,7 +105,7 @@ impl Controller {
         }
 
         // Shutdown
-        self.shutdown().await?;
+        self.shutdown(network).await?;
 
         Ok(())
     }
@@ -125,7 +127,7 @@ impl Controller {
                 &self.nodes,
                 &mut self.groups,
                 &mut self.users,
-                &self.validator,
+                &self.auth,
             )
             .await?;
 
@@ -135,7 +137,7 @@ impl Controller {
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<()> {
+    async fn shutdown(&mut self, network: NetworkStack) -> Result<()> {
         info!("Starting shutdown sequence...");
 
         // Shutdown user manager
@@ -152,6 +154,9 @@ impl Controller {
 
         // Shutdown plugin manager
         self.plugins.shutdown().await?;
+
+        // Shutdown network stack
+        network.shutdown().await?;
 
         info!("Shutdown complete. Bye :)");
         Ok(())

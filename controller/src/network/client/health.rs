@@ -7,13 +7,23 @@ use crate::{
     task::{BoxedAny, GenericTask},
 };
 
-pub struct SetReadyTask {
+pub struct SetRunningTask {
     pub server: Uuid,
-    pub ready: bool,
+}
+
+pub struct RequestStopTask {
+    pub server: Uuid,
 }
 
 #[async_trait]
-impl GenericTask for SetReadyTask {
+impl GenericTask for SetRunningTask {
+    async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
+        Ok(Box::new(()))
+    }
+}
+
+#[async_trait]
+impl GenericTask for RequestStopTask {
     async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
         Ok(Box::new(()))
     }

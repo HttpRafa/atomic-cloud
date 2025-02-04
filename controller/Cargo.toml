@@ -23,7 +23,7 @@ ctrlc = "3.4.5"
 uuid = { version = "1.12.1", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.27", features = ["derive"] }
+clap = { version = "4.5.28", features = ["derive"] }
 
 # Regex parsing
 regex = "1.11.1"
@@ -34,6 +34,7 @@ toml = "0.8.19"
 
 # Async runtime
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "fs", "macros"] }
+tokio-stream = "0.1.17"
 futures = "0.3.31"
 
 # API

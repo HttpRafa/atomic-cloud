@@ -1,6 +1,7 @@
 use std::{
     collections::{BinaryHeap, HashMap},
     mem,
+    sync::Arc,
 };
 
 use anyhow::Result;
@@ -12,8 +13,8 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::validator::WrappedAuthValidator, group::manager::GroupManager,
-        node::manager::NodeManager, user::manager::UserManager,
+        auth::service::AuthService, group::manager::GroupManager, node::manager::NodeManager,
+        user::manager::UserManager,
     },
     config::Config,
 };
@@ -71,7 +72,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        validator: &WrappedAuthValidator,
+        auth: &Arc<AuthService>,
     ) -> Result<()> {
         // Check health of servers
         for server in self.servers.values() {
@@ -118,15 +119,8 @@ impl ServerManager {
                     if handle.is_finished() {
                         handle.await??;
                         debug!("Stopping server {}", request.server);
-                        match Self::stop(
-                            &request,
-                            &mut self.servers,
-                            nodes,
-                            groups,
-                            users,
-                            validator,
-                        )
-                        .await
+                        match Self::stop(&request, &mut self.servers, nodes, groups, users, auth)
+                            .await
                         {
                             Ok(handle) => {
                                 reinsert = true;
@@ -251,7 +245,7 @@ impl ServerManager {
                                 config,
                                 nodes,
                                 groups,
-                                validator,
+                                auth,
                             )
                             .await
                             {

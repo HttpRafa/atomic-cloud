@@ -2,15 +2,18 @@ use anyhow::Result;
 use tonic::async_trait;
 use uuid::Uuid;
 
-use crate::{application::Controller, task::{BoxedAny, GenericTask}};
+use crate::{
+    application::Controller,
+    task::{BoxedAny, GenericTask},
+};
 
 pub struct BeatTask {
-    server: Uuid,
+    pub server: Uuid,
 }
 
 #[async_trait]
 impl GenericTask for BeatTask {
     async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        todo!()
+        Ok(Box::new(()))
     }
 }

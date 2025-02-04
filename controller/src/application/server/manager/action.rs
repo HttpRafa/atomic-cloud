@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use common::network::HostAndPort;
@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::validator::WrappedAuthValidator,
+        auth::service::AuthService,
         group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
         server::{Flags, Health, Server, State},
@@ -42,6 +42,7 @@ impl ServerManager {
             ))
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub async fn start(
         index: usize,
         request: &StartRequest,
@@ -50,7 +51,7 @@ impl ServerManager {
         config: &Config,
         nodes: &NodeManager,
         groups: &mut GroupManager,
-        validator: &WrappedAuthValidator,
+        auth: &Arc<AuthService>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(name) = request.nodes.get(index) {
             let node = nodes.get_node(name);
@@ -65,7 +66,7 @@ impl ServerManager {
                         spec: request.spec.clone(),
                     },
                     connected_users: 0,
-                    token: validator.register_server(request.id.uuid).await,
+                    token: auth.register_server(request.id.uuid).await,
                     health: Health::new(*config.startup_timeout(), *config.heartbeat_timeout()),
                     state: State::Starting,
                     flags: Flags::default(),
@@ -147,7 +148,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        validator: &WrappedAuthValidator,
+        auth: &Arc<AuthService>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
@@ -159,7 +160,7 @@ impl ServerManager {
                         server.group = None;
                     }
                 }
-                validator.unregister(&server.token).await;
+                auth.unregister(&server.token).await;
 
                 users.remove_users_on_server(server.id.uuid());
                 // TODO: Cleanup subscriptions

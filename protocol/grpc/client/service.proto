@@ -19,8 +19,7 @@ service ClientService {
   rpc Beat(google.protobuf.Empty) returns (google.protobuf.Empty);
 
   // Ready state
-  rpc SetReady(google.protobuf.Empty) returns (google.protobuf.Empty);
-  rpc SetNotReady(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc SetReady(google.protobuf.BoolValue) returns (google.protobuf.Empty);
 
   // Health
   rpc SetRunning(google.protobuf.Empty) returns (google.protobuf.Empty);
@@ -31,12 +30,11 @@ service ClientService {
   rpc UserDisconnected(User.DisconnectedReq) returns (google.protobuf.Empty);
 
   // Transfer operations
-  rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream Transfer.Res);
-  rpc RequestTransfers(Transfer.Req) returns (google.protobuf.UInt32Value);
+  rpc TransferUsers(Transfer.TransferReq) returns (google.protobuf.UInt32Value);
+  rpc SubscribeToTransfers(google.protobuf.Empty) returns (stream Transfer.TransferRes);
 
   // Channel operations
   rpc PublishMessage(Channel.Msg) returns (google.protobuf.UInt32Value);
-  rpc UnsubscribeFromChannel(google.protobuf.StringValue) returns (google.protobuf.Empty);
   rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream Channel.Msg);
 
   // Server/Group info

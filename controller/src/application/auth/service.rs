@@ -11,14 +11,12 @@ use crate::storage::Storage;
 
 use super::{AdminUser, AuthToken, Authorization};
 
-pub type WrappedAuthValidator = Arc<AuthValidator>;
-
-pub struct AuthValidator {
+pub struct AuthService {
     tokens: RwLock<HashMap<AuthToken, Authorization>>,
 }
 
-impl AuthValidator {
-    pub async fn init() -> Result<WrappedAuthValidator> {
+impl AuthService {
+    pub async fn init() -> Result<Arc<AuthService>> {
         info!("Loading users...");
         let mut tokens = HashMap::new();
 

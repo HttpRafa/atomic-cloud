@@ -1,5 +1,6 @@
 pub mod allocator;
 pub mod config;
+pub mod error;
 pub mod file;
 pub mod init;
 pub mod name;

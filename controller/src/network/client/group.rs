@@ -7,14 +7,13 @@ use crate::{
     task::{BoxedAny, GenericTask},
 };
 
-pub struct SetReadyTask {
-    pub server: Uuid,
-    pub ready: bool,
+pub struct GetGroupsTask {
+    server: Uuid,
 }
 
 #[async_trait]
-impl GenericTask for SetReadyTask {
+impl GenericTask for GetGroupsTask {
     async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        Ok(Box::new(()))
+        todo!()
     }
 }

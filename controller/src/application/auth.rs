@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-pub mod validator;
+pub mod service;
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 

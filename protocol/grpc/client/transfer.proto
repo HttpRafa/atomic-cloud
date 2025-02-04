@@ -12,11 +12,11 @@ message Transfer {
     Type type = 1;
     string target = 2;
   }
-  message Req {
+  message TransferReq {
     repeated string ids = 1;
     Target target = 2;
   }
-  message Res {
+  message TransferRes {
     string id = 1;
     string host = 2;
     uint32 port = 3;

@@ -6,7 +6,7 @@ use tonic::async_trait;
 
 use crate::application::{Controller, TaskSender};
 
-type BoxedTask = Box<dyn GenericTask + Send>;
+pub type BoxedTask = Box<dyn GenericTask + Send>;
 pub type BoxedAny = Box<dyn Any + Send>;
 
 pub struct Task {
@@ -15,7 +15,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub async fn create<T: Send + 'static>(queue: TaskSender, task: BoxedTask) -> Result<T> {
+    pub async fn create<T: Send + 'static>(queue: &TaskSender, task: BoxedTask) -> Result<T> {
         let (sender, receiver) = channel();
         queue
             .send(Task { task, sender })

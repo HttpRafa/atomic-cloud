@@ -1,8 +1,9 @@
 use std::any::Any;
 
 use anyhow::{anyhow, Result};
+use common::error::CloudError;
 use tokio::sync::oneshot::{channel, Sender};
-use tonic::async_trait;
+use tonic::{async_trait, Request, Status};
 
 use crate::application::{Controller, TaskSender};
 
@@ -15,6 +16,28 @@ pub struct Task {
 }
 
 impl Task {
+    pub async fn execute_task<O: Send + 'static, D: Clone + Send + Sync + 'static, I, F>(
+        queue: &TaskSender,
+        request: &mut Request<I>,
+        task: F,
+    ) -> Result<O, Status>
+    where
+        F: FnOnce(&mut Request<I>, D) -> BoxedTask,
+    {
+        let data = match request.extensions().get::<D>() {
+            Some(data) => data,
+            None => return Err(Status::permission_denied("Not linked")),
+        }
+        .clone();
+        match Task::create::<O>(queue, task(request, data)).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                CloudError::print_fancy(&error, false);
+                Err(Status::internal(error.to_string()))
+            }
+        }
+    }
+
     pub async fn create<T: Send + 'static>(queue: &TaskSender, task: BoxedTask) -> Result<T> {
         let (sender, receiver) = channel();
         queue

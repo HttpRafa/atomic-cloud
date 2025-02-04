@@ -1,6 +1,5 @@
 use anyhow::Result;
 use beat::BeatTask;
-use common::error::CloudError;
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use tokio_stream::wrappers::ReceiverStream;
@@ -9,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     application::TaskSender,
-    task::{BoxedTask, Task},
+    task::Task,
     VERSION,
 };
 
@@ -40,15 +39,17 @@ impl ClientService for ClientServiceImpl {
     // Heartbeat
     async fn beat(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            self.execute_task::<(), _, _>(&mut request, |_, server| Box::new(BeatTask { server }))
-                .await?,
+            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+                Box::new(BeatTask { server })
+            })
+            .await?,
         ))
     }
 
     // Ready state
     async fn set_ready(&self, mut request: Request<bool>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            self.execute_task::<(), _, _>(&mut request, |request, server| {
+            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |request, server| {
                 Box::new(SetReadyTask {
                     server,
                     ready: *request.get_ref(),
@@ -61,7 +62,7 @@ impl ClientService for ClientServiceImpl {
     // Health
     async fn set_running(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            self.execute_task::<(), _, _>(&mut request, |_, server| {
+            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(SetRunningTask { server })
             })
             .await?,
@@ -69,7 +70,7 @@ impl ClientService for ClientServiceImpl {
     }
     async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            self.execute_task::<(), _, _>(&mut request, |_, server| {
+            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(RequestStopTask { server })
             })
             .await?,
@@ -142,28 +143,5 @@ impl ClientService for ClientServiceImpl {
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
         Ok(Response::new(format!("{}", VERSION)))
-    }
-}
-
-impl ClientServiceImpl {
-    async fn execute_task<O: Send + 'static, I, F>(
-        &self,
-        request: &mut Request<I>,
-        task: F,
-    ) -> Result<O, Status>
-    where
-        F: FnOnce(&mut Request<I>, Uuid) -> BoxedTask,
-    {
-        let server = *match request.extensions().get::<Uuid>() {
-            Some(server) => server,
-            None => return Err(Status::permission_denied("Not linked to server")),
-        };
-        match Task::create::<O>(&self.0, task(request, server)).await {
-            Ok(value) => Ok(value),
-            Err(error) => {
-                CloudError::print_fancy(&error, false);
-                Err(Status::internal(error.to_string()))
-            }
-        }
     }
 }

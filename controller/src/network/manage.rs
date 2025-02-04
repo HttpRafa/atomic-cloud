@@ -1,11 +1,10 @@
 use anyhow::Result;
-use common::error::CloudError;
 use power::RequestStopTask;
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::{
     application::{auth::AdminUser, TaskSender},
-    task::{BoxedTask, Task},
+    task::Task,
     VERSION,
 };
 
@@ -32,8 +31,10 @@ impl ManageService for ManageServiceImpl {
     // Power
     async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            self.execute_task::<(), _, _>(&mut request, |_, _| Box::new(RequestStopTask()))
-                .await?,
+            Task::execute_task::<(), AdminUser, _, _>(&self.0, &mut request, |_, _| {
+                Box::new(RequestStopTask())
+            })
+            .await?,
         ))
     }
 
@@ -129,29 +130,5 @@ impl ManageService for ManageServiceImpl {
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
         Ok(Response::new(format!("{}", VERSION)))
-    }
-}
-
-impl ManageServiceImpl {
-    async fn execute_task<O: Send + 'static, I, F>(
-        &self,
-        request: &mut Request<I>,
-        task: F,
-    ) -> Result<O, Status>
-    where
-        F: FnOnce(&mut Request<I>, AdminUser) -> BoxedTask,
-    {
-        let server = match request.extensions().get::<AdminUser>() {
-            Some(server) => server,
-            None => return Err(Status::permission_denied("Not linked to user")),
-        }
-        .clone();
-        match Task::create::<O>(&self.0, task(request, server)).await {
-            Ok(value) => Ok(value),
-            Err(error) => {
-                CloudError::print_fancy(&error, false);
-                Err(Status::internal(error.to_string()))
-            }
-        }
     }
 }

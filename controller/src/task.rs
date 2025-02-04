@@ -16,7 +16,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub async fn execute_task<O: Send + 'static, D: Clone + Send + Sync + 'static, I, F>(
+    pub async fn execute<O: Send + 'static, D: Clone + Send + Sync + 'static, I, F>(
         queue: &TaskSender,
         request: &mut Request<I>,
         task: F,

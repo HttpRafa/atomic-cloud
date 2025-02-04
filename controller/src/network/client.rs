@@ -6,11 +6,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
-use crate::{
-    application::TaskSender,
-    task::Task,
-    VERSION,
-};
+use crate::{application::TaskSender, task::Task, VERSION};
 
 use super::proto::client::{
     self,
@@ -39,7 +35,7 @@ impl ClientService for ClientServiceImpl {
     // Heartbeat
     async fn beat(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(BeatTask { server })
             })
             .await?,
@@ -49,7 +45,7 @@ impl ClientService for ClientServiceImpl {
     // Ready state
     async fn set_ready(&self, mut request: Request<bool>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |request, server| {
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |request, server| {
                 Box::new(SetReadyTask {
                     server,
                     ready: *request.get_ref(),
@@ -62,7 +58,7 @@ impl ClientService for ClientServiceImpl {
     // Health
     async fn set_running(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(SetRunningTask { server })
             })
             .await?,
@@ -70,7 +66,7 @@ impl ClientService for ClientServiceImpl {
     }
     async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute_task::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(RequestStopTask { server })
             })
             .await?,

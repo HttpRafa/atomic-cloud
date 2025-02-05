@@ -3,6 +3,8 @@ use std::{
     vec,
 };
 
+use anyhow::{Error, Result};
+use inquire::InquireError;
 use simplelog::debug;
 
 use crate::application::profile::Profiles;
@@ -53,9 +55,9 @@ impl StartMenu {
                 Selection::DeleteProfile => DeleteProfileMenu::show(profiles).await,
                 Selection::Exit => MenuResult::Exit,
             },
-            Err(error) => {
-                debug!("{}", error);
-                MenuResult::Exit
+            Err(error) => match error {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Exit,
+                _ => MenuResult::Error(error.into())
             }
         }
     }

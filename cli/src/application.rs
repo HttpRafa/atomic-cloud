@@ -1,3 +1,5 @@
+use anyhow::Result;
+use common::error::{FancyError};
 use menu::{start::StartMenu, MenuResult};
 use profile::Profiles;
 use simplelog::info;
@@ -17,12 +19,16 @@ impl Cli {
         }
     }
 
-    pub async fn start(&mut self) {
+    pub async fn start(&mut self) -> Result<()> {
         loop {
-            if StartMenu::show(&mut self.profiles).await == MenuResult::Exit {
-                break;
+            match StartMenu::show(&mut self.profiles).await {
+                MenuResult::Exit => break,
+                MenuResult::Error(error) => { FancyError::print_fancy(&error, false); break; },
+                _ => {}
             }
         }
         info!("<blue>ℹ</> Goodbye!");
+
+        Ok(())
     }
 }

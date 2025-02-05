@@ -80,7 +80,7 @@ fn generate_grpc_code() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .build_server(false)
         .compile_protos(
-            &[format!("{}/manage/manage.proto", PROTO_PATH)],
+            &[format!("{}/manage/service.proto", PROTO_PATH)],
             &[PROTO_PATH],
         )?;
     Ok(())

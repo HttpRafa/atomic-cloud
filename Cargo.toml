@@ -12,7 +12,7 @@ members = [
     #"plugins/local",
 
     # Clients
-    #"cli",
+    "cli",
     #"clients/wrapper",
 ]
 

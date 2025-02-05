@@ -26,7 +26,7 @@ use super::profile::Profile;
 pub mod proto {
     use tonic::include_proto;
 
-    include_proto!("admin");
+    include_proto!("manage");
 }
 
 pub struct EstablishedConnection {

@@ -6,7 +6,7 @@ This makes it easier to change them in the future
 use std::path::PathBuf;
 
 /* Cli */
-const CLI_DIRECTORY: &str = "atomic-cli";
+const CLI_DIRECTORY: &str = "cli";
 
 /* LOGS */
 const LOGS_DIRECTORY: &str = "logs";

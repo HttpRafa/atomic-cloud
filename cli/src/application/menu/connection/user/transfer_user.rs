@@ -3,27 +3,16 @@ use loading::Loading;
 use simplelog::debug;
 
 use crate::application::{
-    menu::{MenuResult, MenuUtils},
-    network::{
-        proto::{
-            transfer_management::{
-                transfer_target_value::TargetType, TransferTargetValue, TransferUsersRequest,
-            },
-            unit_management::SimpleUnitValue,
-            user_management::UserValue,
-        },
-        EstablishedConnection,
-    },
-    profile::{Profile, Profiles},
+    menu::{MenuResult, MenuUtils}, network::{proto::{server, user}, EstablishedConnection}, profile::{Profile, Profiles}
 };
 
 pub struct TransferUserMenu;
 
 // TODO: Maybe dont request everything at once, but only what is needed
 struct Data {
-    users: Vec<UserValue>,
-    units: Vec<SimpleUnitValue>,
-    deployments: Vec<String>,
+    users: Vec<user::Item>,
+    servers: Vec<server::Short>,
+    groups: Vec<String>,
 }
 
 impl TransferUserMenu {

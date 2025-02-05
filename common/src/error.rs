@@ -3,14 +3,14 @@ use std::backtrace::BacktraceStatus;
 use anyhow::Error;
 use simplelog::error;
 
-pub struct CloudError();
+pub struct FancyError();
 
-impl CloudError {
+impl FancyError {
     pub fn print_fancy(error: &Error, critical: bool) {
         let exit_message = if critical {
-            "An error occurred causing the controller to exit. The controller cannot continue after this error."
+            "An error occurred causing the application to exit. The application cannot continue after this error."
         } else {
-            "An error occurred, but the controller can continue. The controller may not function as expected."
+            "An error occurred, but the application can continue. The application may not function as expected."
         };
 
         error!("{}", exit_message);

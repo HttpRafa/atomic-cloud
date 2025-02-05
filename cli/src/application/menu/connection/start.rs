@@ -89,8 +89,10 @@ impl ConnectionStartMenu {
         profiles: &mut Profiles,
     ) -> MenuResult {
         loop {
-            if Self::show_internal(profile, connection, profiles).await == MenuResult::Exit {
-                return MenuResult::Success;
+            match Self::show_internal(profile, connection, profiles).await {
+                MenuResult::Exit => return MenuResult::Success,
+                MenuResult::Error(error) => return MenuResult::Error(error),
+                _ => {}
             }
         }
     }

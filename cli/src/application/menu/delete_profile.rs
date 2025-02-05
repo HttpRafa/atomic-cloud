@@ -1,3 +1,4 @@
+use inquire::InquireError;
 use loading::Loading;
 use simplelog::debug;
 
@@ -27,15 +28,16 @@ impl DeleteProfileMenu {
                                 err
                             ));
                             progress.end();
+                            
                             MenuResult::Failed
                         }
                     }
                 }
                 Ok(false) | Err(_) => MenuResult::Aborted,
             },
-            Err(err) => {
-                debug!("{}", err);
-                MenuResult::Aborted
+            Err(error) => match error {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Aborted,
+                _ => MenuResult::Error(error.into())
             }
         }
     }

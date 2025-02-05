@@ -1,6 +1,6 @@
+use common::error::{FancyError};
 use inquire::{
-    validator::{Validation, ValueRequiredValidator},
-    Password, Text,
+    validator::{Validation, ValueRequiredValidator}, InquireError, Password, Text
 };
 use loading::Loading;
 use simplelog::debug;
@@ -33,9 +33,9 @@ impl CreateProfileMenu {
         }
         let name = match prompt.prompt() {
             Ok(name) => name,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
+            Err(error) => match error {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
+                _ => return MenuResult::Error(error.into())
             }
         };
 
@@ -47,9 +47,9 @@ impl CreateProfileMenu {
             .prompt()
         {
             Ok(authorization) => authorization,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
+            Err(error) => match error {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
+                _ => return MenuResult::Error(error.into())
             }
         };
 
@@ -59,9 +59,9 @@ impl CreateProfileMenu {
             "Please enter a valid URL",
         ) {
             Ok(url) => url,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
+            Err(error) => match error {
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
+                _ => return MenuResult::Error(error.into())
             }
         };
 
@@ -80,6 +80,7 @@ impl CreateProfileMenu {
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));
                 progress.end();
+                FancyError::print_fancy(&error, false);
                 return MenuResult::Failed;
             }
         }
@@ -87,6 +88,7 @@ impl CreateProfileMenu {
         if let Err(error) = profiles.create_profile(&profile) {
             progress.fail(format!("Failed to create profile: {}", error));
             progress.end();
+            FancyError::print_fancy(&error, false);
             return MenuResult::Failed;
         }
         progress.success("Profile created successfully");

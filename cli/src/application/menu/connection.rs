@@ -1,3 +1,4 @@
+use common::error::FancyError;
 use loading::Loading;
 use start::ConnectionStartMenu;
 
@@ -37,6 +38,7 @@ impl ConnectionMenu {
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));
                 progress.end();
+                FancyError::print_fancy(&error, false);
                 MenuResult::Failed
             }
         }

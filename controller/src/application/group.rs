@@ -107,7 +107,7 @@ impl Group {
             let id = self
                 .id_allocator
                 .allocate()
-                .expect("We reached the maximum unit count. Wow this is a lot of units");
+                .expect("We reached the maximum server count. Wow this is a lot of servers");
             let request = StartRequest::new(
                 None,
                 self.constraints.priority,

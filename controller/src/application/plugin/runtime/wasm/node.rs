@@ -231,7 +231,7 @@ impl From<&Server> for bridge::Server {
         bridge::Server {
             name: val.id().name().clone(),
             uuid: val.id().uuid().to_string(),
-            deployment: val.group().clone(),
+            group: val.group().clone(),
             allocation: val.allocation().into(),
             token: val.token().clone(),
         }
@@ -242,7 +242,7 @@ impl From<&StartRequest> for bridge::ServerProposal {
     fn from(val: &StartRequest) -> Self {
         bridge::ServerProposal {
             name: val.id().name().clone(),
-            deployment: val.group().clone(),
+            group: val.group().clone(),
             resources: val.resources().into(),
             spec: val.spec().into(),
         }

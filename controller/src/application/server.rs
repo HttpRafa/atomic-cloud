@@ -116,7 +116,7 @@ pub struct Heart {
 
 #[derive(Default)]
 pub struct Flags {
-    /* Required for the deployment system */
+    /* Required for the group system */
     pub stop: Option<Instant>,
 }
 

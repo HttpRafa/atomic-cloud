@@ -6,12 +6,12 @@ use std::{
 
 use anyhow::Result;
 use common::{allocator::NumberAllocator, name::TimedName, tick::TickResult};
-use unit::LocalUnit;
+use server::LocalUnit;
 
 use crate::{
-    cloudlet::driver::types::{ErrorMessage, ScopedError, ScopedErrors},
+    node::plugin::types::{ErrorMessage, ScopedError, ScopedErrors},
     error,
-    exports::cloudlet::driver::bridge::{
+    exports::node::plugin::bridge::{
         Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
         UnitProposal,
     },
@@ -21,17 +21,17 @@ use crate::{
 
 use super::{config::Config, template::Templates, LocalCloudletWrapper};
 
-pub mod unit;
+pub mod server;
 
 impl LocalCloudlet {
     pub fn tick(&self) -> Result<(), ScopedErrors> {
-        let mut units = self.get_units_mut();
+        let mut servers = self.get_servers_mut();
         let mut errors = ScopedErrors::new();
-        units.retain_mut(|unit| match unit.tick() {
+        servers.retain_mut(|server| match server.tick() {
             Ok(result) => result == TickResult::Ok,
             Err(err) => {
                 errors.push(ScopedError {
-                    scope: unit.name.get_raw_name().to_string(),
+                    scope: server.name.get_raw_name().to_string(),
                     message: err.to_string(),
                 });
                 true
@@ -60,7 +60,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
                 controller,
                 templates: UnsafeCell::new(None),
                 port_allocator: UnsafeCell::new(None),
-                units: RwLock::new(vec![]),
+                servers: RwLock::new(vec![]),
             }),
         }
     }
@@ -69,8 +69,8 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         self.inner.tick()
     }
 
-    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, ErrorMessage> {
-        let amount = unit.resources.addresses;
+    fn allocate_addresses(&self, server: UnitProposal) -> Result<Vec<Address>, ErrorMessage> {
+        let amount = server.resources.addresses;
 
         let mut ports = Vec::with_capacity(amount as usize);
         let mut allocator = self
@@ -103,10 +103,10 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         }
     }
 
-    fn start_unit(&self, unit: Unit) {
-        let spec = &unit.allocation.spec;
+    fn start_server(&self, server: Unit) {
+        let spec = &server.allocation.spec;
         let name =
-            TimedName::new_no_identifier(&unit.name, spec.disk_retention == Retention::Permanent);
+            TimedName::new_no_identifier(&server.name, spec.disk_retention == Retention::Permanent);
 
         let template = match self
             .inner
@@ -118,7 +118,7 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             Some(template) => template,
             None => {
                 error!(
-                    "Template <blue>{}</> not found for unit <blue>{}</>",
+                    "Template <blue>{}</> not found for server <blue>{}</>",
                     &spec.image,
                     name.get_name()
                 );
@@ -126,11 +126,11 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             }
         };
 
-        let folder = Storage::get_unit_folder(&name, &spec.disk_retention);
+        let folder = Storage::get_server_folder(&name, &spec.disk_retention);
         if !folder.exists() {
             if let Err(err) = template.copy_to_folder(&folder) {
                 error!(
-                    "Failed to copy template for unit <blue>{}</>: <red>{}</>",
+                    "Failed to copy template for server <blue>{}</>: <red>{}</>",
                     name.get_name(),
                     err
                 );
@@ -138,10 +138,10 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
             }
         }
 
-        let mut local_unit = LocalUnit::new(self, unit, &name, template);
-        if let Err(err) = local_unit.start() {
+        let mut local_server = LocalUnit::new(self, server, &name, template);
+        if let Err(err) = local_server.start() {
             error!(
-                "Failed to start unit <blue>{}</>: <red>{}</>",
+                "Failed to start server <blue>{}</>: <red>{}</>",
                 name.get_raw_name(),
                 err
             );
@@ -149,73 +149,73 @@ impl GuestGenericCloudlet for LocalCloudletWrapper {
         }
 
         info!(
-            "Successfully <green>created</> child process for unit <blue>{}</>",
+            "Successfully <green>created</> child process for server <blue>{}</>",
             name.get_raw_name()
         );
-        self.inner.get_units_mut().push(local_unit);
+        self.inner.get_servers_mut().push(local_server);
     }
 
-    fn restart_unit(&self, unit: Unit) {
-        let mut units = self.inner.get_units_mut();
-        if let Some(local_unit) = units
+    fn restart_server(&self, server: Unit) {
+        let mut servers = self.inner.get_servers_mut();
+        if let Some(local_server) = servers
             .iter_mut()
-            .find(|u| u.name.get_raw_name() == unit.name)
+            .find(|u| u.name.get_raw_name() == server.name)
         {
-            if let Err(err) = local_unit.restart() {
+            if let Err(err) = local_server.restart() {
                 error!(
-                    "<red>Failed</> to restart unit <blue>{}</>: <red>{}</>",
-                    unit.name, err
+                    "<red>Failed</> to restart server <blue>{}</>: <red>{}</>",
+                    server.name, err
                 );
                 return;
             }
             info!(
-                "Child process of unit <blue>{}</> is <yellow>restarting</>",
-                unit.name
+                "Child process of server <blue>{}</> is <yellow>restarting</>",
+                server.name
             );
         } else {
-            error!("<red>Failed</> to restart unit <blue>{}</>: Unit was <red>never started</> by this driver", unit.name);
+            error!("<red>Failed</> to restart server <blue>{}</>: Unit was <red>never started</> by this plugin", server.name);
         }
     }
 
-    fn stop_unit(&self, unit: Unit) {
-        let mut units = self.inner.get_units_mut();
-        if let Some(local_unit) = units
+    fn stop_server(&self, server: Unit) {
+        let mut servers = self.inner.get_servers_mut();
+        if let Some(local_server) = servers
             .iter_mut()
-            .find(|u| u.name.get_raw_name() == unit.name)
+            .find(|u| u.name.get_raw_name() == server.name)
         {
-            if unit.allocation.spec.disk_retention == Retention::Temporary {
-                if let Err(err) = local_unit.kill() {
+            if server.allocation.spec.disk_retention == Retention::Temporary {
+                if let Err(err) = local_server.kill() {
                     error!(
-                        "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
-                        unit.name, err
+                        "<red>Failed</> to stop server <blue>{}</>: <red>{}</>",
+                        server.name, err
                     );
                     return;
                 }
                 info!(
-                    "Child process of unit <blue>{}</> was <red>killed</>",
-                    unit.name
+                    "Child process of server <blue>{}</> was <red>killed</>",
+                    server.name
                 );
             } else {
-                if let Err(err) = local_unit.stop() {
+                if let Err(err) = local_server.stop() {
                     error!(
-                        "<red>Failed</> to stop unit <blue>{}</>: <red>{}</>",
-                        unit.name, err
+                        "<red>Failed</> to stop server <blue>{}</>: <red>{}</>",
+                        server.name, err
                     );
                     return;
                 }
                 info!(
-                    "Child process of unit <blue>{}</> is <red>stopping</>",
-                    unit.name
+                    "Child process of server <blue>{}</> is <red>stopping</>",
+                    server.name
                 );
             }
         } else {
-            error!("<red>Failed</> to stop unit <blue>{}</>: Unit was <red>never started</> by this driver", unit.name);
+            error!("<red>Failed</> to stop server <blue>{}</>: Unit was <red>never started</> by this plugin", server.name);
         }
     }
 }
 
 pub struct LocalCloudlet {
-    /* Informations about the cloudlet */
+    /* Informations about the node */
     _name: String,
     pub config: UnsafeCell<Option<Rc<Config>>>,
     controller: RemoteController,
@@ -225,19 +225,19 @@ pub struct LocalCloudlet {
 
     /* Dynamic Resources */
     pub port_allocator: UnsafeCell<Option<Rc<RwLock<NumberAllocator<u16>>>>>,
-    units: RwLock<Vec<LocalUnit>>,
+    servers: RwLock<Vec<LocalUnit>>,
 }
 
 impl LocalCloudlet {
     /* Dispose */
     pub fn try_exit(&self, force: bool) -> Result<TickResult, ScopedErrors> {
         if force {
-            let mut units = self.get_units_mut();
+            let mut servers = self.get_servers_mut();
             let mut errors = ScopedErrors::new();
-            for unit in units.iter_mut() {
-                if let Err(error) = unit.kill() {
+            for server in servers.iter_mut() {
+                if let Err(error) = server.kill() {
                     errors.push(ScopedError {
-                        scope: unit.name.get_raw_name().to_string(),
+                        scope: server.name.get_raw_name().to_string(),
                         message: error.to_string(),
                     });
                 }
@@ -248,7 +248,7 @@ impl LocalCloudlet {
         }
         match self.tick() {
             Ok(()) => {
-                if self.get_units().is_empty() {
+                if self.get_servers().is_empty() {
                     Ok(TickResult::Drop)
                 } else {
                     Ok(TickResult::Ok)
@@ -270,12 +270,12 @@ impl LocalCloudlet {
         // Safe as we are only borrowing the reference immutably
         unsafe { &*self.port_allocator.get() }.as_ref().unwrap()
     }
-    fn get_units(&self) -> RwLockReadGuard<Vec<LocalUnit>> {
+    fn get_servers(&self) -> RwLockReadGuard<Vec<LocalUnit>> {
         // Safe as we are only run on the same thread
-        self.units.read().unwrap()
+        self.servers.read().unwrap()
     }
-    fn get_units_mut(&self) -> RwLockWriteGuard<Vec<LocalUnit>> {
+    fn get_servers_mut(&self) -> RwLockWriteGuard<Vec<LocalUnit>> {
         // Safe as we are only run on the same thread
-        self.units.write().unwrap()
+        self.servers.write().unwrap()
     }
 }

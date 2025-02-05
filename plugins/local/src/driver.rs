@@ -1,17 +1,17 @@
 use std::{cell::UnsafeCell, fs, rc::Rc, sync::RwLock, time::Instant};
 
-use cloudlet::LocalCloudlet;
+use node::LocalCloudlet;
 use common::{allocator::NumberAllocator, tick::TickResult};
 use config::{Config, CLEANUP_TIMEOUT};
 use template::Templates;
 
 use crate::{
-    cloudlet::driver::{
+    node::plugin::{
         file::remove_dir_all,
         types::{ErrorMessage, ScopedErrors},
     },
     debug, error,
-    exports::cloudlet::driver::bridge::{
+    exports::node::plugin::bridge::{
         Capabilities, GenericCloudlet, GuestGenericCloudlet, GuestGenericDriver, Information,
         RemoteController,
     },
@@ -19,7 +19,7 @@ use crate::{
     storage::Storage,
 };
 
-pub mod cloudlet;
+pub mod node;
 mod config;
 mod template;
 
@@ -41,8 +41,8 @@ pub struct Local {
     /* Templates */
     templates: Rc<RwLock<Templates>>,
 
-    /* Cloudlets that this driver handles */
-    cloudlets: RwLock<Vec<Rc<LocalCloudlet>>>,
+    /* Cloudlets that this plugin handles */
+    nodes: RwLock<Vec<Rc<LocalCloudlet>>>,
 }
 
 impl Local {
@@ -63,7 +63,7 @@ impl GuestGenericDriver for Local {
             config: UnsafeCell::new(None),
             port_allocator: UnsafeCell::new(None),
             templates: Rc::new(RwLock::new(Templates::new())),
-            cloudlets: RwLock::new(Vec::new()),
+            nodes: RwLock::new(Vec::new()),
         }
     }
 
@@ -110,7 +110,7 @@ impl GuestGenericDriver for Local {
         }
     }
 
-    fn init_cloudlet(
+    fn init_node(
         &self,
         name: String,
         capabilities: Capabilities,
@@ -128,21 +128,21 @@ impl GuestGenericDriver for Local {
             *wrapper.inner.port_allocator.get() = Some(self.get_port_allocator().clone());
             *wrapper.inner.templates.get() = Some(self.templates.clone());
         }
-        // Add cloudlet to cloudlets list
-        let mut cloudlets = self
-            .cloudlets
+        // Add node to nodes list
+        let mut nodes = self
+            .nodes
             .write()
-            .expect("Failed to get lock on cloudlets");
-        cloudlets.push(wrapper.inner.clone());
+            .expect("Failed to get lock on nodes");
+        nodes.push(wrapper.inner.clone());
         info!("Cloudlet <blue>{}</> was <green>added</>", name);
         Ok(GenericCloudlet::new(wrapper))
     }
 
     fn cleanup(&self) -> Result<(), ScopedErrors> {
-        let cloudlets = self
-            .cloudlets
+        let nodes = self
+            .nodes
             .read()
-            .expect("Failed to get lock on cloudlets");
+            .expect("Failed to get lock on nodes");
         info!("Starting cleanup process...");
         let start_time = Instant::now();
         let mut last_attempt = false;
@@ -152,8 +152,8 @@ impl GuestGenericDriver for Local {
                 last_attempt = true;
             }
 
-            let all_stopped = cloudlets.iter().try_fold(true, |all_stopped, cloudlet| {
-                match cloudlet.try_exit(last_attempt) {
+            let all_stopped = nodes.iter().try_fold(true, |all_stopped, node| {
+                match node.try_exit(last_attempt) {
                     Ok(TickResult::Ok) => Ok(false),
                     Ok(_) => Ok(all_stopped),
                     Err(error) => Err(error),
@@ -165,7 +165,7 @@ impl GuestGenericDriver for Local {
             }
         }
 
-        info!("All units should be <red>stopped</> now. Removing temporary files...");
+        info!("All servers should be <red>stopped</> now. Removing temporary files...");
         if let Err(error) = fs::remove_dir_all(Storage::get_temporary_folder()) {
             error!("<red>Failed</> to remove temporary directory: {}", error);
         }

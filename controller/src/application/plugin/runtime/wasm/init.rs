@@ -58,7 +58,7 @@ pub async fn init_wasm_plugins(
                 .await
                 .unwrap_or_else(|error| {
                     warn!(
-                        "Failed to create configs directory for driver {}: {}",
+                        "Failed to create configs directory for plugin {}: {}",
                         name, error
                     )
                 });
@@ -68,7 +68,7 @@ pub async fn init_wasm_plugins(
                 .await
                 .unwrap_or_else(|error| {
                     warn!(
-                        "Failed to create data directory for driver {}: {}",
+                        "Failed to create data directory for plugin {}: {}",
                         name, error
                     )
                 });

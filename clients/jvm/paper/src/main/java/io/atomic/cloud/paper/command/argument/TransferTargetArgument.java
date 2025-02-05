@@ -7,9 +7,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import io.atomic.cloud.grpc.unit.DeploymentInformation;
-import io.atomic.cloud.grpc.unit.TransferManagement;
-import io.atomic.cloud.grpc.unit.UnitInformation;
+import io.atomic.cloud.grpc.server.DeploymentInformation;
+import io.atomic.cloud.grpc.server.TransferManagement;
+import io.atomic.cloud.grpc.server.UnitInformation;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.papermc.paper.command.brigadier.MessageComponentSerializer;
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
@@ -40,27 +40,27 @@ public class TransferTargetArgument
         }
         var type = valueSplit[0];
         var identifier = valueSplit[1];
-        if (type.equalsIgnoreCase("unit")) {
+        if (type.equalsIgnoreCase("server")) {
             var cached = CloudPlugin.INSTANCE.connection().getUnitsNow();
-            if (cached.isEmpty()) throw createException("Fetching available units...");
-            var unit = cached.get().getUnitsList().stream()
+            if (cached.isEmpty()) throw createException("Fetching available servers...");
+            var server = cached.get().getUnitsList().stream()
                     .filter(item -> item.getName().equalsIgnoreCase(identifier))
                     .findFirst();
-            if (unit.isEmpty()) throw createException("\"" + identifier + "\" does not exist");
+            if (server.isEmpty()) throw createException("\"" + identifier + "\" does not exist");
             return TransferManagement.TransferTargetValue.newBuilder()
                     .setTargetType(TransferManagement.TransferTargetValue.TargetType.UNIT)
-                    .setTarget(unit.get().getUuid())
+                    .setTarget(server.get().getUuid())
                     .build();
-        } else if (type.equalsIgnoreCase("deployment")) {
+        } else if (type.equalsIgnoreCase("group")) {
             var cached = CloudPlugin.INSTANCE.connection().getDeploymentsNow();
-            if (cached.isEmpty()) throw createException("Fetching available deployments...");
-            var deployment = cached.get().getDeploymentsList().stream()
+            if (cached.isEmpty()) throw createException("Fetching available groups...");
+            var group = cached.get().getDeploymentsList().stream()
                     .filter(item -> item.equalsIgnoreCase(identifier))
                     .findFirst();
-            if (deployment.isEmpty()) throw createException("\"" + identifier + "\" does not exist");
+            if (group.isEmpty()) throw createException("\"" + identifier + "\" does not exist");
             return TransferManagement.TransferTargetValue.newBuilder()
                     .setTargetType(TransferManagement.TransferTargetValue.TargetType.DEPLOYMENT)
-                    .setTarget(deployment.get())
+                    .setTarget(group.get())
                     .build();
         }
         throw createException("Unknown transfer target type: " + type);
@@ -74,25 +74,25 @@ public class TransferTargetArgument
                 .getUnits()
                 .thenCombine(CloudPlugin.INSTANCE.connection().getDeployments(), SuggestionsData::new)
                 .thenCompose(response -> {
-                    response.units
+                    response.servers
                             .getUnitsList()
-                            .forEach(unit -> builder.suggest(
-                                    "unit:" + unit.getName(),
+                            .forEach(server -> builder.suggest(
+                                    "server:" + server.getName(),
                                     MessageComponentSerializer.message()
-                                            .serialize(Component.text(unit.getUuid())
+                                            .serialize(Component.text(server.getUuid())
                                                     .color(NamedTextColor.BLUE))));
-                    response.deployments
+                    response.groups
                             .getDeploymentsList()
-                            .forEach(deployment -> builder.suggest(
-                                    "deployment:" + deployment,
+                            .forEach(group -> builder.suggest(
+                                    "group:" + group,
                                     MessageComponentSerializer.message()
                                             .serialize(
-                                                    Component.text(deployment).color(NamedTextColor.BLUE))));
+                                                    Component.text(group).color(NamedTextColor.BLUE))));
                     builder.suggest(
                             "fallback",
                             MessageComponentSerializer.message()
                                     .serialize(Component.text(
-                                                    "This option will try to transfer all users to a fallback unit")
+                                                    "This option will try to transfer all users to a fallback server")
                                             .color(NamedTextColor.BLUE)));
                     return builder.buildFuture();
                 });
@@ -109,5 +109,5 @@ public class TransferTargetArgument
     }
 
     private record SuggestionsData(
-            UnitInformation.UnitListResponse units, DeploymentInformation.DeploymentListResponse deployments) {}
+            UnitInformation.UnitListResponse servers, DeploymentInformation.DeploymentListResponse groups) {}
 }

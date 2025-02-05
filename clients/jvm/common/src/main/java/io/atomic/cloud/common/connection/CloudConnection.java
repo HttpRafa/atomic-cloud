@@ -4,7 +4,7 @@ import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.common.cache.CachedObject;
-import io.atomic.cloud.grpc.unit.*;
+import io.atomic.cloud.grpc.server.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -32,8 +32,8 @@ public class CloudConnection {
     // Cache values
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
-    private final CachedObject<UnitInformation.UnitListResponse> unitsInfo = new CachedObject<>();
-    private final CachedObject<DeploymentInformation.DeploymentListResponse> deploymentsInfo = new CachedObject<>();
+    private final CachedObject<UnitInformation.UnitListResponse> serversInfo = new CachedObject<>();
+    private final CachedObject<DeploymentInformation.DeploymentListResponse> groupsInfo = new CachedObject<>();
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -122,7 +122,7 @@ public class CloudConnection {
     }
 
     public Optional<UnitInformation.UnitListResponse> getUnitsNow() {
-        var cached = this.unitsInfo.getValue();
+        var cached = this.serversInfo.getValue();
         if (cached.isEmpty()) {
             this.getUnits(); // Request value from controller
         }
@@ -130,20 +130,20 @@ public class CloudConnection {
     }
 
     public CompletableFuture<UnitInformation.UnitListResponse> getUnits() {
-        var cached = this.unitsInfo.getValue();
+        var cached = this.serversInfo.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<UnitInformation.UnitListResponse>();
         this.client.getUnits(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            this.unitsInfo.setValue(value);
+            this.serversInfo.setValue(value);
             return value;
         });
     }
 
     public Optional<DeploymentInformation.DeploymentListResponse> getDeploymentsNow() {
-        var cached = this.deploymentsInfo.getValue();
+        var cached = this.groupsInfo.getValue();
         if (cached.isEmpty()) {
             this.getDeployments(); // Request value from controller
         }
@@ -151,14 +151,14 @@ public class CloudConnection {
     }
 
     public CompletableFuture<DeploymentInformation.DeploymentListResponse> getDeployments() {
-        var cached = this.deploymentsInfo.getValue();
+        var cached = this.groupsInfo.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<DeploymentInformation.DeploymentListResponse>();
         this.client.getDeployments(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            this.deploymentsInfo.setValue(value);
+            this.groupsInfo.setValue(value);
             return value;
         });
     }

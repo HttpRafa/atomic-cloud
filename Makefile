@@ -1,4 +1,4 @@
-.PHONY: run run-controller build build-controller build-wrapper build-drivers clean fix
+.PHONY: run run-controller build build-controller build-wrapper build-plugins clean fix
 
 # Configuration
 WASM_RUSTFLAGS = -Z wasi-exec-model=reactor
@@ -7,7 +7,7 @@ WASM_TARGET = wasm32-wasip2
 # Directories
 RUN_DIR = run
 OLD_RUN_DIR = run.old
-DRIVER_DIR = $(RUN_DIR)/drivers/wasm
+DRIVER_DIR = $(RUN_DIR)/plugins/wasm
 
 # Arguments
 CONTROLLER_ARGS = "--debug"
@@ -42,7 +42,7 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
 
 ## Build target
-build: build-controller build-cli build-wrapper build-drivers
+build: build-controller build-cli build-wrapper build-plugins
 
 ## Run target
 run: run-controller
@@ -67,12 +67,12 @@ build-cli:
 build-wrapper:
 	cargo build -p wrapper --all-features --release
 
-## Build drivers target
-build-drivers:
+## Build plugins target
+build-plugins:
 	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
 	cargo build -p pterodactyl --target $(WASM_TARGET) --release
 	cargo build -p local --target $(WASM_TARGET) --release
 
-# Create driver directory if it doesn't exist
+# Create plugin directory if it doesn't exist
 $(DRIVER_DIR):
 	$(MKDIR) $(DRIVER_DIR)

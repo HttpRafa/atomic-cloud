@@ -5,7 +5,7 @@ import io.atomic.cloud.api.objects.CloudDeployment;
 import io.atomic.cloud.api.objects.CloudUnit;
 import io.atomic.cloud.api.transfer.Transfers;
 import io.atomic.cloud.common.connection.CloudConnection;
-import io.atomic.cloud.grpc.unit.TransferManagement;
+import io.atomic.cloud.grpc.server.TransferManagement;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
@@ -17,11 +17,11 @@ public class TransferManager implements Transfers {
     private final CloudConnection connection;
 
     @Override
-    public CompletableFuture<Integer> transferUsersToUnit(@NotNull CloudUnit unit, UUID @NotNull ... userUUID) {
+    public CompletableFuture<Integer> transferUsersToUnit(@NotNull CloudUnit server, UUID @NotNull ... userUUID) {
         var builder = TransferManagement.TransferUsersRequest.newBuilder();
         builder.setTarget(TransferManagement.TransferTargetValue.newBuilder()
                 .setTargetType(TransferManagement.TransferTargetValue.TargetType.UNIT)
-                .setTarget(unit.uuid().toString())
+                .setTarget(server.uuid().toString())
                 .build());
         for (UUID uuid : userUUID) {
             builder.addUserUuids(uuid.toString());
@@ -31,11 +31,11 @@ public class TransferManager implements Transfers {
 
     @Override
     public CompletableFuture<Integer> transferUsersToDeployment(
-            @NotNull CloudDeployment deployment, UUID @NotNull ... userUUID) {
+            @NotNull CloudDeployment group, UUID @NotNull ... userUUID) {
         var builder = TransferManagement.TransferUsersRequest.newBuilder();
         builder.setTarget(TransferManagement.TransferTargetValue.newBuilder()
                 .setTargetType(TransferManagement.TransferTargetValue.TargetType.DEPLOYMENT)
-                .setTarget(deployment.name())
+                .setTarget(group.name())
                 .build());
         for (UUID uuid : userUUID) {
             builder.addUserUuids(uuid.toString());

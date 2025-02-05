@@ -4,13 +4,13 @@ use anyhow::{anyhow, Result};
 use common::{name::TimedName, tick::TickResult};
 
 use crate::{
-    cloudlet::driver::{
+    node::plugin::{
         file::remove_dir_all,
         process::{drop_process, kill_process, read_line_async, try_wait, StdReader},
         types::{Directory, KeyValue},
     },
-    driver::{config::UNIT_STOP_TIMEOUT, template::Template, LocalCloudletWrapper},
-    exports::cloudlet::driver::bridge::{Retention, Unit},
+    plugin::{config::UNIT_STOP_TIMEOUT, template::Template, LocalCloudletWrapper},
+    exports::node::plugin::bridge::{Retention, Unit},
     info,
     storage::Storage,
     warn,
@@ -30,7 +30,7 @@ pub enum UnitState {
 }
 
 pub struct LocalUnit {
-    pub unit: Unit,
+    pub server: Unit,
     pub state: UnitState,
     pub changed: Instant,
     pub pid: Option<u32>,
@@ -43,33 +43,33 @@ pub struct LocalUnit {
 impl LocalUnit {
     pub fn new(
         node: &LocalCloudletWrapper,
-        mut unit: Unit,
+        mut server: Unit,
         name: &TimedName,
         template: Rc<Template>,
     ) -> Self {
-        let environment = &mut unit.allocation.spec.environment;
+        let environment = &mut server.allocation.spec.environment;
         environment.push(KeyValue {
             key: CONTROLLER_ADDRESS.to_string(),
             value: node.inner.controller.address.clone(),
         });
         environment.push(KeyValue {
             key: UNIT_TOKEN.to_string(),
-            value: unit.auth.token.clone(),
+            value: server.auth.token.clone(),
         });
         environment.push(KeyValue {
             key: UNIT_PORT.to_string(),
-            value: unit.allocation.addresses[0].port.to_string(),
+            value: server.allocation.addresses[0].port.to_string(),
         });
         Self {
             state: UnitState::Stopped,
             changed: Instant::now(),
             pid: None,
-            _internal_folder: Storage::get_unit_folder(name, &unit.allocation.spec.disk_retention),
-            host_folder: Storage::get_unit_folder_host_converted(
+            _internal_folder: Storage::get_server_folder(name, &server.allocation.spec.disk_retention),
+            host_folder: Storage::get_server_folder_host_converted(
                 name,
-                &unit.allocation.spec.disk_retention,
+                &server.allocation.spec.disk_retention,
             ),
-            unit,
+            server,
             name: name.clone(),
             template,
         }
@@ -110,7 +110,7 @@ impl LocalUnit {
                         }
                         Ok(None) => return Ok(TickResult::Ok),
                         Err(error) => {
-                            warn!("Failed to get status for unit {}, killing it", error);
+                            warn!("Failed to get status for server {}, killing it", error);
                             kill_process(pid).map_err(|error| anyhow!(error))?;
                         }
                     }
@@ -135,7 +135,7 @@ impl LocalUnit {
     }
 
     fn cleanup(&self) -> Result<()> {
-        if self.unit.allocation.spec.disk_retention == Retention::Temporary {
+        if self.server.allocation.spec.disk_retention == Retention::Temporary {
             remove_dir_all(&self.host_folder).map_err(|error| anyhow!(error))?;
         }
         Ok(())
@@ -144,7 +144,7 @@ impl LocalUnit {
     pub fn start(&mut self) -> Result<()> {
         self.pid = Some(
             self.template
-                .run_startup(&self.host_folder, &self.unit.allocation.spec.environment)?,
+                .run_startup(&self.host_folder, &self.server.allocation.spec.environment)?,
         );
         self.state = UnitState::Running;
         self.changed = Instant::now();

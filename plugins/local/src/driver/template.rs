@@ -11,7 +11,7 @@ use stored::StoredTemplate;
 use walkdir::WalkDir;
 
 use crate::{
-    cloudlet::driver::{
+    node::plugin::{
         platform::{get_os, Os},
         process::{
             drop_process, read_line_direct, spawn_process, try_wait, write_stdin, KeyValue,

@@ -5,12 +5,12 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
     vec,
 };
-use unit::PanelUnit;
+use server::PanelUnit;
 
 use crate::{
-    cloudlet::driver::types::ScopedErrors,
+    node::plugin::types::ScopedErrors,
     error,
-    exports::cloudlet::driver::bridge::{
+    exports::node::plugin::bridge::{
         Address, Capabilities, GuestGenericCloudlet, RemoteController, Retention, Unit,
         UnitProposal,
     },
@@ -26,7 +26,7 @@ use super::{
     PterodactylCloudletWrapper,
 };
 
-pub mod unit;
+pub mod server;
 
 impl GuestGenericCloudlet for PterodactylCloudletWrapper {
     fn new(
@@ -45,7 +45,7 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 //capabilities,
                 controller,
                 allocations: RwLock::new(vec![]),
-                units: RwLock::new(vec![]),
+                servers: RwLock::new(vec![]),
             }),
         }
     }
@@ -55,23 +55,23 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
     }
 
     /* This method expects that the Pterodactyl Allocations are only accessed by one atomic cloud instance */
-    fn allocate_addresses(&self, unit: UnitProposal) -> Result<Vec<Address>, String> {
-        let amount = unit.resources.addresses;
+    fn allocate_addresses(&self, server: UnitProposal) -> Result<Vec<Address>, String> {
+        let amount = server.resources.addresses;
 
         let mut used = self.inner.get_allocations_mut();
-        if unit.spec.disk_retention == Retention::Permanent {
-            let name = TimedName::new(&self.inner.cloud_identifier, &unit.name, true);
+        if server.spec.disk_retention == Retention::Permanent {
+            let name = TimedName::new(&self.inner.cloud_identifier, &server.name, true);
 
-            // Check if a unit with the same name is already exists
-            if let Some(backend_unit) = self.inner.get_backend().get_server_by_name(&name) {
+            // Check if a server with the same name is already exists
+            if let Some(backend_server) = self.inner.get_backend().get_server_by_name(&name) {
                 // Get the allocations that are already used by this server
                 let mut allocations = self
                     .inner
                     .get_backend()
-                    .get_allocations_by_server(&backend_unit.identifier);
+                    .get_allocations_by_server(&backend_server.identifier);
 
-                if (allocations.1.len() + 1) as u32 != unit.resources.addresses {
-                    warn!("The unit {} has a different amount of addresses than the panel has allocated. This may cause issues.", unit.name);
+                if (allocations.1.len() + 1) as u32 != server.resources.addresses {
+                    warn!("The server {} has a different amount of addresses than the panel has allocated. This may cause issues.", server.name);
                     // TODO: Add a way to fix this
                 }
 
@@ -108,15 +108,15 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
         });
     }
 
-    fn start_unit(&self, unit: Unit) {
-        let spec = &unit.allocation.spec;
+    fn start_server(&self, server: Unit) {
+        let spec = &server.allocation.spec;
         let name = TimedName::new(
             &self.inner.cloud_identifier,
-            &unit.name,
+            &server.name,
             spec.disk_retention == Retention::Permanent,
         );
 
-        let allocations = unit
+        let allocations = server
             .allocation
             .addresses
             .iter()
@@ -124,37 +124,37 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
                 Some(allocation) => Some(allocation),
                 None => {
                     error!(
-                        "Allocation({:?}) not found for unit {}",
-                        &unit.allocation.addresses[0], unit.name
+                        "Allocation({:?}) not found for server {}",
+                        &server.allocation.addresses[0], server.name
                     );
                     None
                 }
             })
             .collect::<Vec<_>>();
 
-        // Check if a unit with the same name is already exists
-        if let Some(backend_unit) = self.inner.get_backend().get_server_by_name(&name) {
+        // Check if a server with the same name is already exists
+        if let Some(backend_server) = self.inner.get_backend().get_server_by_name(&name) {
             if spec.disk_retention == Retention::Temporary {
                 error!(
                     "Unit <blue>{}</> already exists on the panel, but the disk retention is temporary",
-                    unit.name
+                    server.name
                 );
                 return;
             }
-            // Just use the existing unit and change its settings
+            // Just use the existing server and change its settings
             info!(
                 "Unit <blue>{}</> already exists on the panel, updating settings and starting...",
-                unit.name
+                server.name
             );
             self.inner
                 .get_backend()
-                .update_settings(self, allocations[0].id, &backend_unit, &unit);
+                .update_settings(self, allocations[0].id, &backend_server, &server);
             self.inner
                 .get_backend()
-                .start_server(&backend_unit.identifier);
-            self.inner.get_units_mut().push(PanelUnit::new(
-                backend_unit.id,
-                backend_unit.identifier,
+                .start_server(&backend_server.identifier);
+            self.inner.get_servers_mut().push(PanelUnit::new(
+                backend_server.id,
+                backend_server.identifier,
                 name,
             ));
         } else {
@@ -186,16 +186,16 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             }
             if !missing.is_empty() {
                 error!(
-                    "The following required settings to start the unit are missing: <red>{}</>",
+                    "The following required settings to start the server are missing: <red>{}</>",
                     missing.join(", ")
                 );
                 return;
             }
 
-            // Create a new unit
-            if let Some(unit) = self.inner.get_backend().create_server(
+            // Create a new server
+            if let Some(server) = self.inner.get_backend().create_server(
                 &name,
-                &unit,
+                &server,
                 self,
                 &allocations,
                 BServerEgg {
@@ -209,50 +209,50 @@ impl GuestGenericCloudlet for PterodactylCloudletWrapper {
             ) {
                 info!(
                     "Unit <blue>{}</> successfully <green>created</> on the panel",
-                    unit.name,
+                    server.name,
                 );
                 self.inner
-                    .get_units_mut()
-                    .push(PanelUnit::new(unit.id, unit.identifier, name));
+                    .get_servers_mut()
+                    .push(PanelUnit::new(server.id, server.identifier, name));
             }
         }
     }
 
-    fn restart_unit(&self, unit: Unit) {
-        if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
-            self.inner.get_backend().restart_server(&backend_unit);
+    fn restart_server(&self, server: Unit) {
+        if let Some(backend_server) = self.inner.find_server(&server.name) {
+            self.inner.get_backend().restart_server(&backend_server);
             info!(
-                "Panel is <yellow>restarting</> the unit <blue>{}</>...",
-                backend_unit.name.get_name(),
+                "Panel is <yellow>restarting</> the server <blue>{}</>...",
+                backend_server.name.get_name(),
             );
         } else {
             error!(
-                "<red>Failed</> to restart unit <blue>{}</> because the unit was <red>never started</> by this driver",
-                unit.name,
+                "<red>Failed</> to restart server <blue>{}</> because the server was <red>never started</> by this plugin",
+                server.name,
             );
         }
     }
 
-    fn stop_unit(&self, unit: Unit) {
-        if let Some(backend_unit) = self.inner.find_unit(&unit.name) {
-            if unit.allocation.spec.disk_retention == Retention::Temporary {
-                self.inner.get_backend().delete_server(backend_unit.id);
+    fn stop_server(&self, server: Unit) {
+        if let Some(backend_server) = self.inner.find_server(&server.name) {
+            if server.allocation.spec.disk_retention == Retention::Temporary {
+                self.inner.get_backend().delete_server(backend_server.id);
                 info!(
                     "Unit <blue>{}</> successfully <red>deleted</> from the panel",
-                    backend_unit.name.get_name()
+                    backend_server.name.get_name()
                 );
             } else {
-                self.inner.get_backend().stop_server(&backend_unit);
+                self.inner.get_backend().stop_server(&backend_server);
                 info!(
-                    "Panel is <red>stopping</> the unit <blue>{}</>...",
-                    backend_unit.name.get_name(),
+                    "Panel is <red>stopping</> the server <blue>{}</>...",
+                    backend_server.name.get_name(),
                 );
             }
-            self.inner.delete_unit(backend_unit.id);
+            self.inner.delete_server(backend_server.id);
         } else {
             error!(
-                "<red>Failed</> to stop unit <blue>{}</> because the unit was <red>never started</> by this driver",
-                unit.name
+                "<red>Failed</> to stop server <blue>{}</> because the server was <red>never started</> by this plugin",
+                server.name
             );
         }
     }
@@ -262,7 +262,7 @@ pub struct PterodactylCloudlet {
     /* Cloud Identification */
     pub cloud_identifier: String,
 
-    /* Informations about the cloudlet */
+    /* Informations about the node */
     pub backend: UnsafeCell<Option<Rc<Backend>>>,
     pub id: u32,
     //pub name: String,
@@ -271,7 +271,7 @@ pub struct PterodactylCloudlet {
 
     /* Dynamic Resources */
     pub allocations: RwLock<Vec<BAllocation>>,
-    pub units: RwLock<Vec<PanelUnit>>,
+    pub servers: RwLock<Vec<PanelUnit>>,
 }
 
 impl PterodactylCloudlet {
@@ -288,13 +288,13 @@ impl PterodactylCloudlet {
         // Safe as we are only run on the same thread
         self.allocations.write().unwrap()
     }
-    fn get_units(&self) -> RwLockReadGuard<Vec<PanelUnit>> {
+    fn get_servers(&self) -> RwLockReadGuard<Vec<PanelUnit>> {
         // Safe as we are only run on the same thread
-        self.units.read().unwrap()
+        self.servers.read().unwrap()
     }
-    fn get_units_mut(&self) -> RwLockWriteGuard<Vec<PanelUnit>> {
+    fn get_servers_mut(&self) -> RwLockWriteGuard<Vec<PanelUnit>> {
         // Safe as we are only run on the same thread
-        self.units.write().unwrap()
+        self.servers.write().unwrap()
     }
 
     fn find_allocation(&self, address: &Address) -> Option<BAllocation> {
@@ -305,13 +305,13 @@ impl PterodactylCloudlet {
             })
             .cloned()
     }
-    fn find_unit(&self, name: &str) -> Option<PanelUnit> {
-        self.get_units()
+    fn find_server(&self, name: &str) -> Option<PanelUnit> {
+        self.get_servers()
             .iter()
-            .find(|unit| unit.name.get_raw_name() == name)
+            .find(|server| server.name.get_raw_name() == name)
             .cloned()
     }
-    fn delete_unit(&self, id: u32) {
-        self.get_units_mut().retain(|unit| unit.id != id);
+    fn delete_server(&self, id: u32) {
+        self.get_servers_mut().retain(|server| server.id != id);
     }
 }

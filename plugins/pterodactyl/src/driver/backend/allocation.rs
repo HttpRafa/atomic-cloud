@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::exports::cloudlet::driver::bridge::Address;
+use crate::exports::node::plugin::bridge::Address;
 
 #[derive(Deserialize, Clone)]
 pub struct BAllocation {

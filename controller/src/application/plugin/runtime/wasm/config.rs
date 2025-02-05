@@ -102,7 +102,7 @@ impl PluginsConfig {
             .find(|plugin| match Regex::new(&plugin.name) {
                 Ok(regex) => regex.is_match(name),
                 Err(error) => {
-                    warn!("Failed to compile driver name regex: {}", error);
+                    warn!("Failed to compile plugin name regex: {}", error);
                     false
                 }
             })

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::exports::cloudlet::driver::bridge::Resources;
+use crate::exports::node::plugin::bridge::Resources;
 
 use super::allocation::BAllocation;
 

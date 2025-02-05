@@ -1,15 +1,15 @@
 #![no_main]
 
-use driver::{Pterodactyl, PterodactylCloudletWrapper};
-use exports::cloudlet::driver::bridge::Guest;
+use plugin::{Pterodactyl, PterodactylCloudletWrapper};
+use exports::node::plugin::bridge::Guest;
 use wit_bindgen::generate;
 
-mod driver;
+mod plugin;
 mod log;
 mod storage;
 
 generate!({
-    world: "driver",
+    world: "plugin",
     path: "../../protocol/wit/",
     additional_derives: [PartialEq, Eq],
 });

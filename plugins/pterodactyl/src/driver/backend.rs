@@ -17,14 +17,14 @@ use url::Url;
 use user::BUser;
 
 use crate::{
-    cloudlet::driver::http::{send_http_request, Header, Method, Response},
+    node::plugin::http::{send_http_request, Header, Method, Response},
     debug, error,
-    exports::cloudlet::driver::bridge::Unit,
+    exports::node::plugin::bridge::Unit,
     storage::Storage,
     warn,
 };
 
-use super::{cloudlet::unit::PanelUnit, PterodactylCloudletWrapper};
+use super::{node::server::PanelUnit, PterodactylCloudletWrapper};
 
 pub mod allocation;
 mod common;

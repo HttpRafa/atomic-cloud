@@ -204,13 +204,13 @@ impl CreateGroupMenu {
             "Please enter a valid number",
         )?;
         let settings = MenuUtils::parsed_value::<KeyValueList>(
-            "What settings should the controller pass to the driver when starting a server?",
+            "What settings should the controller pass to the plugin when starting a server?",
             "Format: key=value,key=value,key=value,...",
             "Please check your syntax. Something seems wrong.",
         )?
         .key_values;
         let env = MenuUtils::parsed_value::<KeyValueList>(
-            "What environment variables should the controller pass to the driver when starting a server?",
+            "What environment variables should the controller pass to the plugin when starting a server?",
             "Format: key=value,key=value,key=value,...",
             "Please check your syntax something is wrong",
         )?

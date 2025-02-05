@@ -157,7 +157,7 @@ interface bridge {
 
     record server-proposal {
         name: string,
-        deployment: option<string>,
+        group: option<string>,
         resources: resources,
         spec: spec,
     }
@@ -165,7 +165,7 @@ interface bridge {
     record server {
         name: string,
         uuid: uuid,
-        deployment: option<string>,
+        group: option<string>,
         allocation: allocation,
         token: string,
     }

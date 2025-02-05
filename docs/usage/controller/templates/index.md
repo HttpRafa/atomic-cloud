@@ -19,7 +19,7 @@ Templates work by describing the desired state of your resources in a structured
    These define the actual components to be created. In a Minecraft server template, resources could include the server jar file, configuration files, mods, or plugins required to run the server.
 
 3. **Outputs**:  
-   These are values returned after the deployment is complete, such as resource IDs, connection URLs, or IP addresses that you might need to connect to your server.
+   These are values returned after the group is complete, such as resource IDs, connection URLs, or IP addresses that you might need to connect to your server.
 
 ### Example Template Structure
 
@@ -79,7 +79,7 @@ startupScripts = [
 ]
 
 [outputs]
-# Output values after deployment
+# Output values after group
 serverUrl = "http://{parameters.serverName}.atomiccloud.example.com:{parameters.serverPort}"
 ```
 

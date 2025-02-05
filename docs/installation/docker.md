@@ -21,8 +21,8 @@ services:
       - ./logs:/app/logs
       - ./auth:/app/auth
       - ./configs:/app/configs
-      - ./cloudlets:/app/cloudlets
-      - ./deployments:/app/deployments
+      - ./nodes:/app/nodes
+      - ./groups:/app/groups
       - ./drivers:/app/drivers
 ```
 

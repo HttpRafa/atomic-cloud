@@ -170,4 +170,8 @@ impl Controller {
         })
         .map_err(|error| error.into())
     }
+
+    pub fn signal_shutdown(&self) {
+        self.running.store(false, Ordering::Relaxed);
+    }
 }

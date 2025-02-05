@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     application::Controller,
-    task::{BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct SetReadyTask {
@@ -14,7 +14,12 @@ pub struct SetReadyTask {
 
 #[async_trait]
 impl GenericTask for SetReadyTask {
-    async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        Ok(Box::new(()))
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let server = match controller.servers_mut().get_server_mut(&self.server) {
+            Some(server) => server,
+            None => return Task::new_link_error(),
+        };
+        server.set_ready(self.ready);
+        Task::new_empty()
     }
 }

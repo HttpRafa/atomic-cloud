@@ -1,10 +1,10 @@
 use anyhow::Result;
-use tonic::async_trait;
+use tonic::{async_trait, Status};
 use uuid::Uuid;
 
 use crate::{
     application::Controller,
-    task::{BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct BeatTask {
@@ -13,7 +13,12 @@ pub struct BeatTask {
 
 #[async_trait]
 impl GenericTask for BeatTask {
-    async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        Ok(Box::new(()))
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let server = match controller.servers_mut().get_server_mut(&self.server) {
+            Some(server) => server,
+            None => return Task::new_link_error(),
+        };
+        server.heart_mut().beat();
+        Task::new_empty()
     }
 }

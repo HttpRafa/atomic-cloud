@@ -76,13 +76,13 @@ impl ServerManager {
     ) -> Result<()> {
         // Check health of servers
         for server in self.servers.values() {
-            if server.health.is_dead() {
+            if server.heart.is_dead() {
                 match server.state {
                     State::Starting | State::Running => {
                         warn!("Unit {} failed to establish online status within the expected startup time of {:.2?}.", server.id, config.restart_timeout());
                     }
                     _ => {
-                        warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.id, server.health.timeout);
+                        warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.id, server.heart.timeout);
                     }
                 }
                 self.restart_requests

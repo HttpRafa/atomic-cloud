@@ -11,7 +11,7 @@ use crate::{
         auth::service::AuthService,
         group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
-        server::{Flags, Health, Server, State},
+        server::{Flags, Heart, Server, State},
         user::manager::UserManager,
     },
     config::Config,
@@ -67,9 +67,10 @@ impl ServerManager {
                     },
                     connected_users: 0,
                     token: auth.register_server(request.id.uuid).await,
-                    health: Health::new(*config.startup_timeout(), *config.heartbeat_timeout()),
+                    heart: Heart::new(*config.startup_timeout(), *config.heartbeat_timeout()),
                     state: State::Starting,
                     flags: Flags::default(),
+                    ready: false,
                 };
                 let handle = node.start(&server);
                 if let Some(group) = &server.group {
@@ -104,7 +105,7 @@ impl ServerManager {
         if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
                 server.state = State::Restarting;
-                server.health = Health::new(*config.startup_timeout(), *config.heartbeat_timeout());
+                server.heart = Heart::new(*config.startup_timeout(), *config.heartbeat_timeout());
                 Ok(node.restart(server))
             } else {
                 Err(anyhow!(

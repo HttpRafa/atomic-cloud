@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use getset::{Getters, MutGetters};
+use getset::{Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 use uuid::Uuid;
@@ -13,7 +13,7 @@ use super::node::Allocation;
 
 pub mod manager;
 
-#[derive(Getters, MutGetters)]
+#[derive(Getters, Setters, MutGetters)]
 pub struct Server {
     /* Settings */
     #[getset(get = "pub")]
@@ -33,11 +33,13 @@ pub struct Server {
 
     /* States */
     #[getset(get = "pub", get_mut = "pub")]
-    health: Health,
+    heart: Heart,
     #[getset(get = "pub", get_mut = "pub")]
     state: State,
     #[getset(get = "pub", get_mut = "pub")]
     flags: Flags,
+    #[getset(get = "pub", set = "pub")]
+    ready: bool,
 }
 
 #[derive(Clone, Getters, MutGetters)]
@@ -107,8 +109,8 @@ pub struct Spec {
     fallback: FallbackPolicy,
 }
 
-pub struct Health {
-    next_check: Instant,
+pub struct Heart {
+    next_beat: Instant,
     timeout: Duration,
 }
 
@@ -133,18 +135,18 @@ impl Flags {
     }
 }
 
-impl Health {
+impl Heart {
     pub fn new(startup_time: Duration, timeout: Duration) -> Self {
         Self {
-            next_check: Instant::now() + startup_time,
+            next_beat: Instant::now() + startup_time,
             timeout,
         }
     }
-    pub fn reset(&mut self) {
-        self.next_check = Instant::now() + self.timeout;
+    pub fn beat(&mut self) {
+        self.next_beat = Instant::now() + self.timeout;
     }
     pub fn is_dead(&self) -> bool {
-        Instant::now() > self.next_check
+        Instant::now() > self.next_beat
     }
 }
 

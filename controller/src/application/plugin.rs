@@ -11,8 +11,8 @@ use super::{
 pub mod manager;
 mod runtime;
 
-pub type WrappedPlugin = Box<dyn GenericPlugin>;
-pub type WrappedNode = Box<dyn GenericNode>;
+pub type WrappedPlugin = Box<dyn GenericPlugin + Send + Sync>;
+pub type WrappedNode = Box<dyn GenericNode + Send + Sync>;
 
 #[async_trait]
 pub trait GenericPlugin {

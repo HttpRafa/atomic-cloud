@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     application::Controller,
-    task::{BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct SetRunningTask {
@@ -18,13 +18,13 @@ pub struct RequestStopTask {
 #[async_trait]
 impl GenericTask for SetRunningTask {
     async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        Ok(Box::new(()))
+        Task::new_empty()
     }
 }
 
 #[async_trait]
 impl GenericTask for RequestStopTask {
     async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        Ok(Box::new(()))
+        Task::new_empty()
     }
 }

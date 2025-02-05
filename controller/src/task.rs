@@ -1,7 +1,8 @@
-use std::any::Any;
+use std::any::{type_name, Any};
 
 use anyhow::{anyhow, Result};
 use common::error::CloudError;
+use simplelog::debug;
 use tokio::sync::oneshot::{channel, Sender};
 use tonic::{async_trait, Request, Status};
 
@@ -30,7 +31,7 @@ impl Task {
         }
         .clone();
         match Task::create::<O>(queue, task(request, data)).await {
-            Ok(value) => Ok(value),
+            Ok(value) => value,
             Err(error) => {
                 CloudError::print_fancy(&error, false);
                 Err(Status::internal(error.to_string()))
@@ -38,17 +39,25 @@ impl Task {
         }
     }
 
-    pub async fn create<T: Send + 'static>(queue: &TaskSender, task: BoxedTask) -> Result<T> {
+    pub async fn create<T: Send + 'static>(
+        queue: &TaskSender,
+        task: BoxedTask,
+    ) -> Result<Result<T, Status>> {
         let (sender, receiver) = channel();
         queue
             .send(Task { task, sender })
             .await
             .map_err(|_| anyhow!("Failed to send task to task queue"))?;
-        Ok(*receiver.await??.downcast::<T>().map_err(|_| {
-            anyhow!(
-                "Failed to downcast task result to the expected type. Check task implementation"
-            )
-        })?)
+        let result = receiver.await??;
+        match result.downcast::<T>() {
+            Ok(result) => Ok(Ok(*result)),
+            Err(result) => match result.downcast::<Status>() {
+                Ok(result) => Ok(Err(*result)),
+                Err(_) => Err(anyhow!(
+                    "Failed to downcast task result to the expected type. Check task implementation"
+                )),
+            },
+        }
     }
 
     pub async fn run(mut self, controller: &mut Controller) -> Result<()> {
@@ -56,6 +65,22 @@ impl Task {
         self.sender
             .send(task)
             .map_err(|_| anyhow!("Failed to send task result to the task sender"))
+    }
+
+    pub fn new_ok<T: Send + 'static>(value: T) -> Result<BoxedAny> {
+        Ok(Box::new(value))
+    }
+    
+    pub fn new_empty() -> Result<BoxedAny> {
+        Self::new_ok(())
+    }
+    
+    pub fn new_err(value: Status) -> Result<BoxedAny> {
+        Ok(Box::new(value))
+    }
+    
+    pub fn new_link_error() -> Result<BoxedAny> {
+        Self::new_err(Status::failed_precondition("Not linked"))
     }
 }
 

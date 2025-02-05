@@ -18,32 +18,32 @@ impl GetGroupMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Fetching all available deployments from the controller \"{}\"...",
+            "Fetching all available groups from the controller \"{}\"...",
             profile.name
         ));
 
         match connection.client.get_groups().await {
-            Ok(deployments) => {
+            Ok(groups) => {
                 progress.success("Data retrieved successfully 👍");
                 progress.end();
 
                 match MenuUtils::select_no_help(
-                    "Select a deployment to view more details:",
-                    deployments,
+                    "Select a group to view more details:",
+                    groups,
                 ) {
-                    Ok(deployment) => {
+                    Ok(group) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Fetching details for deployment \"{}\" from controller \"{}\"...",
-                            deployment, profile.name
+                            "Fetching details for group \"{}\" from controller \"{}\"...",
+                            group, profile.name
                         ));
 
-                        match connection.client.get_group(&deployment).await {
-                            Ok(deployment_details) => {
+                        match connection.client.get_group(&group).await {
+                            Ok(group_details) => {
                                 progress.success("Group details retrieved successfully 👍");
                                 progress.end();
 
-                                Self::display_details(&deployment_details);
+                                Self::display_details(&group_details);
                                 MenuResult::Success
                             }
                             Err(error) => {

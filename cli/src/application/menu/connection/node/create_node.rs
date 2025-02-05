@@ -35,7 +35,7 @@ impl CreateNodeMenu {
                 progress.success("Data retrieved successfully 👍");
                 progress.end();
 
-                match Self::collect_cloudlet(&data) {
+                match Self::collect_node(&data) {
                     Ok(node) => {
                         let progress = Loading::default();
                         progress.text(format!(
@@ -45,7 +45,7 @@ impl CreateNodeMenu {
 
                         match connection.client.create_node(node).await {
                             Ok(_) => {
-                                progress.success("Cloudlet created successfully 👍. Remember to set the cloudlet to active, or the controller won't start units.");
+                                progress.success("Cloudlet created successfully 👍. Remember to set the node to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
@@ -78,7 +78,7 @@ impl CreateNodeMenu {
         Ok(Data { nodes, plugins })
     }
 
-    fn collect_cloudlet(data: &Data) -> Result<node::Item, InquireError> {
+    fn collect_node(data: &Data) -> Result<node::Item, InquireError> {
         let name = Self::get_node_name(data.nodes.clone())?;
         let plugin = MenuUtils::select("Which plugin should the controller use to communicate with the backend of this node?", "This is essential for the controller to know how to communicate with the backend of this node. For example, is it a Pterodactyl node or a simple Docker host?", data.plugins.to_vec())?;
         let child = Self::get_child_node()?;
@@ -101,13 +101,13 @@ impl CreateNodeMenu {
     }
 
     fn get_node_name(used_names: Vec<String>) -> Result<String, InquireError> {
-        Text::new("What would you like to name this cloudlet?")
+        Text::new("What would you like to name this node?")
             .with_help_message("Examples: hetzner-01, home-01, local-01")
             .with_validator(ValueRequiredValidator::default())
             .with_validator(move |name: &str| {
                 if used_names.contains(&name.to_string()) {
                     Ok(Validation::Invalid(
-                        "A cloudlet with this name already exists".into(),
+                        "A node with this name already exists".into(),
                     ))
                 } else {
                     Ok(Validation::Valid)
@@ -118,11 +118,11 @@ impl CreateNodeMenu {
 
     fn get_memory_limit() -> Result<Option<u32>, InquireError> {
         match MenuUtils::confirm(
-            "Would you like to limit the amount of memory the controller can use on this cloudlet?",
+            "Would you like to limit the amount of memory the controller can use on this node?",
         )? {
             false => Ok(None),
             true => Ok(Some(MenuUtils::parsed_value(
-                "How much memory should the controller be allowed to use on this cloudlet?",
+                "How much memory should the controller be allowed to use on this node?",
                 "Example: 1024",
                 "Please enter a valid number",
             )?)),
@@ -130,7 +130,7 @@ impl CreateNodeMenu {
     }
 
     fn get_servers_limit() -> Result<Option<u32>, InquireError> {
-        match MenuUtils::confirm("Would you like to limit the number of servers the controller can start on this cloudlet?")?
+        match MenuUtils::confirm("Would you like to limit the number of servers the controller can start on this node?")?
         {
             false => Ok(None),
             true => Ok(Some(MenuUtils::parsed_value("How many servers should the controller be allowed to start on this node?", "Example: 15", "Please enter a valid number")?))

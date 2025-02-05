@@ -47,16 +47,16 @@ impl CreateGroupMenu {
                 progress.end();
 
                 match Self::collect_group(&data) {
-                    Ok(deployment) => {
+                    Ok(group) => {
                         let progress = Loading::default();
                         progress.text(format!(
                             "Creating group \"{}\" on the controller \"{}\"...",
-                            deployment.name, profile.name
+                            group.name, profile.name
                         ));
 
-                        match connection.client.create_group(deployment).await {
+                        match connection.client.create_group(group).await {
                             Ok(_) => {
-                                progress.success("Group created successfully 👍. Remember to set the deployment to active, or the controller won't start units.");
+                                progress.success("Group created successfully 👍. Remember to set the group to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
@@ -108,13 +108,13 @@ impl CreateGroupMenu {
     }
 
     fn get_group_name(used_names: Vec<String>) -> Result<String, InquireError> {
-        Text::new("What would you like to name this deployment?")
+        Text::new("What would you like to name this group?")
             .with_help_message("Examples: lobby, mode-xyz")
             .with_validator(ValueRequiredValidator::default())
             .with_validator(move |name: &str| {
                 if used_names.contains(&name.to_string()) {
                     Ok(Validation::Invalid(
-                        "A deployment with this name already exists".into(),
+                        "A group with this name already exists".into(),
                     ))
                 } else {
                     Ok(Validation::Valid)
@@ -124,29 +124,29 @@ impl CreateGroupMenu {
     }
 
     fn get_nodes(nodes: Vec<String>) -> Result<Vec<String>, InquireError> {
-        MultiSelect::new("What nodes should this deployment use?", nodes).prompt()
+        MultiSelect::new("What nodes should this group use?", nodes).prompt()
     }
 
     fn collect_constraints() -> Result<Constraints, InquireError> {
         let min = MenuUtils::parsed_value(
-            "What is the minimum number of units that should always be online?",
+            "What is the minimum number of servers that should always be online?",
             "Example: 1",
             "Please enter a valid number",
         )?;
         let max = MenuUtils::parsed_value(
-            "What is the maximum number of units that should always be online?",
+            "What is the maximum number of servers that should always be online?",
             "Example: 10",
             "Please enter a valid number",
         )?;
-        let prio = MenuUtils::parsed_value("How important is this deployment compared to others? (This refers to one tick of the controller)", "Example: 0", "Please enter a valid number")?;
+        let prio = MenuUtils::parsed_value("How important is this group compared to others? (This refers to one tick of the controller)", "Example: 0", "Please enter a valid number")?;
 
         Ok(Constraints { min, max, prio })
     }
 
     fn collect_scaling() -> Result<Scaling, InquireError> {
-        let start_threshold = MenuUtils::parsed_value::<f32>("At what percentage (0-100) of the max player count should the controller start a new unit?", "Example: 50", "Please enter a valid number")? / 100.0;
+        let start_threshold = MenuUtils::parsed_value::<f32>("At what percentage (0-100) of the max player count should the controller start a new server?", "Example: 50", "Please enter a valid number")? / 100.0;
         let stop_empty =
-            MenuUtils::confirm("Should the controller stop units that are empty for too long?")?;
+            MenuUtils::confirm("Should the controller stop servers that are empty for too long?")?;
 
         Ok(Scaling {
             start_threshold,
@@ -156,32 +156,32 @@ impl CreateGroupMenu {
 
     fn collect_resources() -> Result<Resources, InquireError> {
         let memory = MenuUtils::parsed_value(
-            "How much memory should each unit have?",
+            "How much memory should each server have?",
             "Example: 2048",
             "Please enter a valid number",
         )?;
         let swap = MenuUtils::parsed_value(
-            "How much swap space should each unit have?",
+            "How much swap space should each server have?",
             "Example: 256",
             "Please enter a valid number",
         )?;
         let cpu = MenuUtils::parsed_value(
-            "How much CPU power should each unit have? (100 = one core)",
+            "How much CPU power should each server have? (100 = one core)",
             "Example: 500",
             "Please enter a valid number",
         )?;
         let io = MenuUtils::parsed_value(
-            "How many I/O operations should each unit be allowed to perform?",
+            "How many I/O operations should each server be allowed to perform?",
             "Example: 500",
             "Please enter a valid number",
         )?;
         let disk = MenuUtils::parsed_value(
-            "How much disk space should each unit use?",
+            "How much disk space should each server use?",
             "Example: 2048",
             "Please enter a valid number",
         )?;
         let ports = MenuUtils::parsed_value(
-            "How many addresses/ports should each unit have?",
+            "How many addresses/ports should each server have?",
             "Example: 5",
             "Please enter a valid number",
         )?;
@@ -197,26 +197,26 @@ impl CreateGroupMenu {
     }
 
     fn collect_specification() -> Result<Spec, InquireError> {
-        let img = MenuUtils::text("Which image should the unit use?", "Example: ubuntu:latest")?;
+        let img = MenuUtils::text("Which image should the server use?", "Example: ubuntu:latest")?;
         let max_players = MenuUtils::parsed_value(
-            "What is the maximum number of players per unit?",
+            "What is the maximum number of players per server?",
             "Example: 20",
             "Please enter a valid number",
         )?;
         let settings = MenuUtils::parsed_value::<KeyValueList>(
-            "What settings should the controller pass to the driver when starting a unit?",
+            "What settings should the controller pass to the driver when starting a server?",
             "Format: key=value,key=value,key=value,...",
             "Please check your syntax. Something seems wrong.",
         )?
         .key_values;
         let env = MenuUtils::parsed_value::<KeyValueList>(
-            "What environment variables should the controller pass to the driver when starting a unit?",
+            "What environment variables should the controller pass to the driver when starting a server?",
             "Format: key=value,key=value,key=value,...",
             "Please check your syntax something is wrong",
         )?
         .key_values;
         let retention = MenuUtils::select_no_help(
-            "Should the unit's disk be retained after the unit stops?",
+            "Should the server's disk be retained after the server stops?",
             vec![DiskRetention::Temporary, DiskRetention::Permanent],
         )?;
         let fallback = Self::collect_fallback()?;
@@ -233,9 +233,9 @@ impl CreateGroupMenu {
 
     fn collect_fallback() -> Result<Fallback, InquireError> {
         let enabled =
-            MenuUtils::confirm("Should the controller treat these units as fallback units?")?;
+            MenuUtils::confirm("Should the controller treat these servers as fallback servers?")?;
         let prio = MenuUtils::parsed_value(
-            "What is the priority of this fallback deployment?",
+            "What is the priority of this fallback group?",
             "Example: 0",
             "Please enter a valid number",
         )?;

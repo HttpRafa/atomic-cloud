@@ -35,10 +35,10 @@ impl GetServerMenu {
                         ));
 
                         match connection.client.get_server(&server.id).await {
-                            Ok(unit) => {
+                            Ok(server) => {
                                 progress.success("Details retrieved successfully 👍");
                                 progress.end();
-                                Self::display_details(&unit);
+                                Self::display_details(&server);
                                 MenuResult::Success
                             }
                             Err(error) => {
@@ -81,7 +81,7 @@ impl GetServerMenu {
                 info!("            - <green><b>{}:{}</>", port.host, port.port);
             }
             if let Some(resources) = allocation.resources {
-                info!("         <green><b>Resources per unit</>: ");
+                info!("         <green><b>Resources per server</>: ");
                 info!("            <green><b>Memory</>: {} MiB", resources.memory);
                 info!("            <green><b>Swap</>: {} MiB", resources.swap);
                 info!(
@@ -98,7 +98,7 @@ impl GetServerMenu {
                     resources.ports
                 );
             } else {
-                warn!("         <yellow><b>Resources per unit</>: None");
+                warn!("         <yellow><b>Resources per server</>: None");
             }
             if let Some(spec) = &allocation.spec {
                 info!("         <green><b>Specification</>: ");

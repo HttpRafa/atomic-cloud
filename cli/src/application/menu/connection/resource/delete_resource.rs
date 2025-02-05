@@ -92,27 +92,27 @@ impl DeleteResourceMenu {
         )?;
         match category {
             Category::Node => {
-                let cloudlet =
+                let node =
                     MenuUtils::select_no_help("Select the node to delete", data.nodes.clone())?;
                 Ok(DelReq {
                     category: category as i32,
-                    id: cloudlet,
+                    id: node,
                 })
             }
             Category::Group => {
-                let deployment =
+                let group =
                     MenuUtils::select_no_help("Select the group to delete", data.groups.clone())?;
                 Ok(DelReq {
                     category: category as i32,
-                    id: deployment,
+                    id: group,
                 })
             }
             Category::Server => {
-                let unit =
+                let server =
                     MenuUtils::select_no_help("Select the server to delete", data.servers.clone())?;
                 Ok(DelReq {
                     category: category as i32,
-                    id: unit.id,
+                    id: server.id,
                 })
             }
         }

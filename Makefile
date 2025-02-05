@@ -7,7 +7,7 @@ WASM_TARGET = wasm32-wasip2
 # Directories
 RUN_DIR = run
 OLD_RUN_DIR = run.old
-DRIVER_DIR = $(RUN_DIR)/plugins/wasm
+PLUGIN_DIR = $(RUN_DIR)/plugins/wasm
 
 # Arguments
 CONTROLLER_ARGS = "--debug"
@@ -74,5 +74,5 @@ build-plugins:
 	cargo build -p local --target $(WASM_TARGET) --release
 
 # Create plugin directory if it doesn't exist
-$(DRIVER_DIR):
-	$(MKDIR) $(DRIVER_DIR)
+$(PLUGIN_DIR):
+	$(MKDIR) $(PLUGIN_DIR)

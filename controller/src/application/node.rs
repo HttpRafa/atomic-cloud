@@ -69,7 +69,7 @@ pub struct Capabilities {
     #[getset(get = "pub")]
     memory: Option<u32>,
     #[getset(get = "pub")]
-    max_allocations: Option<u32>,
+    max_servers: Option<u32>,
     #[getset(get = "pub")]
     child: Option<String>,
 }

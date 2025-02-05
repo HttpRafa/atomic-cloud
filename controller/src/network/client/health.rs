@@ -3,7 +3,11 @@ use tonic::async_trait;
 use uuid::Uuid;
 
 use crate::{
-    application::{server::{manager::StopRequest, State}, Controller}, task::{BoxedAny, GenericTask, Task}
+    application::{
+        server::{manager::StopRequest, State},
+        Controller,
+    },
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct SetRunningTask {
@@ -33,7 +37,9 @@ impl GenericTask for RequestStopTask {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
-        controller.servers.schedule_stop(StopRequest::new(None, server));
+        controller
+            .servers
+            .schedule_stop(StopRequest::new(None, server));
         Task::new_empty()
     }
 }

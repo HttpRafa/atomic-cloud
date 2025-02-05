@@ -9,41 +9,35 @@ use crate::application::{
 };
 
 use super::{
-    cloudlet::{
-        create_cloudlet::CreateCloudletMenu, get_cloudlet::GetCloudletMenu,
-        get_cloudlets::GetCloudletsMenu,
-    },
-    deployment::{
-        create_deployment::CreateDeploymentMenu, get_deployment::GetDeploymentMenu,
-        get_deployments::GetDeploymentsMenu,
-    },
     general::{get_versions::GetVersionsMenu, request_stop::RequestStopMenu},
-    resource::{delete_resource::DeleteResourceMenu, set_resource_status::SetResourceStatusMenu},
-    unit::{get_unit::GetUnitMenu, get_units::GetUnitsMenu},
-    user::transfer_user::TransferUserMenu,
+    group::{create_group::CreateGroupMenu, get_group::GetGroupMenu, get_groups::GetGroupsMenu},
+    node::{create_node::CreateNodeMenu, get_node::GetNodeMenu, get_nodes::GetNodesMenu},
+    resource::{delete_resource::DeleteResourceMenu, set_resource::SetResourceMenu},
+    server::{get_server::GetServerMenu, get_servers::GetServersMenu},
+    user::transfer_users::TransferUsersMenu,
 };
 
 enum Action {
-    // Resource Management
-    SetResourceStatus,
+    // Resource operations
+    SetResource,
     DeleteResource,
 
-    // Cloudlet Management
-    CreateCloudlet,
-    GetCloudlet,
-    GetCloudlets,
+    // Node operations
+    CreateNode,
+    GetNode,
+    GetNodes,
 
-    // Deployment Management
-    CreateDeployment,
-    GetDeployment,
-    GetDeployments,
+    // Group operations
+    CreateGroup,
+    GetGroup,
+    GetGroups,
 
-    // Unit Management
-    GetUnit,
-    GetUnits,
+    // Server operations
+    GetServer,
+    GetServers,
 
-    // User Management
-    TransferUser,
+    // Transfer operations
+    TransferUsers,
 
     // General
     RequestStop,
@@ -56,21 +50,21 @@ enum Action {
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Action::SetResourceStatus => write!(f, "Set status of a certain Resource"),
+            Action::SetResource => write!(f, "Set status of a certain Resource"),
             Action::DeleteResource => write!(f, "Delete Resource"),
 
-            Action::CreateCloudlet => write!(f, "Create Cloudlet"),
-            Action::GetCloudlet => write!(f, "Get information about a certain Cloudlet"),
-            Action::GetCloudlets => write!(f, "Get all Cloudlets"),
+            Action::CreateNode => write!(f, "Create Node"),
+            Action::GetNode => write!(f, "Get information about a certain Node"),
+            Action::GetNodes => write!(f, "Get all Nodes"),
 
-            Action::CreateDeployment => write!(f, "Create Deployment"),
-            Action::GetDeployment => write!(f, "Get information about a certain Deployment"),
-            Action::GetDeployments => write!(f, "Get all Deployments"),
+            Action::CreateGroup => write!(f, "Create Group"),
+            Action::GetGroup => write!(f, "Get information about a certain Group"),
+            Action::GetGroups => write!(f, "Get all Groups"),
 
-            Action::GetUnit => write!(f, "Get information about a certain Unit"),
-            Action::GetUnits => write!(f, "Get all Units"),
+            Action::GetServer => write!(f, "Get information about a certain Server"),
+            Action::GetServers => write!(f, "Get all Servers"),
 
-            Action::TransferUser => write!(f, "Transfer a user to a different Unit"),
+            Action::TransferUsers => write!(f, "Transfer a users to a different Server"),
 
             Action::RequestStop => write!(f, "Request stop of Controller"),
             Action::GetVersions => write!(f, "Get versions"),
@@ -91,7 +85,7 @@ impl ConnectionStartMenu {
         loop {
             match Self::show_internal(profile, connection, profiles).await {
                 MenuResult::Exit => return MenuResult::Success,
-                MenuResult::Error(error) => return MenuResult::Error(error),
+                MenuResult::Failed(error) => return MenuResult::Failed(error),
                 _ => {}
             }
         }
@@ -106,45 +100,37 @@ impl ConnectionStartMenu {
             "What do you want to do?",
             vec![
                 Action::RequestStop,
-                Action::TransferUser,
-                Action::SetResourceStatus,
+                Action::TransferUsers,
+                Action::SetResource,
                 Action::DeleteResource,
-                Action::CreateCloudlet,
-                Action::CreateDeployment,
-                Action::GetCloudlet,
-                Action::GetDeployment,
-                Action::GetUnit,
-                Action::GetDeployments,
-                Action::GetCloudlets,
-                Action::GetUnits,
+                Action::CreateNode,
+                Action::CreateGroup,
+                Action::GetNode,
+                Action::GetGroup,
+                Action::GetServer,
+                Action::GetNodes,
+                Action::GetGroups,
+                Action::GetServers,
                 Action::GetVersions,
                 Action::DisconnectFromController,
             ],
         ) {
             Ok(selection) => match selection {
-                Action::SetResourceStatus => {
-                    SetResourceStatusMenu::show(profile, connection, profiles).await
-                }
+                Action::SetResource => SetResourceMenu::show(profile, connection, profiles).await,
                 Action::DeleteResource => {
                     DeleteResourceMenu::show(profile, connection, profiles).await
                 }
-                Action::CreateCloudlet => {
-                    CreateCloudletMenu::show(profile, connection, profiles).await
+                Action::CreateNode => CreateNodeMenu::show(profile, connection, profiles).await,
+                Action::GetNode => GetNodeMenu::show(profile, connection, profiles).await,
+                Action::GetNodes => GetNodesMenu::show(profile, connection, profiles).await,
+                Action::CreateGroup => CreateGroupMenu::show(profile, connection, profiles).await,
+                Action::GetGroup => GetGroupMenu::show(profile, connection, profiles).await,
+                Action::GetGroups => GetGroupsMenu::show(profile, connection, profiles).await,
+                Action::GetServer => GetServerMenu::show(profile, connection, profiles).await,
+                Action::GetServers => GetServersMenu::show(profile, connection, profiles).await,
+                Action::TransferUsers => {
+                    TransferUsersMenu::show(profile, connection, profiles).await
                 }
-                Action::GetCloudlet => GetCloudletMenu::show(profile, connection, profiles).await,
-                Action::GetCloudlets => GetCloudletsMenu::show(profile, connection, profiles).await,
-                Action::CreateDeployment => {
-                    CreateDeploymentMenu::show(profile, connection, profiles).await
-                }
-                Action::GetDeployment => {
-                    GetDeploymentMenu::show(profile, connection, profiles).await
-                }
-                Action::GetDeployments => {
-                    GetDeploymentsMenu::show(profile, connection, profiles).await
-                }
-                Action::GetUnit => GetUnitMenu::show(profile, connection, profiles).await,
-                Action::GetUnits => GetUnitsMenu::show(profile, connection, profiles).await,
-                Action::TransferUser => TransferUserMenu::show(profile, connection, profiles).await,
                 Action::RequestStop => RequestStopMenu::show(profile, connection, profiles).await,
                 Action::GetVersions => GetVersionsMenu::show(profile, connection, profiles).await,
                 Action::DisconnectFromController => MenuResult::Exit,

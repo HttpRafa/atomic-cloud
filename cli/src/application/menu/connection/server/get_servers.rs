@@ -3,13 +3,13 @@ use simplelog::info;
 
 use crate::application::{
     menu::MenuResult,
-    network::{proto::unit_management::SimpleUnitValue, EstablishedConnection},
+    network::{proto::manage::server, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
-pub struct GetUnitsMenu;
+pub struct GetServersMenu;
 
-impl GetUnitsMenu {
+impl GetServersMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -17,34 +17,34 @@ impl GetUnitsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Requesting unit list from controller \"{}\"",
+            "Requesting server list from controller \"{}\"",
             profile.name
         ));
 
-        match connection.client.get_units().await {
-            Ok(units) => {
-                progress.success("Unit data retrieved successfully 👍");
+        match connection.client.get_servers().await {
+            Ok(servers) => {
+                progress.success("Data retrieved successfully 👍");
                 progress.end();
-                Self::display_details(&units);
+                Self::display_details(&servers);
                 MenuResult::Success
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
-    fn display_details(units: &[SimpleUnitValue]) {
-        info!("   <blue>🖥  <b>Units</>");
-        if units.is_empty() {
-            info!("      <green><b>No units found</>");
+    fn display_details(servers: &[server::Short]) {
+        info!("   <blue>🖥  <b>Servers</>");
+        if servers.is_empty() {
+            info!("      <green><b>No server found</>");
         } else {
-            for unit in units {
+            for server in servers {
                 info!(
                     "    - <green>{}</>@<cyan>{}</> (<blue>{}</>)",
-                    unit.name, unit.cloudlet, unit.uuid
+                    server.name, server.node, server.id
                 );
             }
         }

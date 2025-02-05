@@ -1,25 +1,25 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+use inquire::InquireError;
 use loading::Loading;
-use simplelog::debug;
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::{
-        proto::resource_management::{ResourceCategory, ResourceStatus, SetResourceStatusRequest},
+        proto::manage::resource::{set_req, Category, SetReq},
         EstablishedConnection,
     },
     profile::{Profile, Profiles},
 };
 
-pub struct SetResourceStatusMenu;
+pub struct SetResourceMenu;
 
 // TODO: Maybe dont request everything at once, but only what is needed
 struct Data {
-    cloudlets: Vec<String>,
-    deployments: Vec<String>,
+    nodes: Vec<String>,
+    groups: Vec<String>,
 }
 
-impl SetResourceStatusMenu {
+impl SetResourceMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -41,7 +41,7 @@ impl SetResourceStatusMenu {
                         let progress = Loading::default();
                         progress.text("Changing resource...");
 
-                        match connection.client.set_resource_status(request).await {
+                        match connection.client.set_resource(request).await {
                             Ok(_) => {
                                 progress.success("Resource changed successfully 👍.");
                                 progress.end();
@@ -50,70 +50,61 @@ impl SetResourceStatusMenu {
                             Err(error) => {
                                 progress.fail(format!("{}", error));
                                 progress.end();
-                                MenuResult::Failed
+                                MenuResult::Failed(error)
                             }
                         }
                     }
-                    Err(error) => {
-                        debug!("{}", error);
-                        MenuResult::Failed
-                    }
+                    Err(error) => match error {
+                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                            MenuResult::Aborted
+                        }
+                        _ => MenuResult::Failed(error.into()),
+                    },
                 }
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
     async fn get_required_data(connection: &mut EstablishedConnection) -> Result<Data> {
-        let cloudlets = connection.client.get_cloudlets().await?;
-        let deployments = connection.client.get_deployments().await?;
-        Ok(Data {
-            cloudlets,
-            deployments,
-        })
+        let nodes = connection.client.get_nodes().await?;
+        let groups = connection.client.get_groups().await?;
+        Ok(Data { nodes, groups })
     }
 
-    fn collect_set_resource_status_request(data: &Data) -> Result<SetResourceStatusRequest> {
+    fn collect_set_resource_status_request(data: &Data) -> Result<SetReq, InquireError> {
         let status = MenuUtils::select_no_help(
             "What is the new status of this resource?",
-            vec![ResourceStatus::Active, ResourceStatus::Inactive],
+            vec![set_req::Status::Active, set_req::Status::Inactive],
         )?;
         let category = MenuUtils::select_no_help(
             "What type of resource to you want to change?",
-            vec![
-                ResourceCategory::Cloudlet,
-                ResourceCategory::Deployment,
-                ResourceCategory::Unit,
-            ],
+            vec![Category::Node, Category::Group, Category::Server],
         )?;
         match category {
-            ResourceCategory::Cloudlet => {
-                let cloudlet = MenuUtils::select_no_help(
-                    "Select the cloudlet to change",
-                    data.cloudlets.clone(),
-                )?;
-                Ok(SetResourceStatusRequest {
+            Category::Node => {
+                let node =
+                    MenuUtils::select_no_help("Select the node to change", data.nodes.clone())?;
+                Ok(SetReq {
                     category: category as i32,
-                    id: cloudlet,
+                    id: node,
                     status: status as i32,
                 })
             }
-            ResourceCategory::Deployment => {
-                let deployment = MenuUtils::select_no_help(
-                    "Select the deployment to change",
-                    data.deployments.clone(),
-                )?;
-                Ok(SetResourceStatusRequest {
+            Category::Group => {
+                let group =
+                    MenuUtils::select_no_help("Select the group to change", data.groups.clone())?;
+                Ok(SetReq {
                     category: category as i32,
-                    id: deployment,
+                    id: group,
                     status: status as i32,
                 })
             }
-            ResourceCategory::Unit => Err(anyhow!("Not implemented yet")),
+            Category::Server => Err(InquireError::OperationInterrupted),
         }
     }
 }

@@ -3,7 +3,7 @@
 use anyhow::Result;
 use application::Controller;
 use clap::{ArgAction, Parser};
-use common::{error::CloudError, init::CloudInit};
+use common::{error::FancyError, init::CloudInit};
 use config::Config;
 use simplelog::info;
 use storage::Storage;
@@ -23,7 +23,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 #[tokio::main]
 async fn main() {
     if let Err(error) = run().await {
-        CloudError::print_fancy(&error, true);
+        FancyError::print_fancy(&error, true);
     }
 
     async fn run() -> Result<()> {

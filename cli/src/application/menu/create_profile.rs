@@ -1,9 +1,8 @@
-use common::error::{FancyError};
 use inquire::{
-    validator::{Validation, ValueRequiredValidator}, InquireError, Password, Text
+    validator::{Validation, ValueRequiredValidator},
+    InquireError, Password, Text,
 };
 use loading::Loading;
-use simplelog::debug;
 
 use crate::{
     application::profile::{Profile, Profiles},
@@ -34,9 +33,11 @@ impl CreateProfileMenu {
         let name = match prompt.prompt() {
             Ok(name) => name,
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
-                _ => return MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    return MenuResult::Aborted
+                }
+                _ => return MenuResult::Failed(error.into()),
+            },
         };
 
         let authorization = match Password::new("What is the authorization token for this profile?")
@@ -48,9 +49,11 @@ impl CreateProfileMenu {
         {
             Ok(authorization) => authorization,
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
-                _ => return MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    return MenuResult::Aborted
+                }
+                _ => return MenuResult::Failed(error.into()),
+            },
         };
 
         let url = match MenuUtils::parsed_value(
@@ -60,9 +63,11 @@ impl CreateProfileMenu {
         ) {
             Ok(url) => url,
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => return MenuResult::Aborted,
-                _ => return MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    return MenuResult::Aborted
+                }
+                _ => return MenuResult::Failed(error.into()),
+            },
         };
 
         let progress = Loading::default();
@@ -80,16 +85,14 @@ impl CreateProfileMenu {
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));
                 progress.end();
-                FancyError::print_fancy(&error, false);
-                return MenuResult::Failed;
+                return MenuResult::Failed(error);
             }
         }
         progress.text(format!("Saving profile \"{}\"", name));
         if let Err(error) = profiles.create_profile(&profile) {
             progress.fail(format!("Failed to create profile: {}", error));
             progress.end();
-            FancyError::print_fancy(&error, false);
-            return MenuResult::Failed;
+            return MenuResult::Failed(error);
         }
         progress.success("Profile created successfully");
         progress.end();

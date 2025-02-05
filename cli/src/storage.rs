@@ -19,24 +19,24 @@ pub struct Storage;
 
 impl Storage {
     /* Base */
-    pub fn get_cli_folder() -> PathBuf {
+    pub fn cli_folder() -> PathBuf {
         dirs::config_dir()
             .expect("Failed to get config directory for current user")
             .join(CLI_DIRECTORY)
     }
 
     /* Logs */
-    pub fn get_latest_log_file() -> PathBuf {
-        Storage::get_cli_folder()
+    pub fn latest_log_file() -> PathBuf {
+        Storage::cli_folder()
             .join(LOGS_DIRECTORY)
             .join(LATEST_LOG_FILE)
     }
 
     /* Profiles */
-    pub fn get_profiles_folder() -> PathBuf {
-        Storage::get_cli_folder().join(PROFILES_DIRECTORY)
+    pub fn profiles_folder() -> PathBuf {
+        Storage::cli_folder().join(PROFILES_DIRECTORY)
     }
-    pub fn get_profile_file(name: &str) -> PathBuf {
-        Storage::get_profiles_folder().join(format!("{}.toml", name))
+    pub fn profile_file(name: &str) -> PathBuf {
+        Storage::profiles_folder().join(format!("{}.toml", name))
     }
 }

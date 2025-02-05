@@ -1,13 +1,13 @@
 use anyhow::Result;
+use inquire::InquireError;
 use loading::Loading;
-use simplelog::debug;
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::{
-        proto::{
-            resource_management::{DeleteResourceRequest, ResourceCategory},
-            unit_management::SimpleUnitValue,
+        proto::manage::{
+            resource::{Category, DelReq},
+            server,
         },
         EstablishedConnection,
     },
@@ -18,9 +18,9 @@ pub struct DeleteResourceMenu;
 
 // TODO: Maybe dont request everything at once, but only what is needed
 struct Data {
-    cloudlets: Vec<String>,
-    deployments: Vec<String>,
-    units: Vec<SimpleUnitValue>,
+    nodes: Vec<String>,
+    groups: Vec<String>,
+    servers: Vec<server::Short>,
 }
 
 impl DeleteResourceMenu {
@@ -54,71 +54,65 @@ impl DeleteResourceMenu {
                             Err(error) => {
                                 progress.fail(format!("{}", error));
                                 progress.end();
-                                MenuResult::Failed
+                                MenuResult::Failed(error)
                             }
                         }
                     }
-                    Err(error) => {
-                        debug!("{}", error);
-                        MenuResult::Failed
-                    }
+                    Err(error) => match error {
+                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                            MenuResult::Aborted
+                        }
+                        _ => MenuResult::Failed(error.into()),
+                    },
                 }
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
     async fn get_required_data(connection: &mut EstablishedConnection) -> Result<Data> {
-        let cloudlets = connection.client.get_cloudlets().await?;
-        let deployments = connection.client.get_deployments().await?;
-        let units = connection.client.get_units().await?;
+        let nodes = connection.client.get_nodes().await?;
+        let groups = connection.client.get_groups().await?;
+        let servers = connection.client.get_servers().await?;
         Ok(Data {
-            cloudlets,
-            deployments,
-            units,
+            nodes,
+            groups,
+            servers,
         })
     }
 
-    fn collect_delete_resource(data: &Data) -> Result<DeleteResourceRequest> {
+    fn collect_delete_resource(data: &Data) -> Result<DelReq, InquireError> {
         let category = MenuUtils::select_no_help(
             "What type of resource to you want to delete?",
-            vec![
-                ResourceCategory::Cloudlet,
-                ResourceCategory::Deployment,
-                ResourceCategory::Unit,
-            ],
+            vec![Category::Node, Category::Group, Category::Server],
         )?;
         match category {
-            ResourceCategory::Cloudlet => {
-                let cloudlet = MenuUtils::select_no_help(
-                    "Select the cloudlet to delete",
-                    data.cloudlets.clone(),
-                )?;
-                Ok(DeleteResourceRequest {
+            Category::Node => {
+                let cloudlet =
+                    MenuUtils::select_no_help("Select the node to delete", data.nodes.clone())?;
+                Ok(DelReq {
                     category: category as i32,
                     id: cloudlet,
                 })
             }
-            ResourceCategory::Deployment => {
-                let deployment = MenuUtils::select_no_help(
-                    "Select the deployment to delete",
-                    data.deployments.clone(),
-                )?;
-                Ok(DeleteResourceRequest {
+            Category::Group => {
+                let deployment =
+                    MenuUtils::select_no_help("Select the group to delete", data.groups.clone())?;
+                Ok(DelReq {
                     category: category as i32,
                     id: deployment,
                 })
             }
-            ResourceCategory::Unit => {
+            Category::Server => {
                 let unit =
-                    MenuUtils::select_no_help("Select the unit to delete", data.units.clone())?;
-                Ok(DeleteResourceRequest {
+                    MenuUtils::select_no_help("Select the server to delete", data.servers.clone())?;
+                Ok(DelReq {
                     category: category as i32,
-                    id: unit.uuid,
+                    id: unit.id,
                 })
             }
         }

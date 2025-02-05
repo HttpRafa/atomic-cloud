@@ -1,7 +1,7 @@
 use std::any::{type_name, Any};
 
 use anyhow::{anyhow, Result};
-use common::error::CloudError;
+use common::error::FancyError;
 use simplelog::debug;
 use tokio::sync::oneshot::{channel, Sender};
 use tonic::{async_trait, Request, Status};
@@ -34,7 +34,7 @@ impl Task {
         match Task::create::<O>(queue, task(request, data)).await {
             Ok(value) => value,
             Err(error) => {
-                CloudError::print_fancy(&error, false);
+                FancyError::print_fancy(&error, false);
                 Err(Status::internal(error.to_string()))
             }
         }
@@ -71,15 +71,15 @@ impl Task {
     pub fn new_ok<T: Send + 'static>(value: T) -> Result<BoxedAny> {
         Ok(Box::new(value))
     }
-    
+
     pub fn new_empty() -> Result<BoxedAny> {
         Self::new_ok(())
     }
-    
+
     pub fn new_err(value: Status) -> Result<BoxedAny> {
         Ok(Box::new(value))
     }
-    
+
     pub fn new_link_error() -> Result<BoxedAny> {
         Self::new_err(Status::failed_precondition("Not linked"))
     }

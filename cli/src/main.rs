@@ -20,10 +20,10 @@ async fn main() {
 
     async fn run() -> Result<()> {
         let args = Arguments::parse();
-        CloudInit::init_logging(args.debug, true, Storage::get_latest_log_file());
+        CloudInit::init_logging(args.debug, true, Storage::latest_log_file());
         CloudInit::print_ascii_art("Atomic Cloud CLI", &VERSION, &AUTHORS);
 
-        let mut cli = Cli::new().await;
+        let mut cli = Cli::new().await?;
         cli.start().await
     }
 }

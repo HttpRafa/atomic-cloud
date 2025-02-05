@@ -3,7 +3,7 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use auth::AuthInterceptor;
 use client::ClientServiceImpl;
-use common::error::CloudError;
+use common::error::FancyError;
 use manage::ManageServiceImpl;
 use proto::{
     client::client_service_server::ClientServiceServer,
@@ -43,7 +43,7 @@ impl NetworkStack {
 
         let task = spawn(async move {
             if let Err(error) = run(bind, auth, queue, receiver).await {
-                CloudError::print_fancy(&error, false);
+                FancyError::print_fancy(&error, false);
             }
         });
 

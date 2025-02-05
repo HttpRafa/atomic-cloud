@@ -1,6 +1,5 @@
 use inquire::InquireError;
 use loading::Loading;
-use simplelog::debug;
 
 use crate::application::profile::Profiles;
 
@@ -22,23 +21,25 @@ impl DeleteProfileMenu {
                             progress.end();
                             MenuResult::Success
                         }
-                        Err(err) => {
+                        Err(error) => {
                             progress.fail(format!(
                                 "Ops. Something went wrong while deleting the profile | {}",
-                                err
+                                error
                             ));
                             progress.end();
-                            
-                            MenuResult::Failed
+
+                            MenuResult::Failed(error)
                         }
                     }
                 }
                 Ok(false) | Err(_) => MenuResult::Aborted,
             },
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Aborted,
-                _ => MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    MenuResult::Aborted
+                }
+                _ => MenuResult::Failed(error.into()),
+            },
         }
     }
 }

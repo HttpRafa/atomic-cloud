@@ -65,12 +65,20 @@ impl UserManager {
             }
             user.server = CurrentServer::Connected(server.id().clone());
         } else {
-            info!("User {}[{}] connected to server {}", name, uuid.to_string(), server.id());
-            self.users.insert(uuid, User {
+            info!(
+                "User {}[{}] connected to server {}",
                 name,
+                uuid.to_string(),
+                server.id()
+            );
+            self.users.insert(
                 uuid,
-                server: CurrentServer::Connected(server.id().clone()),
-            });
+                User {
+                    name,
+                    uuid,
+                    server: CurrentServer::Connected(server.id().clone()),
+                },
+            );
         }
     }
 

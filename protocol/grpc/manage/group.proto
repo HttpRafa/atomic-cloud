@@ -8,9 +8,9 @@ message Group {
   message Item {
     string name = 1;
     repeated string nodes = 2;
-    Constraints cons = 3;
-    Scaling scaling = 4;
-    Server.Resources res = 5;
+    Constraints constraints = 3;
+    optional Scaling scaling = 4;
+    Server.Resources resources = 5;
     Server.Spec spec = 6;
   }
   message Constraints {

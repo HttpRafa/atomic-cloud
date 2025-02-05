@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::async_trait;
 use uuid::Uuid;
 
 use crate::{

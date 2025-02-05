@@ -7,9 +7,9 @@ use crate::application::{
     profile::{Profile, Profiles},
 };
 
-pub struct GetCloudletsMenu;
+pub struct GetNodesMenu;
 
-impl GetCloudletsMenu {
+impl GetNodesMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -17,32 +17,32 @@ impl GetCloudletsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Requesting cloudlet list from controller \"{}\"...",
+            "Requesting nodes list from controller \"{}\"...",
             profile.name
         ));
 
-        match connection.client.get_cloudlets().await {
-            Ok(cloudlets) => {
-                progress.success("Cloudlet data retrieved successfully 👍");
+        match connection.client.get_nodes().await {
+            Ok(nodes) => {
+                progress.success("Data retrieved successfully 👍");
                 progress.end();
-                Self::display_cloudlets(&cloudlets);
+                Self::display_details(&nodes);
                 MenuResult::Success
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
-    fn display_cloudlets(cloudlets: &[String]) {
-        info!("   <blue>🖥  <b>Available Cloudlets</>");
-        if cloudlets.is_empty() {
-            info!("      <green><b>No cloudlets found.</>");
+    fn display_details(nodes: &[String]) {
+        info!("   <blue>🖥  <b>Available Nodes</>");
+        if nodes.is_empty() {
+            info!("      <green><b>No nodes found.</>");
         } else {
-            for cloudlet in cloudlets {
-                info!("    - <green>{}</>", cloudlet);
+            for node in nodes {
+                info!("    - <green>{}</>", node);
             }
         }
     }

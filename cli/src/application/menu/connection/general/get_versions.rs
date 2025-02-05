@@ -27,7 +27,7 @@ impl GetVersionsMenu {
 
         match Self::get_required_data(connection).await {
             Ok((version, protocol)) => {
-                progress.success("Version data retrieved successfully 👍");
+                progress.success("Data retrieved successfully 👍");
                 progress.end();
                 info!("   <blue>🖥  <b>Controller Info</>");
                 info!("      <green><b>Version</>: {}", version);
@@ -40,14 +40,14 @@ impl GetVersionsMenu {
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
     async fn get_required_data(connection: &mut EstablishedConnection) -> Result<(String, u32)> {
-        let version = connection.client.get_controller_version().await?;
-        let protocol = connection.client.get_protocol_version().await?;
+        let version = connection.client.get_ctrl_ver().await?;
+        let protocol = connection.client.get_proto_ver().await?;
         Ok((version, protocol))
     }
 }

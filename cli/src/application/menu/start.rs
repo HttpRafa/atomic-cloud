@@ -3,9 +3,7 @@ use std::{
     vec,
 };
 
-use anyhow::{Error, Result};
 use inquire::InquireError;
-use simplelog::debug;
 
 use crate::application::profile::Profiles;
 
@@ -24,10 +22,10 @@ enum Selection {
 impl Display for Selection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Selection::LoadProfile => write!(f, "🖧 | Connect to existing controller"),
-            Selection::CreateProfile => write!(f, "+ | Add new controller"),
-            Selection::DeleteProfile => write!(f, "🗑 | Remove existing controller"),
-            Selection::Exit => write!(f, "✖ | Close application"),
+            Selection::LoadProfile => write!(f, "Connect to existing controller"),
+            Selection::CreateProfile => write!(f, "Add new controller"),
+            Selection::DeleteProfile => write!(f, "Remove existing controller"),
+            Selection::Exit => write!(f, "Close application"),
         }
     }
 }
@@ -56,9 +54,11 @@ impl StartMenu {
                 Selection::Exit => MenuResult::Exit,
             },
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Exit,
-                _ => MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    MenuResult::Exit
+                }
+                _ => MenuResult::Failed(error.into()),
+            },
         }
     }
 }

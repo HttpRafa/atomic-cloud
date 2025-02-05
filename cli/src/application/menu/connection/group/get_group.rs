@@ -1,15 +1,16 @@
+use inquire::InquireError;
 use loading::Loading;
 use simplelog::{info, warn};
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
-    network::{proto::deployment_management::DeploymentValue, EstablishedConnection},
+    network::{proto::manage::group, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
-pub struct GetDeploymentMenu;
+pub struct GetGroupMenu;
 
-impl GetDeploymentMenu {
+impl GetGroupMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -21,9 +22,9 @@ impl GetDeploymentMenu {
             profile.name
         ));
 
-        match connection.client.get_deployments().await {
+        match connection.client.get_groups().await {
             Ok(deployments) => {
-                progress.success("Deployment data retrieved successfully 👍");
+                progress.success("Data retrieved successfully 👍");
                 progress.end();
 
                 match MenuUtils::select_no_help(
@@ -37,9 +38,9 @@ impl GetDeploymentMenu {
                             deployment, profile.name
                         ));
 
-                        match connection.client.get_deployment(&deployment).await {
+                        match connection.client.get_group(&deployment).await {
                             Ok(deployment_details) => {
-                                progress.success("Deployment details retrieved successfully 👍");
+                                progress.success("Group details retrieved successfully 👍");
                                 progress.end();
 
                                 Self::display_details(&deployment_details);
@@ -48,75 +49,74 @@ impl GetDeploymentMenu {
                             Err(error) => {
                                 progress.fail(format!("{}", error));
                                 progress.end();
-                                MenuResult::Failed
+                                MenuResult::Failed(error)
                             }
                         }
                     }
-                    Err(_) => MenuResult::Aborted,
+                    Err(error) => match error {
+                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                            MenuResult::Aborted
+                        }
+                        _ => MenuResult::Failed(error.into()),
+                    },
                 }
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
-    fn display_details(deployment_details: &DeploymentValue) {
-        info!("   <blue>🖥  <b>Deployment Details</>");
-        info!("      <green><b>Name</>: {}", deployment_details.name);
+    fn display_details(group: &group::Item) {
+        info!("   <blue>🖥  <b>Group Details</>");
+        info!("      <green><b>Name</>: {}", group.name);
 
-        if !deployment_details.cloudlets.is_empty() {
-            info!("      <green><b>Cloudlets</>:");
-            for cloudlet in &deployment_details.cloudlets {
-                info!("         - <green>{}</>", cloudlet);
+        if !group.nodes.is_empty() {
+            info!("      <green><b>Nodes</>:");
+            for node in &group.nodes {
+                info!("         - <green>{}</>", node);
             }
         } else {
-            warn!("      <yellow><b>Cloudlets</>: None");
+            warn!("      <yellow><b>Nodes</>: None");
         }
 
-        if let Some(constraints) = &deployment_details.constraints {
+        if let Some(constraints) = &group.constraints {
             info!("      <green><b>Constraints</>:");
-            info!("         <green><b>Minimum</>: {}", constraints.minimum);
-            info!("         <green><b>Maximum</>: {}", constraints.maximum);
-            info!("         <green><b>Priority</>: {}", constraints.priority);
+            info!("         <green><b>Minimum</>: {}", constraints.min);
+            info!("         <green><b>Maximum</>: {}", constraints.max);
+            info!("         <green><b>Priority</>: {}", constraints.prio);
         } else {
             warn!("      <yellow><b>Constraints</>: None");
         }
 
-        if let Some(scaling) = &deployment_details.scaling {
+        if let Some(scaling) = &group.scaling {
             info!("      <green><b>Scaling</>:");
             info!(
                 "         <green><b>Start Threshold</>: {}%",
                 scaling.start_threshold * 100.0
             );
-            info!(
-                "         <green><b>Stop Empty Units</>: {}",
-                scaling.stop_empty_units
-            );
+            info!("         <green><b>Stop Empty</>: {}", scaling.stop_empty);
         } else {
             warn!("      <yellow><b>Scaling</>: None");
         }
 
-        if let Some(resources) = &deployment_details.resources {
+        if let Some(resources) = &group.resources {
             info!("      <green><b>Resources per Unit</>:");
             info!("         <green><b>Memory</>: {} MiB", resources.memory);
             info!("         <green><b>Swap</>: {} MiB", resources.swap);
             info!("         <green><b>CPU Cores</>: {}", resources.cpu / 100);
             info!("         <green><b>IO</>: {}", resources.io);
             info!("         <green><b>Disk Space</>: {} MiB", resources.disk);
-            info!(
-                "         <green><b>Addresses/Ports</>: {}",
-                resources.addresses
-            );
+            info!("         <green><b>Addresses/Ports</>: {}", resources.ports);
         } else {
             warn!("      <yellow><b>Resources per Unit</>: None");
         }
 
-        if let Some(spec) = &deployment_details.spec {
+        if let Some(spec) = &group.spec {
             info!("      <green><b>Specification</>:");
-            info!("         <green><b>Image</>: {}", spec.image);
+            info!("         <green><b>Image</>: {}", spec.img);
             info!(
                 "         <green><b>Max Players per Unit</>: {}",
                 spec.max_players
@@ -126,18 +126,18 @@ impl GetDeploymentMenu {
                 info!("            - <green>{}</>: {}", setting.key, setting.value);
             }
             info!("         <green><b>Environment Variables</>:");
-            for env in &spec.environment {
+            for env in &spec.env {
                 info!("            - <green>{}</>: {}", env.key, env.value);
             }
             info!(
                 "         <green><b>Disk Retention</>: {}",
-                spec.disk_retention.unwrap_or(0)
+                spec.retention.unwrap_or(0)
             );
 
             if let Some(fallback) = &spec.fallback {
                 info!("         <green><b>Fallback</>:");
                 info!("            <green><b>Enabled</>: {}", fallback.enabled);
-                info!("            <green><b>Priority</>: {}", fallback.priority);
+                info!("            <green><b>Priority</>: {}", fallback.prio);
             }
         } else {
             warn!("      <yellow><b>Specification</>: None");

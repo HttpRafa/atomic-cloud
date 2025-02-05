@@ -10,7 +10,7 @@ message Transfer {
       FALLBACK = 2;
     }
     Type type = 1;
-    string target = 2;
+    optional string target = 2;
   }
   message TransferReq {
     repeated string ids = 1;

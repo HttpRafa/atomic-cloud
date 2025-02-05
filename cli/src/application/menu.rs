@@ -1,7 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
 use anyhow::{Error, Result};
-use inquire::{validator::ValueRequiredValidator, Confirm, CustomType, InquireError, MultiSelect, Select, Text};
+use inquire::{
+    validator::ValueRequiredValidator, Confirm, CustomType, InquireError, MultiSelect, Select, Text,
+};
 
 mod connection;
 mod create_profile;
@@ -12,9 +14,8 @@ pub mod start;
 pub enum MenuResult {
     Success,
     Aborted,
-    Failed,
+    Failed(Error),
     Exit,
-    Error(Error),
 }
 
 pub struct MenuUtils;
@@ -44,19 +45,24 @@ impl MenuUtils {
             .prompt()
     }
 
-    pub fn select<T: Display>(message: &str, help: &str, options: Vec<T>) -> Result<T, InquireError> {
+    pub fn select<T: Display>(
+        message: &str,
+        help: &str,
+        options: Vec<T>,
+    ) -> Result<T, InquireError> {
         Select::new(message, options)
             .with_help_message(help)
             .prompt()
     }
 
     pub fn select_no_help<T: Display>(message: &str, options: Vec<T>) -> Result<T, InquireError> {
-        Select::new(message, options)
-            .prompt()
+        Select::new(message, options).prompt()
     }
 
-    pub fn multi_select_no_help<T: Display>(message: &str, options: Vec<T>) -> Result<Vec<T>, InquireError> {
-        MultiSelect::new(message, options)
-            .prompt()
+    pub fn multi_select_no_help<T: Display>(
+        message: &str,
+        options: Vec<T>,
+    ) -> Result<Vec<T>, InquireError> {
+        MultiSelect::new(message, options).prompt()
     }
 }

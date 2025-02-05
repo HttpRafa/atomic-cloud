@@ -1,5 +1,4 @@
 use inquire::InquireError;
-use simplelog::debug;
 
 use crate::application::profile::Profiles;
 
@@ -16,9 +15,11 @@ impl LoadProfileMenu {
         ) {
             Ok(profile) => ConnectionMenu::show(profile, profiles).await,
             Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Aborted,
-                _ => MenuResult::Error(error.into())
-            }
+                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                    MenuResult::Aborted
+                }
+                _ => MenuResult::Failed(error.into()),
+            },
         }
     }
 }

@@ -4,8 +4,8 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use common::config::{LoadFromTomlFile, SaveToTomlFile};
-use loading::Loading;
+use common::{config::SaveToTomlFile, file::for_each_content_toml};
+use simplelog::debug;
 use stored::StoredProfile;
 use url::Url;
 
@@ -18,77 +18,24 @@ pub struct Profiles {
 }
 
 impl Profiles {
-    fn new() -> Self {
-        Profiles { profiles: vec![] }
-    }
+    pub fn init() -> Result<Self> {
+        debug!("Loading profiles...");
+        let mut profiles = vec![];
 
-    pub fn load_all() -> Self {
-        let progress = Loading::default();
-        progress.text("Loading profiles");
-
-        let mut profiles = Self::new();
-        let profiles_directory = Storage::get_profiles_folder();
-        if !profiles_directory.exists() {
-            if let Err(error) = fs::create_dir_all(&profiles_directory) {
-                progress.warn(format!(
-                    "Failed to create deployments directory: {}",
-                    &error
-                ));
-                return profiles;
-            }
+        let directory = Storage::profiles_folder();
+        if !directory.exists() {
+            fs::create_dir_all(&directory)?;
         }
 
-        let entries = match fs::read_dir(&profiles_directory) {
-            Ok(entries) => entries,
-            Err(error) => {
-                progress.warn(format!("Failed to read deployments directory: {}", &error));
-                return profiles;
-            }
-        };
-
-        for entry in entries {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    progress.warn(format!(
-                        "Failed to read entry in profiles directory: {}",
-                        &error
-                    ));
-                    continue;
-                }
-            };
-
-            let path = entry.path();
-            if path.is_dir() {
-                continue;
-            }
-
-            let id: String = match path.file_stem() {
-                Some(name) => name.to_string_lossy().to_string(),
-                None => continue,
-            };
-
-            let profile = match StoredProfile::from_file(&path) {
-                Ok(profile) => profile,
-                Err(error) => {
-                    progress.warn(format!(
-                        "Failed to load profile from file '{}': {}",
-                        path.display(),
-                        &error
-                    ));
-                    continue;
-                }
-            };
-
-            progress.text(format!("Loading profile '{}'", id));
-            let profile = Profile::from(&id, &profile);
-
-            profiles.add_profile(profile);
+        for (_, _, name, value) in
+            for_each_content_toml::<StoredProfile>(&directory, "Failed to read profile from file")?
+        {
+            debug!("Loaded profile {}", name);
+            profiles.push(Profile::from(&name, &value));
         }
 
-        progress.success(format!("Loaded {} profile(s)", profiles.profiles.len()));
-        progress.end();
-        profiles
+        debug!("Loaded {} profile(s)", profiles.len());
+        Ok(Self { profiles })
     }
 
     pub fn create_profile(&mut self, profile: &Profile) -> Result<()> {
@@ -164,7 +111,7 @@ impl Profile {
     }
 
     fn delete_file(&self) -> Result<()> {
-        let file_path = Storage::get_profile_file(&self.id);
+        let file_path = Storage::profile_file(&self.id);
         if file_path.exists() {
             fs::remove_file(file_path)?;
         }
@@ -177,7 +124,7 @@ impl Profile {
             authorization: self.authorization.clone(),
             url: self.url.clone(),
         };
-        stored_profile.save(&Storage::get_profile_file(&self.id), true)
+        stored_profile.save(&Storage::profile_file(&self.id), true)
     }
 
     pub fn compute_id(name: &str) -> String {

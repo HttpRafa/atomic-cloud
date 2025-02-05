@@ -1,25 +1,24 @@
 use anyhow::Result;
 use inquire::{
     validator::{Validation, ValueRequiredValidator},
-    Text,
+    InquireError, Text,
 };
 use loading::Loading;
-use simplelog::debug;
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
-    network::{proto::cloudlet_management::CloudletValue, EstablishedConnection},
+    network::{proto::manage::node, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
-pub struct CreateCloudletMenu;
+pub struct CreateNodeMenu;
 
 struct Data {
-    cloudlets: Vec<String>,
-    drivers: Vec<String>,
+    nodes: Vec<String>,
+    plugins: Vec<String>,
 }
 
-impl CreateCloudletMenu {
+impl CreateNodeMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -27,7 +26,7 @@ impl CreateCloudletMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Retrieving all existing cloudlets from the controller \"{}\"...",
+            "Retrieving all existing nodes from the controller \"{}\"...",
             profile.name
         ));
 
@@ -37,14 +36,14 @@ impl CreateCloudletMenu {
                 progress.end();
 
                 match Self::collect_cloudlet(&data) {
-                    Ok(cloudlet) => {
+                    Ok(node) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Creating cloudlet \"{}\" on the controller \"{}\"...",
-                            cloudlet.name, profile.name
+                            "Creating node \"{}\" on the controller \"{}\"...",
+                            node.name, profile.name
                         ));
 
-                        match connection.client.create_cloudlet(cloudlet).await {
+                        match connection.client.create_node(node).await {
                             Ok(_) => {
                                 progress.success("Cloudlet created successfully 👍. Remember to set the cloudlet to active, or the controller won't start units.");
                                 progress.end();
@@ -53,53 +52,55 @@ impl CreateCloudletMenu {
                             Err(error) => {
                                 progress.fail(format!("{}", error));
                                 progress.end();
-                                MenuResult::Failed
+                                MenuResult::Failed(error)
                             }
                         }
                     }
-                    Err(error) => {
-                        debug!("{}", error);
-                        MenuResult::Failed
-                    }
+                    Err(error) => match error {
+                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                            MenuResult::Aborted
+                        }
+                        _ => MenuResult::Failed(error.into()),
+                    },
                 }
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
     async fn get_required_data(connection: &mut EstablishedConnection) -> Result<Data> {
-        let cloudlets = connection.client.get_cloudlets().await?;
-        let drivers = connection.client.get_drivers().await?;
-        Ok(Data { cloudlets, drivers })
+        let nodes = connection.client.get_nodes().await?;
+        let plugins = connection.client.get_plugins().await?;
+        Ok(Data { nodes, plugins })
     }
 
-    fn collect_cloudlet(data: &Data) -> Result<CloudletValue> {
-        let name = Self::get_cloudlet_name(data.cloudlets.clone())?;
-        let driver = MenuUtils::select("Which driver should the controller use to communicate with the backend of this cloudlet?", "This is essential for the controller to know how to communicate with the backend of this cloudlet. For example, is it a Pterodactyl node or a simple Docker host?", data.drivers.to_vec())?;
+    fn collect_cloudlet(data: &Data) -> Result<node::Item, InquireError> {
+        let name = Self::get_node_name(data.nodes.clone())?;
+        let plugin = MenuUtils::select("Which plugin should the controller use to communicate with the backend of this node?", "This is essential for the controller to know how to communicate with the backend of this node. For example, is it a Pterodactyl node or a simple Docker host?", data.plugins.to_vec())?;
         let child = Self::get_child_node()?;
         let memory = Self::get_memory_limit()?;
-        let max_allocations = Self::get_allocations_limit()?;
-        let controller_address = MenuUtils::parsed_value(
-            "What is the hostname or address where the unit can reach the controller once started?",
+        let max = Self::get_servers_limit()?;
+        let ctrl_addr = MenuUtils::parsed_value(
+            "What is the hostname or address where the server can reach the controller once started?",
             "Example: https://cloud.your-network.net",
             "Please enter a valid URL",
         )?;
 
-        Ok(CloudletValue {
+        Ok(node::Item {
             name,
-            driver,
+            plugin,
             memory,
-            max_allocations,
+            max,
             child,
-            controller_address,
+            ctrl_addr,
         })
     }
 
-    fn get_cloudlet_name(used_names: Vec<String>) -> Result<String> {
+    fn get_node_name(used_names: Vec<String>) -> Result<String, InquireError> {
         Text::new("What would you like to name this cloudlet?")
             .with_help_message("Examples: hetzner-01, home-01, local-01")
             .with_validator(ValueRequiredValidator::default())
@@ -113,10 +114,9 @@ impl CreateCloudletMenu {
                 }
             })
             .prompt()
-            .map_err(|error| error.into())
     }
 
-    fn get_memory_limit() -> Result<Option<u32>> {
+    fn get_memory_limit() -> Result<Option<u32>, InquireError> {
         match MenuUtils::confirm(
             "Would you like to limit the amount of memory the controller can use on this cloudlet?",
         )? {
@@ -129,16 +129,16 @@ impl CreateCloudletMenu {
         }
     }
 
-    fn get_allocations_limit() -> Result<Option<u32>> {
-        match MenuUtils::confirm("Would you like to limit the number of units the controller can start on this cloudlet?")?
+    fn get_servers_limit() -> Result<Option<u32>, InquireError> {
+        match MenuUtils::confirm("Would you like to limit the number of servers the controller can start on this cloudlet?")?
         {
             false => Ok(None),
-            true => Ok(Some(MenuUtils::parsed_value("How many units should the controller be allowed to start on this cloudlet?", "Example: 15", "Please enter a valid number")?))
+            true => Ok(Some(MenuUtils::parsed_value("How many servers should the controller be allowed to start on this node?", "Example: 15", "Please enter a valid number")?))
         }
     }
 
-    fn get_child_node() -> Result<Option<String>> {
-        match MenuUtils::confirm("Does the specified driver need additional information to determine which node it should use in the backend? This is required when a driver manages multiple nodes.")? {
+    fn get_child_node() -> Result<Option<String>, InquireError> {
+        match MenuUtils::confirm("Does the specified plugin need additional information to determine which node it should use in the backend? This is required when a plugin manages multiple nodes.")? {
             false => Ok(None),
             true => {
                 Ok(Some(Text::new("What is the name of the child node the controller should use?")

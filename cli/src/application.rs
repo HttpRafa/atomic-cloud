@@ -1,5 +1,5 @@
 use anyhow::Result;
-use common::error::{FancyError};
+use common::error::FancyError;
 use menu::{start::StartMenu, MenuResult};
 use profile::Profiles;
 use simplelog::info;
@@ -13,17 +13,17 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub async fn new() -> Cli {
-        Cli {
-            profiles: Profiles::load_all(),
-        }
+    pub async fn new() -> Result<Cli> {
+        Ok(Cli {
+            profiles: Profiles::init()?,
+        })
     }
 
     pub async fn start(&mut self) -> Result<()> {
         loop {
             match StartMenu::show(&mut self.profiles).await {
                 MenuResult::Exit => break,
-                MenuResult::Error(error) => { FancyError::print_fancy(&error, false); break; },
+                MenuResult::Failed(error) => FancyError::print_fancy(&error, false),
                 _ => {}
             }
         }

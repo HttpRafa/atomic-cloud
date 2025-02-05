@@ -25,7 +25,9 @@ impl GenericTask for UserConnectedTask {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
-        controller.users.user_connected(server, self.name.clone(), self.uuid.clone());
+        controller
+            .users
+            .user_connected(server, self.name.clone(), self.uuid);
         todo!()
     }
 }

@@ -1,12 +1,21 @@
 use anyhow::Result;
+use inquire::InquireError;
 use loading::Loading;
-use simplelog::debug;
 
 use crate::application::{
-    menu::{MenuResult, MenuUtils}, network::{proto::{server, user}, EstablishedConnection}, profile::{Profile, Profiles}
+    menu::{MenuResult, MenuUtils},
+    network::{
+        proto::manage::{
+            server,
+            transfer::{self, target, TransferReq},
+            user,
+        },
+        EstablishedConnection,
+    },
+    profile::{Profile, Profiles},
 };
 
-pub struct TransferUserMenu;
+pub struct TransferUsersMenu;
 
 // TODO: Maybe dont request everything at once, but only what is needed
 struct Data {
@@ -15,7 +24,7 @@ struct Data {
     groups: Vec<String>,
 }
 
-impl TransferUserMenu {
+impl TransferUsersMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -37,7 +46,7 @@ impl TransferUserMenu {
                         let progress = Loading::default();
                         progress.text(format!(
                             "Transferring {} users to target \"{}\"...",
-                            request.user_uuids.len(),
+                            request.ids.len(),
                             request.target.as_ref().unwrap()
                         ));
 
@@ -50,77 +59,79 @@ impl TransferUserMenu {
                             Err(error) => {
                                 progress.fail(format!("{}", error));
                                 progress.end();
-                                MenuResult::Failed
+                                MenuResult::Failed(error)
                             }
                         }
                     }
-                    Err(error) => {
-                        debug!("{}", error);
-                        MenuResult::Failed
-                    }
+                    Err(error) => match error {
+                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                            MenuResult::Aborted
+                        }
+                        _ => MenuResult::Failed(error.into()),
+                    },
                 }
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
     async fn get_required_data(connection: &mut EstablishedConnection) -> Result<Data> {
         let users = connection.client.get_users().await?;
-        let units = connection.client.get_units().await?;
-        let deployments = connection.client.get_deployments().await?;
+        let servers = connection.client.get_servers().await?;
+        let groups = connection.client.get_groups().await?;
         Ok(Data {
             users,
-            units,
-            deployments,
+            servers,
+            groups,
         })
     }
 
-    fn collect_transfer_request(data: &Data) -> Result<TransferUsersRequest> {
+    fn collect_transfer_request(data: &Data) -> Result<TransferReq, InquireError> {
         let users =
             MenuUtils::multi_select_no_help("Select the users to transfer", data.users.clone())?;
         let target = Self::collect_transfer_target(data)?;
 
-        Ok(TransferUsersRequest {
-            user_uuids: users.iter().map(|user| user.uuid.clone()).collect(),
+        Ok(TransferReq {
+            ids: users.iter().map(|user| user.id.clone()).collect(),
             target: Some(target),
         })
     }
 
-    fn collect_transfer_target(data: &Data) -> Result<TransferTargetValue> {
+    fn collect_transfer_target(data: &Data) -> Result<transfer::Target, InquireError> {
         match MenuUtils::select_no_help(
             "Select the target type",
             vec![
-                TargetType::Unit,
-                TargetType::Deployment,
-                TargetType::Fallback,
+                target::Type::Server,
+                target::Type::Group,
+                target::Type::Fallback,
             ],
         )? {
-            TargetType::Unit => {
-                let unit = MenuUtils::select_no_help(
-                    "Select the unit to transfer the user to",
-                    data.units.clone(),
+            target::Type::Server => {
+                let server = MenuUtils::select_no_help(
+                    "Select the server to transfer the user to",
+                    data.servers.clone(),
                 )?;
-                Ok(TransferTargetValue {
-                    target_type: TargetType::Unit as i32,
-                    target: Some(unit.uuid),
+                Ok(transfer::Target {
+                    r#type: target::Type::Server as i32,
+                    target: Some(server.id),
                 })
             }
-            TargetType::Deployment => {
-                let deployment = MenuUtils::select_no_help(
-                    "Select the deployment to transfer the user to",
-                    data.deployments.clone(),
+            target::Type::Group => {
+                let group = MenuUtils::select_no_help(
+                    "Select the group to transfer the user to",
+                    data.groups.clone(),
                 )?;
-                Ok(TransferTargetValue {
-                    target_type: TargetType::Deployment as i32,
-                    target: Some(deployment),
+                Ok(transfer::Target {
+                    r#type: target::Type::Group as i32,
+                    target: Some(group),
                 })
             }
-            TargetType::Fallback => Ok(TransferTargetValue {
-                target_type: TargetType::Fallback as i32,
+            target::Type::Fallback => Ok(transfer::Target {
+                r#type: target::Type::Fallback as i32,
                 target: None,
             }),
         }

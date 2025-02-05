@@ -161,7 +161,7 @@ impl From<&Capabilities> for bridge::Capabilities {
     fn from(val: &Capabilities) -> Self {
         bridge::Capabilities {
             memory: *val.memory(),
-            max_allocations: *val.max_allocations(),
+            max_servers: *val.max_servers(),
             child: val.child().as_ref().map(|value| value.to_string()),
         }
     }

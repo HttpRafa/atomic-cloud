@@ -19,7 +19,7 @@ message Server {
     string id = 2;
     optional string group = 3;
     string node = 4;
-    Allocation alloc = 5;
+    Allocation allocation = 5;
     uint32 users = 6;
     string token = 7;
     State state = 8;
@@ -27,11 +27,11 @@ message Server {
   }
   message Allocation {
     repeated common.Address ports = 1;
-    Resources res = 2;
+    Resources resources = 2;
     Spec spec = 3;
   }
   message Resources {
-    uint32 mem = 1;
+    uint32 memory = 1;
     uint32 swap = 2;
     uint32 cpu = 3;
     uint32 io = 4;
@@ -43,22 +43,22 @@ message Server {
     uint32 maxPlayers = 2;
     repeated common.KeyValue settings = 3;
     repeated common.KeyValue env = 4;
-    Retention retention = 5;
-    Fallback fallback = 6;
+    optional DiskRetention retention = 5;
+    optional Fallback fallback = 6;
   }
   message Fallback {
     bool enabled = 1;
     int32 prio = 2;
   }
-  enum Retention {
-    TEMP = 0;
-    PERM = 1;
+  enum DiskRetention {
+    TEMPORARY = 0;
+    PERMANENT = 1;
   }
   enum State {
-    START = 0;
-    PREP = 1;
-    RESTART = 2;
-    RUN = 3;
-    STOP = 4;
+    STARTING = 0;
+    PREPARING = 1;
+    RESTARTING = 2;
+    RUNNING = 3;
+    STOPPING = 4;
   }
 }

@@ -51,7 +51,7 @@ impl ServerManager {
     }
 
     pub fn resolve_server(&self, uuid: &Uuid) -> Option<NameAndUuid> {
-        self.servers.get(&uuid).map(|server| server.id.clone())
+        self.servers.get(uuid).map(|server| server.id.clone())
     }
 
     pub fn schedule_start(&mut self, request: StartRequest) {

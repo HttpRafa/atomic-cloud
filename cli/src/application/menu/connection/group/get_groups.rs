@@ -7,9 +7,9 @@ use crate::application::{
     profile::{Profile, Profiles},
 };
 
-pub struct GetDeploymentsMenu;
+pub struct GetGroupsMenu;
 
-impl GetDeploymentsMenu {
+impl GetGroupsMenu {
     pub async fn show(
         profile: &mut Profile,
         connection: &mut EstablishedConnection,
@@ -17,32 +17,32 @@ impl GetDeploymentsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Requesting deployment list from controller \"{}\"...",
+            "Requesting group list from controller \"{}\"...",
             profile.name
         ));
 
-        match connection.client.get_deployments().await {
-            Ok(deployments) => {
-                progress.success("Deployment data retrieved successfully 👍");
+        match connection.client.get_groups().await {
+            Ok(groups) => {
+                progress.success("Data retrieved successfully 👍");
                 progress.end();
-                Self::display_deployments(&deployments);
+                Self::display_groups(&groups);
                 MenuResult::Success
             }
             Err(error) => {
                 progress.fail(format!("{}", error));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }
 
-    fn display_deployments(deployments: &[String]) {
-        info!("   <blue>🖥  <b>Available Deployments</>");
-        if deployments.is_empty() {
-            info!("      <green><b>No deployments found.</>");
+    fn display_groups(groups: &[String]) {
+        info!("   <blue>🖥  <b>Available Groups</>");
+        if groups.is_empty() {
+            info!("      <green><b>No groups found.</>");
         } else {
-            for deployment in deployments {
-                info!("    - <green>{}</>", deployment);
+            for group in groups {
+                info!("    - <green>{}</>", group);
             }
         }
     }

@@ -13,12 +13,12 @@ message Resource {
       ACTIVE = 0;
       INACTIVE = 1;
     }
-    Category cat = 1;
+    Category category = 1;
     string id = 2;
     Status status = 3;
   }
   message DelReq {
-    Category cat = 1;
+    Category category = 1;
     string id = 2;
   }
 }

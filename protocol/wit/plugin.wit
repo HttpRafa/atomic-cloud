@@ -110,7 +110,7 @@ interface bridge {
 
     record capabilities {
         memory: option<u32>,
-        max-allocations: option<u32>,
+        max-servers: option<u32>,
         child: option<string>,
     }
 

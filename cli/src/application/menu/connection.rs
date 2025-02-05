@@ -1,4 +1,3 @@
-use common::error::FancyError;
 use loading::Loading;
 use start::ConnectionStartMenu;
 
@@ -9,12 +8,12 @@ use crate::{
 
 use super::MenuResult;
 
-mod cloudlet;
-mod deployment;
 mod general;
+mod group;
+mod node;
 mod resource;
+mod server;
 mod start;
-mod unit;
 mod user;
 
 pub struct ConnectionMenu;
@@ -38,8 +37,7 @@ impl ConnectionMenu {
             Err(error) => {
                 progress.fail(format!("Failed to connect to the controller: {}", error));
                 progress.end();
-                FancyError::print_fancy(&error, false);
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }

@@ -15,7 +15,7 @@ pub struct SetReadyTask {
 #[async_trait]
 impl GenericTask for SetReadyTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers_mut().get_server_mut(&self.server) {
+        let server = match controller.servers.get_server_mut(&self.server) {
             Some(server) => server,
             None => return Task::new_link_error(),
         };

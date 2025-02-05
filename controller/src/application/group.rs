@@ -72,7 +72,7 @@ impl Group {
                                     "Server {} is empty and reached the timeout, stopping it...",
                                     server.id()
                                 );
-                                    requests.push(StopRequest::new(None, server.id()));
+                                    requests.push(StopRequest::new(None, server.id().clone()));
                                     to_stop -= 1;
                                 } else {
                                     debug!(

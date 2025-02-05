@@ -28,16 +28,16 @@ pub struct Server {
     token: String,
 
     /* Users */
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     connected_users: u32,
 
     /* States */
     #[getset(get = "pub", get_mut = "pub")]
     heart: Heart,
     #[getset(get = "pub", get_mut = "pub")]
-    state: State,
-    #[getset(get = "pub", get_mut = "pub")]
     flags: Flags,
+    #[getset(get = "pub", get_mut = "pub", set = "pub")]
+    state: State,
     #[getset(get = "pub", set = "pub")]
     ready: bool,
 }

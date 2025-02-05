@@ -24,10 +24,10 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
+pub mod server;
 mod group;
 mod node;
 mod plugin;
-mod server;
 mod user;
 
 const TICK_RATE: u64 = 20;
@@ -47,16 +47,11 @@ pub struct Controller {
     auth: Arc<AuthService>,
 
     /* Components */
-    #[getset(get = "pub", get_mut = "pub")]
-    plugins: PluginManager,
-    #[getset(get = "pub", get_mut = "pub")]
-    nodes: NodeManager,
-    #[getset(get = "pub", get_mut = "pub")]
-    groups: GroupManager,
-    #[getset(get = "pub", get_mut = "pub")]
-    servers: ServerManager,
-    #[getset(get = "pub", get_mut = "pub")]
-    users: UserManager,
+    pub plugins: PluginManager,
+    pub nodes: NodeManager,
+    pub groups: GroupManager,
+    pub servers: ServerManager,
+    pub users: UserManager,
 
     /* Config */
     #[getset(get = "pub")]

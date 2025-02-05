@@ -30,6 +30,7 @@ impl Task {
             None => return Err(Status::permission_denied("Not linked")),
         }
         .clone();
+        debug!("Executing task with a return type of: {}", type_name::<O>());
         match Task::create::<O>(queue, task(request, data)).await {
             Ok(value) => value,
             Err(error) => {

@@ -50,6 +50,10 @@ impl ServerManager {
         self.servers.get_mut(uuid)
     }
 
+    pub fn resolve_server(&self, uuid: &Uuid) -> Option<NameAndUuid> {
+        self.servers.get(&uuid).map(|server| server.id.clone())
+    }
+
     pub fn schedule_start(&mut self, request: StartRequest) {
         self.start_requests.push(request);
     }
@@ -86,7 +90,7 @@ impl ServerManager {
                     }
                 }
                 self.restart_requests
-                    .push(RestartRequest::new(None, server.id()));
+                    .push(RestartRequest::new(None, server.id().clone()));
             }
         }
 
@@ -385,20 +389,20 @@ impl StartRequest {
 }
 
 impl RestartRequest {
-    pub fn new(when: Option<Instant>, server: &NameAndUuid) -> Self {
+    pub fn new(when: Option<Instant>, server: NameAndUuid) -> Self {
         Self {
             when,
-            server: server.clone(),
+            server,
             stage: ActionStage::Queued,
         }
     }
 }
 
 impl StopRequest {
-    pub fn new(when: Option<Instant>, server: &NameAndUuid) -> Self {
+    pub fn new(when: Option<Instant>, server: NameAndUuid) -> Self {
         Self {
             when,
-            server: server.clone(),
+            server,
             stage: ActionStage::Queued,
         }
     }

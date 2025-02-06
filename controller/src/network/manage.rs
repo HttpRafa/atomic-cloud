@@ -31,8 +31,8 @@ impl ManageService for ManageServiceImpl {
     // Power
     async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), AdminUser, _, _>(&self.0, &mut request, |_, _| {
-                Box::new(RequestStopTask())
+            Task::execute::<(), AdminUser, _, _>(&self.0, request, |_, _| {
+                Ok(Box::new(RequestStopTask()))
             })
             .await?,
         ))

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::Result;
 use beat::BeatTask;
 use health::{RequestStopTask, SetRunningTask};
@@ -5,7 +7,7 @@ use ready::SetReadyTask;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
-use user::UserConnectedTask;
+use user::{UserConnectedTask, UserDisconnectedTask};
 use uuid::Uuid;
 
 use crate::{application::TaskSender, task::Task, VERSION};
@@ -35,41 +37,41 @@ impl ClientService for ClientServiceImpl {
     type SubscribeToChannelStream = ReceiverStream<Result<Msg, Status>>;
 
     // Heartbeat
-    async fn beat(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
+    async fn beat(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(BeatTask { server })
+            Task::execute::<(), Uuid, _, _>(&self.0, request, |_, server| {
+                Ok(Box::new(BeatTask { server }))
             })
             .await?,
         ))
     }
 
     // Ready state
-    async fn set_ready(&self, mut request: Request<bool>) -> Result<Response<()>, Status> {
+    async fn set_ready(&self, request: Request<bool>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |request, server| {
-                Box::new(SetReadyTask {
+            Task::execute::<(), Uuid, _, _>(&self.0, request, |request, server| {
+                Ok(Box::new(SetReadyTask {
                     server,
                     ready: *request.get_ref(),
-                })
+                }))
             })
             .await?,
         ))
     }
 
     // Health
-    async fn set_running(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
+    async fn set_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(SetRunningTask { server })
+            Task::execute::<(), Uuid, _, _>(&self.0, request, |_, server| {
+                Ok(Box::new(SetRunningTask { server }))
             })
             .await?,
         ))
     }
-    async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
+    async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(RequestStopTask { server })
+            Task::execute::<(), Uuid, _, _>(&self.0, request, |_, server| {
+                Ok(Box::new(RequestStopTask { server }))
             })
             .await?,
         ))
@@ -78,8 +80,16 @@ impl ClientService for ClientServiceImpl {
     // User
     async fn user_connected(&self, request: Request<ConnectedReq>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(UserConnectedTask { server })
+            Task::execute::<(), Uuid, _, _>(&self.0, request, |request, server| {
+                let request = request.into_inner();
+
+                let name = request.name;
+                let uuid = match Uuid::from_str(&request.id) {
+                    Ok(uuid) => uuid,
+                    Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
+                };
+
+                Ok(Box::new(UserConnectedTask { server, name, uuid }))
             })
             .await?,
         ))
@@ -90,18 +100,27 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(Task::execute::<(), Uuid, _, _>(
             &self.0,
-            &mut request,
-            |_, server| Box::new(UserDisconnectedReq { server }),
-        )))
+            request,
+            |request, server| {
+                let request = request.into_inner();
+
+                let uuid = match Uuid::from_str(&request.id) {
+                    Ok(uuid) => uuid,
+                    Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
+                };
+
+                Ok(Box::new(UserDisconnectedTask { server, uuid }))
+            },
+        ).await?))
     }
 
     // Transfer
     async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
         Ok(Response::new(Task::execute::<u32, Uuid, _, _>(
             &self.0,
-            &mut request,
-            |_, server| Box::new(TransferUsersTask { server }),
-        )))
+            request,
+            |_, server| Ok(Box::new(TransferUsersTask { server })),
+        ).await?))
     }
     async fn subscribe_to_transfers(
         &self,

@@ -19,11 +19,11 @@ pub struct Task {
 impl Task {
     pub async fn execute<O: Send + 'static, D: Clone + Send + Sync + 'static, I, F>(
         queue: &TaskSender,
-        request: &mut Request<I>,
+        request: Request<I>,
         task: F,
     ) -> Result<O, Status>
     where
-        F: FnOnce(&mut Request<I>, D) -> BoxedTask,
+        F: FnOnce(Request<I>, D) -> Result<BoxedTask, Status>,
     {
         let data = match request.extensions().get::<D>() {
             Some(data) => data,
@@ -31,7 +31,7 @@ impl Task {
         }
         .clone();
         debug!("Executing task with a return type of: {}", type_name::<O>());
-        match Task::create::<O>(queue, task(request, data)).await {
+        match Task::create::<O>(queue, task(request, data)?).await {
             Ok(value) => value,
             Err(error) => {
                 FancyError::print_fancy(&error, false);

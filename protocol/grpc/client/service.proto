@@ -41,9 +41,6 @@ service ClientService {
   rpc GetServers(google.protobuf.Empty) returns (Server.List);
   rpc GetGroups(google.protobuf.Empty) returns (Group.List);
 
-  // Housekeeping
-  rpc Reset(google.protobuf.Empty) returns (google.protobuf.Empty);
-
   // Version info
   rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
   rpc GetCtrlVer(google.protobuf.Empty) returns (google.protobuf.StringValue);

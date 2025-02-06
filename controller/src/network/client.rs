@@ -119,7 +119,22 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(Task::execute::<u32, Uuid, _, _>(
             &self.0,
             request,
-            |_, server| Ok(Box::new(TransferUsersTask { server })),
+            |request, server| {
+                let request = request.into_inner();
+
+                let target = match request.target {
+                    Some(target) => target,
+                    None => return Err(Status::invalid_argument("Missing target")),
+                };
+                let uuids = request.ids.into_iter().map(|id| {
+                    match Uuid::from_str(&id) {
+                        Ok(uuid) => Ok(uuid),
+                        Err(_) => Err(Status::invalid_argument("Invalid UUID")),
+                    }
+                }).collect::<Result<Vec<Uuid>, _>>()?;
+
+                Ok(Box::new(TransferUsersTask { server }))
+            },
         ).await?))
     }
     async fn subscribe_to_transfers(
@@ -153,11 +168,6 @@ impl ClientService for ClientServiceImpl {
         &self,
         _request: Request<()>,
     ) -> Result<Response<client::group::List>, Status> {
-        todo!()
-    }
-
-    // Housekeeping
-    async fn reset(&self, _request: Request<()>) -> Result<Response<()>, Status> {
         todo!()
     }
 

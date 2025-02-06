@@ -4,7 +4,7 @@ use anyhow::Result;
 use simplelog::{info, warn};
 use uuid::Uuid;
 
-use crate::application::server::Server;
+use crate::application::server::{NameAndUuid, Server};
 
 use super::{CurrentServer, User};
 
@@ -26,8 +26,8 @@ impl UserManager {
                 if current.uuid() == server {
                     info!(
                         "User {}[{}] disconnected from server {}",
-                        user.name,
-                        user.uuid.to_string(),
+                        user.id,
+                        user.id.uuid().to_string(),
                         current.name(),
                     );
                     amount += 1;
@@ -39,26 +39,26 @@ impl UserManager {
         amount
     }
 
-    pub fn user_connected(&mut self, server: &mut Server, name: String, uuid: Uuid) {
+    pub fn user_connected(&mut self, server: &mut Server, id: NameAndUuid) {
         // Update server user count
         server.set_connected_users(server.connected_users() + 1);
 
         // Update internal user list
-        if let Some(user) = self.users.get_mut(&uuid) {
+        if let Some(user) = self.users.get_mut(&id.uuid()) {
             match &user.server {
                 CurrentServer::Connected(_) => {
                     warn!(
                         "User {}[{}] was never flagged as transferring but switched to server {}",
-                        name,
-                        uuid.to_string(),
+                        id,
+                        id.uuid().to_string(),
                         server.id(),
                     );
                 }
                 CurrentServer::Transfering(_) => {
                     info!(
                         "User {}[{}] successfully transferred to server {}",
-                        name,
-                        uuid.to_string(),
+                        id,
+                        id.uuid().to_string(),
                         server.id(),
                     );
                 }
@@ -67,15 +67,14 @@ impl UserManager {
         } else {
             info!(
                 "User {}[{}] connected to server {}",
-                name,
-                uuid.to_string(),
+                id,
+                id.uuid().to_string(),
                 server.id()
             );
             self.users.insert(
-                uuid,
+                *id.uuid(),
                 User {
-                    name,
-                    uuid,
+                    id,
                     server: CurrentServer::Connected(server.id().clone()),
                 },
             );
@@ -93,8 +92,8 @@ impl UserManager {
                 if current.uuid() == server.id().uuid() {
                     info!(
                         "User {}[{}] disconnected from server {}",
-                        user.name,
-                        user.uuid.to_string(),
+                        user.id,
+                        user.id.uuid().to_string(),
                         server.id(),
                     );
                     self.users.remove(uuid);

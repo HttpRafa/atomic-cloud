@@ -29,7 +29,7 @@ pub struct ManageServiceImpl(pub TaskSender);
 #[async_trait]
 impl ManageService for ManageServiceImpl {
     // Power
-    async fn request_stop(&self, mut request: Request<()>) -> Result<Response<()>, Status> {
+    async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), AdminUser, _, _>(&self.0, request, |_, _| {
                 Ok(Box::new(RequestStopTask()))

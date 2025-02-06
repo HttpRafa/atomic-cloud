@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use common::allocator::NumberAllocator;
 use serde::{Deserialize, Serialize};
 use simplelog::debug;
@@ -107,7 +107,7 @@ impl Group {
             let id = self
                 .id_allocator
                 .allocate()
-                .expect("We reached the maximum server count. Wow this is a lot of servers");
+                .ok_or(anyhow!("We reached the maximum server count. Wow this is a lot of servers"))?;
             let request = StartRequest::new(
                 None,
                 self.constraints.priority,

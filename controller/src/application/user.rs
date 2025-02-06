@@ -7,8 +7,7 @@ pub mod manager;
 pub mod transfer;
 
 pub struct User {
-    name: String,
-    uuid: Uuid,
+    id: NameAndUuid,
     server: CurrentServer,
 }
 

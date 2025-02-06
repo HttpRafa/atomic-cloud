@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub struct ResetTask {
-    server: Uuid,
+    pub server: Uuid,
 }
 
 #[async_trait]

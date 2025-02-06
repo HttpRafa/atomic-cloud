@@ -8,14 +8,14 @@ use crate::{
 };
 
 pub struct UserConnectedTask {
-    server: Uuid,
-    uuid: Uuid,
-    name: String,
+    pub server: Uuid,
+    pub uuid: Uuid,
+    pub name: String,
 }
 
 pub struct UserDisconnectedTask {
-    server: Uuid,
-    uuid: Uuid,
+    pub server: Uuid,
+    pub uuid: Uuid,
 }
 
 #[async_trait]

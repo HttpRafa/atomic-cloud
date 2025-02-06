@@ -4,6 +4,8 @@ use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
+use transfer::TransferUsersTask;
+use user::UserConnectedTask;
 use uuid::Uuid;
 
 use crate::{application::TaskSender, task::Task, VERSION};
@@ -76,23 +78,35 @@ impl ClientService for ClientServiceImpl {
     // User
     async fn user_connected(
         &self,
-        _request: Request<ConnectedReq>,
+        request: Request<ConnectedReq>,
     ) -> Result<Response<()>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+                Box::new(UserConnectedTask { server })
+            }).await?,
+        ))
     }
     async fn user_disconnected(
         &self,
-        _request: Request<DisconnectedReq>,
+        request: Request<DisconnectedReq>,
     ) -> Result<Response<()>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
+                Box::new(UserDisconnectedReq { server })
+            })
+        ))
     }
 
     // Transfer
     async fn transfer_users(
         &self,
-        _request: Request<TransferReq>,
+        request: Request<TransferReq>,
     ) -> Result<Response<u32>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<u32, Uuid, _, _>(&self.0, &mut request, |_, server| {
+                Box::new(TransferUsersTask { server })
+            })
+        ))
     }
     async fn subscribe_to_transfers(
         &self,

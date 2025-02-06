@@ -11,15 +11,15 @@ forced-target = "wasm32-wasip2"
 common = { path = "../../common" }
 
 # Wasm plugin
-wit-bindgen = "0.38.0"
+wit-bindgen = "0.39.0"
 
 # Error handling
 anyhow = "1.0.95"
 
 # Configuration
 serde = { version = "1.0.217", features = ["derive"] }
-toml = "0.8.19"
+toml = "0.8.20"
 walkdir = "2.5.0"
 
 [build-dependencies]
-toml = "0.8.19"
+toml = "0.8.20"

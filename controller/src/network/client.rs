@@ -76,37 +76,32 @@ impl ClientService for ClientServiceImpl {
     }
 
     // User
-    async fn user_connected(
-        &self,
-        request: Request<ConnectedReq>,
-    ) -> Result<Response<()>, Status> {
+    async fn user_connected(&self, request: Request<ConnectedReq>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
                 Box::new(UserConnectedTask { server })
-            }).await?,
+            })
+            .await?,
         ))
     }
     async fn user_disconnected(
         &self,
         request: Request<DisconnectedReq>,
     ) -> Result<Response<()>, Status> {
-        Ok(Response::new(
-            Task::execute::<(), Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(UserDisconnectedReq { server })
-            })
-        ))
+        Ok(Response::new(Task::execute::<(), Uuid, _, _>(
+            &self.0,
+            &mut request,
+            |_, server| Box::new(UserDisconnectedReq { server }),
+        )))
     }
 
     // Transfer
-    async fn transfer_users(
-        &self,
-        request: Request<TransferReq>,
-    ) -> Result<Response<u32>, Status> {
-        Ok(Response::new(
-            Task::execute::<u32, Uuid, _, _>(&self.0, &mut request, |_, server| {
-                Box::new(TransferUsersTask { server })
-            })
-        ))
+    async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(Task::execute::<u32, Uuid, _, _>(
+            &self.0,
+            &mut request,
+            |_, server| Box::new(TransferUsersTask { server }),
+        )))
     }
     async fn subscribe_to_transfers(
         &self,

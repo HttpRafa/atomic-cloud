@@ -6,11 +6,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use uuid::Uuid;
 
-use crate::{
-    application::TaskSender,
-    task::Task,
-    VERSION,
-};
+use crate::{application::TaskSender, task::Task, VERSION};
 
 use super::proto::client::{
     self,

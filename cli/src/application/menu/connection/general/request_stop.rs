@@ -1,6 +1,5 @@
 use std::{thread, time::Duration};
 
-use inquire::InquireError;
 use loading::Loading;
 
 use crate::application::{
@@ -40,10 +39,7 @@ impl RequestStopMenu {
                 }
             }
             Ok(false) => MenuResult::Aborted,
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => MenuResult::Aborted,
-                _ => MenuResult::Failed(error.into())
-            },
+            Err(error) => MenuUtils::handle_error(error),
                 }
     }
 }

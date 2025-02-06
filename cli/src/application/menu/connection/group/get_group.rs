@@ -1,4 +1,3 @@
-use inquire::InquireError;
 use loading::Loading;
 use simplelog::{info, warn};
 
@@ -27,10 +26,7 @@ impl GetGroupMenu {
                 progress.success("Data retrieved successfully 👍");
                 progress.end();
 
-                match MenuUtils::select_no_help(
-                    "Select a group to view more details:",
-                    groups,
-                ) {
+                match MenuUtils::select_no_help("Select a group to view more details:", groups) {
                     Ok(group) => {
                         let progress = Loading::default();
                         progress.text(format!(
@@ -53,12 +49,7 @@ impl GetGroupMenu {
                             }
                         }
                     }
-                    Err(error) => match error {
-                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                            MenuResult::Aborted
-                        }
-                        _ => MenuResult::Failed(error.into()),
-                    },
+                    Err(error) => MenuUtils::handle_error(error),
                 }
             }
             Err(error) => {

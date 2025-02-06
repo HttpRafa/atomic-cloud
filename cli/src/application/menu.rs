@@ -21,6 +21,15 @@ pub enum MenuResult {
 pub struct MenuUtils;
 
 impl MenuUtils {
+    pub fn handle_error(error: InquireError) -> MenuResult {
+        match error {
+            InquireError::OperationCanceled | InquireError::OperationInterrupted => {
+                MenuResult::Exit
+            }
+            _ => MenuResult::Failed(error.into()),
+        }
+    }
+
     pub fn text(message: &str, help: &str) -> Result<String, InquireError> {
         Text::new(message)
             .with_validator(ValueRequiredValidator::default())

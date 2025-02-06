@@ -3,8 +3,6 @@ use std::{
     vec,
 };
 
-use inquire::InquireError;
-
 use crate::application::profile::Profiles;
 
 use super::{
@@ -53,12 +51,7 @@ impl StartMenu {
                 Selection::DeleteProfile => DeleteProfileMenu::show(profiles).await,
                 Selection::Exit => MenuResult::Exit,
             },
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                    MenuResult::Exit
-                }
-                _ => MenuResult::Failed(error.into()),
-            },
+            Err(error) => MenuUtils::handle_error(error),
         }
     }
 }

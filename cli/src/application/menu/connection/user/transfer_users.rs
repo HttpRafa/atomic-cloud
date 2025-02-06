@@ -63,12 +63,7 @@ impl TransferUsersMenu {
                             }
                         }
                     }
-                    Err(error) => match error {
-                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                            MenuResult::Aborted
-                        }
-                        _ => MenuResult::Failed(error.into()),
-                    },
+                    Err(error) => MenuUtils::handle_error(error),
                 }
             }
             Err(error) => {

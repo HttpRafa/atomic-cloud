@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use simplelog::debug;
-
 use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::EstablishedConnection,
@@ -84,7 +82,7 @@ impl ConnectionStartMenu {
     ) -> MenuResult {
         loop {
             match Self::show_internal(profile, connection, profiles).await {
-                MenuResult::Exit => return MenuResult::Success,
+                MenuResult::Aborted => return MenuResult::Success,
                 MenuResult::Failed(error) => return MenuResult::Failed(error),
                 _ => {}
             }
@@ -135,10 +133,7 @@ impl ConnectionStartMenu {
                 Action::GetVersions => GetVersionsMenu::show(profile, connection, profiles).await,
                 Action::DisconnectFromController => MenuResult::Exit,
             },
-            Err(error) => {
-                debug!("{}", error);
-                MenuResult::Exit
-            }
+            Err(error) => MenuUtils::handle_error(error),
         }
     }
 }

@@ -45,7 +45,7 @@ impl CreateNodeMenu {
 
                         match connection.client.create_node(node).await {
                             Ok(_) => {
-                                progress.success("Cloudlet created successfully 👍. Remember to set the node to active, or the controller won't start servers.");
+                                progress.success("Node created successfully 👍. Remember to set the node to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
@@ -56,12 +56,7 @@ impl CreateNodeMenu {
                             }
                         }
                     }
-                    Err(error) => match error {
-                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                            MenuResult::Aborted
-                        }
-                        _ => MenuResult::Failed(error.into()),
-                    },
+                    Err(error) => MenuUtils::handle_error(error),
                 }
             }
             Err(error) => {
@@ -130,10 +125,15 @@ impl CreateNodeMenu {
     }
 
     fn get_servers_limit() -> Result<Option<u32>, InquireError> {
-        match MenuUtils::confirm("Would you like to limit the number of servers the controller can start on this node?")?
-        {
+        match MenuUtils::confirm(
+            "Would you like to limit the number of servers the controller can start on this node?",
+        )? {
             false => Ok(None),
-            true => Ok(Some(MenuUtils::parsed_value("How many servers should the controller be allowed to start on this node?", "Example: 15", "Please enter a valid number")?))
+            true => Ok(Some(MenuUtils::parsed_value(
+                "How many servers should the controller be allowed to start on this node?",
+                "Example: 15",
+                "Please enter a valid number",
+            )?)),
         }
     }
 

@@ -1,6 +1,6 @@
 use inquire::{
     validator::{Validation, ValueRequiredValidator},
-    InquireError, Password, Text,
+    Password, Text,
 };
 use loading::Loading;
 
@@ -32,12 +32,7 @@ impl CreateProfileMenu {
         }
         let name = match prompt.prompt() {
             Ok(name) => name,
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                    return MenuResult::Aborted
-                }
-                _ => return MenuResult::Failed(error.into()),
-            },
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let authorization = match Password::new("What is the authorization token for this profile?")
@@ -48,12 +43,7 @@ impl CreateProfileMenu {
             .prompt()
         {
             Ok(authorization) => authorization,
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                    return MenuResult::Aborted
-                }
-                _ => return MenuResult::Failed(error.into()),
-            },
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let url = match MenuUtils::parsed_value(
@@ -62,12 +52,7 @@ impl CreateProfileMenu {
             "Please enter a valid URL",
         ) {
             Ok(url) => url,
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                    return MenuResult::Aborted
-                }
-                _ => return MenuResult::Failed(error.into()),
-            },
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let progress = Loading::default();

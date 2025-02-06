@@ -1,4 +1,3 @@
-use inquire::InquireError;
 use loading::Loading;
 
 use crate::application::profile::Profiles;
@@ -27,19 +26,14 @@ impl DeleteProfileMenu {
                                 error
                             ));
                             progress.end();
-
                             MenuResult::Failed(error)
                         }
                     }
                 }
-                Ok(false) | Err(_) => MenuResult::Aborted,
+                Ok(false) => MenuResult::Aborted,
+                Err(error) => MenuUtils::handle_error(error),
             },
-            Err(error) => match error {
-                InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                    MenuResult::Aborted
-                }
-                _ => MenuResult::Failed(error.into()),
-            },
+            Err(error) => MenuUtils::handle_error(error),
         }
     }
 }

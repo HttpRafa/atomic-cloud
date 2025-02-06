@@ -1,4 +1,3 @@
-use inquire::InquireError;
 use loading::Loading;
 use simplelog::info;
 
@@ -48,12 +47,7 @@ impl GetNodeMenu {
                             }
                         }
                     }
-                    Err(error) => match error {
-                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                            MenuResult::Aborted
-                        }
-                        _ => MenuResult::Failed(error.into()),
-                    },
+                    Err(error) => MenuUtils::handle_error(error),
                 }
             }
             Err(error) => {

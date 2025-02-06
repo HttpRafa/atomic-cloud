@@ -67,12 +67,7 @@ impl CreateGroupMenu {
                             }
                         }
                     }
-                    Err(error) => match error {
-                        InquireError::OperationCanceled | InquireError::OperationInterrupted => {
-                            MenuResult::Aborted
-                        }
-                        _ => MenuResult::Failed(error.into()),
-                    },
+                    Err(error) => MenuUtils::handle_error(error),
                 }
             }
             Err(error) => {
@@ -197,7 +192,10 @@ impl CreateGroupMenu {
     }
 
     fn collect_specification() -> Result<Spec, InquireError> {
-        let img = MenuUtils::text("Which image should the server use?", "Example: ubuntu:latest")?;
+        let img = MenuUtils::text(
+            "Which image should the server use?",
+            "Example: ubuntu:latest",
+        )?;
         let max_players = MenuUtils::parsed_value(
             "What is the maximum number of players per server?",
             "Example: 20",

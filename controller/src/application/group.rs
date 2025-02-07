@@ -9,8 +9,7 @@ use crate::{application::server::manager::StopRequest, config::Config};
 use super::{
     node::LifecycleStatus,
     server::{
-        manager::{ServerManager, StartRequest},
-        Resources, Spec,
+        manager::{ServerManager, StartRequest}, Resources, Server, Spec
     },
 };
 
@@ -128,6 +127,13 @@ impl Group {
         }
 
         Ok(())
+    }
+
+    pub fn find_free_server<'a>(&self, servers: &'a ServerManager) -> Option<&'a Server> {
+        self.servers.iter().find_map(|server| match server {
+            AssociatedServer::Active(server) => servers.get_server(server),
+            _ => None,
+        })
     }
 
     pub fn set_server_active(&mut self, server_uuid: &Uuid) {

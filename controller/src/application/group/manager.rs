@@ -49,6 +49,10 @@ impl GroupManager {
         Ok(Self { groups })
     }
 
+    pub fn get_group(&self, name: &str) -> Option<&Group> {
+        self.groups.get(name)
+    }
+
     pub fn get_group_mut(&mut self, name: &str) -> Option<&mut Group> {
         self.groups.get_mut(name)
     }

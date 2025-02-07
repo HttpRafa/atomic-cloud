@@ -14,24 +14,28 @@ impl UserManager {
             return Err(ResolveError::UserNotFound);
         };
 
-        match target {
+        let to = match target {
             TransferTarget::Server(to) => {
-                let to = servers.get_server(&to).ok_or(ResolveError::ServerNotFound)?;
-                Ok(Transfer::new(user.id.clone(), from.clone(), to.id().clone()))
-            },
-            TransferTarget::Group(group) => {
+                servers.get_server(&to).ok_or(ResolveError::ServerNotFound)?
                 
             },
-            TransferTarget::Fallback => {
-
+            TransferTarget::Group(group) => {
+                let group = groups.get_group(&group).ok_or(ResolveError::GroupNotFound)?;
+                group.find_free_server(servers).ok_or(ResolveError::NotServerAvailable)?
             },
-        }
+            TransferTarget::Fallback => {
+                servers.find_fallback_server(from.uuid()).ok_or(ResolveError::NotServerAvailable)?
+            },
+        };
+
+        Ok(Transfer::new(user.id.clone(), from.clone(), to.id().clone()))
     }
 }
 
 pub enum ResolveError {
     UserNotFound,
     ServerNotFound,
+    NotServerAvailable,
     GroupNotFound,
 }
 

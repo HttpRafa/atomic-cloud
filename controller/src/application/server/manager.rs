@@ -43,6 +43,10 @@ impl ServerManager {
         }
     }
 
+    pub fn find_fallback_server(&self, ignore: &Uuid) -> Option<&Server> {
+        self.servers.values().filter(|server| server.id.uuid() != ignore && server.ready && server.state == State::Running && server.allocation.spec.fallback.enabled).max_by_key(|server| server.allocation.spec.fallback.priority)
+    }
+
     pub fn get_server(&self, uuid: &Uuid) -> Option<&Server> {
         self.servers.get(uuid)
     }

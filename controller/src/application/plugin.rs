@@ -11,8 +11,8 @@ use super::{
 pub mod manager;
 mod runtime;
 
-pub type WrappedPlugin = Box<dyn GenericPlugin + Send + Sync>;
-pub type WrappedNode = Box<dyn GenericNode + Send + Sync>;
+pub type BoxedPlugin = Box<dyn GenericPlugin + Send + Sync>;
+pub type BoxedNode = Box<dyn GenericNode + Send + Sync>;
 
 #[async_trait]
 pub trait GenericPlugin {
@@ -22,7 +22,7 @@ pub trait GenericPlugin {
         name: &str,
         capabilities: &Capabilities,
         remote: &RemoteController,
-    ) -> Result<WrappedNode>;
+    ) -> Result<BoxedNode>;
 
     /* Shutdown */
     fn shutdown(&self) -> JoinHandle<Result<()>>;

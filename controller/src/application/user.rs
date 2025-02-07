@@ -1,5 +1,4 @@
 use transfer::Transfer;
-use uuid::Uuid;
 
 use super::server::NameAndUuid;
 

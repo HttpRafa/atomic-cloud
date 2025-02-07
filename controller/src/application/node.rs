@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 use url::Url;
 
 use super::{
-    plugin::WrappedNode,
+    plugin::BoxedNode,
     server::{manager::StartRequest, Resources, Server, Spec},
 };
 
@@ -15,7 +15,7 @@ pub mod manager;
 pub struct Node {
     /* Plugin */
     plugin: String,
-    instance: WrappedNode,
+    instance: BoxedNode,
 
     /* Settings */
     name: String,

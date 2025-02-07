@@ -1,14 +1,13 @@
 use anyhow::Result;
 use tonic::async_trait;
-use uuid::Uuid;
 
 use crate::{
-    application::Controller,
+    application::{auth::Authorization, Controller},
     task::{BoxedAny, GenericTask},
 };
 
 pub struct GetGroupsTask {
-    pub server: Uuid,
+    pub auth: Authorization,
 }
 
 #[async_trait]

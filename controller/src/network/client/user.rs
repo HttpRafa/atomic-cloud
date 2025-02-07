@@ -3,43 +3,54 @@ use tonic::async_trait;
 use uuid::Uuid;
 
 use crate::{
-    application::Controller,
+    application::{
+        auth::{ActionResult, Authorization},
+        server::NameAndUuid,
+        Controller,
+    },
     task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct UserConnectedTask {
-    pub server: Uuid,
-    pub uuid: Uuid,
-    pub name: String,
+    pub auth: Authorization,
+    pub id: NameAndUuid,
 }
 
 pub struct UserDisconnectedTask {
-    pub server: Uuid,
+    pub auth: Authorization,
     pub uuid: Uuid,
 }
 
 #[async_trait]
 impl GenericTask for UserConnectedTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers.get_server_mut(&self.server) {
+        let server = match self
+            .auth
+            .get_server()
+            .and_then(|server| controller.servers.get_server_mut(server.uuid()))
+        {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
-        controller
-            .users
-            .user_connected(server, self.name.clone(), self.uuid);
-        todo!()
+        controller.users.user_connected(server, self.id.clone());
+        Task::new_empty()
     }
 }
 
 #[async_trait]
 impl GenericTask for UserDisconnectedTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers.get_server_mut(&self.server) {
+        let server = match self
+            .auth
+            .get_server()
+            .and_then(|server| controller.servers.get_server_mut(server.uuid()))
+        {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
-        controller.users.user_disconnected(server, &self.uuid);
-        todo!()
+        if controller.users.user_disconnected(server, &self.uuid) == ActionResult::Denied {
+            return Task::new_permission_error("You are not allowed to disconnect this user");
+        }
+        Task::new_empty()
     }
 }

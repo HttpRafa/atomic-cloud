@@ -1,20 +1,23 @@
 use anyhow::Result;
 use tonic::async_trait;
-use uuid::Uuid;
 
 use crate::{
-    application::Controller,
+    application::{auth::Authorization, Controller},
     task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct BeatTask {
-    pub server: Uuid,
+    pub auth: Authorization,
 }
 
 #[async_trait]
 impl GenericTask for BeatTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers.get_server_mut(&self.server) {
+        let server = match self
+            .auth
+            .get_server()
+            .and_then(|server| controller.servers.get_server_mut(server.uuid()))
+        {
             Some(server) => server,
             None => return Task::new_link_error(),
         };

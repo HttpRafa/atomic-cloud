@@ -6,13 +6,13 @@ use simplelog::info;
 
 use crate::config::Config;
 
-use super::WrappedPlugin;
+use super::BoxedPlugin;
 
 #[cfg(feature = "wasm-plugins")]
 use crate::application::plugin::runtime::wasm::init::init_wasm_plugins;
 
 pub struct PluginManager {
-    plugins: HashMap<String, WrappedPlugin>,
+    plugins: HashMap<String, BoxedPlugin>,
 }
 
 impl PluginManager {
@@ -28,7 +28,7 @@ impl PluginManager {
         Ok(Self { plugins })
     }
 
-    pub fn get_plugin(&self, name: &str) -> Option<&WrappedPlugin> {
+    pub fn get_plugin(&self, name: &str) -> Option<&BoxedPlugin> {
         self.plugins.get(name)
     }
 }

@@ -3,7 +3,7 @@ use power::RequestStopTask;
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::{
-    application::{auth::AdminUser, TaskSender},
+    application::{auth::AuthType, TaskSender},
     task::Task,
     VERSION,
 };
@@ -31,7 +31,7 @@ impl ManageService for ManageServiceImpl {
     // Power
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), AdminUser, _, _>(&self.0, request, |_, _| {
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
                 Ok(Box::new(RequestStopTask()))
             })
             .await?,

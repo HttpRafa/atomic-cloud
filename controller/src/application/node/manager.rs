@@ -7,7 +7,7 @@ use stored::StoredNode;
 use tokio::fs;
 
 use crate::{
-    application::plugin::{manager::PluginManager, WrappedNode},
+    application::plugin::{manager::PluginManager, BoxedNode},
     storage::Storage,
 };
 
@@ -70,7 +70,7 @@ impl NodeManager {
 }
 
 impl Node {
-    pub fn new(name: &str, node: StoredNode, instance: WrappedNode) -> Self {
+    pub fn new(name: &str, node: StoredNode, instance: BoxedNode) -> Self {
         Self {
             plugin: node.plugin().to_string(),
             instance,

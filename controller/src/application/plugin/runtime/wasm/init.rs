@@ -11,7 +11,7 @@ use wasmtime::{
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
 
 use crate::{
-    application::plugin::{runtime::source::Source, GenericPlugin, WrappedPlugin},
+    application::plugin::{runtime::source::Source, BoxedPlugin, GenericPlugin},
     config::Config,
     storage::Storage,
 };
@@ -23,7 +23,7 @@ use super::{
 
 pub async fn init_wasm_plugins(
     global_config: &Config,
-    plugins: &mut HashMap<String, WrappedPlugin>,
+    plugins: &mut HashMap<String, BoxedPlugin>,
 ) -> Result<()> {
     // Verify and load required configuration files
     verify_engine_config()?;

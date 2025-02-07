@@ -1,9 +1,9 @@
 use anyhow::Result;
 use tonic::async_trait;
-use uuid::Uuid;
 
 use crate::{
     application::{
+        auth::Authorization,
         server::{manager::StopRequest, State},
         Controller,
     },
@@ -11,17 +11,21 @@ use crate::{
 };
 
 pub struct SetRunningTask {
-    pub server: Uuid,
+    pub auth: Authorization,
 }
 
 pub struct RequestStopTask {
-    pub server: Uuid,
+    pub auth: Authorization,
 }
 
 #[async_trait]
 impl GenericTask for SetRunningTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers.get_server_mut(&self.server) {
+        let server = match self
+            .auth
+            .get_server()
+            .and_then(|server| controller.servers.get_server_mut(server.uuid()))
+        {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
@@ -33,7 +37,11 @@ impl GenericTask for SetRunningTask {
 #[async_trait]
 impl GenericTask for RequestStopTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match controller.servers.resolve_server(&self.server) {
+        let server = match self
+            .auth
+            .get_server()
+            .and_then(|server| controller.servers.resolve_server(server.uuid()))
+        {
             Some(server) => server,
             None => return Task::new_link_error(),
         };

@@ -9,10 +9,10 @@ use uuid::Uuid;
 
 use crate::storage::Storage;
 
-use super::{AdminUser, AuthToken, Authorization};
+use super::{server::AuthServer, AdminUser, AuthToken, Authorization, OwnedAuthorization};
 
 pub struct AuthService {
-    tokens: RwLock<HashMap<AuthToken, Authorization>>,
+    tokens: RwLock<HashMap<AuthToken, OwnedAuthorization>>,
 }
 
 impl AuthService {
@@ -29,10 +29,7 @@ impl AuthService {
             for_each_content_toml::<StoredUser>(&directory, "Failed to read user from file")?
         {
             info!("Loaded user {}", name);
-            tokens.insert(
-                value.token().clone(),
-                Authorization::User(AdminUser::new(name)),
-            );
+            tokens.insert(value.token().clone(), AdminUser::create(name));
         }
 
         info!("Loaded {} user(s)", tokens.len());
@@ -42,7 +39,11 @@ impl AuthService {
     }
 
     pub async fn has_access(&self, token: &str) -> Option<Authorization> {
-        self.tokens.read().await.get(token).cloned()
+        self.tokens
+            .read()
+            .await
+            .get(token)
+            .map(|auth| Arc::new(auth.recreate()))
     }
 
     pub async fn unregister(&self, token: &str) {
@@ -59,7 +60,7 @@ impl AuthService {
         self.tokens
             .write()
             .await
-            .insert(token.clone(), Authorization::Server(uuid));
+            .insert(token.clone(), AuthServer::create(uuid));
 
         token
     }
@@ -74,10 +75,10 @@ impl AuthService {
             error!("Failed to save user({}) to file: {}", username, error);
             return None;
         }
-        self.tokens.write().await.insert(
-            token.clone(),
-            Authorization::User(AdminUser::new(username.to_string())),
-        );
+        self.tokens
+            .write()
+            .await
+            .insert(token.clone(), AdminUser::create(username.to_string()));
 
         Some(token)
     }

@@ -10,7 +10,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
 use crate::application::{
     node::{Capabilities, RemoteController},
-    plugin::{GenericPlugin, Information, WrappedNode},
+    plugin::{BoxedNode, GenericPlugin, Information},
 };
 
 pub(crate) mod config;
@@ -64,7 +64,7 @@ impl GenericPlugin for Plugin {
         name: &str,
         capabilities: &Capabilities,
         remote: &RemoteController,
-    ) -> Result<WrappedNode> {
+    ) -> Result<BoxedNode> {
         let (bindings, store, instance) = self.get();
         match bindings
             .plugin_system_bridge()

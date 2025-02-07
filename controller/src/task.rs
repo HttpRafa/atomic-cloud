@@ -6,7 +6,10 @@ use simplelog::debug;
 use tokio::sync::oneshot::{channel, Sender};
 use tonic::{async_trait, Request, Status};
 
-use crate::application::{Controller, TaskSender};
+use crate::application::{
+    auth::{AuthType, Authorization},
+    Controller, TaskSender,
+};
 
 pub type BoxedTask = Box<dyn GenericTask + Send>;
 pub type BoxedAny = Box<dyn Any + Send>;
@@ -17,17 +20,18 @@ pub struct Task {
 }
 
 impl Task {
-    pub async fn execute<O: Send + 'static, D: Clone + Send + Sync + 'static, I, F>(
+    pub async fn execute<O: Send + 'static, I, F>(
+        auth: AuthType,
         queue: &TaskSender,
         request: Request<I>,
         task: F,
     ) -> Result<O, Status>
     where
-        F: FnOnce(Request<I>, D) -> Result<BoxedTask, Status>,
+        F: FnOnce(Request<I>, Authorization) -> Result<BoxedTask, Status>,
     {
-        let data = match request.extensions().get::<D>() {
-            Some(data) => data,
-            None => return Err(Status::permission_denied("Not linked")),
+        let data = match request.extensions().get::<Authorization>() {
+            Some(data) if data.is_type(auth) => data,
+            _ => return Err(Status::permission_denied("Not linked")),
         }
         .clone();
         debug!("Executing task with a return type of: {}", type_name::<O>());
@@ -78,6 +82,10 @@ impl Task {
 
     pub fn new_err(value: Status) -> Result<BoxedAny> {
         Ok(Box::new(value))
+    }
+
+    pub fn new_permission_error(message: &str) -> Result<BoxedAny> {
+        Self::new_err(Status::permission_denied(message))
     }
 
     pub fn new_link_error() -> Result<BoxedAny> {

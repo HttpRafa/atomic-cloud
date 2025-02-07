@@ -9,7 +9,8 @@ use crate::{application::server::manager::StopRequest, config::Config};
 use super::{
     node::LifecycleStatus,
     server::{
-        manager::{ServerManager, StartRequest}, Resources, Server, Spec
+        manager::{ServerManager, StartRequest},
+        Resources, Server, Spec,
     },
 };
 
@@ -103,10 +104,9 @@ impl Group {
                 break;
             }
 
-            let id = self
-                .id_allocator
-                .allocate()
-                .ok_or(anyhow!("We reached the maximum server count. Wow this is a lot of servers"))?;
+            let id = self.id_allocator.allocate().ok_or(anyhow!(
+                "We reached the maximum server count. Wow this is a lot of servers"
+            ))?;
             let request = StartRequest::new(
                 None,
                 self.constraints.priority,

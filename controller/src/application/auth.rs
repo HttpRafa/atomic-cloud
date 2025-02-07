@@ -1,24 +1,39 @@
-use uuid::Uuid;
+use std::sync::Arc;
 
+use permissions::Permission;
+use server::AuthServer;
+use user::AdminUser;
+
+pub mod permissions;
 pub mod service;
+
+pub mod server;
+pub mod user;
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
 
 pub type AuthToken = String;
+pub type OwnedAuthorization = Box<dyn GenericAuthorization + Send + Sync>;
+pub type Authorization = Arc<OwnedAuthorization>;
 
-#[derive(Clone)]
-pub enum Authorization {
-    User(AdminUser),
-    Server(Uuid),
+pub trait GenericAuthorization {
+    fn get_server(&self) -> Option<&AuthServer>;
+    fn get_user(&self) -> Option<&AdminUser>;
+    fn is_type(&self, auth: AuthType) -> bool;
+
+    fn is_allowed(&self, permission: Permission) -> bool;
+
+    fn recreate(&self) -> OwnedAuthorization;
 }
 
-#[derive(Clone)]
-pub struct AdminUser {
-    pub username: String,
+#[derive(PartialEq)]
+pub enum AuthType {
+    User,
+    Server,
 }
 
-impl AdminUser {
-    pub fn new(username: String) -> Self {
-        Self { username }
-    }
+#[derive(PartialEq)]
+pub enum ActionResult {
+    Allowed,
+    Denied,
 }

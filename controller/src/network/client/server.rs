@@ -1,19 +1,34 @@
 use anyhow::Result;
 use tonic::async_trait;
-use uuid::Uuid;
 
 use crate::{
-    application::Controller,
-    task::{BoxedAny, GenericTask},
+    application::{server::Server, Controller},
+    network::proto::client::server::{List, Short},
+    task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct GetServersTask {
-    pub server: Uuid,
-}
+pub struct GetServersTask();
 
 #[async_trait]
 impl GenericTask for GetServersTask {
-    async fn run(&mut self, _controller: &mut Controller) -> Result<BoxedAny> {
-        todo!()
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        Task::new_ok(List {
+            servers: controller
+                .servers
+                .get_servers()
+                .iter()
+                .map(|server| server.into())
+                .collect(),
+        })
+    }
+}
+
+impl From<&&Server> for Short {
+    fn from(server: &&Server) -> Self {
+        Self {
+            id: server.id().uuid().to_string(),
+            name: server.id().name().clone(),
+            group: server.group().clone(),
+        }
     }
 }

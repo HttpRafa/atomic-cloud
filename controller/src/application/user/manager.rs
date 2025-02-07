@@ -4,7 +4,10 @@ use anyhow::Result;
 use simplelog::{info, warn};
 use uuid::Uuid;
 
-use crate::application::server::{NameAndUuid, Server};
+use crate::application::{
+    auth::ActionResult,
+    server::{NameAndUuid, Server},
+};
 
 use super::{CurrentServer, User};
 
@@ -44,7 +47,7 @@ impl UserManager {
         server.set_connected_users(server.connected_users() + 1);
 
         // Update internal user list
-        if let Some(user) = self.users.get_mut(&id.uuid()) {
+        if let Some(user) = self.users.get_mut(id.uuid()) {
             match &user.server {
                 CurrentServer::Connected(_) => {
                     warn!(
@@ -81,7 +84,7 @@ impl UserManager {
         }
     }
 
-    pub fn user_disconnected(&mut self, server: &mut Server, uuid: &Uuid) {
+    pub fn user_disconnected(&mut self, server: &mut Server, uuid: &Uuid) -> ActionResult {
         // Update server user count
         server.set_connected_users(server.connected_users() - 1);
 
@@ -97,9 +100,19 @@ impl UserManager {
                         server.id(),
                     );
                     self.users.remove(uuid);
+                } else {
+                    return ActionResult::Denied;
                 }
             }
         }
+        ActionResult::Allowed
+    }
+
+    pub fn get_user(&self, uuid: &Uuid) -> Option<&User> {
+        self.users.get(uuid)
+    }
+    pub fn get_user_mut(&mut self, uuid: &Uuid) -> Option<&mut User> {
+        self.users.get_mut(uuid)
     }
 }
 

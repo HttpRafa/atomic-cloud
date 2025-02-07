@@ -28,7 +28,7 @@ mod group;
 mod node;
 mod plugin;
 pub mod server;
-mod user;
+pub mod user;
 
 const TICK_RATE: u64 = 20;
 const TASK_BUFFER: usize = 128;

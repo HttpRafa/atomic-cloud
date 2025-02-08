@@ -1,8 +1,15 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use group::{CreateGroupTask, GetGroupTask, GetGroupsTask};
+use node::{CreateNodeTask, GetNodeTask, GetNodesTask};
+use plugin::GetPluginsTask;
 use power::RequestStopTask;
+use resource::{DeleteResourceTask, SetResourceTask};
+use server::{GetServerTask, GetServersTask};
 use tonic::{async_trait, Request, Response, Status};
+use transfer::TransferUsersTask;
+use user::GetUsersTask;
 
 use crate::{
     application::{auth::AuthType, Shared, TaskSender},
@@ -13,7 +20,7 @@ use crate::{
 use super::proto::manage::{
     self,
     manage_service_server::ManageService,
-    resource::{DelReq, SetReq},
+    resource::{Category, DelReq, SetReq},
     transfer::TransferReq,
 };
 
@@ -41,89 +48,178 @@ impl ManageService for ManageServiceImpl {
     }
 
     // Resource
-    async fn set_resource(&self, _request: Request<SetReq>) -> Result<Response<()>, Status> {
-        todo!()
+    async fn set_resource(&self, request: Request<SetReq>) -> Result<Response<()>, Status> {
+        Ok(Response::new(
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+                let request = request.into_inner();
+
+                let category = match Category::try_from(request.category) {
+                    Ok(category) => category,
+                    Err(_) => {
+                        return Err(Status::invalid_argument("Invalid category provided"));
+                    }
+                };
+
+                Ok(Box::new(SetResourceTask(category, request.id, request.active)))
+            })
+            .await?,
+        ))
     }
-    async fn delete_resource(&self, _request: Request<DelReq>) -> Result<Response<()>, Status> {
-        todo!()
+    async fn delete_resource(&self, request: Request<DelReq>) -> Result<Response<()>, Status> {
+        Ok(Response::new(
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+                let request = request.into_inner();
+
+                let category = match Category::try_from(request.category) {
+                    Ok(category) => category,
+                    Err(_) => {
+                        return Err(Status::invalid_argument("Invalid category provided"));
+                    }
+                };
+
+                Ok(Box::new(DeleteResourceTask(category, request.id)))
+            })
+            .await?,
+        ))
     }
 
     // Plugin
     async fn get_plugins(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<manage::plugin::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::plugin::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetPluginsTask())),
+            )
+            .await?,
+        ))
     }
 
     // Node
     async fn create_node(
         &self,
-        _request: Request<manage::node::Item>,
+        request: Request<manage::node::Item>,
     ) -> Result<Response<()>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(CreateNodeTask()))
+            })
+            .await?,
+        ))
     }
     async fn get_node(
         &self,
-        _request: Request<String>,
+        request: Request<String>,
     ) -> Result<Response<manage::node::Item>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::node::Item, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetNodeTask()))
+            })
+            .await?,
+        ))
     }
     async fn get_nodes(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<manage::node::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::node::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetNodesTask()))
+            })
+            .await?,
+        ))
     }
 
     // Group
     async fn create_group(
         &self,
-        _request: Request<manage::group::Item>,
+        request: Request<manage::group::Item>,
     ) -> Result<Response<()>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(CreateGroupTask()))
+            })
+            .await?,
+        ))
     }
     async fn get_group(
         &self,
-        _request: Request<String>,
+        request: Request<String>,
     ) -> Result<Response<manage::group::Item>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::group::Item, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetGroupTask()))
+            })
+            .await?,
+        ))
     }
     async fn get_groups(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<manage::group::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::group::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetGroupsTask()))
+            })
+            .await?,
+        ))
     }
 
     // Server
     async fn get_server(
         &self,
-        _request: Request<String>,
+        request: Request<String>,
     ) -> Result<Response<manage::server::Detail>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::server::Detail, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetServerTask())),
+            )
+            .await?,
+        ))
     }
     async fn get_servers(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<manage::server::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::server::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetServersTask())),
+            )
+            .await?,
+        ))
     }
 
     // User
     async fn get_users(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<manage::user::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<manage::user::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetUsersTask()))
+            })
+            .await?,
+        ))
     }
 
     // Transfer
-    async fn transfer_users(
-        &self,
-        _request: Request<TransferReq>,
-    ) -> Result<Response<u32>, Status> {
-        todo!()
+    async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(
+            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(TransferUsersTask()))
+            })
+            .await?,
+        ))
     }
 
     // Version info

@@ -11,25 +11,21 @@ use crate::{
     task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct TransferUsersTask {
-    pub auth: Authorization,
-    pub uuids: Vec<Uuid>,
-    pub target: TransferTarget,
-}
+pub struct TransferUsersTask(pub Authorization, pub Vec<Uuid>, pub TransferTarget);
 
 #[async_trait]
 impl GenericTask for TransferUsersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let mut count: u32 = 0;
-        for user in &self.uuids {
+        for user in &self.1 {
             let user = match controller.users.get_user_mut(user) {
                 Some(user) => user,
                 None => continue,
             };
             let mut transfer = match Transfer::resolve(
-                &self.auth,
+                &self.0,
                 user,
-                &self.target,
+                &self.2,
                 &controller.servers,
                 &controller.groups,
             ) {

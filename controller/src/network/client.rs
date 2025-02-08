@@ -49,7 +49,7 @@ impl ClientService for ClientServiceImpl {
     async fn beat(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
-                Ok(Box::new(BeatTask { auth }))
+                Ok(Box::new(BeatTask(auth)))
             })
             .await?,
         ))
@@ -59,10 +59,10 @@ impl ClientService for ClientServiceImpl {
     async fn set_ready(&self, request: Request<bool>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
-                Ok(Box::new(SetReadyTask {
+                Ok(Box::new(SetReadyTask(
                     auth,
-                    ready: *request.get_ref(),
-                }))
+                    *request.get_ref(),
+                )))
             })
             .await?,
         ))
@@ -72,7 +72,7 @@ impl ClientService for ClientServiceImpl {
     async fn set_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
-                Ok(Box::new(SetRunningTask { auth }))
+                Ok(Box::new(SetRunningTask(auth)))
             })
             .await?,
         ))
@@ -80,7 +80,7 @@ impl ClientService for ClientServiceImpl {
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
-                Ok(Box::new(RequestStopTask { auth }))
+                Ok(Box::new(RequestStopTask(auth)))
             })
             .await?,
         ))
@@ -98,10 +98,7 @@ impl ClientService for ClientServiceImpl {
                     Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
                 };
 
-                Ok(Box::new(UserConnectedTask {
-                    auth,
-                    id: NameAndUuid::new(name, uuid),
-                }))
+                Ok(Box::new(UserConnectedTask(auth, NameAndUuid::new(name, uuid))))
             })
             .await?,
         ))
@@ -119,7 +116,7 @@ impl ClientService for ClientServiceImpl {
                     Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
                 };
 
-                Ok(Box::new(UserDisconnectedTask { auth, uuid }))
+                Ok(Box::new(UserDisconnectedTask(auth, uuid)))
             })
             .await?,
         ))
@@ -161,11 +158,11 @@ impl ClientService for ClientServiceImpl {
                     })
                     .collect::<Result<Vec<Uuid>, _>>()?;
 
-                Ok(Box::new(TransferUsersTask {
+                Ok(Box::new(TransferUsersTask(
                     auth,
                     uuids,
                     target,
-                }))
+                )))
             })
             .await?,
         ))

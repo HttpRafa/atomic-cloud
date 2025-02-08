@@ -5,7 +5,7 @@ use loading::Loading;
 use crate::application::{
     menu::{MenuResult, MenuUtils},
     network::{
-        proto::manage::resource::{set_req, Category, SetReq},
+        proto::manage::resource::{Category, SetReq},
         EstablishedConnection,
     },
     profile::{Profile, Profiles},
@@ -72,9 +72,9 @@ impl SetResourceMenu {
     }
 
     fn collect_set_resource_status_request(data: &Data) -> Result<SetReq, InquireError> {
-        let status = MenuUtils::select_no_help(
+        let active = MenuUtils::select_no_help(
             "What is the new status of this resource?",
-            vec![set_req::Status::Active, set_req::Status::Inactive],
+            vec![true, false],
         )?;
         let category = MenuUtils::select_no_help(
             "What type of resource to you want to change?",
@@ -87,7 +87,7 @@ impl SetResourceMenu {
                 Ok(SetReq {
                     category: category as i32,
                     id: node,
-                    status: status as i32,
+                    active,
                 })
             }
             Category::Group => {
@@ -96,7 +96,7 @@ impl SetResourceMenu {
                 Ok(SetReq {
                     category: category as i32,
                     id: group,
-                    status: status as i32,
+                    active,
                 })
             }
             Category::Server => Err(InquireError::OperationInterrupted),

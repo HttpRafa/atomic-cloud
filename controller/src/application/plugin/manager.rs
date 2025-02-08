@@ -28,6 +28,10 @@ impl PluginManager {
         Ok(Self { plugins })
     }
 
+    pub fn get_plugins_keys(&self) -> Vec<&String> {
+        self.plugins.keys().collect()
+    }
+
     pub fn get_plugin(&self, name: &str) -> Option<&BoxedPlugin> {
         self.plugins.get(name)
     }

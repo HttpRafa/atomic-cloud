@@ -60,6 +60,10 @@ impl NodeManager {
         Ok(Self { nodes })
     }
 
+    pub fn get_nodes(&self) -> Vec<&Node> {
+        self.nodes.values().collect()
+    }
+
     pub fn has_node(&self, name: &str) -> bool {
         self.nodes.contains_key(name)
     }

@@ -2,13 +2,12 @@ use anyhow::Result;
 use tonic::async_trait;
 
 use crate::{
-    application::Controller,
-    task::{BoxedAny, GenericTask},
+    application::Controller, network::proto::manage::resource::Category, task::{BoxedAny, GenericTask}
 };
 
-pub struct SetResourceTask {}
+pub struct SetResourceTask(pub Category, pub String, pub bool);
 
-pub struct DeleteResourceTask {}
+pub struct DeleteResourceTask(pub Category, pub String);
 
 #[async_trait]
 impl GenericTask for SetResourceTask {

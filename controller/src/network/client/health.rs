@@ -10,19 +10,14 @@ use crate::{
     task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct SetRunningTask {
-    pub auth: Authorization,
-}
-
-pub struct RequestStopTask {
-    pub auth: Authorization,
-}
+pub struct SetRunningTask(pub Authorization);
+pub struct RequestStopTask(pub Authorization);
 
 #[async_trait]
 impl GenericTask for SetRunningTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let server = match self
-            .auth
+            .0
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         {
@@ -38,7 +33,7 @@ impl GenericTask for SetRunningTask {
 impl GenericTask for RequestStopTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let server = match self
-            .auth
+            .0
             .get_server()
             .and_then(|server| controller.servers.resolve_server(server.uuid()))
         {

@@ -6,7 +6,7 @@ use crate::{
     task::{BoxedAny, GenericTask},
 };
 
-pub struct TransferUsersTask {}
+pub struct TransferUsersTask();
 
 #[async_trait]
 impl GenericTask for TransferUsersTask {

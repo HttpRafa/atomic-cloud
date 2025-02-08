@@ -6,23 +6,20 @@ use crate::{
     task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct SetReadyTask {
-    pub auth: Authorization,
-    pub ready: bool,
-}
+pub struct SetReadyTask(pub Authorization, pub bool);
 
 #[async_trait]
 impl GenericTask for SetReadyTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let server = match self
-            .auth
+            .0
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         {
             Some(server) => server,
             None => return Task::new_link_error(),
         };
-        server.set_ready(self.ready);
+        server.set_ready(self.1);
         Task::new_empty()
     }
 }

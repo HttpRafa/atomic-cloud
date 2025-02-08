@@ -108,6 +108,10 @@ impl UserManager {
         ActionResult::Allowed
     }
 
+    pub fn get_users(&self) -> Vec<&User> {
+        self.users.values().collect()
+    }
+
     pub fn get_user(&self, uuid: &Uuid) -> Option<&User> {
         self.users.get(uuid)
     }

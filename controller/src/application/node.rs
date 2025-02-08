@@ -12,12 +12,14 @@ use super::{
 
 pub mod manager;
 
+#[derive(Getters)]
 pub struct Node {
     /* Plugin */
     plugin: String,
     instance: BoxedNode,
 
     /* Settings */
+    #[getset(get = "pub")]
     name: String,
     capabilities: Capabilities,
     status: LifecycleStatus,

@@ -9,13 +9,9 @@ message Resource {
     SERVER = 2;
   }
   message SetReq {
-    enum Status {
-      ACTIVE = 0;
-      INACTIVE = 1;
-    }
     Category category = 1;
     string id = 2;
-    Status status = 3;
+    bool active = 3;
   }
   message DelReq {
     Category category = 1;

@@ -5,7 +5,7 @@ use proto::manage::{
     group,
     manage_service_client::ManageServiceClient,
     node,
-    resource::{self, set_req, DelReq, SetReq},
+    resource::{self, DelReq, SetReq},
     server::{self, DiskRetention},
     transfer::{self, target, TransferReq},
     user,
@@ -317,15 +317,6 @@ impl Display for resource::Category {
             resource::Category::Node => write!(f, "Node"),
             resource::Category::Group => write!(f, "Group"),
             resource::Category::Server => write!(f, "Server"),
-        }
-    }
-}
-
-impl Display for set_req::Status {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            set_req::Status::Active => write!(f, "Active"),
-            set_req::Status::Inactive => write!(f, "Inactive"),
         }
     }
 }

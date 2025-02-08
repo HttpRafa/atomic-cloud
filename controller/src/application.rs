@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Result;
-use auth::service::AuthService;
+use auth::manager::AuthManager;
 use getset::{Getters, MutGetters};
 use group::manager::GroupManager;
 use node::manager::NodeManager;
@@ -29,6 +29,7 @@ mod node;
 mod plugin;
 pub mod server;
 pub mod user;
+pub mod subscription;
 
 const TICK_RATE: u64 = 20;
 const TASK_BUFFER: usize = 128;
@@ -44,7 +45,7 @@ pub struct Controller {
     tasks: (TaskSender, Receiver<Task>),
 
     /* Auth */
-    auth: Arc<AuthService>,
+    auth: Arc<AuthManager>,
 
     /* Components */
     pub plugins: PluginManager,
@@ -60,7 +61,7 @@ pub struct Controller {
 
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
-        let auth = AuthService::init().await?;
+        let auth = AuthManager::init().await?;
 
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;

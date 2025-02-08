@@ -18,14 +18,16 @@ use tokio::{
 use tonic::transport::Server;
 
 use crate::{
-    application::{auth::service::AuthService, TaskSender},
+    application::{auth::manager::AuthManager, TaskSender},
     config::Config,
 };
 
 mod auth;
-mod client;
-mod manage;
+pub mod client;
+pub mod manage;
 mod proto;
+
+pub const SUBSCRIPTION_BUFFER: usize = 64;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,
@@ -33,7 +35,7 @@ pub struct NetworkStack {
 }
 
 impl NetworkStack {
-    pub fn start(config: &Config, auth: &Arc<AuthService>, queue: &TaskSender) -> Self {
+    pub fn start(config: &Config, auth: &Arc<AuthManager>, queue: &TaskSender) -> Self {
         info!("Starting network stack...");
 
         let (sender, receiver) = channel(false);
@@ -54,7 +56,7 @@ impl NetworkStack {
 
         async fn run(
             bind: SocketAddr,
-            auth: Arc<AuthService>,
+            auth: Arc<AuthManager>,
             queue: TaskSender,
             mut shutdown: Receiver<bool>,
         ) -> Result<()> {

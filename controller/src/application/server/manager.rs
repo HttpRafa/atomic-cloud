@@ -13,8 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::service::AuthService, group::manager::GroupManager, node::manager::NodeManager,
-        user::manager::UserManager,
+        auth::manager::AuthManager, group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager
     },
     config::Config,
 };
@@ -92,7 +91,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        auth: &Arc<AuthService>,
+        auth: &Arc<AuthManager>,
     ) -> Result<()> {
         // Check health of servers
         for server in self.servers.values() {

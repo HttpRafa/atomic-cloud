@@ -5,6 +5,7 @@ use beat::BeatTask;
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use server::GetServersTask;
+use tokio::sync::mpsc::channel;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
@@ -14,9 +15,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::AuthType, server::NameAndUuid, user::transfer::TransferTarget, TaskSender,
-    },
-    task::Task,
-    VERSION,
+    }, network::SUBSCRIPTION_BUFFER, task::Task, VERSION
 };
 
 use super::proto::client::{
@@ -35,6 +34,9 @@ mod reset;
 mod server;
 mod transfer;
 mod user;
+
+pub type TransferMsg = TransferRes;
+pub type ChannelMsg = Msg;
 
 pub struct ClientServiceImpl(pub TaskSender);
 
@@ -172,6 +174,9 @@ impl ClientService for ClientServiceImpl {
         &self,
         _request: Request<()>,
     ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
+
+        let (sender, receiver) = channel(SUBSCRIPTION_BUFFER);
+
         todo!()
     }
 

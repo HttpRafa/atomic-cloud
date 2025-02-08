@@ -1,3 +1,4 @@
+use tokio::time::Instant;
 use transfer::Transfer;
 
 use super::server::NameAndUuid;
@@ -12,5 +13,5 @@ pub struct User {
 
 pub enum CurrentServer {
     Connected(NameAndUuid),
-    Transfering(Transfer),
+    Transfering((Instant, NameAndUuid)),
 }

@@ -1,4 +1,5 @@
 use getset::Getters;
+use simplelog::info;
 use tokio::time::Instant;
 use tonic::Status;
 use uuid::Uuid;
@@ -6,19 +7,19 @@ use uuid::Uuid;
 use crate::application::{
     auth::Authorization,
     group::manager::GroupManager,
-    server::{manager::ServerManager, NameAndUuid},
+    server::{manager::ServerManager, NameAndUuid, Server},
 };
 
-use super::{CurrentServer, User};
+use super::{manager::UserManager, CurrentServer, User};
 
-impl Transfer {
+impl<'a> Transfer<'a> {
     pub fn resolve(
         auth: &Authorization,
-        user: &User,
+        user: &'a mut User,
         target: &TransferTarget,
-        servers: &ServerManager,
+        servers: &'a ServerManager,
         groups: &GroupManager,
-    ) -> Result<Transfer, ResolveError> {
+    ) -> Result<Transfer<'a>, ResolveError> {
         // Check if auth is allowed to transfer user
         if let Some(server) = auth.get_server() {
             if let CurrentServer::Connected(current) = &user.server {
@@ -52,10 +53,21 @@ impl Transfer {
         };
 
         Ok(Transfer::new(
-            user.id.clone(),
+            user,
             from.clone(),
             to.id().clone(),
         ))
+    }
+}
+
+impl UserManager {
+    pub fn transfer_user(&mut self, transfer: &mut Transfer) -> bool {
+        info!(
+            "Transfering user {} from {} to server {}",
+            transfer.user.id, transfer.from, transfer.to
+        );
+
+        
     }
 }
 
@@ -74,22 +86,15 @@ pub enum TransferTarget {
     Fallback,
 }
 
-#[derive(Getters)]
-pub struct Transfer {
-    #[getset(get = "pub")]
-    timestamp: Instant,
-    #[getset(get = "pub")]
-    user: NameAndUuid,
-    #[getset(get = "pub")]
+pub struct Transfer<'a> {
+    user: &'a mut User,
     from: NameAndUuid,
-    #[getset(get = "pub")]
     to: NameAndUuid,
 }
 
-impl Transfer {
-    pub fn new(user: NameAndUuid, from: NameAndUuid, to: NameAndUuid) -> Self {
+impl<'a> Transfer<'a> {
+    pub fn new(user: &'a mut User, from: NameAndUuid, to: NameAndUuid) -> Self {
         Self {
-            timestamp: Instant::now(),
             user,
             from,
             to,

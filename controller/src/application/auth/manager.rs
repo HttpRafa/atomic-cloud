@@ -11,12 +11,12 @@ use crate::storage::Storage;
 
 use super::{server::AuthServer, AdminUser, AuthToken, Authorization, OwnedAuthorization};
 
-pub struct AuthService {
+pub struct AuthManager {
     tokens: RwLock<HashMap<AuthToken, OwnedAuthorization>>,
 }
 
-impl AuthService {
-    pub async fn init() -> Result<Arc<AuthService>> {
+impl AuthManager {
+    pub async fn init() -> Result<Arc<AuthManager>> {
         info!("Loading users...");
         let mut tokens = HashMap::new();
 

@@ -2,10 +2,10 @@ use futures::executor::block_on;
 use std::sync::Arc;
 use tonic::{service::Interceptor, Request, Status};
 
-use crate::application::auth::service::AuthService;
+use crate::application::auth::manager::AuthManager;
 
 #[derive(Clone)]
-pub struct AuthInterceptor(pub Arc<AuthService>);
+pub struct AuthInterceptor(pub Arc<AuthManager>);
 
 impl Interceptor for AuthInterceptor {
     fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {

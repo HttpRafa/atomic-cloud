@@ -20,8 +20,9 @@ pub struct TransferUsersTask {
 #[async_trait]
 impl GenericTask for TransferUsersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let mut count: u32 = 0;
         for user in &self.uuids {
-            let user = match controller.users.get_user(user) {
+            let user = match controller.users.get_user_mut(user) {
                 Some(user) => user,
                 None => continue,
             };
@@ -36,6 +37,6 @@ impl GenericTask for TransferUsersTask {
                 Err(error) => return Task::new_err(error.into()),
             };
         }
-        Task::new_empty()
+        Task::new_ok(count)
     }
 }

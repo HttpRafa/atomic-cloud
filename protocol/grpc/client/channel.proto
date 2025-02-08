@@ -4,9 +4,7 @@ package client;
 
 message Channel {
   message Msg {
-    string channel = 1;
-    uint32 id = 2;
-    string data = 3;
-    uint64 timestamp = 4;   // timestamp (e.g. epoch time)
+    bytes data = 1;
+    uint64 timestamp = 2;   // timestamp (e.g. epoch time)
   }
 }

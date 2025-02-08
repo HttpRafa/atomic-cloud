@@ -8,11 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::service::AuthService,
-        group::manager::GroupManager,
-        node::{manager::NodeManager, Allocation},
-        server::{Flags, Heart, Server, State},
-        user::manager::UserManager,
+                auth::manager::AuthManager, group::manager::GroupManager, node::{manager::NodeManager, Allocation}, server::{Flags, Heart, Server, State}, user::manager::UserManager
     },
     config::Config,
 };
@@ -51,7 +47,7 @@ impl ServerManager {
         config: &Config,
         nodes: &NodeManager,
         groups: &mut GroupManager,
-        auth: &Arc<AuthService>,
+        auth: &Arc<AuthManager>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(name) = request.nodes.get(index) {
             let node = nodes.get_node(name);
@@ -149,7 +145,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        auth: &Arc<AuthService>,
+        auth: &Arc<AuthManager>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {

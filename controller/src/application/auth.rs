@@ -5,7 +5,7 @@ use server::AuthServer;
 use user::AdminUser;
 
 pub mod permissions;
-pub mod service;
+pub mod manager;
 
 pub mod server;
 pub mod user;

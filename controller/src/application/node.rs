@@ -1,13 +1,16 @@
 use anyhow::Result;
-use common::network::HostAndPort;
+use common::{config::SaveToTomlFile, network::HostAndPort};
 use getset::Getters;
+use manager::stored::StoredNode;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
+use tonic::Status;
 use url::Url;
 
+use crate::storage::Storage;
+
 use super::{
-    plugin::BoxedNode,
-    server::{manager::StartRequest, Resources, Server, Spec},
+    group::manager::GroupManager, plugin::BoxedNode, server::{manager::{ServerManager, StartRequest}, Resources, Server, Spec}
 };
 
 pub mod manager;
@@ -39,6 +42,28 @@ impl Node {
         Ok(())
     }
 
+    pub fn set_active(&mut self, active: bool, servers: &ServerManager, groups: &GroupManager) -> Result<(), SetActiveError>{
+        if active && self.status == LifecycleStatus::Inactive {
+            // Activate node
+
+            self.status = LifecycleStatus::Active;
+            self.save().map_err(|error| SetActiveError::Error(error))?;
+        } else if !active && self.status == LifecycleStatus::Active {
+            // Retire node
+            if groups.is_node_used(&self.name) {
+                return Err(SetActiveError::NodeInUseByGroup);
+            }
+            if servers.is_node_used(&self.name) {
+                return Err(SetActiveError::NodeInUseByServer);
+            }
+
+            self.status = LifecycleStatus::Inactive;
+            self.save().map_err(|error| SetActiveError::Error(error))?;
+        }
+
+        Ok(())
+    }
+
     pub fn allocate(&self, request: &StartRequest) -> JoinHandle<Result<Vec<HostAndPort<String>>>> {
         self.instance.allocate(request)
     }
@@ -53,6 +78,10 @@ impl Node {
     }
     pub fn stop(&self, server: &Server) -> JoinHandle<Result<()>> {
         self.instance.stop(server)
+    }
+
+    pub fn save(&self) -> Result<()> {
+        StoredNode::from(self).save(&Storage::node_file(&self.name), true)
     }
 }
 
@@ -91,8 +120,24 @@ pub struct RemoteController {
     address: Url,
 }
 
+pub enum SetActiveError {
+    NodeInUseByGroup,
+    NodeInUseByServer,
+    Error(anyhow::Error),
+}
+
 impl Allocation {
     pub fn primary_port(&self) -> Option<&HostAndPort> {
         self.ports.first()
+    }
+}
+
+impl From<SetActiveError> for Status {
+    fn from(val: SetActiveError) -> Self {
+        match val {
+            SetActiveError::NodeInUseByGroup => Status::unavailable("Node in use by some group"),
+            SetActiveError::NodeInUseByServer => Status::not_found("Node in use by some server"),
+            SetActiveError::Error(error) => Status::internal(format!("Error: {}", error)),
+        }
     }
 }

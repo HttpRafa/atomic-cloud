@@ -71,6 +71,9 @@ impl NodeManager {
     pub fn get_node(&self, name: &str) -> Option<&Node> {
         self.nodes.get(name)
     }
+    pub fn get_node_mut(&mut self, name: &str) -> Option<&mut Node> {
+        self.nodes.get_mut(name)
+    }
 }
 
 impl Node {
@@ -100,12 +103,12 @@ impl NodeManager {
     }
 }
 
-mod stored {
+pub(super) mod stored {
     use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
-    use crate::application::node::{Capabilities, LifecycleStatus, RemoteController};
+    use crate::application::node::{Capabilities, LifecycleStatus, Node, RemoteController};
 
     #[derive(Serialize, Deserialize, Getters)]
     pub struct StoredNode {
@@ -120,6 +123,17 @@ mod stored {
         /* Controller */
         #[getset(get = "pub")]
         controller: RemoteController,
+    }
+
+    impl StoredNode {
+        pub fn from(node: &Node) -> Self {
+            Self {
+                plugin: node.plugin.clone(),
+                capabilities: node.capabilities.clone(),
+                status: node.status.clone(),
+                controller: node.controller.clone(),
+            }
+        }
     }
 
     impl LoadFromTomlFile for StoredNode {}

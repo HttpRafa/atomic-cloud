@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Result};
-use common::allocator::NumberAllocator;
+use common::{allocator::NumberAllocator, config::SaveToTomlFile};
 use getset::Getters;
+use manager::stored::StoredGroup;
 use serde::{Deserialize, Serialize};
 use simplelog::debug;
 use uuid::Uuid;
 
-use crate::{application::server::manager::StopRequest, config::Config};
+use crate::{application::server::manager::StopRequest, config::Config, storage::Storage};
 
 use super::{
     node::LifecycleStatus,
@@ -132,6 +133,14 @@ impl Group {
         Ok(())
     }
 
+    pub fn set_active(&mut self, active: bool) {
+        if active {
+            
+        } else {
+
+        }
+    }
+
     pub fn find_free_server<'a>(&self, servers: &'a ServerManager) -> Option<&'a Server> {
         self.servers.iter().find_map(|server| match server {
             AssociatedServer::Active(server) => servers.get_server(server),
@@ -160,6 +169,10 @@ impl Group {
             }
             true
         });
+    }
+
+    pub fn save(&self) -> Result<()> {
+        StoredGroup::from(self).save(&Storage::group_file(&self.name), true)
     }
 }
 

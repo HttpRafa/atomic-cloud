@@ -49,6 +49,11 @@ impl GroupManager {
         Ok(Self { groups })
     }
 
+    pub fn is_node_used(&self, name: &str) -> bool {
+        let name = name.to_string();
+        self.groups.values().any(|group| group.nodes.contains(&name))
+    }
+
     pub fn get_groups(&self) -> Vec<&Group> {
         self.groups.values().collect()
     }
@@ -56,7 +61,6 @@ impl GroupManager {
     pub fn get_group(&self, name: &str) -> Option<&Group> {
         self.groups.get(name)
     }
-
     pub fn get_group_mut(&mut self, name: &str) -> Option<&mut Group> {
         self.groups.get_mut(name)
     }
@@ -92,13 +96,13 @@ impl GroupManager {
     }
 }
 
-mod stored {
+pub(super) mod stored {
     use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use getset::{Getters, MutGetters};
     use serde::{Deserialize, Serialize};
 
     use crate::application::{
-        group::{ScalingPolicy, StartConstraints},
+        group::{Group, ScalingPolicy, StartConstraints},
         node::LifecycleStatus,
         server::{Resources, Spec},
     };
@@ -122,6 +126,20 @@ mod stored {
         resources: Resources,
         #[getset(get = "pub", get_mut = "pub")]
         spec: Spec,
+    }
+
+    impl StoredGroup {
+        pub fn from(group: &Group) -> Self {
+            Self {
+                status: group.status.clone(),
+                nodes: group.nodes.clone(),
+                constraints: group.constraints.clone(),
+                scaling: group.scaling.clone(),
+                resources: group.resources.clone(),
+                spec: group.spec.clone(),
+            }
+        }
+        
     }
 
     impl LoadFromTomlFile for StoredGroup {}

@@ -43,6 +43,10 @@ impl ServerManager {
         }
     }
 
+    pub fn is_node_used(&self, name: &str) -> bool {
+        self.servers.values().any(|server| server.node == name)
+    }
+
     pub fn find_fallback_server(&self, ignore: &Uuid) -> Option<&Server> {
         self.servers
             .values()

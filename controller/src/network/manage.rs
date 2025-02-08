@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use power::RequestStopTask;
 use tonic::{async_trait, Request, Response, Status};
 
 use crate::{
-    application::{auth::AuthType, TaskSender},
+    application::{auth::AuthType, Shared, TaskSender},
     task::Task,
     VERSION,
 };
@@ -24,7 +26,7 @@ mod server;
 mod transfer;
 mod user;
 
-pub struct ManageServiceImpl(pub TaskSender);
+pub struct ManageServiceImpl(pub TaskSender, pub Arc<Shared>);
 
 #[async_trait]
 impl ManageService for ManageServiceImpl {

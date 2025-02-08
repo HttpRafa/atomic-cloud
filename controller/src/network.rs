@@ -18,7 +18,7 @@ use tokio::{
 use tonic::transport::Server;
 
 use crate::{
-    application::{auth::manager::AuthManager, TaskSender},
+    application::{Shared, TaskSender},
     config::Config,
 };
 
@@ -27,24 +27,22 @@ pub mod client;
 pub mod manage;
 mod proto;
 
-pub const SUBSCRIPTION_BUFFER: usize = 64;
-
 pub struct NetworkStack {
     shutdown: Sender<bool>,
     handle: JoinHandle<()>,
 }
 
 impl NetworkStack {
-    pub fn start(config: &Config, auth: &Arc<AuthManager>, queue: &TaskSender) -> Self {
+    pub fn start(config: &Config, shared: &Arc<Shared>, queue: &TaskSender) -> Self {
         info!("Starting network stack...");
 
         let (sender, receiver) = channel(false);
         let bind = *config.network_bind();
-        let auth = auth.clone();
+        let shared = shared.clone();
         let queue = queue.clone();
 
         let task = spawn(async move {
-            if let Err(error) = run(bind, auth, queue, receiver).await {
+            if let Err(error) = run(bind, shared, queue, receiver).await {
                 FancyError::print_fancy(&error, false);
             }
         });
@@ -56,20 +54,20 @@ impl NetworkStack {
 
         async fn run(
             bind: SocketAddr,
-            auth: Arc<AuthManager>,
+            shared: Arc<Shared>,
             queue: TaskSender,
             mut shutdown: Receiver<bool>,
         ) -> Result<()> {
-            let auth_interceptor = AuthInterceptor(auth);
+            let auth_interceptor = AuthInterceptor(shared.clone());
             info!("Controller listening on {}", bind);
 
             Server::builder()
                 .add_service(ManageServiceServer::with_interceptor(
-                    ManageServiceImpl(queue.clone()),
+                    ManageServiceImpl(queue.clone(), shared.clone()),
                     auth_interceptor.clone(),
                 ))
                 .add_service(ClientServiceServer::with_interceptor(
-                    ClientServiceImpl(queue),
+                    ClientServiceImpl(queue, shared),
                     auth_interceptor,
                 ))
                 .serve_with_shutdown(bind, async {

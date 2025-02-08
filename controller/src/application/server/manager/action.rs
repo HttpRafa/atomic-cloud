@@ -8,7 +8,11 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-                auth::manager::AuthManager, group::manager::GroupManager, node::{manager::NodeManager, Allocation}, server::{Flags, Heart, Server, State}, user::manager::UserManager
+        group::manager::GroupManager,
+        node::{manager::NodeManager, Allocation},
+        server::{Flags, Heart, Server, State},
+        user::manager::UserManager,
+        Shared,
     },
     config::Config,
 };
@@ -47,7 +51,7 @@ impl ServerManager {
         config: &Config,
         nodes: &NodeManager,
         groups: &mut GroupManager,
-        auth: &Arc<AuthManager>,
+        shared: &Arc<Shared>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(name) = request.nodes.get(index) {
             let node = nodes.get_node(name);
@@ -62,7 +66,7 @@ impl ServerManager {
                         spec: request.spec.clone(),
                     },
                     connected_users: 0,
-                    token: auth.register_server(request.id.uuid).await,
+                    token: shared.auth.register_server(request.id.uuid).await,
                     heart: Heart::new(*config.startup_timeout(), *config.heartbeat_timeout()),
                     state: State::Starting,
                     flags: Flags::default(),
@@ -145,7 +149,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        auth: &Arc<AuthManager>,
+        shared: &Arc<Shared>,
     ) -> Result<JoinHandle<Result<()>>> {
         if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
@@ -157,7 +161,7 @@ impl ServerManager {
                         server.group = None;
                     }
                 }
-                auth.unregister(&server.token).await;
+                shared.auth.unregister(&server.token).await;
 
                 users.remove_users_on_server(server.id.uuid());
                 // TODO: Cleanup subscriptions

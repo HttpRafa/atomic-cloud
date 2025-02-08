@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use common::allocator::NumberAllocator;
+use getset::Getters;
 use serde::{Deserialize, Serialize};
 use simplelog::debug;
 use uuid::Uuid;
@@ -16,8 +17,10 @@ use super::{
 
 pub mod manager;
 
+#[derive(Getters)]
 pub struct Group {
     /* Settings */
+    #[getset(get = "pub")]
     name: String,
     status: LifecycleStatus,
 

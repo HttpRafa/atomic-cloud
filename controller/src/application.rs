@@ -14,6 +14,7 @@ use node::manager::NodeManager;
 use plugin::manager::PluginManager;
 use server::manager::ServerManager;
 use simplelog::info;
+use subscriber::manager::SubscriberManager;
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -28,8 +29,8 @@ mod group;
 mod node;
 mod plugin;
 pub mod server;
+pub mod subscriber;
 pub mod user;
-pub mod subscription;
 
 const TICK_RATE: u64 = 20;
 const TASK_BUFFER: usize = 128;
@@ -44,8 +45,8 @@ pub struct Controller {
     /* Tasks */
     tasks: (TaskSender, Receiver<Task>),
 
-    /* Auth */
-    auth: Arc<AuthManager>,
+    /* Shared Components */
+    pub shared: Arc<Shared>,
 
     /* Components */
     pub plugins: PluginManager,
@@ -59,9 +60,17 @@ pub struct Controller {
     config: Config,
 }
 
+pub struct Shared {
+    pub auth: AuthManager,
+    pub subscribers: SubscriberManager,
+}
+
 impl Controller {
     pub async fn init(config: Config) -> Result<Self> {
-        let auth = AuthManager::init().await?;
+        let shared = Arc::new(Shared {
+            auth: AuthManager::init().await?,
+            subscribers: SubscriberManager::init(),
+        });
 
         let plugins = PluginManager::init(&config).await?;
         let nodes = NodeManager::init(&plugins).await?;
@@ -73,7 +82,7 @@ impl Controller {
         Ok(Self {
             running: Arc::new(AtomicBool::new(true)),
             tasks: channel(TASK_BUFFER),
-            auth,
+            shared,
             plugins,
             nodes,
             groups,
@@ -87,7 +96,7 @@ impl Controller {
         // Setup signal handlers
         self.setup_handlers()?;
 
-        let network = NetworkStack::start(&self.config, &self.auth, &self.tasks.0);
+        let network = NetworkStack::start(&self.config, &self.shared, &self.tasks.0);
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
@@ -123,12 +132,15 @@ impl Controller {
                 &self.nodes,
                 &mut self.groups,
                 &mut self.users,
-                &self.auth,
+                &self.shared,
             )
             .await?;
 
         // Tick user manager
         self.users.tick().await?;
+
+        // Tick subscriber manager
+        self.shared.subscribers.tick().await?;
 
         Ok(())
     }

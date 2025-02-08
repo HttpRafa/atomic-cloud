@@ -1,5 +1,4 @@
 use tokio::time::Instant;
-use transfer::Transfer;
 
 use super::server::NameAndUuid;
 

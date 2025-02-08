@@ -13,7 +13,8 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::manager::AuthManager, group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager
+        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
+        Shared,
     },
     config::Config,
 };
@@ -91,7 +92,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
-        auth: &Arc<AuthManager>,
+        shared: &Arc<Shared>,
     ) -> Result<()> {
         // Check health of servers
         for server in self.servers.values() {
@@ -138,7 +139,7 @@ impl ServerManager {
                     if handle.is_finished() {
                         handle.await??;
                         debug!("Stopping server {}", request.server);
-                        match Self::stop(&request, &mut self.servers, nodes, groups, users, auth)
+                        match Self::stop(&request, &mut self.servers, nodes, groups, users, shared)
                             .await
                         {
                             Ok(handle) => {
@@ -264,7 +265,7 @@ impl ServerManager {
                                 config,
                                 nodes,
                                 groups,
-                                auth,
+                                shared,
                             )
                             .await
                             {

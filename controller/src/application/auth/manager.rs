@@ -16,7 +16,7 @@ pub struct AuthManager {
 }
 
 impl AuthManager {
-    pub async fn init() -> Result<Arc<AuthManager>> {
+    pub async fn init() -> Result<Self> {
         info!("Loading users...");
         let mut tokens = HashMap::new();
 
@@ -33,9 +33,9 @@ impl AuthManager {
         }
 
         info!("Loaded {} user(s)", tokens.len());
-        Ok(Arc::new(Self {
+        Ok(Self {
             tokens: RwLock::new(tokens),
-        }))
+        })
     }
 
     pub async fn has_access(&self, token: &str) -> Option<Authorization> {

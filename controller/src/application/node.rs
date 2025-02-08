@@ -88,3 +88,9 @@ pub struct RemoteController {
     #[getset(get = "pub")]
     address: Url,
 }
+
+impl Allocation {
+    pub fn primary_port(&self) -> Option<&HostAndPort> {
+        self.ports.first()
+    }
+}

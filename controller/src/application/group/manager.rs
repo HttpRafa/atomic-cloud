@@ -49,6 +49,10 @@ impl GroupManager {
         Ok(Self { groups })
     }
 
+    pub fn get_groups(&self) -> Vec<&Group> {
+        self.groups.values().collect()
+    }
+
     pub fn get_group(&self, name: &str) -> Option<&Group> {
         self.groups.get(name)
     }

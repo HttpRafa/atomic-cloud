@@ -1,4 +1,5 @@
-use getset::Getters;
+use std::sync::Arc;
+
 use simplelog::info;
 use tokio::time::Instant;
 use tonic::Status;
@@ -8,9 +9,10 @@ use crate::application::{
     auth::Authorization,
     group::manager::GroupManager,
     server::{manager::ServerManager, NameAndUuid, Server},
+    Shared,
 };
 
-use super::{manager::UserManager, CurrentServer, User};
+use super::{CurrentServer, User};
 
 impl<'a> Transfer<'a> {
     pub fn resolve(
@@ -52,22 +54,33 @@ impl<'a> Transfer<'a> {
                 .ok_or(ResolveError::NotServerAvailable)?,
         };
 
-        Ok(Transfer::new(
-            user,
-            from.clone(),
-            to.id().clone(),
-        ))
+        Ok(Transfer::new(user, from.clone(), to, Instant::now()))
     }
-}
 
-impl UserManager {
-    pub fn transfer_user(&mut self, transfer: &mut Transfer) -> bool {
+    pub async fn transfer_user(
+        transfer: &mut Transfer<'a>,
+        shared: &Arc<Shared>,
+    ) -> Result<(), Status> {
         info!(
             "Transfering user {} from {} to server {}",
-            transfer.user.id, transfer.from, transfer.to
+            transfer.user.id,
+            transfer.from,
+            transfer.to.id()
         );
+        if let Some(data) = transfer.to.new_transfer(transfer.user.id.uuid()) {
+            shared
+                .subscribers
+                .publish_transfer(transfer.to.id().uuid(), data)
+                .await;
 
-        
+            transfer.user.server =
+                CurrentServer::Transfering((transfer.timestamp, transfer.to.id().clone()));
+            Ok(())
+        } else {
+            Err(Status::unavailable(
+                "Target server seems to have no network address",
+            ))
+        }
     }
 }
 
@@ -89,15 +102,17 @@ pub enum TransferTarget {
 pub struct Transfer<'a> {
     user: &'a mut User,
     from: NameAndUuid,
-    to: NameAndUuid,
+    to: &'a Server,
+    timestamp: Instant,
 }
 
 impl<'a> Transfer<'a> {
-    pub fn new(user: &'a mut User, from: NameAndUuid, to: NameAndUuid) -> Self {
+    fn new(user: &'a mut User, from: NameAndUuid, to: &'a Server, timestamp: Instant) -> Self {
         Self {
             user,
             from,
             to,
+            timestamp,
         }
     }
 }

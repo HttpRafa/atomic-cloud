@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use tokio::time::Instant;
 use uuid::Uuid;
 
+use crate::network::client::TransferMsg;
+
 use super::node::Allocation;
 
 pub mod manager;
@@ -112,6 +114,17 @@ pub struct Spec {
 pub struct Heart {
     next_beat: Instant,
     timeout: Duration,
+}
+
+impl Server {
+    pub fn new_transfer(&self, user: &Uuid) -> Option<TransferMsg> {
+        let port = self.allocation.primary_port()?;
+        Some(TransferMsg {
+            id: user.to_string(),
+            host: port.host.clone(),
+            port: port.port as u32,
+        })
+    }
 }
 
 #[derive(Default)]

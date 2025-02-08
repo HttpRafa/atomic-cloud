@@ -4,8 +4,8 @@ use permissions::Permission;
 use server::AuthServer;
 use user::AdminUser;
 
-pub mod permissions;
 pub mod manager;
+pub mod permissions;
 
 pub mod server;
 pub mod user;

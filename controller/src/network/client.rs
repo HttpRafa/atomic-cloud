@@ -1,11 +1,10 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use beat::BeatTask;
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use server::GetServersTask;
-use tokio::sync::mpsc::channel;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
@@ -14,8 +13,10 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthType, server::NameAndUuid, user::transfer::TransferTarget, TaskSender,
-    }, network::SUBSCRIPTION_BUFFER, task::Task, VERSION
+        auth::AuthType, server::NameAndUuid, user::transfer::TransferTarget, Shared, TaskSender,
+    },
+    task::Task,
+    VERSION,
 };
 
 use super::proto::client::{
@@ -30,7 +31,6 @@ mod beat;
 mod group;
 mod health;
 mod ready;
-mod reset;
 mod server;
 mod transfer;
 mod user;
@@ -38,7 +38,7 @@ mod user;
 pub type TransferMsg = TransferRes;
 pub type ChannelMsg = Msg;
 
-pub struct ClientServiceImpl(pub TaskSender);
+pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 
 #[async_trait]
 impl ClientService for ClientServiceImpl {
@@ -172,23 +172,37 @@ impl ClientService for ClientServiceImpl {
     }
     async fn subscribe_to_transfers(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
+        let auth = Task::get_auth(AuthType::Server, &request)?;
+        let server = auth
+            .get_server()
+            .expect("Should be ok. Because type is checked in get_auth");
 
-        let (sender, receiver) = channel(SUBSCRIPTION_BUFFER);
-
-        todo!()
+        Ok(Response::new(
+            self.1.subscribers.subscribe_transfer(*server.uuid()).await,
+        ))
     }
 
     // Channel
-    async fn publish_message(&self, _request: Request<Msg>) -> Result<Response<u32>, Status> {
-        todo!()
+    async fn publish_message(&self, request: Request<Msg>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(
+            self.1
+                .subscribers
+                .publish_channel(request.into_inner())
+                .await,
+        ))
     }
     async fn subscribe_to_channel(
         &self,
-        _request: Request<String>,
+        request: Request<String>,
     ) -> Result<Response<Self::SubscribeToChannelStream>, Status> {
-        todo!()
+        Ok(Response::new(
+            self.1
+                .subscribers
+                .subscribe_channel(request.into_inner())
+                .await,
+        ))
     }
 
     // Server

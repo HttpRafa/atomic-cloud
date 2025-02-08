@@ -20,6 +20,13 @@ pub struct Task {
 }
 
 impl Task {
+    pub fn get_auth<T>(auth: AuthType, request: &Request<T>) -> Result<Authorization, Status> {
+        match request.extensions().get::<Authorization>() {
+            Some(data) if data.is_type(auth) => Ok(data.clone()),
+            _ => Err(Status::permission_denied("Not linked")),
+        }
+    }
+
     pub async fn execute<O: Send + 'static, I, F>(
         auth: AuthType,
         queue: &TaskSender,
@@ -29,11 +36,7 @@ impl Task {
     where
         F: FnOnce(Request<I>, Authorization) -> Result<BoxedTask, Status>,
     {
-        let data = match request.extensions().get::<Authorization>() {
-            Some(data) if data.is_type(auth) => data,
-            _ => return Err(Status::permission_denied("Not linked")),
-        }
-        .clone();
+        let data = Self::get_auth(auth, &request)?;
         debug!("Executing task with a return type of: {}", type_name::<O>());
         match Task::create::<O>(queue, task(request, data)?).await {
             Ok(value) => value,
@@ -89,7 +92,9 @@ impl Task {
     }
 
     pub fn new_link_error() -> Result<BoxedAny> {
-        Self::new_err(Status::failed_precondition("Not linked"))
+        Self::new_err(Status::failed_precondition(
+            "Your token is not linked to the required resource for this action",
+        ))
     }
 }
 

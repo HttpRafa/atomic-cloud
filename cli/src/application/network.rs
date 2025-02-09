@@ -18,15 +18,16 @@ use crate::VERSION;
 
 use super::profile::Profile;
 
-#[allow(clippy::all)]
 pub mod proto {
     pub mod manage {
+        #![allow(clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("manage");
     }
 
     pub mod common {
+        #![allow(clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("common");

@@ -44,13 +44,13 @@ impl CreateNodeMenu {
                         ));
 
                         match connection.client.create_node(node).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 progress.success("Node created successfully 👍. Remember to set the node to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -60,7 +60,7 @@ impl CreateNodeMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }
@@ -75,7 +75,7 @@ impl CreateNodeMenu {
 
     fn collect_node(data: &Data) -> Result<node::Item, InquireError> {
         let name = Self::get_node_name(data.nodes.clone())?;
-        let plugin = MenuUtils::select("Which plugin should the controller use to communicate with the backend of this node?", "This is essential for the controller to know how to communicate with the backend of this node. For example, is it a Pterodactyl node or a simple Docker host?", data.plugins.to_vec())?;
+        let plugin = MenuUtils::select("Which plugin should the controller use to communicate with the backend of this node?", "This is essential for the controller to know how to communicate with the backend of this node. For example, is it a Pterodactyl node or a simple Docker host?", data.plugins.clone())?;
         let child = Self::get_child_node()?;
         let memory = Self::get_memory_limit()?;
         let max = Self::get_servers_limit()?;
@@ -112,40 +112,39 @@ impl CreateNodeMenu {
     }
 
     fn get_memory_limit() -> Result<Option<u32>, InquireError> {
-        match MenuUtils::confirm(
+        if MenuUtils::confirm(
             "Would you like to limit the amount of memory the controller can use on this node?",
         )? {
-            false => Ok(None),
-            true => Ok(Some(MenuUtils::parsed_value(
+            Ok(Some(MenuUtils::parsed_value(
                 "How much memory should the controller be allowed to use on this node?",
                 "Example: 1024",
                 "Please enter a valid number",
-            )?)),
+            )?))
+        } else {
+            Ok(None)
         }
     }
 
     fn get_servers_limit() -> Result<Option<u32>, InquireError> {
-        match MenuUtils::confirm(
+        if MenuUtils::confirm(
             "Would you like to limit the number of servers the controller can start on this node?",
         )? {
-            false => Ok(None),
-            true => Ok(Some(MenuUtils::parsed_value(
+            Ok(Some(MenuUtils::parsed_value(
                 "How many servers should the controller be allowed to start on this node?",
                 "Example: 15",
                 "Please enter a valid number",
-            )?)),
+            )?))
+        } else {
+            Ok(None)
         }
     }
 
     fn get_child_node() -> Result<Option<String>, InquireError> {
-        match MenuUtils::confirm("Does the specified plugin need additional information to determine which node it should use in the backend? This is required when a plugin manages multiple nodes.")? {
-            false => Ok(None),
-            true => {
-                Ok(Some(Text::new("What is the name of the child node the controller should use?")
-                    .with_help_message("Example: node0.gameservers.my-pterodactyl.net")
-                    .with_validator(ValueRequiredValidator::default())
-                    .prompt()?))
-            }
-        }
+        if MenuUtils::confirm("Does the specified plugin need additional information to determine which node it should use in the backend? This is required when a plugin manages multiple nodes.")? {
+            Ok(Some(Text::new("What is the name of the child node the controller should use?")
+                .with_help_message("Example: node0.gameservers.my-pterodactyl.net")
+                .with_validator(ValueRequiredValidator::default())
+                .prompt()?))
+        } else { Ok(None) }
     }
 }

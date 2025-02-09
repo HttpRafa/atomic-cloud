@@ -33,9 +33,7 @@ impl<'a> Transfer<'a> {
             }
         }
 
-        let from = if let CurrentServer::Connected(from) = &user.server {
-            from
-        } else {
+        let CurrentServer::Connected(from) = &user.server else {
             return Err(ResolveError::UserNotFound);
         };
 

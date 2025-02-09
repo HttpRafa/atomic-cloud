@@ -36,7 +36,7 @@ impl GenericTask for SetResourceTask {
                 }
                 Task::new_empty()
             }
-            _ => Task::new_err(Status::unimplemented(
+            Category::Server => Task::new_err(Status::unimplemented(
                 "This category is not supported for this action",
             )),
         }
@@ -64,9 +64,8 @@ impl GenericTask for DeleteResourceTask {
                 Task::new_empty()
             }
             Category::Server => {
-                let uuid = match Uuid::parse_str(&self.1) {
-                    Ok(uuid) => uuid,
-                    Err(_) => return Task::new_err(Status::invalid_argument("Invalid UUID")),
+                let Ok(uuid) = Uuid::parse_str(&self.1) else {
+                    return Task::new_err(Status::invalid_argument("Invalid UUID"));
                 };
                 let id = match controller.servers.get_server(&uuid) {
                     Some(server) => server.id().clone(),

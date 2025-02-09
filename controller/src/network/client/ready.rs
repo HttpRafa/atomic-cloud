@@ -11,13 +11,12 @@ pub struct SetReadyTask(pub Authorization, pub bool);
 #[async_trait]
 impl GenericTask for SetReadyTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match self
+        let Some(server) = self
             .0
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
-        {
-            Some(server) => server,
-            None => return Task::new_link_error(),
+        else {
+            return Task::new_link_error();
         };
         server.set_ready(self.1);
         Task::new_empty()

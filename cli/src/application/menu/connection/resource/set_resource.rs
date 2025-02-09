@@ -42,13 +42,13 @@ impl SetResourceMenu {
                         progress.text("Changing resource...");
 
                         match connection.client.set_resource(request).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 progress.success("Resource changed successfully 👍.");
                                 progress.end();
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -58,7 +58,7 @@ impl SetResourceMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }

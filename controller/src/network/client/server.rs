@@ -17,7 +17,7 @@ impl GenericTask for GetServersTask {
                 .servers
                 .get_servers()
                 .iter()
-                .map(|server| server.into())
+                .map(std::convert::Into::into)
                 .collect(),
         })
     }

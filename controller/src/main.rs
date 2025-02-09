@@ -1,4 +1,6 @@
 #![feature(extract_if)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::ref_option)]
 
 use anyhow::Result;
 use application::Controller;
@@ -12,6 +14,7 @@ use tokio::time::Instant;
 mod application;
 mod config;
 mod network;
+mod resource;
 mod storage;
 mod task;
 
@@ -22,10 +25,6 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 #[tokio::main]
 async fn main() {
-    if let Err(error) = run().await {
-        FancyError::print_fancy(&error, true);
-    }
-
     async fn run() -> Result<()> {
         let arguments = Arguments::parse();
         CloudInit::init_logging(arguments.debug, false, Storage::latest_log_file());
@@ -40,6 +39,10 @@ async fn main() {
         controller.run().await?;
 
         Ok(())
+    }
+
+    if let Err(error) = run().await {
+        FancyError::print_fancy(&error, true);
     }
 }
 

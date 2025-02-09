@@ -18,13 +18,11 @@ mod platform;
 impl system::types::Host for PluginState {}
 
 impl PluginState {
-    pub fn get_directory(&self, name: &str, directory: &Directory) -> Result<PathBuf, String> {
+    pub fn get_directory(name: &str, directory: &Directory) -> PathBuf {
         match &directory.reference {
-            Reference::Controller => Ok(PathBuf::from(".").join(&directory.path)),
-            Reference::Data => Ok(Storage::data_directory_for_plugin(name).join(&directory.path)),
-            Reference::Configs => {
-                Ok(Storage::config_directory_for_plugin(name).join(&directory.path))
-            }
+            Reference::Controller => PathBuf::from(".").join(&directory.path),
+            Reference::Data => Storage::data_directory_for_plugin(name).join(&directory.path),
+            Reference::Configs => Storage::config_directory_for_plugin(name).join(&directory.path),
         }
     }
 }

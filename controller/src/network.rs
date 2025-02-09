@@ -34,24 +34,6 @@ pub struct NetworkStack {
 
 impl NetworkStack {
     pub fn start(config: &Config, shared: &Arc<Shared>, queue: &TaskSender) -> Self {
-        info!("Starting network stack...");
-
-        let (sender, receiver) = channel(false);
-        let bind = *config.network_bind();
-        let shared = shared.clone();
-        let queue = queue.clone();
-
-        let task = spawn(async move {
-            if let Err(error) = run(bind, shared, queue, receiver).await {
-                FancyError::print_fancy(&error, false);
-            }
-        });
-
-        return Self {
-            shutdown: sender,
-            handle: task,
-        };
-
         async fn run(
             bind: SocketAddr,
             shared: Arc<Shared>,
@@ -76,6 +58,24 @@ impl NetworkStack {
                 .await?;
 
             Ok(())
+        }
+
+        info!("Starting network stack...");
+
+        let (sender, receiver) = channel(false);
+        let bind = *config.network_bind();
+        let shared = shared.clone();
+        let queue = queue.clone();
+
+        let task = spawn(async move {
+            if let Err(error) = run(bind, shared, queue, receiver).await {
+                FancyError::print_fancy(&error, false);
+            }
+        });
+
+        Self {
+            shutdown: sender,
+            handle: task,
         }
     }
 

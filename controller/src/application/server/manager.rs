@@ -95,6 +95,7 @@ impl ServerManager {
 
 // Ticking
 impl ServerManager {
+    #[allow(clippy::too_many_lines)]
     pub async fn tick(
         &mut self,
         config: &Config,
@@ -323,7 +324,8 @@ impl ServerManager {
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }

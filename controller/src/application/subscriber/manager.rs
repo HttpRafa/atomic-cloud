@@ -88,7 +88,7 @@ impl SubscriberManager {
 
     async fn cleanup<A, B>(holder: &SubscriberHolder<A, B>) {
         holder.write().await.retain(|_, value| {
-            value.retain(|subscriber| subscriber.is_alive());
+            value.retain(super::Subscriber::is_alive);
             !value.is_empty()
         });
     }

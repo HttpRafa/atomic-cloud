@@ -46,13 +46,13 @@ impl DeleteResourceMenu {
                         progress.text("Deleting resource...");
 
                         match connection.client.delete_resource(request).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 progress.success("Resource deleted successfully 👍.");
                                 progress.end();
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -62,7 +62,7 @@ impl DeleteResourceMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }

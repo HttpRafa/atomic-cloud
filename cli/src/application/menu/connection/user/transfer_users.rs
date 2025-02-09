@@ -51,13 +51,13 @@ impl TransferUsersMenu {
                         ));
 
                         match connection.client.transfer_users(request).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 progress.success("User transferred successfully 👍.");
                                 progress.end();
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -67,7 +67,7 @@ impl TransferUsersMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }

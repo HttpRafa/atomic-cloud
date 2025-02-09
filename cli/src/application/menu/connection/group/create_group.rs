@@ -55,13 +55,13 @@ impl CreateGroupMenu {
                         ));
 
                         match connection.client.create_group(group).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 progress.success("Group created successfully 👍. Remember to set the group to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -71,7 +71,7 @@ impl CreateGroupMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }
@@ -225,11 +225,11 @@ impl CreateGroupMenu {
             settings,
             env,
             retention: Some(retention as i32),
-            fallback: Some(fallback),
+            fallback,
         })
     }
 
-    fn collect_fallback() -> Result<Fallback, InquireError> {
+    fn collect_fallback() -> Result<Option<Fallback>, InquireError> {
         let enabled =
             MenuUtils::confirm("Should the controller treat these servers as fallback servers?")?;
         let prio = MenuUtils::parsed_value(
@@ -238,7 +238,11 @@ impl CreateGroupMenu {
             "Please enter a valid number",
         )?;
 
-        Ok(Fallback { enabled, prio })
+        if enabled {
+            Ok(Some(Fallback { prio }))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -275,6 +279,6 @@ impl Display for KeyValueList {
         for pair in &self.key_values {
             result.push_str(&format!("{}={},", pair.key, pair.value));
         }
-        write!(f, "{}", result)
+        write!(f, "{result}")
     }
 }

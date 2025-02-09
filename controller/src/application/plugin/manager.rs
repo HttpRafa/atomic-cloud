@@ -39,7 +39,8 @@ impl PluginManager {
 
 // Ticking
 impl PluginManager {
-    pub async fn tick(&mut self) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps)]
+    pub fn tick(&mut self) -> Result<()> {
         for plugin in self.plugins.values() {
             plugin.tick();
         }

@@ -8,14 +8,15 @@ use tokio::fs;
 
 use crate::{
     application::{
-        node::manager::{DeleteResourceError, NodeManager},
-        server::manager::ServerManager,
+        node::manager::NodeManager,
+        server::{manager::ServerManager, Resources, Spec},
     },
     config::Config,
+    resource::{CreateResourceError, DeleteResourceError},
     storage::Storage,
 };
 
-use super::Group;
+use super::{Group, ScalingPolicy, StartConstraints};
 
 pub struct GroupManager {
     groups: HashMap<String, Group>,
@@ -48,7 +49,7 @@ impl GroupManager {
             });
 
             info!("Loaded group {}", name);
-            groups.insert(name.clone(), Group::new(&name, value));
+            groups.insert(name.clone(), Group::new(&name, &value));
         }
 
         info!("Loaded {} group(s)", groups.len());
@@ -62,6 +63,39 @@ impl GroupManager {
         group.delete().await?;
         self.groups.remove(name);
         info!("Deleted group {}", name);
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn create_group(
+        &mut self,
+        name: &str,
+        constraints: &StartConstraints,
+        scaling: &ScalingPolicy,
+        resources: &Resources,
+        spec: &Spec,
+        g_nodes: &[String],
+        nodes: &NodeManager,
+    ) -> Result<(), CreateResourceError> {
+        if self.groups.contains_key(name) {
+            return Err(CreateResourceError::AlreadyExists);
+        }
+
+        if nodes.verify_nodes(g_nodes) {
+            return Err(CreateResourceError::RequiredNodeNotLoaded);
+        }
+        let group = StoredGroup::new(
+            g_nodes.to_vec(),
+            constraints.clone(),
+            scaling.clone(),
+            resources.clone(),
+            spec.clone(),
+        );
+
+        let group = Group::new(name, &group);
+        group.save().await.map_err(CreateResourceError::Error)?;
+        self.groups.insert(name.to_string(), group);
+        info!("Created group {}", name);
         Ok(())
     }
 
@@ -85,7 +119,7 @@ impl GroupManager {
 }
 
 impl Group {
-    pub fn new(name: &str, group: StoredGroup) -> Self {
+    pub fn new(name: &str, group: &StoredGroup) -> Self {
         Self {
             name: name.to_string(),
             status: group.status().clone(),
@@ -102,14 +136,15 @@ impl Group {
 
 // Ticking
 impl GroupManager {
-    pub async fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
+    pub fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
         for group in self.groups.values_mut() {
             group.tick(config, servers)?;
         }
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
+    pub fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }
@@ -149,6 +184,23 @@ pub(super) mod stored {
     }
 
     impl StoredGroup {
+        pub fn new(
+            nodes: Vec<String>,
+            constraints: StartConstraints,
+            scaling: ScalingPolicy,
+            resources: Resources,
+            spec: Spec,
+        ) -> Self {
+            Self {
+                status: LifecycleStatus::Inactive,
+                nodes,
+                constraints,
+                scaling,
+                resources,
+                spec,
+            }
+        }
+
         pub fn from(group: &Group) -> Self {
             Self {
                 status: group.status.clone(),

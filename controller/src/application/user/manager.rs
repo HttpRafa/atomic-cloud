@@ -4,10 +4,13 @@ use anyhow::Result;
 use simplelog::{info, warn};
 use uuid::Uuid;
 
-use crate::{application::{
-    auth::ActionResult,
-    server::{NameAndUuid, Server},
-}, config::Config};
+use crate::{
+    application::{
+        auth::ActionResult,
+        server::{NameAndUuid, Server},
+    },
+    config::Config,
+};
 
 use super::{CurrentServer, User};
 
@@ -122,7 +125,8 @@ impl UserManager {
 
 // Ticking
 impl UserManager {
-    pub async fn tick(&mut self, config: &Config) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps)]
+    pub fn tick(&mut self, config: &Config) -> Result<()> {
         self.users.retain(|_, user| {
             if let CurrentServer::Transfering((timestamp, to)) = &user.server {
                 if timestamp.elapsed() >= *config.transfer_timeout() {
@@ -140,7 +144,8 @@ impl UserManager {
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }

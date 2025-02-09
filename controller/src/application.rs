@@ -117,13 +117,13 @@ impl Controller {
 
     async fn tick(&mut self) -> Result<()> {
         // Tick plugin manager
-        self.plugins.tick().await?;
+        self.plugins.tick()?;
 
         // Tick node manager
-        self.nodes.tick().await?;
+        self.nodes.tick()?;
 
         // Tick group manager
-        self.groups.tick(&self.config, &mut self.servers).await?;
+        self.groups.tick(&self.config, &mut self.servers)?;
 
         // Tick server manager
         self.servers
@@ -137,7 +137,7 @@ impl Controller {
             .await?;
 
         // Tick user manager
-        self.users.tick(&self.config).await?;
+        self.users.tick(&self.config)?;
 
         // Tick subscriber manager
         self.shared.subscribers.tick().await?;
@@ -149,16 +149,16 @@ impl Controller {
         info!("Starting shutdown sequence...");
 
         // Shutdown user manager
-        self.users.shutdown().await?;
+        self.users.shutdown()?;
 
         // Shutdown server manager
-        self.servers.shutdown().await?;
+        self.servers.shutdown()?;
 
         // Shutdown group manager
-        self.groups.shutdown().await?;
+        self.groups.shutdown()?;
 
         // Shutdown node manager
-        self.nodes.shutdown().await?;
+        self.nodes.shutdown()?;
 
         // Shutdown plugin manager
         self.plugins.shutdown().await?;
@@ -176,7 +176,7 @@ impl Controller {
             info!("Received SIGINT, shutting down...");
             flag.store(false, Ordering::Relaxed);
         })
-        .map_err(|error| error.into())
+        .map_err(std::convert::Into::into)
     }
 
     pub fn signal_shutdown(&self) {

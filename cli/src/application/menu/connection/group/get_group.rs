@@ -43,7 +43,7 @@ impl GetGroupMenu {
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -53,7 +53,7 @@ impl GetGroupMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }
@@ -64,13 +64,13 @@ impl GetGroupMenu {
         info!("   <blue>🖥  <b>Group Details</>");
         info!("      <green><b>Name</>: {}", group.name);
 
-        if !group.nodes.is_empty() {
+        if group.nodes.is_empty() {
+            warn!("      <yellow><b>Nodes</>: None");
+        } else {
             info!("      <green><b>Nodes</>:");
             for node in &group.nodes {
                 info!("         - <green>{}</>", node);
             }
-        } else {
-            warn!("      <yellow><b>Nodes</>: None");
         }
 
         if let Some(constraints) = &group.constraints {
@@ -125,10 +125,12 @@ impl GetGroupMenu {
                 spec.retention.unwrap_or(0)
             );
 
-            if let Some(fallback) = &spec.fallback {
-                info!("         <green><b>Fallback</>:");
-                info!("            <green><b>Enabled</>: {}", fallback.enabled);
-                info!("            <green><b>Priority</>: {}", fallback.prio);
+            if let Some(fallback) = spec.fallback {
+                info!("            <green><b>Fallback</>: ");
+                info!("               <green><b>Is fallback</>: Yes");
+                info!("               <green><b>Priority</>: {}", fallback.prio);
+            } else {
+                info!("            <yellow><b>Fallback</>: None");
             }
         } else {
             warn!("      <yellow><b>Specification</>: None");

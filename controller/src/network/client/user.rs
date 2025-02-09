@@ -17,13 +17,12 @@ pub struct UserDisconnectedTask(pub Authorization, pub Uuid);
 #[async_trait]
 impl GenericTask for UserConnectedTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match self
+        let Some(server) = self
             .0
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
-        {
-            Some(server) => server,
-            None => return Task::new_link_error(),
+        else {
+            return Task::new_link_error();
         };
         controller.users.user_connected(server, self.1.clone());
         Task::new_empty()
@@ -33,13 +32,12 @@ impl GenericTask for UserConnectedTask {
 #[async_trait]
 impl GenericTask for UserDisconnectedTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let server = match self
+        let Some(server) = self
             .0
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
-        {
-            Some(server) => server,
-            None => return Task::new_link_error(),
+        else {
+            return Task::new_link_error();
         };
         if controller.users.user_disconnected(server, &self.1) == ActionResult::Denied {
             return Task::new_permission_error("You are not allowed to disconnect this user");

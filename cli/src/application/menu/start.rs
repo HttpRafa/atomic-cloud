@@ -48,7 +48,7 @@ impl StartMenu {
             Ok(selection) => match selection {
                 Selection::LoadProfile => LoadProfileMenu::show(profiles).await,
                 Selection::CreateProfile => CreateProfileMenu::show(profiles).await,
-                Selection::DeleteProfile => DeleteProfileMenu::show(profiles).await,
+                Selection::DeleteProfile => DeleteProfileMenu::show(profiles),
                 Selection::Exit => MenuResult::Exit,
             },
             Err(error) => MenuUtils::handle_error(error),

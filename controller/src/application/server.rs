@@ -77,7 +77,7 @@ pub enum DiskRetention {
     Permanent,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq)]
 pub enum State {
     Starting,
     Preparing,
@@ -122,7 +122,7 @@ impl Server {
         Some(TransferMsg {
             id: user.to_string(),
             host: port.host.clone(),
-            port: port.port as u32,
+            port: u32::from(port.port),
         })
     }
 }
@@ -172,6 +172,45 @@ impl NameAndUuid {
     }
     pub fn new(name: String, uuid: Uuid) -> Self {
         Self { name, uuid }
+    }
+}
+
+impl Resources {
+    pub fn new(memory: u32, swap: u32, cpu: u32, io: u32, disk: u32, ports: u32) -> Self {
+        Self {
+            memory,
+            swap,
+            cpu,
+            io,
+            disk,
+            ports,
+        }
+    }
+}
+
+impl FallbackPolicy {
+    pub fn new(enabled: bool, priority: i32) -> Self {
+        Self { enabled, priority }
+    }
+}
+
+impl Spec {
+    pub fn new(
+        settings: HashMap<String, String>,
+        environment: HashMap<String, String>,
+        disk_retention: DiskRetention,
+        image: String,
+        max_players: u32,
+        fallback: FallbackPolicy,
+    ) -> Self {
+        Self {
+            settings,
+            environment,
+            disk_retention,
+            image,
+            max_players,
+            fallback,
+        }
     }
 }
 

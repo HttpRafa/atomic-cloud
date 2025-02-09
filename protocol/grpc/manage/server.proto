@@ -47,8 +47,7 @@ message Server {
     optional Fallback fallback = 6;
   }
   message Fallback {
-    bool enabled = 1;
-    int32 prio = 2;
+    int32 prio = 1;
   }
   enum DiskRetention {
     TEMPORARY = 0;

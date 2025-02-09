@@ -39,7 +39,7 @@ clean:
 ## Fix target
 fix:
 	cargo fmt
-	cargo clippy --fix --allow-dirty --allow-staged --all-targets --all-features
+	cargo clippy --fix --allow-dirty --allow-staged --all-features
 
 ## Build target
 build: build-controller build-cli build-wrapper build-plugins

@@ -18,9 +18,8 @@ impl GenericTask for TransferUsersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let mut count: u32 = 0;
         for user in &self.1 {
-            let user = match controller.users.get_user_mut(user) {
-                Some(user) => user,
-                None => continue,
+            let Some(user) = controller.users.get_user_mut(user) else {
+                continue;
             };
             let mut transfer = match Transfer::resolve(
                 &self.0,
@@ -34,9 +33,8 @@ impl GenericTask for TransferUsersTask {
             };
             if let Err(error) = Transfer::transfer_user(&mut transfer, &controller.shared).await {
                 return Task::new_err(error);
-            } else {
-                count += 1;
             }
+            count += 1;
         }
         Task::new_ok(count)
     }

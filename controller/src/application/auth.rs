@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use permissions::Permission;
 use server::AuthServer;
 use user::AdminUser;
 
@@ -21,7 +20,7 @@ pub trait GenericAuthorization {
     fn get_user(&self) -> Option<&AdminUser>;
     fn is_type(&self, auth: AuthType) -> bool;
 
-    fn is_allowed(&self, permission: Permission) -> bool;
+    fn is_allowed(&self, flag: u32) -> bool;
 
     fn recreate(&self) -> OwnedAuthorization;
 }

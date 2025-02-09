@@ -41,7 +41,7 @@ impl GetServerMenu {
                                 MenuResult::Success
                             }
                             Err(error) => {
-                                progress.fail(format!("{}", error));
+                                progress.fail(format!("{error}"));
                                 progress.end();
                                 MenuResult::Failed(error)
                             }
@@ -51,7 +51,7 @@ impl GetServerMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }
@@ -117,11 +117,10 @@ impl GetServerMenu {
                 );
                 if let Some(fallback) = spec.fallback {
                     info!("            <green><b>Fallback</>: ");
-                    info!(
-                        "               <green><b>Is fallback</>: {}",
-                        fallback.enabled
-                    );
+                    info!("               <green><b>Is fallback</>: Yes");
                     info!("               <green><b>Priority</>: {}", fallback.prio);
+                } else {
+                    info!("            <yellow><b>Fallback</>: None");
                 }
             } else {
                 warn!("         <yellow><b>Specification</>: None");

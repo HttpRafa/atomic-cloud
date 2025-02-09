@@ -9,6 +9,7 @@ pub struct HostAndPort<S = String> {
 }
 
 impl HostAndPort {
+    #[must_use]
     pub fn new(host: String, port: u16) -> Self {
         Self { host, port }
     }

@@ -34,8 +34,11 @@ pub async fn init_wasm_plugins(
     }
 
     let amount = plugins.len();
-    for (path, file_name, name) in Storage::for_each_content(&directory).await? {
-        if !file_name.ends_with(".wasm") {
+    for (path, _, name) in Storage::for_each_content(&directory).await? {
+        if !path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("wasm"))
+        {
             continue;
         }
 
@@ -59,7 +62,7 @@ pub async fn init_wasm_plugins(
                     warn!(
                         "Failed to create configs directory for plugin {}: {}",
                         name, error
-                    )
+                    );
                 });
         }
         if !data_directory.exists() {
@@ -69,7 +72,7 @@ pub async fn init_wasm_plugins(
                     warn!(
                         "Failed to create data directory for plugin {}: {}",
                         name, error
-                    )
+                    );
                 });
         }
 

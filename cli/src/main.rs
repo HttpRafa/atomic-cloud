@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic)]
+
 use anyhow::Result;
 use application::Cli;
 use clap::{ArgAction, Parser};
@@ -14,10 +16,6 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 #[tokio::main]
 async fn main() {
-    if let Err(error) = run().await {
-        FancyError::print_fancy(&error, true);
-    }
-
     async fn run() -> Result<()> {
         let args = Arguments::parse();
         CloudInit::init_logging(args.debug, true, Storage::latest_log_file());
@@ -25,6 +23,10 @@ async fn main() {
 
         let mut cli = Cli::new().await?;
         cli.start().await
+    }
+
+    if let Err(error) = run().await {
+        FancyError::print_fancy(&error, true);
     }
 }
 

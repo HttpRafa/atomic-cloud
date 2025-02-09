@@ -10,11 +10,12 @@ use uuid::Uuid;
 use crate::{
     application::server::manager::StopRequest,
     config::Config,
+    resource::DeleteResourceError,
     storage::{SaveToTomlFile, Storage},
 };
 
 use super::{
-    node::{manager::DeleteResourceError, LifecycleStatus},
+    node::LifecycleStatus,
     server::{
         manager::{ServerManager, StartRequest},
         NameAndUuid, Resources, Server, Spec,
@@ -28,15 +29,21 @@ pub struct Group {
     /* Settings */
     #[getset(get = "pub")]
     name: String,
+    #[getset(get = "pub")]
     status: LifecycleStatus,
 
     /* Where? */
+    #[getset(get = "pub")]
     nodes: Vec<String>,
+    #[getset(get = "pub")]
     constraints: StartConstraints,
+    #[getset(get = "pub")]
     scaling: ScalingPolicy,
 
     /* How? */
+    #[getset(get = "pub")]
     resources: Resources,
+    #[getset(get = "pub")]
     spec: Spec,
 
     /* What do i need to know? */
@@ -45,6 +52,11 @@ pub struct Group {
 }
 
 impl Group {
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        reason = "I have to clean this up"
+    )]
     pub fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
         if self.status == LifecycleStatus::Inactive {
             // Do not tick this group because it is inactive
@@ -66,7 +78,7 @@ impl Group {
                         true
                     })
                 }
-                _ => true,
+                AssociatedServer::Queueing(_) => true,
             });
 
             if self.scaling.stop_empty_servers && self.servers.len() as u32 > target_count {
@@ -102,7 +114,7 @@ impl Group {
                             true
                         })
                     }
-                    _ => true,
+                    AssociatedServer::Queueing(_) => true,
                 });
                 servers.schedule_stops(requests);
             }
@@ -187,7 +199,7 @@ impl Group {
     pub fn find_free_server<'a>(&self, servers: &'a ServerManager) -> Option<&'a Server> {
         self.servers.iter().find_map(|server| match server {
             AssociatedServer::Active(server) => servers.get_server(server.uuid()),
-            _ => None,
+            AssociatedServer::Queueing(_) => None,
         })
     }
 
@@ -221,21 +233,47 @@ impl Group {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Getters)]
 pub struct StartConstraints {
+    #[getset(get = "pub")]
     minimum: u32,
+    #[getset(get = "pub")]
     maximum: u32,
+    #[getset(get = "pub")]
     priority: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Getters)]
 pub struct ScalingPolicy {
+    #[getset(get = "pub")]
     enabled: bool,
+    #[getset(get = "pub")]
     start_threshold: f32,
+    #[getset(get = "pub")]
     stop_empty_servers: bool,
 }
 
 pub enum AssociatedServer {
     Queueing(NameAndUuid),
     Active(NameAndUuid),
+}
+
+impl StartConstraints {
+    pub fn new(minimum: u32, maximum: u32, priority: i32) -> Self {
+        Self {
+            minimum,
+            maximum,
+            priority,
+        }
+    }
+}
+
+impl ScalingPolicy {
+    pub fn new(enabled: bool, start_threshold: f32, stop_empty_servers: bool) -> Self {
+        Self {
+            enabled,
+            start_threshold,
+            stop_empty_servers,
+        }
+    }
 }

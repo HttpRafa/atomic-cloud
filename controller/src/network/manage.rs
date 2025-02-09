@@ -12,7 +12,13 @@ use transfer::TransferUsersTask;
 use user::GetUsersTask;
 
 use crate::{
-    application::{auth::AuthType, node::Capabilities, Shared, TaskSender},
+    application::{
+        auth::AuthType,
+        group::{ScalingPolicy, StartConstraints},
+        node::Capabilities,
+        server::{DiskRetention, FallbackPolicy, Resources, Spec},
+        Shared, TaskSender,
+    },
     task::Task,
     VERSION,
 };
@@ -53,11 +59,8 @@ impl ManageService for ManageServiceImpl {
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
-                let category = match Category::try_from(request.category) {
-                    Ok(category) => category,
-                    Err(_) => {
-                        return Err(Status::invalid_argument("Invalid category provided"));
-                    }
+                let Ok(category) = Category::try_from(request.category) else {
+                    return Err(Status::invalid_argument("Invalid category provided"));
                 };
 
                 Ok(Box::new(SetResourceTask(
@@ -74,11 +77,8 @@ impl ManageService for ManageServiceImpl {
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
-                let category = match Category::try_from(request.category) {
-                    Ok(category) => category,
-                    Err(_) => {
-                        return Err(Status::invalid_argument("Invalid category provided"));
-                    }
+                let Ok(category) = Category::try_from(request.category) else {
+                    return Err(Status::invalid_argument("Invalid category provided"));
                 };
 
                 Ok(Box::new(DeleteResourceTask(category, request.id)))
@@ -165,8 +165,93 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::group::Item>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(CreateGroupTask()))
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+                let request = request.into_inner();
+
+                let constraints = match request.constraints {
+                    Some(constrains) => {
+                        StartConstraints::new(constrains.min, constrains.max, constrains.prio)
+                    }
+                    None => return Err(Status::invalid_argument("No constraints provided")),
+                };
+
+                let scaling = match request.scaling {
+                    Some(scaling) => {
+                        ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
+                    }
+                    None => ScalingPolicy::default(),
+                };
+
+                let resources = match request.resources {
+                    Some(resources) => Resources::new(
+                        resources.memory,
+                        resources.swap,
+                        resources.cpu,
+                        resources.io,
+                        resources.disk,
+                        resources.ports,
+                    ),
+                    None => return Err(Status::invalid_argument("No resources provided")),
+                };
+
+                let spec = match request.spec {
+                    Some(spec) => {
+                        let image = spec.img;
+                        let max_players = spec.max_players;
+                        let settings = spec
+                            .settings
+                            .iter()
+                            .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                            .collect();
+                        let environment = spec
+                            .env
+                            .iter()
+                            .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                            .collect();
+                        let disk_retention = if let Some(retention) = spec.retention {
+                            match manage::server::DiskRetention::try_from(retention) {
+                                Ok(manage::server::DiskRetention::Permanent) => {
+                                    DiskRetention::Permanent
+                                }
+                                Ok(manage::server::DiskRetention::Temporary) => {
+                                    DiskRetention::Temporary
+                                }
+                                Err(_) => {
+                                    return Err(Status::invalid_argument(
+                                        "Invalid disk retention provided",
+                                    ))
+                                }
+                            }
+                        } else {
+                            DiskRetention::Temporary
+                        };
+                        let fallback = if let Some(fallback) = spec.fallback {
+                            FallbackPolicy::new(true, fallback.prio)
+                        } else {
+                            FallbackPolicy::default()
+                        };
+                        Spec::new(
+                            settings,
+                            environment,
+                            disk_retention,
+                            image,
+                            max_players,
+                            fallback,
+                        )
+                    }
+                    None => return Err(Status::invalid_argument("No spec provided")),
+                };
+
+                let nodes = request.nodes;
+
+                Ok(Box::new(CreateGroupTask(
+                    request.name,
+                    constraints,
+                    scaling,
+                    resources,
+                    spec,
+                    nodes,
+                )))
             })
             .await?,
         ))
@@ -176,9 +261,16 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::group::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Item, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetGroupTask()))
-            })
+            Task::execute::<manage::group::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetGroupTask(request)))
+                },
+            )
             .await?,
         ))
     }
@@ -252,6 +344,6 @@ impl ManageService for ManageServiceImpl {
         Ok(Response::new(VERSION.protocol))
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
-        Ok(Response::new(format!("{}", VERSION)))
+        Ok(Response::new(format!("{VERSION}")))
     }
 }

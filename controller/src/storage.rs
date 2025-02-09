@@ -48,7 +48,7 @@ impl Storage {
         PathBuf::from(NODES_DIRECTORY)
     }
     pub fn node_file(name: &str) -> PathBuf {
-        Storage::nodes_directory().join(format!("{}.toml", name))
+        Storage::nodes_directory().join(format!("{name}.toml"))
     }
 
     /* Groups */
@@ -56,7 +56,7 @@ impl Storage {
         PathBuf::from(GROUPS_DIRECTORY)
     }
     pub fn group_file(name: &str) -> PathBuf {
-        Storage::groups_directory().join(format!("{}.toml", name))
+        Storage::groups_directory().join(format!("{name}.toml"))
     }
 
     /* Auth */
@@ -64,7 +64,7 @@ impl Storage {
         PathBuf::from(USERS_DIRECTORY)
     }
     pub fn user_file(name: &str) -> PathBuf {
-        Storage::users_directory().join(format!("{}.toml", name))
+        Storage::users_directory().join(format!("{name}.toml"))
     }
 
     /* Configs */
@@ -104,7 +104,7 @@ impl Storage {
             let path = entry.path();
             match (path.file_name(), path.file_stem()) {
                 (Some(name), Some(stem)) => result.push((
-                    path.to_owned(),
+                    path.clone(),
                     name.to_string_lossy().to_string(),
                     stem.to_string_lossy().to_string(),
                 )),
@@ -131,7 +131,7 @@ impl Storage {
                     let path = entry.path();
                     match (path.file_name(), path.file_stem()) {
                         (Some(name), Some(stem)) => result.push((
-                            path.to_owned(),
+                            path.clone(),
                             name.to_string_lossy().to_string(),
                             stem.to_string_lossy().to_string(),
                             value,

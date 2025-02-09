@@ -1,14 +1,17 @@
 use anyhow::Result;
 use common::network::HostAndPort;
 use getset::Getters;
-use manager::{stored::StoredNode, DeleteResourceError};
+use manager::stored::StoredNode;
 use serde::{Deserialize, Serialize};
 use simplelog::info;
 use tokio::{fs, task::JoinHandle};
 use tonic::Status;
 use url::Url;
 
-use crate::storage::{SaveToTomlFile, Storage};
+use crate::{
+    resource::DeleteResourceError,
+    storage::{SaveToTomlFile, Storage},
+};
 
 use super::{
     plugin::BoxedNode,
@@ -38,6 +41,7 @@ pub struct Node {
 }
 
 impl Node {
+    #[allow(clippy::unnecessary_wraps)]
     pub fn tick(&self) -> Result<()> {
         // Always tick the node in the plugin
         self.instance.tick();
@@ -161,7 +165,7 @@ impl From<SetActiveError> for Status {
         match val {
             SetActiveError::NodeInUseByGroup => Status::unavailable("Node in use by some group"),
             SetActiveError::NodeInUseByServer => Status::unavailable("Node in use by some server"),
-            SetActiveError::Error(error) => Status::internal(format!("Error: {}", error)),
+            SetActiveError::Error(error) => Status::internal(format!("Error: {error}")),
         }
     }
 }

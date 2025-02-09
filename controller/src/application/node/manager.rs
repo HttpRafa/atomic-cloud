@@ -4,7 +4,6 @@ use anyhow::Result;
 use simplelog::{error, info, warn};
 use stored::StoredNode;
 use tokio::fs;
-use tonic::Status;
 use url::Url;
 
 use crate::{
@@ -13,7 +12,8 @@ use crate::{
         plugin::{manager::PluginManager, BoxedNode},
         server::manager::ServerManager,
     },
-    storage::{SaveToTomlFile, Storage},
+    resource::{CreateResourceError, DeleteResourceError},
+    storage::Storage,
 };
 
 use super::{Capabilities, Node};
@@ -40,16 +40,13 @@ impl NodeManager {
         {
             info!("Loading node {}", name);
 
-            let plugin = match plugins.get_plugin(value.plugin()) {
-                Some(plugin) => plugin,
-                None => {
-                    warn!(
-                        "Plugin {} is not loaded, skipping node {}",
-                        value.plugin(),
-                        name
-                    );
-                    continue;
-                }
+            let Some(plugin) = plugins.get_plugin(value.plugin()) else {
+                warn!(
+                    "Plugin {} is not loaded, skipping node {}",
+                    value.plugin(),
+                    name
+                );
+                continue;
             };
 
             match plugin
@@ -58,7 +55,7 @@ impl NodeManager {
             {
                 Ok(instance) => {
                     info!("Loaded node {}", name);
-                    nodes.insert(name.clone(), Node::new(&name, value, instance));
+                    nodes.insert(name.clone(), Node::new(&name, &value, instance));
                 }
                 Err(error) => error!("Failed to initialize node {}: {}", name, error),
             }
@@ -92,7 +89,7 @@ impl NodeManager {
     pub async fn create_node(
         &mut self,
         name: &str,
-        plugin: &str,
+        p_name: &str,
         capabilities: &Capabilities,
         controller: &Url,
         plugins: &PluginManager,
@@ -101,11 +98,10 @@ impl NodeManager {
             return Err(CreateResourceError::AlreadyExists);
         }
 
-        let node = StoredNode::new(plugin, capabilities.clone(), controller.clone());
-        let plugin = match plugins.get_plugin(plugin) {
-            Some(plugin) => plugin,
-            None => return Err(CreateResourceError::RequiredPluginNotLoaded),
+        let Some(plugin) = plugins.get_plugin(p_name) else {
+            return Err(CreateResourceError::RequiredPluginNotLoaded);
         };
+        let node = StoredNode::new(p_name, capabilities.clone(), controller.clone());
 
         let instance = match plugin
             .init_node(name, node.capabilities(), node.controller())
@@ -115,13 +111,20 @@ impl NodeManager {
             Err(error) => return Err(CreateResourceError::Error(error)),
         };
 
-        let node = Node::new(name, node, instance);
-        node.save()
-            .await
-            .map_err(CreateResourceError::Error)?;
-        self.nodes.insert(name.to_owned(), node);
+        let node = Node::new(name, &node, instance);
+        node.save().await.map_err(CreateResourceError::Error)?;
+        self.nodes.insert(name.to_string(), node);
         info!("Created node {}", name);
         Ok(())
+    }
+
+    pub fn verify_nodes(&self, names: &[String]) -> bool {
+        for name in names {
+            if !self.nodes.contains_key(name) {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn get_nodes(&self) -> Vec<&Node> {
@@ -141,7 +144,7 @@ impl NodeManager {
 }
 
 impl Node {
-    pub fn new(name: &str, node: StoredNode, instance: BoxedNode) -> Self {
+    pub fn new(name: &str, node: &StoredNode, instance: BoxedNode) -> Self {
         Self {
             plugin: node.plugin().to_string(),
             instance,
@@ -155,14 +158,15 @@ impl Node {
 
 // Ticking
 impl NodeManager {
-    pub async fn tick(&mut self) -> Result<()> {
+    pub fn tick(&mut self) -> Result<()> {
         for node in self.nodes.values() {
             node.tick()?;
         }
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 }
@@ -214,42 +218,4 @@ pub(super) mod stored {
 
     impl LoadFromTomlFile for StoredNode {}
     impl SaveToTomlFile for StoredNode {}
-}
-
-pub enum DeleteResourceError {
-    StillActive,
-    StillInUse,
-    NotFound,
-    Error(anyhow::Error),
-}
-
-pub enum CreateResourceError {
-    RequiredPluginNotLoaded,
-    AlreadyExists,
-    Error(anyhow::Error),
-}
-
-impl From<DeleteResourceError> for Status {
-    fn from(val: DeleteResourceError) -> Self {
-        match val {
-            DeleteResourceError::StillActive => {
-                Status::unavailable("Resource is still set to active")
-            }
-            DeleteResourceError::StillInUse => Status::unavailable("Resource is still in use"),
-            DeleteResourceError::NotFound => Status::not_found("Resource not found"),
-            DeleteResourceError::Error(error) => Status::internal(format!("Error: {}", error)),
-        }
-    }
-}
-
-impl From<CreateResourceError> for Status {
-    fn from(val: CreateResourceError) -> Self {
-        match val {
-            CreateResourceError::RequiredPluginNotLoaded => {
-                Status::failed_precondition("Required plugin is not loaded")
-            }
-            CreateResourceError::AlreadyExists => Status::already_exists("Resource already exists"),
-            CreateResourceError::Error(error) => Status::internal(format!("Error: {}", error)),
-        }
-    }
 }

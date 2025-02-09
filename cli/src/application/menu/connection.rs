@@ -35,7 +35,7 @@ impl ConnectionMenu {
                 ConnectionStartMenu::show(&mut profile, &mut connection, profiles).await
             }
             Err(error) => {
-                progress.fail(format!("Failed to connect to the controller: {}", error));
+                progress.fail(format!("Failed to connect to the controller: {error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }

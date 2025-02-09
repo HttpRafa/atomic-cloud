@@ -19,6 +19,7 @@ mod ext;
 pub mod init;
 mod node;
 
+#[allow(clippy::all)]
 pub mod generated {
     use wasmtime::component::bindgen;
 
@@ -163,7 +164,7 @@ impl From<&Capabilities> for bridge::Capabilities {
         bridge::Capabilities {
             memory: *val.memory(),
             max_servers: *val.max_servers(),
-            child: val.child().as_ref().map(|value| value.to_string()),
+            child: val.child().as_ref().map(std::string::ToString::to_string),
         }
     }
 }

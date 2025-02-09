@@ -29,7 +29,7 @@ impl GetNodesMenu {
                 MenuResult::Success
             }
             Err(error) => {
-                progress.fail(format!("{}", error));
+                progress.fail(format!("{error}"));
                 progress.end();
                 MenuResult::Failed(error)
             }

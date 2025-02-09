@@ -32,9 +32,8 @@ impl GenericTask for CreateNodeTask {
 #[async_trait]
 impl GenericTask for GetNodeTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let node = match controller.nodes.get_node(&self.0) {
-            Some(node) => node,
-            None => return Task::new_err(Status::not_found("Node not found")),
+        let Some(node) = controller.nodes.get_node(&self.0) else {
+            return Task::new_err(Status::not_found("Node not found"));
         };
 
         Task::new_ok(Item::from(node))

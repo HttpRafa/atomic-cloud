@@ -17,7 +17,7 @@ impl GenericTask for GetUsersTask {
                 .users
                 .get_users()
                 .iter()
-                .map(|user| user.into())
+                .map(std::convert::Into::into)
                 .collect(),
         })
     }

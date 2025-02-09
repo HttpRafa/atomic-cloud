@@ -75,6 +75,7 @@ impl Task {
             .map_err(|_| anyhow!("Failed to send task result to the task sender"))
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn new_ok<T: Send + 'static>(value: T) -> Result<BoxedAny> {
         Ok(Box::new(value))
     }
@@ -83,6 +84,7 @@ impl Task {
         Self::new_ok(())
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn new_err(value: Status) -> Result<BoxedAny> {
         Ok(Box::new(value))
     }

@@ -1,8 +1,6 @@
 use getset::Getters;
 
-use super::{
-    permissions::Permission, server::AuthServer, AuthType, GenericAuthorization, OwnedAuthorization,
-};
+use super::{server::AuthServer, AuthType, GenericAuthorization, OwnedAuthorization};
 
 #[derive(Getters)]
 pub struct AdminUser {
@@ -11,8 +9,8 @@ pub struct AdminUser {
 }
 
 impl GenericAuthorization for AdminUser {
-    fn is_allowed(&self, _permission: Permission) -> bool {
-        true // TODO: Implement permission check
+    fn is_allowed(&self, _flag: u32) -> bool {
+        true
     }
 
     fn get_user(&self) -> Option<&AdminUser> {

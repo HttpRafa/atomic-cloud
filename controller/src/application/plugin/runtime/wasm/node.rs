@@ -93,7 +93,10 @@ impl GenericNode for PluginNode {
     }
 
     fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>> {
-        let ports = ports.iter().map(|port| port.into()).collect::<Vec<_>>();
+        let ports = ports
+            .iter()
+            .map(std::convert::Into::into)
+            .collect::<Vec<_>>();
 
         let (bindings, store, instance) = self.get();
         spawn(async move {
@@ -194,9 +197,13 @@ impl From<&Spec> for bridge::Spec {
             settings: val
                 .settings()
                 .iter()
-                .map(|setting| setting.into())
+                .map(std::convert::Into::into)
                 .collect(),
-            environment: val.environment().iter().map(|env| env.into()).collect(),
+            environment: val
+                .environment()
+                .iter()
+                .map(std::convert::Into::into)
+                .collect(),
             disk_retention: val.disk_retention().into(),
             image: val.image().clone(),
         }
@@ -219,7 +226,7 @@ impl From<&Resources> for bridge::Resources {
 impl From<&Allocation> for bridge::Allocation {
     fn from(val: &Allocation) -> Self {
         bridge::Allocation {
-            ports: val.ports.iter().map(|address| address.into()).collect(),
+            ports: val.ports.iter().map(std::convert::Into::into).collect(),
             resources: val.resources().into(),
             spec: (&val.spec).into(),
         }

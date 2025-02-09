@@ -90,9 +90,8 @@ impl ClientService for ClientServiceImpl {
                 let request = request.into_inner();
 
                 let name = request.name;
-                let uuid = match Uuid::from_str(&request.id) {
-                    Ok(uuid) => uuid,
-                    Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
+                let Ok(uuid) = Uuid::from_str(&request.id) else {
+                    return Err(Status::invalid_argument("Invalid UUID"));
                 };
 
                 Ok(Box::new(UserConnectedTask(
@@ -111,9 +110,8 @@ impl ClientService for ClientServiceImpl {
             Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
                 let request = request.into_inner();
 
-                let uuid = match Uuid::from_str(&request.id) {
-                    Ok(uuid) => uuid,
-                    Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
+                let Ok(uuid) = Uuid::from_str(&request.id) else {
+                    return Err(Status::invalid_argument("Invalid UUID"));
                 };
 
                 Ok(Box::new(UserDisconnectedTask(auth, uuid)))
@@ -227,6 +225,6 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(VERSION.protocol))
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
-        Ok(Response::new(format!("{}", VERSION)))
+        Ok(Response::new(format!("{VERSION}")))
     }
 }

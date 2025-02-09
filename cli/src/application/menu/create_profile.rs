@@ -68,14 +68,14 @@ impl CreateProfileMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("Failed to connect to the controller: {}", error));
+                progress.fail(format!("Failed to connect to the controller: {error}"));
                 progress.end();
                 return MenuResult::Failed(error);
             }
         }
-        progress.text(format!("Saving profile \"{}\"", name));
+        progress.text(format!("Saving profile \"{name}\""));
         if let Err(error) = profiles.create_profile(&profile).await {
-            progress.fail(format!("Failed to create profile: {}", error));
+            progress.fail(format!("Failed to create profile: {error}"));
             progress.end();
             return MenuResult::Failed(error);
         }

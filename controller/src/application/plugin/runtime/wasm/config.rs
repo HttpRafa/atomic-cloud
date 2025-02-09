@@ -22,6 +22,10 @@ pub struct PluginsConfig {
     plugins: Vec<PluginConfig>,
 }
 
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "Mybe refactor this in the future to use bitflags"
+)]
 #[derive(Serialize, Deserialize)]
 pub struct PluginConfig {
     name: String,

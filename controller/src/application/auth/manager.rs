@@ -67,7 +67,7 @@ impl AuthManager {
         token
     }
 
-    pub async fn register_user(&self, username: &str) -> Option<String> {
+    pub async fn _register_user(&self, username: &str) -> Option<String> {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),

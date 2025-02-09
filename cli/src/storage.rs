@@ -42,7 +42,7 @@ impl Storage {
         Storage::cli_folder().join(PROFILES_DIRECTORY)
     }
     pub fn profile_file(name: &str) -> PathBuf {
-        Storage::profiles_folder().join(format!("{}.toml", name))
+        Storage::profiles_folder().join(format!("{name}.toml"))
     }
 
     pub async fn for_each_content_toml<T: LoadFromTomlFile>(
@@ -60,7 +60,7 @@ impl Storage {
                     let path = entry.path();
                     match (path.file_name(), path.file_stem()) {
                         (Some(name), Some(stem)) => result.push((
-                            path.to_owned(),
+                            path.clone(),
                             name.to_string_lossy().to_string(),
                             stem.to_string_lossy().to_string(),
                             value,

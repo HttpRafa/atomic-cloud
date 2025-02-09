@@ -5,11 +5,12 @@ use generated::exports::plugin::system::bridge;
 use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
+use url::Url;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
 use crate::application::{
-    node::{Capabilities, RemoteController},
+    node::Capabilities,
     plugin::{BoxedNode, GenericPlugin, Information},
 };
 
@@ -63,7 +64,7 @@ impl GenericPlugin for Plugin {
         &self,
         name: &str,
         capabilities: &Capabilities,
-        remote: &RemoteController,
+        controller: &Url,
     ) -> Result<BoxedNode> {
         let (bindings, store, instance) = self.get();
         match bindings
@@ -74,7 +75,7 @@ impl GenericPlugin for Plugin {
                 instance,
                 name,
                 &capabilities.into(),
-                &remote.into(),
+                controller.as_ref(),
             )
             .await?
         {
@@ -163,14 +164,6 @@ impl From<&Capabilities> for bridge::Capabilities {
             memory: *val.memory(),
             max_servers: *val.max_servers(),
             child: val.child().as_ref().map(|value| value.to_string()),
-        }
-    }
-}
-
-impl From<&RemoteController> for bridge::RemoteController {
-    fn from(val: &RemoteController) -> Self {
-        bridge::RemoteController {
-            address: val.address().to_string(),
         }
     }
 }

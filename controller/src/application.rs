@@ -25,9 +25,9 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-mod group;
-mod node;
-mod plugin;
+pub mod group;
+pub mod node;
+pub mod plugin;
 pub mod server;
 pub mod subscriber;
 pub mod user;
@@ -137,7 +137,7 @@ impl Controller {
             .await?;
 
         // Tick user manager
-        self.users.tick().await?;
+        self.users.tick(&self.config).await?;
 
         // Tick subscriber manager
         self.shared.subscribers.tick().await?;

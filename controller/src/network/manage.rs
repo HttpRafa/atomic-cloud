@@ -12,7 +12,7 @@ use transfer::TransferUsersTask;
 use user::GetUsersTask;
 
 use crate::{
-    application::{auth::AuthType, Shared, TaskSender},
+    application::{auth::AuthType, node::Capabilities, Shared, TaskSender},
     task::Task,
     VERSION,
 };
@@ -109,8 +109,22 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::node::Item>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(CreateNodeTask()))
+            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+                let request = request.into_inner();
+
+                let capabilities = Capabilities::new(request.memory, request.max, request.child);
+                let controller = request
+                    .ctrl_addr
+                    .parse()
+                    .map_err(|_| Status::invalid_argument("Invalid controller address provided"))?;
+                let plugin = request.plugin;
+
+                Ok(Box::new(CreateNodeTask(
+                    request.name,
+                    plugin,
+                    capabilities,
+                    controller,
+                )))
             })
             .await?,
         ))
@@ -120,9 +134,16 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::node::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::Item, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetNodeTask()))
-            })
+            Task::execute::<manage::node::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetNodeTask(request)))
+                },
+            )
             .await?,
         ))
     }

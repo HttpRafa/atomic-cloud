@@ -2,9 +2,10 @@ use anyhow::Result;
 use common::network::HostAndPort;
 use tokio::task::JoinHandle;
 use tonic::async_trait;
+use url::Url;
 
 use super::{
-    node::{Capabilities, RemoteController},
+    node::Capabilities,
     server::{manager::StartRequest, Server},
 };
 
@@ -21,7 +22,7 @@ pub trait GenericPlugin {
         &self,
         name: &str,
         capabilities: &Capabilities,
-        remote: &RemoteController,
+        controller: &Url,
     ) -> Result<BoxedNode>;
 
     /* Shutdown */

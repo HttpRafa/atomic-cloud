@@ -5,15 +5,18 @@ use simplelog::{error, info, warn};
 use stored::StoredNode;
 use tokio::fs;
 use tonic::Status;
+use url::Url;
 
 use crate::{
     application::{
-        group::manager::GroupManager, plugin::{manager::PluginManager, BoxedNode}, server::manager::ServerManager
+        group::manager::GroupManager,
+        plugin::{manager::PluginManager, BoxedNode},
+        server::manager::ServerManager,
     },
-    storage::Storage,
+    storage::{SaveToTomlFile, Storage},
 };
 
-use super::Node;
+use super::{Capabilities, Node};
 
 pub struct NodeManager {
     nodes: HashMap<String, Node>,
@@ -86,6 +89,41 @@ impl NodeManager {
         Ok(())
     }
 
+    pub async fn create_node(
+        &mut self,
+        name: &str,
+        plugin: &str,
+        capabilities: &Capabilities,
+        controller: &Url,
+        plugins: &PluginManager,
+    ) -> Result<(), CreateResourceError> {
+        if self.nodes.contains_key(name) {
+            return Err(CreateResourceError::AlreadyExists);
+        }
+
+        let node = StoredNode::new(plugin, capabilities.clone(), controller.clone());
+        let plugin = match plugins.get_plugin(plugin) {
+            Some(plugin) => plugin,
+            None => return Err(CreateResourceError::RequiredPluginNotLoaded),
+        };
+
+        let instance = match plugin
+            .init_node(name, node.capabilities(), node.controller())
+            .await
+        {
+            Ok(instance) => instance,
+            Err(error) => return Err(CreateResourceError::Error(error)),
+        };
+
+        let node = Node::new(name, node, instance);
+        node.save()
+            .await
+            .map_err(CreateResourceError::Error)?;
+        self.nodes.insert(name.to_owned(), node);
+        info!("Created node {}", name);
+        Ok(())
+    }
+
     pub fn get_nodes(&self) -> Vec<&Node> {
         self.nodes.values().collect()
     }
@@ -132,9 +170,10 @@ impl NodeManager {
 pub(super) mod stored {
     use getset::Getters;
     use serde::{Deserialize, Serialize};
+    use url::Url;
 
     use crate::{
-        application::node::{Capabilities, LifecycleStatus, Node, RemoteController},
+        application::node::{Capabilities, LifecycleStatus, Node},
         storage::{LoadFromTomlFile, SaveToTomlFile},
     };
 
@@ -150,10 +189,19 @@ pub(super) mod stored {
 
         /* Controller */
         #[getset(get = "pub")]
-        controller: RemoteController,
+        controller: Url,
     }
 
     impl StoredNode {
+        pub fn new(plugin: &str, capabilities: Capabilities, controller: Url) -> Self {
+            Self {
+                plugin: plugin.to_string(),
+                capabilities,
+                status: LifecycleStatus::Inactive,
+                controller,
+            }
+        }
+
         pub fn from(node: &Node) -> Self {
             Self {
                 plugin: node.plugin.clone(),
@@ -175,6 +223,12 @@ pub enum DeleteResourceError {
     Error(anyhow::Error),
 }
 
+pub enum CreateResourceError {
+    RequiredPluginNotLoaded,
+    AlreadyExists,
+    Error(anyhow::Error),
+}
+
 impl From<DeleteResourceError> for Status {
     fn from(val: DeleteResourceError) -> Self {
         match val {
@@ -184,6 +238,18 @@ impl From<DeleteResourceError> for Status {
             DeleteResourceError::StillInUse => Status::unavailable("Resource is still in use"),
             DeleteResourceError::NotFound => Status::not_found("Resource not found"),
             DeleteResourceError::Error(error) => Status::internal(format!("Error: {}", error)),
+        }
+    }
+}
+
+impl From<CreateResourceError> for Status {
+    fn from(val: CreateResourceError) -> Self {
+        match val {
+            CreateResourceError::RequiredPluginNotLoaded => {
+                Status::failed_precondition("Required plugin is not loaded")
+            }
+            CreateResourceError::AlreadyExists => Status::already_exists("Resource already exists"),
+            CreateResourceError::Error(error) => Status::internal(format!("Error: {}", error)),
         }
     }
 }

@@ -20,17 +20,21 @@ pub mod manager;
 #[derive(Getters)]
 pub struct Node {
     /* Plugin */
+    #[getset(get = "pub")]
     plugin: String,
     instance: BoxedNode,
 
     /* Settings */
     #[getset(get = "pub")]
     name: String,
+    #[getset(get = "pub")]
     capabilities: Capabilities,
+    #[getset(get = "pub")]
     status: LifecycleStatus,
 
     /* Controller */
-    controller: RemoteController,
+    #[getset(get = "pub")]
+    controller: Url,
 }
 
 impl Node {
@@ -130,12 +134,6 @@ pub enum LifecycleStatus {
     Active,
 }
 
-#[derive(Serialize, Deserialize, Clone, Getters)]
-pub struct RemoteController {
-    #[getset(get = "pub")]
-    address: Url,
-}
-
 pub enum SetActiveError {
     NodeInUseByGroup,
     NodeInUseByServer,
@@ -145,6 +143,16 @@ pub enum SetActiveError {
 impl Allocation {
     pub fn primary_port(&self) -> Option<&HostAndPort> {
         self.ports.first()
+    }
+}
+
+impl Capabilities {
+    pub fn new(memory: Option<u32>, max_servers: Option<u32>, child: Option<String>) -> Self {
+        Self {
+            memory,
+            max_servers,
+            child,
+        }
     }
 }
 

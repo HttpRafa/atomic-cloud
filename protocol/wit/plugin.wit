@@ -114,10 +114,6 @@ interface bridge {
         child: option<string>,
     }
 
-    record remote-controller {
-        address: string,
-    }
-
     record address {
         host: string,
         port: u16,
@@ -171,7 +167,7 @@ interface bridge {
     }
 
     resource generic-node {
-        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: remote-controller);
+        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: string);
         tick: func() -> result<_, scoped-errors>;
         allocate: func(server: server-proposal) -> result<list<address>, error-message>;
         free: func(addresses: list<address>);
@@ -183,7 +179,7 @@ interface bridge {
     resource generic-plugin {
         constructor(cloud-identifier: string);
         init: func() -> information;
-        init-node: func(name: string, capabilities: capabilities, controller: remote-controller) -> result<generic-node, error-message>;
+        init-node: func(name: string, capabilities: capabilities, controller: string) -> result<generic-node, error-message>;
         tick: func() -> result<_, scoped-errors>;
         shutdown: func() -> result<_, scoped-errors>;
     }

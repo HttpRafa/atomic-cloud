@@ -4,10 +4,10 @@ use anyhow::Result;
 use simplelog::{info, warn};
 use uuid::Uuid;
 
-use crate::application::{
+use crate::{application::{
     auth::ActionResult,
     server::{NameAndUuid, Server},
-};
+}, config::Config};
 
 use super::{CurrentServer, User};
 
@@ -122,7 +122,21 @@ impl UserManager {
 
 // Ticking
 impl UserManager {
-    pub async fn tick(&mut self) -> Result<()> {
+    pub async fn tick(&mut self, config: &Config) -> Result<()> {
+        self.users.retain(|_, user| {
+            if let CurrentServer::Transfering((timestamp, to)) = &user.server {
+                if timestamp.elapsed() >= *config.transfer_timeout() {
+                    warn!(
+                        "User {}[{}] transfer to server {} timed out",
+                        user.id,
+                        user.id.uuid(),
+                        to,
+                    );
+                    return false;
+                }
+            }
+            true
+        });
         Ok(())
     }
 

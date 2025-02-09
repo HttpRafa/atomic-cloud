@@ -77,7 +77,7 @@ pub enum DiskRetention {
     Permanent,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum State {
     Starting,
     Preparing,

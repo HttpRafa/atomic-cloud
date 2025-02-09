@@ -91,7 +91,7 @@ impl ClientService for ClientServiceImpl {
 
                 let name = request.name;
                 let Ok(uuid) = Uuid::from_str(&request.id) else {
-                    return Err(Status::invalid_argument("Invalid UUID"));
+                    return Err(Status::invalid_argument("Invalid UUID provided"));
                 };
 
                 Ok(Box::new(UserConnectedTask(
@@ -111,7 +111,7 @@ impl ClientService for ClientServiceImpl {
                 let request = request.into_inner();
 
                 let Ok(uuid) = Uuid::from_str(&request.id) else {
-                    return Err(Status::invalid_argument("Invalid UUID"));
+                    return Err(Status::invalid_argument("Invalid UUID provided"));
                 };
 
                 Ok(Box::new(UserDisconnectedTask(auth, uuid)))
@@ -133,7 +133,11 @@ impl ClientService for ClientServiceImpl {
                             (Some(target), Type::Server) => {
                                 TransferTarget::Server(match Uuid::from_str(&target) {
                                     Ok(uuid) => uuid,
-                                    Err(_) => return Err(Status::invalid_argument("Invalid UUID")),
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid UUID provided",
+                                        ))
+                                    }
                                 })
                             }
                             (None, Type::Fallback) => TransferTarget::Fallback,
@@ -143,7 +147,9 @@ impl ClientService for ClientServiceImpl {
                                 ))
                             }
                         },
-                        Err(_) => return Err(Status::invalid_argument("Invalid target type")),
+                        Err(_) => {
+                            return Err(Status::invalid_argument("Invalid target type provided"))
+                        }
                     },
                     None => return Err(Status::invalid_argument("Missing target")),
                 };
@@ -152,7 +158,7 @@ impl ClientService for ClientServiceImpl {
                     .into_iter()
                     .map(|id| match Uuid::from_str(&id) {
                         Ok(uuid) => Ok(uuid),
-                        Err(_) => Err(Status::invalid_argument("Invalid UUID")),
+                        Err(_) => Err(Status::invalid_argument("Invalid UUID provided")),
                     })
                     .collect::<Result<Vec<Uuid>, _>>()?;
 

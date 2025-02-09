@@ -10,6 +10,7 @@ use server::{GetServerTask, GetServersTask};
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
 use user::GetUsersTask;
+use uuid::Uuid;
 
 use crate::{
     application::{
@@ -296,7 +297,15 @@ impl ManageService for ManageServiceImpl {
                 AuthType::User,
                 &self.0,
                 request,
-                |_, _| Ok(Box::new(GetServerTask())),
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let Ok(uuid) = Uuid::parse_str(&request) else {
+                        return Err(Status::invalid_argument("Invalid UUID provided"));
+                    };
+
+                    Ok(Box::new(GetServerTask(uuid)))
+                },
             )
             .await?,
         ))

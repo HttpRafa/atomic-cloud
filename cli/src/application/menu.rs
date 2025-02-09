@@ -13,9 +13,9 @@ pub mod start;
 
 pub enum MenuResult {
     Success,
+    Exit,
     Aborted,
     Failed(Error),
-    Exit,
 }
 
 pub struct MenuUtils;

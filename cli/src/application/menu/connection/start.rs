@@ -82,7 +82,7 @@ impl ConnectionStartMenu {
     ) -> MenuResult {
         loop {
             match Self::show_internal(profile, connection, profiles).await {
-                MenuResult::Aborted => return MenuResult::Success,
+                MenuResult::Aborted | MenuResult::Exit => return MenuResult::Success,
                 MenuResult::Failed(error) => return MenuResult::Failed(error),
                 _ => {}
             }

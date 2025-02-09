@@ -8,8 +8,7 @@ use tonic::Status;
 
 use crate::{
     application::{
-        plugin::{manager::PluginManager, BoxedNode},
-        server::manager::ServerManager,
+        group::manager::GroupManager, plugin::{manager::PluginManager, BoxedNode}, server::manager::ServerManager
     },
     storage::Storage,
 };
@@ -70,8 +69,12 @@ impl NodeManager {
         &mut self,
         name: &str,
         servers: &ServerManager,
+        groups: &GroupManager,
     ) -> Result<(), DeleteResourceError> {
         if servers.is_node_used(name) {
+            return Err(DeleteResourceError::StillInUse);
+        }
+        if groups.is_node_used(name) {
             return Err(DeleteResourceError::StillInUse);
         }
         let node = self

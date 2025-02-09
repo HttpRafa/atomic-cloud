@@ -96,7 +96,8 @@ impl Storage {
 
     pub async fn for_each_content(path: &Path) -> Result<Vec<(PathBuf, String, String)>> {
         let mut result = Vec::new();
-        while let Some(entry) = fs::read_dir(path).await?.next_entry().await? {
+        let mut directory = fs::read_dir(path).await?;
+        while let Some(entry) = directory.next_entry().await? {
             if entry.path().is_dir() {
                 continue;
             }
@@ -120,7 +121,8 @@ impl Storage {
         error_message: &str,
     ) -> Result<Vec<(PathBuf, String, String, T)>> {
         let mut result = Vec::new();
-        while let Some(entry) = fs::read_dir(path).await?.next_entry().await? {
+        let mut directory = fs::read_dir(path).await?;
+        while let Some(entry) = directory.next_entry().await? {
             if entry.path().is_dir() {
                 continue;
             }

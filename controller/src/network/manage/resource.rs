@@ -50,7 +50,7 @@ impl GenericTask for DeleteResourceTask {
             Category::Node => {
                 if let Err(error) = controller
                     .nodes
-                    .delete_node(&self.1, &controller.servers)
+                    .delete_node(&self.1, &controller.servers, &controller.groups)
                     .await
                 {
                     return Task::new_err(error.into());

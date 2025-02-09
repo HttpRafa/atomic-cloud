@@ -28,7 +28,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 toml = "0.8.19"
 
 # Async runtime
-tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 
 # API
 url = { version = "2.5.4", features = ["serde"] }

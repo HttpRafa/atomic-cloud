@@ -35,7 +35,7 @@ async fn main() {
         info!("Starting cloud version v{}...", VERSION);
         info!("Initializing controller...");
 
-        let mut controller = Controller::init(Config::parse()?).await?;
+        let mut controller = Controller::init(Config::parse().await?).await?;
         info!("Loaded cloud in {:.2?}", beginning.elapsed());
         controller.run().await?;
 

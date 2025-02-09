@@ -1,16 +1,18 @@
 use anyhow::Result;
-use common::{config::SaveToTomlFile, network::HostAndPort};
+use common::network::HostAndPort;
 use getset::Getters;
-use manager::stored::StoredNode;
+use manager::{stored::StoredNode, DeleteResourceError};
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
+use simplelog::info;
+use tokio::{fs, task::JoinHandle};
 use tonic::Status;
 use url::Url;
 
-use crate::storage::Storage;
+use crate::storage::{SaveToTomlFile, Storage};
 
 use super::{
-    group::manager::GroupManager, plugin::BoxedNode, server::{manager::{ServerManager, StartRequest}, Resources, Server, Spec}
+    plugin::BoxedNode,
+    server::{manager::StartRequest, Resources, Server, Spec},
 };
 
 pub mod manager;
@@ -33,32 +35,44 @@ pub struct Node {
 
 impl Node {
     pub fn tick(&self) -> Result<()> {
+        // Always tick the node in the plugin
+        self.instance.tick();
+
         if self.status == LifecycleStatus::Inactive {
             // Do not tick this node because it is inactive
             return Ok(());
         }
 
-        self.instance.tick();
         Ok(())
     }
 
-    pub fn set_active(&mut self, active: bool, servers: &ServerManager, groups: &GroupManager) -> Result<(), SetActiveError>{
+    pub async fn delete(&mut self) -> Result<(), DeleteResourceError> {
+        if self.status == LifecycleStatus::Active {
+            return Err(DeleteResourceError::StillActive);
+        }
+        let path = Storage::group_file(&self.name);
+        if path.exists() {
+            fs::remove_file(path)
+                .await
+                .map_err(|error| DeleteResourceError::Error(error.into()))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn set_active(&mut self, active: bool) -> Result<()> {
         if active && self.status == LifecycleStatus::Inactive {
             // Activate node
 
             self.status = LifecycleStatus::Active;
-            self.save().map_err(|error| SetActiveError::Error(error))?;
+            self.save().await?;
+            info!("Node {} is now active", self.name);
         } else if !active && self.status == LifecycleStatus::Active {
             // Retire node
-            if groups.is_node_used(&self.name) {
-                return Err(SetActiveError::NodeInUseByGroup);
-            }
-            if servers.is_node_used(&self.name) {
-                return Err(SetActiveError::NodeInUseByServer);
-            }
 
             self.status = LifecycleStatus::Inactive;
-            self.save().map_err(|error| SetActiveError::Error(error))?;
+            self.save().await?;
+            info!("Node {} is now inactive", self.name);
         }
 
         Ok(())
@@ -80,8 +94,10 @@ impl Node {
         self.instance.stop(server)
     }
 
-    pub fn save(&self) -> Result<()> {
-        StoredNode::from(self).save(&Storage::node_file(&self.name), true)
+    pub async fn save(&self) -> Result<()> {
+        StoredNode::from(self)
+            .save(&Storage::node_file(&self.name), true)
+            .await
     }
 }
 
@@ -136,7 +152,7 @@ impl From<SetActiveError> for Status {
     fn from(val: SetActiveError) -> Self {
         match val {
             SetActiveError::NodeInUseByGroup => Status::unavailable("Node in use by some group"),
-            SetActiveError::NodeInUseByServer => Status::not_found("Node in use by some server"),
+            SetActiveError::NodeInUseByServer => Status::unavailable("Node in use by some server"),
             SetActiveError::Error(error) => Status::internal(format!("Error: {}", error)),
         }
     }

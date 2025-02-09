@@ -1,18 +1,23 @@
 use anyhow::{anyhow, Result};
-use common::{allocator::NumberAllocator, config::SaveToTomlFile};
+use common::allocator::NumberAllocator;
 use getset::Getters;
 use manager::stored::StoredGroup;
 use serde::{Deserialize, Serialize};
-use simplelog::debug;
+use simplelog::{debug, info};
+use tokio::fs;
 use uuid::Uuid;
 
-use crate::{application::server::manager::StopRequest, config::Config, storage::Storage};
+use crate::{
+    application::server::manager::StopRequest,
+    config::Config,
+    storage::{SaveToTomlFile, Storage},
+};
 
 use super::{
-    node::LifecycleStatus,
+    node::{manager::DeleteResourceError, LifecycleStatus},
     server::{
         manager::{ServerManager, StartRequest},
-        Resources, Server, Spec,
+        NameAndUuid, Resources, Server, Spec,
     },
 };
 
@@ -48,11 +53,11 @@ impl Group {
 
         let mut target_count = self.constraints.minimum;
 
-        // Apply scling policy
+        // Apply scaling policy
         if self.scaling.enabled {
             self.servers.retain(|server| match server {
                 AssociatedServer::Active(server) => {
-                    servers.get_server(server).is_some_and(|server| {
+                    servers.get_server(server.uuid()).is_some_and(|server| {
                         if *server.connected_users() as f32 / *self.spec.max_players() as f32
                             >= self.scaling.start_threshold
                         {
@@ -69,7 +74,7 @@ impl Group {
                 let mut requests = vec![];
                 self.servers.retain(|server| match server {
                     AssociatedServer::Active(server) => {
-                        servers.get_server_mut(server).is_some_and(|server| {
+                        servers.get_server_mut(server.uuid()).is_some_and(|server| {
                             if server.connected_users() == &0 {
                                 if server.flags().should_stop() && to_stop > 0 {
                                     debug!(
@@ -121,7 +126,7 @@ impl Group {
                 &self.spec,
             );
             self.servers
-                .push(AssociatedServer::Queueing(*request.id().uuid()));
+                .push(AssociatedServer::Queueing(request.id().clone()));
             debug!(
                 "Scheduled server({}) start for group {}",
                 request.id(),
@@ -133,37 +138,75 @@ impl Group {
         Ok(())
     }
 
-    pub fn set_active(&mut self, active: bool) {
-        if active {
-            
-        } else {
-
+    pub async fn delete(&mut self) -> Result<(), DeleteResourceError> {
+        if self.status == LifecycleStatus::Active {
+            return Err(DeleteResourceError::StillActive);
         }
+        if !self.servers.is_empty() {
+            return Err(DeleteResourceError::StillInUse);
+        }
+        let path = Storage::group_file(&self.name);
+        if path.exists() {
+            fs::remove_file(path)
+                .await
+                .map_err(|error| DeleteResourceError::Error(error.into()))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn set_active(&mut self, active: bool, servers: &mut ServerManager) -> Result<()> {
+        if active && self.status == LifecycleStatus::Inactive {
+            // Activate group
+
+            self.status = LifecycleStatus::Active;
+            self.save().await?;
+            info!("Group {} is now active", self.name);
+        } else if !active && self.status == LifecycleStatus::Active {
+            // Retire group
+            // Stop all servers and cancel all starts
+            self.servers.retain(|server| match server {
+                AssociatedServer::Active(server) => {
+                    servers.schedule_stop(StopRequest::new(None, server.clone()));
+                    true
+                }
+                AssociatedServer::Queueing(server) => {
+                    servers.cancel_start(server.uuid());
+                    false
+                }
+            });
+
+            self.status = LifecycleStatus::Inactive;
+            self.save().await?;
+            info!("Group {} is now inactive", self.name);
+        }
+
+        Ok(())
     }
 
     pub fn find_free_server<'a>(&self, servers: &'a ServerManager) -> Option<&'a Server> {
         self.servers.iter().find_map(|server| match server {
-            AssociatedServer::Active(server) => servers.get_server(server),
+            AssociatedServer::Active(server) => servers.get_server(server.uuid()),
             _ => None,
         })
     }
 
-    pub fn set_server_active(&mut self, server_uuid: &Uuid) {
+    pub fn set_server_active(&mut self, id: &NameAndUuid) {
         self.servers.retain(|server| {
-            if let AssociatedServer::Queueing(uuid) = server {
-                if uuid == server_uuid {
+            if let AssociatedServer::Queueing(server) = server {
+                if server.uuid() == id.uuid() {
                     return false;
                 }
             }
             true
         });
-        self.servers.push(AssociatedServer::Active(*server_uuid));
+        self.servers.push(AssociatedServer::Active(id.clone()));
     }
 
-    pub fn remove_server(&mut self, server_uuid: &Uuid) {
+    pub fn remove_server(&mut self, uuid: &Uuid) {
         self.servers.retain(|server| {
-            if let AssociatedServer::Active(uuid) = server {
-                if uuid == server_uuid {
+            if let AssociatedServer::Active(server) = server {
+                if server.uuid() == uuid {
                     return false;
                 }
             }
@@ -171,8 +214,10 @@ impl Group {
         });
     }
 
-    pub fn save(&self) -> Result<()> {
-        StoredGroup::from(self).save(&Storage::group_file(&self.name), true)
+    pub async fn save(&self) -> Result<()> {
+        StoredGroup::from(self)
+            .save(&Storage::group_file(&self.name), true)
+            .await
     }
 }
 
@@ -191,6 +236,6 @@ pub struct ScalingPolicy {
 }
 
 pub enum AssociatedServer {
-    Queueing(Uuid),
-    Active(Uuid),
+    Queueing(NameAndUuid),
+    Active(NameAndUuid),
 }

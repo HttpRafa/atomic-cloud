@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
-use common::file::for_each_content;
 use simplelog::{error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
@@ -26,8 +25,8 @@ pub async fn init_wasm_plugins(
     plugins: &mut HashMap<String, BoxedPlugin>,
 ) -> Result<()> {
     // Verify and load required configuration files
-    verify_engine_config()?;
-    let plugins_config = PluginsConfig::parse()?;
+    verify_engine_config().await?;
+    let plugins_config = PluginsConfig::parse().await?;
 
     let directory = Storage::plugins_directory();
     if !directory.exists() {
@@ -35,7 +34,7 @@ pub async fn init_wasm_plugins(
     }
 
     let amount = plugins.len();
-    for (path, file_name, name) in for_each_content(&directory)? {
+    for (path, file_name, name) in Storage::for_each_content(&directory).await? {
         if !file_name.ends_with(".wasm") {
             continue;
         }

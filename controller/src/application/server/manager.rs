@@ -74,6 +74,11 @@ impl ServerManager {
         self.servers.get(uuid).map(|server| server.id.clone())
     }
 
+    pub fn cancel_start(&mut self, uuid: &Uuid) {
+        self.start_requests
+            .retain(|request| request.id.uuid() != uuid);
+    }
+
     pub fn schedule_start(&mut self, request: StartRequest) {
         self.start_requests.push(request);
     }

@@ -1,13 +1,16 @@
 use std::{collections::HashMap, vec};
 
 use anyhow::Result;
-use common::{allocator::NumberAllocator, file::for_each_content_toml};
+use common::allocator::NumberAllocator;
 use simplelog::{info, warn};
 use stored::StoredGroup;
 use tokio::fs;
 
 use crate::{
-    application::{node::manager::NodeManager, server::manager::ServerManager},
+    application::{
+        node::manager::{DeleteResourceError, NodeManager},
+        server::manager::ServerManager,
+    },
     config::Config,
     storage::Storage,
 };
@@ -28,8 +31,11 @@ impl GroupManager {
             fs::create_dir_all(&directory).await?;
         }
 
-        for (_, _, name, mut value) in
-            for_each_content_toml::<StoredGroup>(&directory, "Failed to read group from file")?
+        for (_, _, name, mut value) in Storage::for_each_content_toml::<StoredGroup>(
+            &directory,
+            "Failed to read group from file",
+        )
+        .await?
         {
             info!("Loading group {}", name);
 
@@ -49,9 +55,21 @@ impl GroupManager {
         Ok(Self { groups })
     }
 
+    pub async fn delete_group(&mut self, name: &str) -> Result<(), DeleteResourceError> {
+        let group = self
+            .get_group_mut(name)
+            .ok_or(DeleteResourceError::NotFound)?;
+        group.delete().await?;
+        self.groups.remove(name);
+        info!("Deleted group {}", name);
+        Ok(())
+    }
+
     pub fn is_node_used(&self, name: &str) -> bool {
         let name = name.to_string();
-        self.groups.values().any(|group| group.nodes.contains(&name))
+        self.groups
+            .values()
+            .any(|group| group.nodes.contains(&name))
     }
 
     pub fn get_groups(&self) -> Vec<&Group> {
@@ -97,14 +115,16 @@ impl GroupManager {
 }
 
 pub(super) mod stored {
-    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use getset::{Getters, MutGetters};
     use serde::{Deserialize, Serialize};
 
-    use crate::application::{
-        group::{Group, ScalingPolicy, StartConstraints},
-        node::LifecycleStatus,
-        server::{Resources, Spec},
+    use crate::{
+        application::{
+            group::{Group, ScalingPolicy, StartConstraints},
+            node::LifecycleStatus,
+            server::{Resources, Spec},
+        },
+        storage::{LoadFromTomlFile, SaveToTomlFile},
     };
 
     #[derive(Serialize, Deserialize, Getters, MutGetters)]
@@ -139,7 +159,6 @@ pub(super) mod stored {
                 spec: group.spec.clone(),
             }
         }
-        
     }
 
     impl LoadFromTomlFile for StoredGroup {}

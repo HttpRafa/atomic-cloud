@@ -1,10 +1,10 @@
-use std::{fs, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 
 use anyhow::Result;
-use common::config::LoadFromTomlFile;
 use serde::{Deserialize, Serialize};
+use tokio::fs;
 
-use crate::storage::Storage;
+use crate::storage::{LoadFromTomlFile, Storage};
 
 const DEFAULT_CONFIG: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
@@ -31,16 +31,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn parse() -> Result<Self> {
+    pub async fn parse() -> Result<Self> {
         let path = Storage::primary_config_file();
         if path.exists() {
-            Self::from_file(&path)
+            Self::from_file(&path).await
         } else {
             if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).await?;
             }
-            fs::write(&path, DEFAULT_CONFIG)?;
-            Self::from_file(&path)
+            fs::write(&path, DEFAULT_CONFIG).await?;
+            Self::from_file(&path).await
         }
     }
 

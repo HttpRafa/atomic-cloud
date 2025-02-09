@@ -1,67 +1,24 @@
-use std::{
-    fs::{self},
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use anyhow::Result;
-use simplelog::warn;
+use serde::{de::DeserializeOwned, Serialize};
 
-use crate::config::LoadFromTomlFile;
-
-pub fn for_each_content(path: &Path) -> Result<Vec<(PathBuf, String, String)>> {
-    Ok(fs::read_dir(path)?
-        .filter_map(|entry| {
-            entry
-                .ok()
-                .filter(|entry| !entry.path().is_dir())
-                .and_then(|entry| {
-                    let path = entry.path();
-                    match (path.file_name(), path.file_stem()) {
-                        (Some(name), Some(stem)) => Some((
-                            path.to_owned(),
-                            name.to_string_lossy().to_string(),
-                            stem.to_string_lossy().to_string(),
-                        )),
-                        _ => {
-                            warn!("Failed to read file names: {:?}", path);
-                            None
-                        }
-                    }
-                })
-        })
-        .collect())
+pub trait SyncSaveToTomlFile: Serialize {
+    fn save(&self, path: &Path, create_parent: bool) -> Result<()> {
+        if create_parent {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+        fs::write(path, toml::to_string(self)?)?;
+        Ok(())
+    }
 }
 
-pub fn for_each_content_toml<T: LoadFromTomlFile>(
-    path: &Path,
-    error_message: &str,
-) -> Result<Vec<(PathBuf, String, String, T)>> {
-    Ok(fs::read_dir(path)?
-        .filter_map(|entry| {
-            entry
-                .ok()
-                .filter(|entry| !entry.path().is_dir())
-                .and_then(|entry| match T::from_file(&entry.path()) {
-                    Ok(value) => {
-                        let path = entry.path();
-                        match (path.file_name(), path.file_stem()) {
-                            (Some(name), Some(stem)) => Some((
-                                path.to_owned(),
-                                name.to_string_lossy().to_string(),
-                                stem.to_string_lossy().to_string(),
-                                value,
-                            )),
-                            _ => {
-                                warn!("Failed to read file names: {:?}", path);
-                                None
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        warn!("{}@{:?}: {:?}", error_message, entry.path(), error);
-                        None
-                    }
-                })
-        })
-        .collect())
+pub trait SyncLoadFromTomlFile: DeserializeOwned {
+    fn from_file(path: &Path) -> Result<Self> {
+        let data = fs::read_to_string(path)?;
+        let config = toml::from_str(&data)?;
+        Ok(config)
+    }
 }

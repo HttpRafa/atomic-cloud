@@ -2,7 +2,9 @@ use anyhow::Result;
 use tonic::async_trait;
 
 use crate::{
-    application::{server::Server, Controller}, network::proto::manage::server::{List, Short}, task::{BoxedAny, GenericTask, Task}
+    application::{server::Server, Controller},
+    network::proto::manage::server::{List, Short},
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct GetServerTask();

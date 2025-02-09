@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use common::file::for_each_content_toml;
 use simplelog::{error, info, warn};
 use stored::StoredNode;
 use tokio::fs;
+use tonic::Status;
 
 use crate::{
-    application::plugin::{manager::PluginManager, BoxedNode},
+    application::{
+        plugin::{manager::PluginManager, BoxedNode},
+        server::manager::ServerManager,
+    },
     storage::Storage,
 };
 
@@ -27,8 +30,11 @@ impl NodeManager {
             fs::create_dir_all(&directory).await?;
         }
 
-        for (_, _, name, value) in
-            for_each_content_toml::<StoredNode>(&directory, "Failed to read node from file")?
+        for (_, _, name, value) in Storage::for_each_content_toml::<StoredNode>(
+            &directory,
+            "Failed to read node from file",
+        )
+        .await?
         {
             info!("Loading node {}", name);
 
@@ -58,6 +64,23 @@ impl NodeManager {
 
         info!("Loaded {} node(s)", nodes.len());
         Ok(Self { nodes })
+    }
+
+    pub async fn delete_node(
+        &mut self,
+        name: &str,
+        servers: &ServerManager,
+    ) -> Result<(), DeleteResourceError> {
+        if servers.is_node_used(name) {
+            return Err(DeleteResourceError::StillInUse);
+        }
+        let node = self
+            .get_node_mut(name)
+            .ok_or(DeleteResourceError::NotFound)?;
+        node.delete().await?;
+        self.nodes.remove(name);
+        info!("Deleted node {}", name);
+        Ok(())
     }
 
     pub fn get_nodes(&self) -> Vec<&Node> {
@@ -104,11 +127,13 @@ impl NodeManager {
 }
 
 pub(super) mod stored {
-    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
-    use crate::application::node::{Capabilities, LifecycleStatus, Node, RemoteController};
+    use crate::{
+        application::node::{Capabilities, LifecycleStatus, Node, RemoteController},
+        storage::{LoadFromTomlFile, SaveToTomlFile},
+    };
 
     #[derive(Serialize, Deserialize, Getters)]
     pub struct StoredNode {
@@ -138,4 +163,24 @@ pub(super) mod stored {
 
     impl LoadFromTomlFile for StoredNode {}
     impl SaveToTomlFile for StoredNode {}
+}
+
+pub enum DeleteResourceError {
+    StillActive,
+    StillInUse,
+    NotFound,
+    Error(anyhow::Error),
+}
+
+impl From<DeleteResourceError> for Status {
+    fn from(val: DeleteResourceError) -> Self {
+        match val {
+            DeleteResourceError::StillActive => {
+                Status::unavailable("Resource is still set to active")
+            }
+            DeleteResourceError::StillInUse => Status::unavailable("Resource is still in use"),
+            DeleteResourceError::NotFound => Status::not_found("Resource not found"),
+            DeleteResourceError::Error(error) => Status::internal(format!("Error: {}", error)),
+        }
+    }
 }

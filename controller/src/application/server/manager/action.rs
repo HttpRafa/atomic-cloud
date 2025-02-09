@@ -75,7 +75,7 @@ impl ServerManager {
                 let handle = node.start(&server);
                 if let Some(group) = &server.group {
                     if let Some(group) = groups.get_group_mut(group) {
-                        group.set_server_active(&server.id.uuid);
+                        group.set_server_active(&server.id);
                     } else {
                         warn!("Group {} not found while trying to start server {}. Removing group from server", group, request.id);
                         server.group = None;

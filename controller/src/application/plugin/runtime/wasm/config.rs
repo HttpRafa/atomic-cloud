@@ -1,12 +1,12 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Result;
-use common::config::LoadFromTomlFile;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::warn;
+use tokio::fs;
 
-use crate::storage::Storage;
+use crate::storage::{LoadFromTomlFile, Storage};
 
 const DEFAULT_PLUGINS_CONFIG: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -83,16 +83,16 @@ impl Mount {
 }
 
 impl PluginsConfig {
-    pub fn parse() -> Result<Self> {
+    pub async fn parse() -> Result<Self> {
         let path = Storage::wasm_plugins_config_file();
         if path.exists() {
-            Self::from_file(&path)
+            Self::from_file(&path).await
         } else {
             if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).await?;
             }
-            fs::write(&path, DEFAULT_PLUGINS_CONFIG)?;
-            Self::from_file(&path)
+            fs::write(&path, DEFAULT_PLUGINS_CONFIG).await?;
+            Self::from_file(&path).await
         }
     }
 
@@ -109,15 +109,15 @@ impl PluginsConfig {
     }
 }
 
-pub fn verify_engine_config() -> Result<PathBuf> {
+pub async fn verify_engine_config() -> Result<PathBuf> {
     let path = Storage::wasm_engine_config_file();
     if path.exists() {
         Ok(path)
     } else {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).await?;
         }
-        fs::write(&path, DEFAULT_ENGINE_CONFIG)?;
+        fs::write(&path, DEFAULT_ENGINE_CONFIG).await?;
         Ok(path)
     }
 }

@@ -2,7 +2,9 @@ use anyhow::Result;
 use tonic::async_trait;
 
 use crate::{
-    application::{user::User, Controller}, network::proto::manage::user::{Item, List}, task::{BoxedAny, GenericTask, Task}
+    application::{user::User, Controller},
+    network::proto::manage::user::{Item, List},
+    task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct GetUsersTask();

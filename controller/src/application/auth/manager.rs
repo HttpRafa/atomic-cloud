@@ -1,13 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
-use common::{config::SaveToTomlFile, file::for_each_content_toml};
 use simplelog::{error, info};
 use stored::StoredUser;
 use tokio::{fs, sync::RwLock};
 use uuid::Uuid;
 
-use crate::storage::Storage;
+use crate::storage::{SaveToTomlFile, Storage};
 
 use super::{server::AuthServer, AdminUser, AuthToken, Authorization, OwnedAuthorization};
 
@@ -25,8 +24,11 @@ impl AuthManager {
             fs::create_dir_all(&directory).await?;
         }
 
-        for (_, _, name, value) in
-            for_each_content_toml::<StoredUser>(&directory, "Failed to read user from file")?
+        for (_, _, name, value) in Storage::for_each_content_toml::<StoredUser>(
+            &directory,
+            "Failed to read user from file",
+        )
+        .await?
         {
             info!("Loaded user {}", name);
             tokens.insert(value.token().clone(), AdminUser::create(name));
@@ -71,7 +73,10 @@ impl AuthManager {
             Uuid::new_v4().as_simple(),
             Uuid::new_v4().as_simple()
         );
-        if let Err(error) = StoredUser::new(&token).save(&Storage::user_file(username), true) {
+        if let Err(error) = StoredUser::new(&token)
+            .save(&Storage::user_file(username), true)
+            .await
+        {
             error!("Failed to save user({}) to file: {}", username, error);
             return None;
         }
@@ -85,9 +90,10 @@ impl AuthManager {
 }
 
 mod stored {
-    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use getset::Getters;
     use serde::{Deserialize, Serialize};
+
+    use crate::storage::{LoadFromTomlFile, SaveToTomlFile};
 
     #[derive(Serialize, Deserialize, Getters)]
     pub struct StoredUser {

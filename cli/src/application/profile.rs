@@ -4,12 +4,11 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use common::{config::SaveToTomlFile, file::for_each_content_toml};
 use simplelog::debug;
 use stored::StoredProfile;
 use url::Url;
 
-use crate::storage::Storage;
+use crate::storage::{SaveToTomlFile, Storage};
 
 use super::network::{CloudConnection, EstablishedConnection};
 
@@ -18,7 +17,7 @@ pub struct Profiles {
 }
 
 impl Profiles {
-    pub fn init() -> Result<Self> {
+    pub async fn init() -> Result<Self> {
         debug!("Loading profiles...");
         let mut profiles = vec![];
 
@@ -27,8 +26,11 @@ impl Profiles {
             fs::create_dir_all(&directory)?;
         }
 
-        for (_, _, name, value) in
-            for_each_content_toml::<StoredProfile>(&directory, "Failed to read profile from file")?
+        for (_, _, name, value) in Storage::for_each_content_toml::<StoredProfile>(
+            &directory,
+            "Failed to read profile from file",
+        )
+        .await?
         {
             debug!("Loaded profile {}", name);
             profiles.push(Profile::from(&name, &value));
@@ -38,14 +40,14 @@ impl Profiles {
         Ok(Self { profiles })
     }
 
-    pub fn create_profile(&mut self, profile: &Profile) -> Result<()> {
+    pub async fn create_profile(&mut self, profile: &Profile) -> Result<()> {
         // Check if profile already exists
         if Self::is_id_used(&self.profiles, &profile.id) {
             return Err(anyhow!("Profile '{}' already exists", profile.name));
         }
 
         let profile = profile.clone();
-        profile.mark_dirty()?;
+        profile.mark_dirty().await?;
         self.add_profile(profile);
         Ok(())
     }
@@ -106,8 +108,8 @@ impl Profile {
         CloudConnection::establish_connection(self).await
     }
 
-    pub fn mark_dirty(&self) -> Result<()> {
-        self.save_to_file()
+    pub async fn mark_dirty(&self) -> Result<()> {
+        self.save_to_file().await
     }
 
     fn delete_file(&self) -> Result<()> {
@@ -118,13 +120,15 @@ impl Profile {
         Ok(())
     }
 
-    fn save_to_file(&self) -> Result<()> {
+    async fn save_to_file(&self) -> Result<()> {
         let stored_profile = StoredProfile {
             name: self.name.clone(),
             authorization: self.authorization.clone(),
             url: self.url.clone(),
         };
-        stored_profile.save(&Storage::profile_file(&self.id), true)
+        stored_profile
+            .save(&Storage::profile_file(&self.id), true)
+            .await
     }
 
     pub fn compute_id(name: &str) -> String {
@@ -147,9 +151,10 @@ impl Display for Profile {
 }
 
 mod stored {
-    use common::config::{LoadFromTomlFile, SaveToTomlFile};
     use serde::{Deserialize, Serialize};
     use url::Url;
+
+    use crate::storage::{LoadFromTomlFile, SaveToTomlFile};
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredProfile {

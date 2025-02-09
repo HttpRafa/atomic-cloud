@@ -15,7 +15,7 @@ pub struct Cli {
 impl Cli {
     pub async fn new() -> Result<Cli> {
         Ok(Cli {
-            profiles: Profiles::init()?,
+            profiles: Profiles::init().await?,
         })
     }
 

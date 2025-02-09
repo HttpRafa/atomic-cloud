@@ -60,7 +60,11 @@ impl ManageService for ManageServiceImpl {
                     }
                 };
 
-                Ok(Box::new(SetResourceTask(category, request.id, request.active)))
+                Ok(Box::new(SetResourceTask(
+                    category,
+                    request.id,
+                    request.active,
+                )))
             })
             .await?,
         ))

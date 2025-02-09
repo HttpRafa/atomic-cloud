@@ -74,7 +74,7 @@ impl CreateProfileMenu {
             }
         }
         progress.text(format!("Saving profile \"{}\"", name));
-        if let Err(error) = profiles.create_profile(&profile) {
+        if let Err(error) = profiles.create_profile(&profile).await {
             progress.fail(format!("Failed to create profile: {}", error));
             progress.end();
             return MenuResult::Failed(error);

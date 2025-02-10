@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use group::{CreateGroupTask, GetGroupTask, GetGroupsTask};
@@ -14,11 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthType,
-        group::{ScalingPolicy, StartConstraints},
-        node::Capabilities,
-        server::{DiskRetention, FallbackPolicy, Resources, Spec},
-        Shared, TaskSender,
+        auth::AuthType, group::{ScalingPolicy, StartConstraints}, node::Capabilities, server::{DiskRetention, FallbackPolicy, Resources, Spec}, user::transfer::TransferTarget, Shared, TaskSender
     },
     task::Task,
     VERSION,
@@ -28,7 +24,7 @@ use super::proto::manage::{
     self,
     manage_service_server::ManageService,
     resource::{Category, DelReq, SetReq},
-    transfer::TransferReq,
+    transfer::{target::Type, TransferReq},
 };
 
 mod group;
@@ -37,7 +33,7 @@ mod plugin;
 mod power;
 mod resource;
 mod server;
-mod transfer;
+pub mod transfer;
 mod user;
 
 pub struct ManageServiceImpl(pub TaskSender, pub Arc<Shared>);
@@ -341,8 +337,46 @@ impl ManageService for ManageServiceImpl {
     // Transfer
     async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
         Ok(Response::new(
-            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(TransferUsersTask()))
+            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |request, auth| {
+                let request = request.into_inner();
+
+                let target = match request.target {
+                    Some(target) => match Type::try_from(target.r#type) {
+                        Ok(r#type) => match (target.target, r#type) {
+                            (Some(target), Type::Group) => TransferTarget::Group(target),
+                            (Some(target), Type::Server) => {
+                                TransferTarget::Server(match Uuid::from_str(&target) {
+                                    Ok(uuid) => uuid,
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid UUID provided",
+                                        ))
+                                    }
+                                })
+                            }
+                            (None, Type::Fallback) => TransferTarget::Fallback,
+                            _ => {
+                                return Err(Status::invalid_argument(
+                                    "Invalid target type combination",
+                                ))
+                            }
+                        },
+                        Err(_) => {
+                            return Err(Status::invalid_argument("Invalid target type provided"))
+                        }
+                    },
+                    None => return Err(Status::invalid_argument("Missing target")),
+                };
+                let uuids = request
+                    .ids
+                    .into_iter()
+                    .map(|id| match Uuid::from_str(&id) {
+                        Ok(uuid) => Ok(uuid),
+                        Err(_) => Err(Status::invalid_argument("Invalid UUID provided")),
+                    })
+                    .collect::<Result<Vec<Uuid>, _>>()?;
+
+                Ok(Box::new(TransferUsersTask(auth, uuids, target)))
             })
             .await?,
         ))

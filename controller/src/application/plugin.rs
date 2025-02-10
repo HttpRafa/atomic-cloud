@@ -5,8 +5,7 @@ use tonic::async_trait;
 use url::Url;
 
 use super::{
-    node::Capabilities,
-    server::{manager::StartRequest, Server},
+    node::Capabilities, server::{manager::StartRequest, screen::GenericScreen, Server}
 };
 
 pub mod manager;
@@ -14,6 +13,7 @@ mod runtime;
 
 pub type BoxedPlugin = Box<dyn GenericPlugin + Send + Sync>;
 pub type BoxedNode = Box<dyn GenericNode + Send + Sync>;
+pub type BoxedScreen = Box<dyn GenericScreen + Send + Sync>;
 
 #[async_trait]
 pub trait GenericPlugin {
@@ -41,7 +41,7 @@ pub trait GenericNode {
     fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>>;
 
     /* Servers */
-    fn start(&self, server: &Server) -> JoinHandle<Result<()>>;
+    fn start(&self, server: &Server) -> JoinHandle<Result<BoxedScreen>>;
     fn restart(&self, server: &Server) -> JoinHandle<Result<()>>;
     fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
 }

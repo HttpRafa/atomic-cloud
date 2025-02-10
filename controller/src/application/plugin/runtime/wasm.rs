@@ -80,7 +80,7 @@ impl GenericPlugin for Plugin {
             )
             .await?
         {
-            Ok(instance) => Ok(Box::new(PluginNode::new(bindings, store, instance))),
+            Ok(instance) => Ok(Box::new(PluginNode::new(bindings, store, instance)) as BoxedNode),
             Err(error) => Err(anyhow!(error)),
         }
     }

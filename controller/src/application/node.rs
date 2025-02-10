@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    plugin::BoxedNode,
+    plugin::{BoxedNode, BoxedScreen},
     server::{manager::StartRequest, Resources, Server, Spec},
 };
 
@@ -92,7 +92,7 @@ impl Node {
     pub fn free(&self, ports: &[HostAndPort]) -> JoinHandle<Result<()>> {
         self.instance.free(ports)
     }
-    pub fn start(&self, server: &Server) -> JoinHandle<Result<()>> {
+    pub fn start(&self, server: &Server) -> JoinHandle<Result<BoxedScreen>> {
         self.instance.start(server)
     }
     pub fn restart(&self, server: &Server) -> JoinHandle<Result<()>> {

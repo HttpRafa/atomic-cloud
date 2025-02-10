@@ -73,32 +73,43 @@ interface http {
     send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
 }
 
+interface screen {
+    use types.{error-message};
+
+    variant screen-type {
+        unsupported,
+        supported(screen),
+    }
+
+    resource screen {
+        pull: func() -> result<list<string>, error-message>;
+    }
+}
+
 interface process {
     use types.{error-message, key-value, directory};
 
-    variant reader-mode {
-        direct,
-        async,
+    create: func(command: string) -> process-builder;
+
+    resource process-builder {
+        args: func(args: list<string>);
+        environment: func(environment: list<key-value>);
+        directory: func(directory: directory);
+        spawn: func() -> result<process, error-message>;
     }
 
-    variant std-reader {
-        stdout,
-        stderr,
-    }
+    resource process {
+        kill: func() -> result<_, error-message>;
+        try-wait: func() -> result<option<s32>, error-message>;
 
-    spawn-process: func(command: string, args: list<string>, environment: list<key-value>, directory: directory, mode: reader-mode) -> result<u32, error-message>;
-    kill-process: func(pid: u32) -> result<_, error-message>;
-    drop-process: func(pid: u32) -> result<bool, error-message>;
-    try-wait: func(pid: u32) -> result<option<s32>, error-message>;
-    read-direct: func(pid: u32, buf-size: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
-    read-to-end-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, list<u8>>, error-message>;
-    read-line-direct: func(pid: u32, std: std-reader) -> result<tuple<u32, string>, error-message>;
-    read-line-async: func(pid: u32, std: std-reader) -> result<option<string>, error-message>;
-    write-stdin: func(pid: u32, data: list<u8>) -> result<_, error-message>;
+        read-lines: func() -> result<list<string>, error-message>;
+        write-line: func(line: string) -> result<_, error-message>;
+    }
 }
 
 interface bridge {
     use types.{error-message, scoped-errors, key-value};
+    use screen.{screen-type};
 
     type uuid = string;
 
@@ -171,7 +182,7 @@ interface bridge {
         tick: func() -> result<_, scoped-errors>;
         allocate: func(server: server-proposal) -> result<list<address>, error-message>;
         free: func(addresses: list<address>);
-        start: func(server: server);
+        start: func(server: server) -> screen-type;
         restart: func(server: server);
         stop: func(server: server);
     }
@@ -187,9 +198,10 @@ interface bridge {
 
 world plugin {
     export bridge;
+    export screen;
     import log;
     import platform;
     import file;
     import http;
-    //import process;
+    import process;
 }

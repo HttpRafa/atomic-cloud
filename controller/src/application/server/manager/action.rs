@@ -8,11 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager,
-        node::{manager::NodeManager, Allocation},
-        server::{Flags, Heart, Server, State},
-        user::manager::UserManager,
-        Shared,
+        group::manager::GroupManager, node::{manager::NodeManager, Allocation}, plugin::BoxedScreen, server::{Flags, Heart, Server, State}, user::manager::UserManager, Shared
     },
     config::Config,
 };
@@ -52,7 +48,7 @@ impl ServerManager {
         nodes: &NodeManager,
         groups: &mut GroupManager,
         shared: &Arc<Shared>,
-    ) -> Result<JoinHandle<Result<()>>> {
+    ) -> Result<JoinHandle<Result<BoxedScreen>>> {
         if let Some(name) = request.nodes.get(index) {
             let node = nodes.get_node(name);
             if let Some(node) = node {

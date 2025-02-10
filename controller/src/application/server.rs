@@ -14,6 +14,7 @@ use crate::network::client::TransferMsg;
 use super::node::Allocation;
 
 pub mod manager;
+pub mod screen;
 
 #[derive(Getters, Setters, MutGetters)]
 pub struct Server {

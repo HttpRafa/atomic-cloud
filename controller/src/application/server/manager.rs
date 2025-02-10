@@ -13,8 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
-        Shared,
+        group::manager::GroupManager, node::manager::NodeManager, plugin::BoxedScreen, user::manager::UserManager, Shared
     },
     config::Config,
 };
@@ -387,7 +386,7 @@ enum ActionStage {
 enum StartStage {
     Queued,
     Allocating((usize, JoinHandle<Result<Vec<HostAndPort>>>)),
-    Creating(JoinHandle<Result<()>>),
+    Creating(JoinHandle<Result<BoxedScreen>>),
     Started,
     Failed,
 }

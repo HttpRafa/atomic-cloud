@@ -1,6 +1,6 @@
 # What is the Controller?
 
-The **Controller** is a vital component of the Atomic Cloud platform. It acts as the central management unit by:
+The **Controller** is a vital component of the Atomic Cloud platform. It acts as the central management server by:
 
 - **Overseeing Nodes:**  
   It monitors and manages the nodes in the cloud infrastructure.

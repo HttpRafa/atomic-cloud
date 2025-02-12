@@ -8,12 +8,12 @@ use crate::{
 
 use super::MenuResult;
 
-mod cloudlet;
-mod deployment;
 mod general;
+mod group;
+mod node;
 mod resource;
+mod server;
 mod start;
-mod unit;
 mod user;
 
 pub struct ConnectionMenu;
@@ -35,9 +35,9 @@ impl ConnectionMenu {
                 ConnectionStartMenu::show(&mut profile, &mut connection, profiles).await
             }
             Err(error) => {
-                progress.fail(format!("Failed to connect to the controller: {}", error));
+                progress.fail(format!("Failed to connect to the controller: {error}"));
                 progress.end();
-                MenuResult::Failed
+                MenuResult::Failed(error)
             }
         }
     }

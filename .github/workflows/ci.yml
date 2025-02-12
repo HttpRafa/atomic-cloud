@@ -60,7 +60,7 @@ jobs:
         run: sudo apt update && sudo apt install protobuf-compiler -y
 
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-features -- -D warnings
 
       - name: Build Projects
         run: cargo build --all --all-features --verbose

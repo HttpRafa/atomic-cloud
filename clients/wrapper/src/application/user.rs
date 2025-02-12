@@ -22,7 +22,7 @@ impl Users {
     }
 
     pub async fn handle_connect(&mut self, name: String, uuid: Uuid) {
-        info!("<blue>{}</> connected to unit", name);
+        info!("<blue>{}</> connected to server", name);
 
         if let Err(error) = self
             .connection
@@ -39,7 +39,7 @@ impl Users {
 
     pub async fn handle_disconnect(&mut self, name: String) {
         if let Some(user) = self.users.remove(&name) {
-            info!("<blue>{}</> disconnected from unit", user.name);
+            info!("<blue>{}</> disconnected from server", user.name);
 
             if let Err(error) = self
                 .connection

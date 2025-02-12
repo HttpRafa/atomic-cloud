@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package client;
+
+message Transfer {
+  message Target {
+    enum Type {
+      SERVER = 0;
+      GROUP = 1;
+      FALLBACK = 2;
+    }
+    Type type = 1;
+    optional string target = 2;
+  }
+  message TransferReq {
+    repeated string ids = 1;
+    Target target = 2;
+  }
+  message TransferRes {
+    string id = 1;
+    string host = 2;
+    uint32 port = 3;
+  }
+}

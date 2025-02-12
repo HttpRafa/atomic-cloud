@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package common;
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
+
+message Address {
+  string host = 1;
+  uint32 port = 2;
+}

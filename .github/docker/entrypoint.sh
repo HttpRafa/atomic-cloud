@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Define the destination folder
-DEST_FOLDER="drivers/"
+DEST_FOLDER="plugins/"
 
 # Create the destination folder if it does not exist
 if [ ! -d "$DEST_FOLDER" ]; then
@@ -30,14 +30,14 @@ download_wasm() {
 
 # Check if the environment variable PTERODACTYL is set to true
 if [ "$PTERODACTYL" = "true" ]; then
-    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/pterodactyl-driver.wasm"
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/pterodactyl-plugin.wasm"
     WASM_FILE="$DEST_FOLDER/pterodactyl.wasm"
     download_wasm $WASM_URL $WASM_FILE
 fi
 
 # Check if the environment variable LOCAL is set to true
 if [ "$LOCAL" = "true" ]; then
-    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/local-driver.wasm"
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/local-plugin.wasm"
     WASM_FILE="$DEST_FOLDER/local.wasm"
     download_wasm $WASM_URL $WASM_FILE
 fi

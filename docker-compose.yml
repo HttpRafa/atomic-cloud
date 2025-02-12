@@ -15,6 +15,6 @@ services:
       - ./run/logs:/app/logs
       - ./run/auth:/app/auth
       - ./run/configs:/app/configs
-      - ./run/cloudlets:/app/cloudlets
-      - ./run/deployments:/app/deployments
-      - ./run/drivers:/app/drivers
+      - ./run/nodes:/app/nodes
+      - ./run/groups:/app/groups
+      - ./run/plugins:/app/plugins

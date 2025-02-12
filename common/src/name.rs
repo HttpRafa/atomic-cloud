@@ -7,12 +7,14 @@ pub struct TimedName {
 }
 
 impl TimedName {
+    #[must_use]
     pub fn new(cloud_identifier: &str, name: &str, permanent: bool) -> Self {
         Self {
             raw_name: name.to_string(),
             name: Self::generate(Some(cloud_identifier.to_string()), name, permanent),
         }
     }
+    #[must_use]
     pub fn new_no_identifier(name: &str, permanent: bool) -> Self {
         Self {
             raw_name: name.to_string(),
@@ -26,19 +28,22 @@ impl TimedName {
             .unwrap()
             .as_secs();
         match (cloud_identifier, permanent) {
-            (Some(identifier), true) => format!("{}@{}", name, identifier),
+            (Some(identifier), true) => format!("{name}@{identifier}"),
             (None, true) => name.to_string(),
-            (Some(identifier), false) => format!("{}@{}#{}", name, identifier, timestamp),
-            (None, false) => format!("{}#{}", name, timestamp),
+            (Some(identifier), false) => format!("{name}@{identifier}#{timestamp}"),
+            (None, false) => format!("{name}#{timestamp}"),
         }
     }
 
+    #[must_use]
     pub fn get_name(&self) -> &str {
         &self.name
     }
+    #[must_use]
     pub fn get_name_cloned(&self) -> String {
         self.name.clone()
     }
+    #[must_use]
     pub fn get_raw_name(&self) -> &str {
         &self.raw_name
     }

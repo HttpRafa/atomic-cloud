@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package client;
+
+message Group {
+  message List {
+    repeated string groups = 1;
+  }
+}

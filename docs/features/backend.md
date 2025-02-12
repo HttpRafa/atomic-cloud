@@ -1,6 +1,6 @@
 # Modular Backend
 
-Atomic Cloud is built on a versatile driver system that abstracts and streamlines the process of initiating servers. This modular approach allows the platform to support various backends, ensuring flexibility and scalability. Currently, Atomic Cloud supports several backend types, including:
+Atomic Cloud is built on a versatile plugin system that abstracts and streamlines the process of initiating servers. This modular approach allows the platform to support various backends, ensuring flexibility and scalability. Currently, Atomic Cloud supports several backend types, including:
 
 - **Pterodactyl**
 - **Docker**

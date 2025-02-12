@@ -1,219 +1,191 @@
-use anyhow::Error;
-use auth::Auth;
-use cloudlet::Cloudlets;
-use deployment::Deployments;
-use driver::Drivers;
-use event::EventBus;
-use simplelog::info;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
-use std::thread;
-use std::time::{Duration, Instant};
-use tokio::runtime::{Builder, Runtime};
-use unit::Units;
-use user::Users;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
-use crate::config::Config;
-use crate::network::NetworkStack;
+use anyhow::Result;
+use auth::manager::AuthManager;
+use getset::{Getters, MutGetters};
+use group::manager::GroupManager;
+use node::manager::NodeManager;
+use plugin::manager::PluginManager;
+use server::{manager::ServerManager, screen::manager::ScreenManager};
+use simplelog::info;
+use subscriber::manager::SubscriberManager;
+use tokio::{
+    select,
+    sync::mpsc::{channel, Receiver, Sender},
+    time::{interval, MissedTickBehavior},
+};
+use user::manager::UserManager;
+
+use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-pub mod cloudlet;
-pub mod deployment;
-pub mod driver;
-pub mod event;
-pub mod unit;
+pub mod group;
+pub mod node;
+pub mod plugin;
+pub mod server;
+pub mod subscriber;
 pub mod user;
 
-static STARTUP_SLEEP: Duration = Duration::from_secs(1);
-static SHUTDOWN_WAIT: Duration = Duration::from_secs(10);
+const TICK_RATE: u64 = 20;
+const TASK_BUFFER: usize = 128;
 
-const TICK_RATE: u64 = 1;
+pub type TaskSender = Sender<Task>;
 
-pub type ControllerHandle = Arc<Controller>;
-pub type WeakControllerHandle = Weak<Controller>;
-
+#[derive(Getters, MutGetters)]
 pub struct Controller {
-    handle: WeakControllerHandle,
+    /* State */
+    running: Arc<AtomicBool>,
 
-    /* Immutable */
-    pub(crate) configuration: Config,
-    pub(crate) drivers: Drivers,
+    /* Tasks */
+    tasks: (TaskSender, Receiver<Task>),
 
-    /* Runtime State */
-    runtime: RwLock<Option<Runtime>>,
-    running: AtomicBool,
+    /* Shared Components */
+    pub shared: Arc<Shared>,
 
-    /* Authentication */
-    auth: Auth,
+    /* Components */
+    pub plugins: PluginManager,
+    pub nodes: NodeManager,
+    pub groups: GroupManager,
+    pub servers: ServerManager,
+    pub users: UserManager,
 
-    /* Accessed rarely */
-    cloudlets: RwLock<Cloudlets>,
-    deployments: RwLock<Deployments>,
+    /* Config */
+    #[getset(get = "pub")]
+    config: Config,
+}
 
-    /* Accessed frequently */
-    units: Units,
-    users: Users,
-
-    /* Event Bus */
-    event_bus: EventBus,
+pub struct Shared {
+    pub auth: AuthManager,
+    pub subscribers: SubscriberManager,
+    pub screens: ScreenManager,
 }
 
 impl Controller {
-    pub fn new(configuration: Config) -> Arc<Self> {
-        Arc::new_cyclic(move |handle| {
-            let auth = Auth::load_all();
-            let drivers = Drivers::load_all(configuration.identifier.as_ref().unwrap());
-            let cloudlets = Cloudlets::load_all(handle.clone(), &drivers);
-            let deployments = Deployments::load_all(handle.clone(), &cloudlets);
-            let units = Units::new(handle.clone());
-            let users = Users::new(handle.clone());
-            let event_bus = EventBus::new(/*handle.clone()*/);
-            Self {
-                handle: handle.clone(),
-                configuration,
-                drivers,
-                runtime: RwLock::new(Some(
-                    Builder::new_multi_thread()
-                        .enable_all()
-                        .build()
-                        .expect("Failed to create Tokio runtime"),
-                )),
-                running: AtomicBool::new(true),
-                auth,
-                cloudlets: RwLock::new(cloudlets),
-                deployments: RwLock::new(deployments),
-                units,
-                users,
-                event_bus,
-            }
+    pub async fn init(config: Config) -> Result<Self> {
+        let shared = Arc::new(Shared {
+            auth: AuthManager::init().await?,
+            subscribers: SubscriberManager::init(),
+            screens: ScreenManager::init(),
+        });
+
+        let plugins = PluginManager::init(&config).await?;
+        let nodes = NodeManager::init(&plugins).await?;
+        let groups = GroupManager::init(&nodes).await?;
+
+        let servers = ServerManager::init();
+        let users = UserManager::init();
+
+        Ok(Self {
+            running: Arc::new(AtomicBool::new(true)),
+            tasks: channel(TASK_BUFFER),
+            shared,
+            plugins,
+            nodes,
+            groups,
+            servers,
+            users,
+            config,
         })
     }
 
-    pub fn start(&self) {
-        // Set up signal handlers
-        self.setup_interrupts();
+    pub async fn run(&mut self) -> Result<()> {
+        // Setup signal handlers
+        self.setup_handlers()?;
 
-        let network_handle = NetworkStack::start(self.handle.upgrade().unwrap());
-        let tick_duration = Duration::from_millis(1000 / TICK_RATE);
+        let network = NetworkStack::start(&self.config, &self.shared, &self.tasks.0);
 
-        // Wait for 1 second before starting the tick loop
-        thread::sleep(STARTUP_SLEEP);
-
+        // Main loop
+        let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
         while self.running.load(Ordering::Relaxed) {
-            let start_time = Instant::now();
-            self.tick();
-
-            let elapsed_time = start_time.elapsed();
-            if elapsed_time < tick_duration {
-                thread::sleep(tick_duration - elapsed_time);
+            select! {
+                _ = interval.tick() => self.tick().await?,
+                task = self.tasks.1.recv() => if let Some(task) = task {
+                    task.run(self).await?;
+                }
             }
         }
 
-        // Stop all units
-        info!("<red>Stopping</> all units...");
-        self.units.stop_all_instant();
+        // Shutdown
+        self.shutdown(network).await?;
 
-        // Stop network stack
-        info!("<red>Stopping</> network stack...");
-        network_handle.shutdown();
-
-        // Wait for all tokio task to finish
-        info!("<red>Stopping</> async runtime...");
-        (*self.runtime.write().unwrap())
-            .take()
-            .unwrap()
-            .shutdown_timeout(SHUTDOWN_WAIT);
-
-        // Let the drivers cleanup there messes
-        info!("Letting the drivers <red>cleanup</>...");
-        self.drivers.cleanup();
+        Ok(())
     }
 
-    pub fn request_stop(&self) {
-        info!("Controller <red>stop</> requested. <red>Stopping</>...");
+    async fn tick(&mut self) -> Result<()> {
+        // Tick plugin manager
+        self.plugins.tick()?;
+
+        // Tick node manager
+        self.nodes.tick()?;
+
+        // Tick group manager
+        self.groups.tick(&self.config, &mut self.servers)?;
+
+        // Tick server manager
+        self.servers
+            .tick(
+                &self.config,
+                &self.nodes,
+                &mut self.groups,
+                &mut self.users,
+                &self.shared,
+            )
+            .await?;
+
+        // Tick user manager
+        self.users.tick(&self.config)?;
+
+        // Tick subscriber manager
+        self.shared.subscribers.tick().await?;
+
+        // Tick screen manager
+        self.shared.screens.tick().await?;
+
+        Ok(())
+    }
+
+    async fn shutdown(&mut self, network: NetworkStack) -> Result<()> {
+        info!("Starting shutdown sequence...");
+
+        // Shutdown user manager
+        self.users.shutdown()?;
+
+        // Shutdown server manager
+        self.servers.shutdown()?;
+
+        // Shutdown group manager
+        self.groups.shutdown()?;
+
+        // Shutdown node manager
+        self.nodes.shutdown()?;
+
+        // Shutdown plugin manager
+        self.plugins.shutdown().await?;
+
+        // Shutdown network stack
+        network.shutdown().await?;
+
+        info!("Shutdown complete. Bye :)");
+        Ok(())
+    }
+
+    fn setup_handlers(&self) -> Result<()> {
+        let flag = self.running.clone();
+        ctrlc::set_handler(move || {
+            info!("Received SIGINT, shutting down...");
+            flag.store(false, Ordering::Relaxed);
+        })
+        .map_err(std::convert::Into::into)
+    }
+
+    pub fn signal_shutdown(&self) {
         self.running.store(false, Ordering::Relaxed);
     }
-
-    pub fn lock_cloudlets(&self) -> RwLockReadGuard<Cloudlets> {
-        self.cloudlets
-            .read()
-            .expect("Failed to get lock to cloudlets")
-    }
-
-    pub fn lock_deployments(&self) -> RwLockReadGuard<Deployments> {
-        self.deployments
-            .read()
-            .expect("Failed to get lock to deployments")
-    }
-
-    pub fn lock_cloudlets_mut(&self) -> RwLockWriteGuard<Cloudlets> {
-        self.cloudlets
-            .write()
-            .expect("Failed to get lock to cloudlets")
-    }
-
-    pub fn lock_deployments_mut(&self) -> RwLockWriteGuard<Deployments> {
-        self.deployments
-            .write()
-            .expect("Failed to get lock to deployments")
-    }
-
-    pub fn get_drivers(&self) -> &Drivers {
-        &self.drivers
-    }
-
-    pub fn get_auth(&self) -> &Auth {
-        &self.auth
-    }
-
-    pub fn get_units(&self) -> &Units {
-        &self.units
-    }
-
-    pub fn get_users(&self) -> &Users {
-        &self.users
-    }
-
-    pub fn get_event_bus(&self) -> &EventBus {
-        &self.event_bus
-    }
-
-    pub fn get_runtime(&self) -> RwLockReadGuard<Option<Runtime>> {
-        self.runtime.read().expect("Failed to get lock to runtime")
-    }
-
-    fn tick(&self) {
-        // Tick all drivers
-        self.drivers.tick();
-
-        // Tick all driver cloudlets
-        self.lock_cloudlets().tick();
-
-        // Check if all deployments have started there units etc..
-        self.lock_deployments().tick(&self.units);
-
-        // Check if all units have sent their heartbeats and start requested units if we can
-        self.units.tick();
-
-        // Check state of all users
-        self.users.tick();
-    }
-
-    fn setup_interrupts(&self) {
-        // Set up signal handlers
-        let controller = self.handle.clone();
-        ctrlc::set_handler(move || {
-            info!("<red>Interrupt</> signal received. Stopping...");
-            if let Some(controller) = controller.upgrade() {
-                controller.request_stop();
-            }
-        })
-        .expect("Failed to set Ctrl+C handler");
-    }
-}
-
-pub enum CreationResult {
-    Created,
-    AlreadyExists,
-    Denied(Error),
 }

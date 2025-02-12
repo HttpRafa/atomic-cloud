@@ -22,7 +22,7 @@ impl RequestStopMenu {
                 let progress = Loading::default();
                 progress.text(format!("Stopping controller \"{}\"", profile.name));
                 match connection.client.request_stop().await {
-                    Ok(_) => {
+                    Ok(()) => {
                         thread::sleep(Duration::from_secs(3));
                         progress.success("Controller stopped successfully 👍");
                         progress.end();
@@ -30,15 +30,15 @@ impl RequestStopMenu {
                     }
                     Err(error) => {
                         progress.fail(format!(
-                            "{}",
-                            error
+                            "{error}"
                         ));
                         progress.end();
-                        MenuResult::Failed
+                        MenuResult::Failed(error)
                     }
                 }
             }
-            Ok(false) | Err(_) => MenuResult::Aborted,
-        }
+            Ok(false) => MenuResult::Aborted,
+            Err(error) => MenuUtils::handle_error(error),
+                }
     }
 }

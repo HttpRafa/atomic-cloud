@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package client;
+
+message User {
+  message ConnectedReq {
+    string id = 1;
+    string name = 2;
+  }
+  message DisconnectedReq {
+    string id = 1;
+  }
+}

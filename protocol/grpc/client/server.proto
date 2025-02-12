@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package client;
+
+message Server {
+  message List {
+    repeated Short servers = 1;
+  }
+  message Short {
+    string name = 1;
+    string id = 2;
+    optional string group = 3;
+  }
+}

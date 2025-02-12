@@ -3,8 +3,6 @@ use std::{
     vec,
 };
 
-use simplelog::debug;
-
 use crate::application::profile::Profiles;
 
 use super::{
@@ -22,10 +20,10 @@ enum Selection {
 impl Display for Selection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Selection::LoadProfile => write!(f, "🖧 | Connect to existing controller"),
-            Selection::CreateProfile => write!(f, "+ | Add new controller"),
-            Selection::DeleteProfile => write!(f, "🗑 | Remove existing controller"),
-            Selection::Exit => write!(f, "✖ | Close application"),
+            Selection::LoadProfile => write!(f, "Connect to existing controller"),
+            Selection::CreateProfile => write!(f, "Add new controller"),
+            Selection::DeleteProfile => write!(f, "Remove existing controller"),
+            Selection::Exit => write!(f, "Close application"),
         }
     }
 }
@@ -50,13 +48,10 @@ impl StartMenu {
             Ok(selection) => match selection {
                 Selection::LoadProfile => LoadProfileMenu::show(profiles).await,
                 Selection::CreateProfile => CreateProfileMenu::show(profiles).await,
-                Selection::DeleteProfile => DeleteProfileMenu::show(profiles).await,
+                Selection::DeleteProfile => DeleteProfileMenu::show(profiles),
                 Selection::Exit => MenuResult::Exit,
             },
-            Err(error) => {
-                debug!("{}", error);
-                MenuResult::Exit
-            }
+            Err(error) => MenuUtils::handle_error(error),
         }
     }
 }

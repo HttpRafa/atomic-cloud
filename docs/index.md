@@ -4,13 +4,13 @@ Welcome to the **Atomic Cloud** project! Please note that the cloud is currently
 
 ## Documentation Status 🚧
 
-This documentation is a work in progress. We apologize for any grammatical errors or incomplete sections. We welcome contributions from the community—if you’d like to help improve the documentation, please consider submitting a Pull Request.
+This documentation is a work in progress. We apologize for any grammatical errors or incomplete sections. We welcome contributions from the commservery—if you’d like to help improve the documentation, please consider submitting a Pull Request.
 
 ## Installation
 
 Atomic Cloud comprises two main components: the **Controller** and the **CLI**. Below are the recommended installation options:
 
-- **Docker Installation**: We recommend installing via a Docker image for ease of deployment. Follow the instructions in our [Docker Installation Guide](installation/docker.md).
+- **Docker Installation**: We recommend installing via a Docker image for ease of group. Follow the instructions in our [Docker Installation Guide](installation/docker.md).
 - **Standard Installation**: If you prefer not to use Docker, refer to our [Standard Installation Guide](installation/normal.md).
 
 ### Controller

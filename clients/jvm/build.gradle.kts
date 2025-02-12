@@ -80,7 +80,7 @@ allprojects {
     sourceSets {
         main {
             proto {
-                srcDir("$rootDir/../../protocol/grpc/unit/")
+                srcDir("$rootDir/../../protocol/grpc/server/")
             }
         }
     }

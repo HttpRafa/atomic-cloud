@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package manage;
+
+message Plugin {
+  message List {
+    repeated string plugins = 1;
+  }
+}

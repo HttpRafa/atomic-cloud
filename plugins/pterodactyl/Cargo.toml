@@ -1,0 +1,28 @@
+cargo-features = ["per-package-target"]
+
+[package]
+name = "pterodactyl"
+version = "0.0.0-nightly"
+edition = "2021"
+forced-target = "wasm32-wasip2"
+
+[dependencies]
+# Common
+common = { path = "../../common" }
+
+# Wasm plugin
+wit-bindgen = "0.39.0"
+
+# Error handling
+anyhow = "1.0.95"
+
+# Configuration
+serde = { version = "1.0.217", features = ["derive"] }
+toml = "0.8.20"
+
+# Pelican API
+url = { version = "2.5.4", features = ["serde"] }
+serde_json = "1.0.138"
+
+[build-dependencies]
+toml = "0.8.20"

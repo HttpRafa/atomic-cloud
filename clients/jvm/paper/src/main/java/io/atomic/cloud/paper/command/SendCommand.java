@@ -1,7 +1,7 @@
 package io.atomic.cloud.paper.command;
 
 import com.mojang.brigadier.Command;
-import io.atomic.cloud.grpc.unit.TransferManagement;
+import io.atomic.cloud.grpc.server.TransferManagement;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.atomic.cloud.paper.command.argument.TransferTargetArgument;
 import io.atomic.cloud.paper.permission.Permissions;
@@ -62,10 +62,10 @@ public class SendCommand {
                 return "fallback";
             }
             case TransferManagement.TransferTargetValue.TargetType.UNIT -> {
-                return "unit:" + target.getTarget();
+                return "server:" + target.getTarget();
             }
             case TransferManagement.TransferTargetValue.TargetType.DEPLOYMENT -> {
-                return "deployment:" + target.getTarget();
+                return "group:" + target.getTarget();
             }
         }
         return "unknown";

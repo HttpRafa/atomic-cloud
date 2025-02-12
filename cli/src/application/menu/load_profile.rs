@@ -1,5 +1,3 @@
-use simplelog::debug;
-
 use crate::application::profile::Profiles;
 
 use super::{connection::ConnectionMenu, MenuResult, MenuUtils};
@@ -14,10 +12,7 @@ impl LoadProfileMenu {
             options,
         ) {
             Ok(profile) => ConnectionMenu::show(profile, profiles).await,
-            Err(error) => {
-                debug!("{}", error);
-                MenuResult::Aborted
-            }
+            Err(error) => MenuUtils::handle_error(error),
         }
     }
 }

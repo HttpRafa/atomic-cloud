@@ -7,6 +7,7 @@ use plugin::GetPluginsTask;
 use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
 use server::{GetServerTask, GetServersTask};
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
 use user::GetUsersTask;
@@ -29,6 +30,7 @@ use super::proto::manage::{
     self,
     manage_service_server::ManageService,
     resource::{Category, DelReq, SetReq},
+    screen::Lines,
     transfer::{target::Type, TransferReq},
 };
 
@@ -41,10 +43,14 @@ mod server;
 pub mod transfer;
 mod user;
 
+pub type ScreenLines = Lines;
+
 pub struct ManageServiceImpl(pub TaskSender, pub Arc<Shared>);
 
 #[async_trait]
 impl ManageService for ManageServiceImpl {
+    type SubscribeToScreenStream = ReceiverStream<Result<Lines, Status>>;
+
     // Power
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
@@ -324,6 +330,18 @@ impl ManageService for ManageServiceImpl {
             )
             .await?,
         ))
+    }
+
+    // Screen
+    async fn subscribe_to_screen(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<Self::SubscribeToScreenStream>, Status> {
+        let Ok(uuid) = Uuid::from_str(&request.into_inner()) else {
+            return Err(Status::invalid_argument("Invalid UUID provided"));
+        };
+
+        Ok(Response::new(self.1.screens.subscribe_screen(&uuid).await?))
     }
 
     // User

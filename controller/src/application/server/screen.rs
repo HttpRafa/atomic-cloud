@@ -2,14 +2,13 @@ use anyhow::Result;
 use tokio::task::JoinHandle;
 use tonic::Status;
 
-pub mod cache;
 pub mod manager;
 
-pub type ScreenMessage = String;
+pub type ScreenJoinHandle = JoinHandle<Result<Vec<String>, PullError>>;
 
 pub trait GenericScreen {
     fn is_supported(&self) -> bool;
-    fn pull(&self) -> JoinHandle<Result<Vec<ScreenMessage>, PullError>>;
+    fn pull(&self) -> ScreenJoinHandle;
 }
 
 pub enum PullError {

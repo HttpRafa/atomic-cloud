@@ -1,4 +1,5 @@
 pub mod allocator;
+pub mod cache;
 pub mod error;
 pub mod file;
 pub mod init;

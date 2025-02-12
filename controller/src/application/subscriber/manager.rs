@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
+use simplelog::debug;
 use tokio::sync::RwLock;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
@@ -57,7 +58,10 @@ impl SubscriberManager {
         let mut count = 0;
         if let Some(subscribers) = self.transfer.read().await.get(server) {
             for subscriber in subscribers {
-                subscriber.0.send(Ok(message.clone())).await.unwrap();
+                if let Err(error) = subscriber.0.send(Ok(message.clone())).await {
+                    debug!("Failed to send transfer message: {}", error);
+                    continue;
+                }
                 count += 1;
             }
         }
@@ -68,7 +72,10 @@ impl SubscriberManager {
         let mut count = 0;
         if let Some(subscribers) = self.channel.read().await.get(&message.channel) {
             for subscriber in subscribers {
-                subscriber.0.send(Ok(message.clone())).await.unwrap();
+                if let Err(error) = subscriber.0.send(Ok(message.clone())).await {
+                    debug!("Failed to send channel message: {}", error);
+                    continue;
+                }
                 count += 1;
             }
         }
@@ -88,7 +95,7 @@ impl SubscriberManager {
 
     async fn cleanup<A, B>(holder: &SubscriberHolder<A, B>) {
         holder.write().await.retain(|_, value| {
-            value.retain(super::Subscriber::is_alive);
+            value.retain(Subscriber::is_alive);
             !value.is_empty()
         });
     }

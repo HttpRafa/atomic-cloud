@@ -169,6 +169,11 @@ impl ServerManager {
                 ActionStage::Running(handle) => {
                     if handle.is_finished() {
                         handle.await??;
+                        // Remove the screen from the shared screen manager
+                        shared
+                            .screens
+                            .unregister_screen(request.server.uuid())
+                            .await;
                         debug!("Server {} has been stopped", request.server);
                         ActionStage::Finished
                     } else {
@@ -305,7 +310,11 @@ impl ServerManager {
                 }
                 StartStage::Creating(handle) => {
                     if handle.is_finished() {
-                        handle.await??;
+                        // Register the screen with the shared screen manager
+                        shared
+                            .screens
+                            .register_screen(request.id.uuid(), handle.await??)
+                            .await;
                         debug!("Server {} has been created", request.id);
                         StartStage::Started
                     } else {

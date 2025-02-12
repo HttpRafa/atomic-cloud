@@ -18,7 +18,7 @@ use subscriber::manager::SubscriberManager;
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
-    time::interval,
+    time::{interval, MissedTickBehavior},
 };
 use user::manager::UserManager;
 
@@ -102,6 +102,7 @@ impl Controller {
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
         while self.running.load(Ordering::Relaxed) {
             select! {
                 _ = interval.tick() => self.tick().await?,

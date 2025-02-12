@@ -1,12 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
-use simplelog::{error, info};
+use simplelog::info;
 use stored::StoredUser;
 use tokio::{fs, sync::RwLock};
 use uuid::Uuid;
 
-use crate::storage::{SaveToTomlFile, Storage};
+use crate::{
+    application::auth::DEFAULT_ADMIN_USERNAME,
+    storage::{SaveToTomlFile, Storage},
+};
 
 use super::{server::AuthServer, AdminUser, AuthToken, Authorization, OwnedAuthorization};
 
@@ -32,6 +35,18 @@ impl AuthManager {
         {
             info!("Loaded user {}", name);
             tokens.insert(value.token().clone(), AdminUser::create(name));
+        }
+
+        if tokens.is_empty() {
+            let token = Self::create_user(DEFAULT_ADMIN_USERNAME).await?;
+            info!("-----------------------------------</>");
+            info!("No users found, created default admin user");
+            info!("Username: </>{}", DEFAULT_ADMIN_USERNAME);
+            info!("Token: {}", &token);
+            info!("-----------------------------------");
+            info!("Welcome to Atomic Cloud");
+            info!("-----------------------------------");
+            tokens.insert(token, AdminUser::create(DEFAULT_ADMIN_USERNAME.to_string()));
         }
 
         info!("Loaded {} user(s)", tokens.len());
@@ -67,25 +82,17 @@ impl AuthManager {
         token
     }
 
-    pub async fn _register_user(&self, username: &str) -> Option<String> {
+    async fn create_user(username: &str) -> Result<String> {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),
             Uuid::new_v4().as_simple()
         );
-        if let Err(error) = StoredUser::new(&token)
+        StoredUser::new(&token)
             .save(&Storage::user_file(username), true)
-            .await
-        {
-            error!("Failed to save user({}) to file: {}", username, error);
-            return None;
-        }
-        self.tokens
-            .write()
-            .await
-            .insert(token.clone(), AdminUser::create(username.to_string()));
+            .await?;
 
-        Some(token)
+        Ok(token)
     }
 }
 

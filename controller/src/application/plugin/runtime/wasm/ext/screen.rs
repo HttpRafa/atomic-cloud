@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use tokio::{spawn, sync::Mutex, task::JoinHandle};
+use tokio::{spawn, sync::Mutex};
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
 use crate::application::{
@@ -9,7 +9,7 @@ use crate::application::{
         generated::{self, exports::plugin::system::bridge::ScreenType},
         PluginState,
     },
-    server::screen::{GenericScreen, PullError},
+    server::screen::{GenericScreen, PullError, ScreenJoinHandle},
 };
 
 pub struct PluginScreen {
@@ -57,7 +57,7 @@ impl GenericScreen for PluginScreen {
         }
     }
 
-    fn pull(&self) -> JoinHandle<Result<Vec<String>, PullError>> {
+    fn pull(&self) -> ScreenJoinHandle {
         let (bindings, store, instance) = self.get();
         let Some(instance) = instance else {
             return spawn(async { Err(PullError::Unsupported) });

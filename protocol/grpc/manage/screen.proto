@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package manage;
+
+message Screen {
+  message Lines {
+    repeated string lines = 1;
+  }
+}

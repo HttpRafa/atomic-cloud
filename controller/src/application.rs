@@ -12,7 +12,7 @@ use getset::{Getters, MutGetters};
 use group::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
-use server::manager::ServerManager;
+use server::{manager::ServerManager, screen::manager::ScreenManager};
 use simplelog::info;
 use subscriber::manager::SubscriberManager;
 use tokio::{
@@ -63,6 +63,7 @@ pub struct Controller {
 pub struct Shared {
     pub auth: AuthManager,
     pub subscribers: SubscriberManager,
+    pub screens: ScreenManager,
 }
 
 impl Controller {
@@ -70,6 +71,7 @@ impl Controller {
         let shared = Arc::new(Shared {
             auth: AuthManager::init().await?,
             subscribers: SubscriberManager::init(),
+            screens: ScreenManager::init(),
         });
 
         let plugins = PluginManager::init(&config).await?;
@@ -141,6 +143,9 @@ impl Controller {
 
         // Tick subscriber manager
         self.shared.subscribers.tick().await?;
+
+        // Tick screen manager
+        self.shared.screens.tick().await?;
 
         Ok(())
     }

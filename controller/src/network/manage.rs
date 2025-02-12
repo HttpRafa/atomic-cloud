@@ -14,7 +14,12 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthType, group::{ScalingPolicy, StartConstraints}, node::Capabilities, server::{DiskRetention, FallbackPolicy, Resources, Spec}, user::transfer::TransferTarget, Shared, TaskSender
+        auth::AuthType,
+        group::{ScalingPolicy, StartConstraints},
+        node::Capabilities,
+        server::{DiskRetention, FallbackPolicy, Resources, Spec},
+        user::transfer::TransferTarget,
+        Shared, TaskSender,
     },
     task::Task,
     VERSION,

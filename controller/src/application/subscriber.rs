@@ -6,7 +6,7 @@ pub mod manager;
 
 const SUBSCRIPTION_BUFFER: usize = 64;
 
-pub struct Subscriber<T>(Sender<Result<T, Status>>);
+pub struct Subscriber<T>(pub Sender<Result<T, Status>>);
 
 impl<T> Subscriber<T> {
     pub fn create() -> (Self, ReceiverStream<Result<T, Status>>) {

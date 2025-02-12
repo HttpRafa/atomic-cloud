@@ -18,13 +18,16 @@ use crate::{
     VERSION,
 };
 
-use super::{manage::transfer::TransferUsersTask, proto::client::{
-    self,
-    channel::Msg,
-    client_service_server::ClientService,
-    transfer::{target::Type, TransferReq, TransferRes},
-    user::{ConnectedReq, DisconnectedReq},
-}};
+use super::{
+    manage::transfer::TransferUsersTask,
+    proto::client::{
+        self,
+        channel::Msg,
+        client_service_server::ClientService,
+        transfer::{target::Type, TransferReq, TransferRes},
+        user::{ConnectedReq, DisconnectedReq},
+    },
+};
 
 mod beat;
 mod group;

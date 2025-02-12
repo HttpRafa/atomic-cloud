@@ -2,9 +2,15 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
-use wasmtime::{component::{Resource, ResourceAny}, AsContextMut, Store};
+use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
-use crate::application::{plugin::runtime::wasm::{generated::{self, exports::plugin::system::bridge::ScreenType}, PluginState}, screen::{GenericScreen, PullError}};
+use crate::application::{
+    plugin::runtime::wasm::{
+        generated::{self, exports::plugin::system::bridge::ScreenType},
+        PluginState,
+    },
+    server::screen::{GenericScreen, PullError},
+};
 
 pub struct PluginScreen {
     bindings: Arc<generated::Plugin>,
@@ -32,10 +38,14 @@ impl PluginScreen {
         Arc<Mutex<Store<PluginState>>>,
         Option<ResourceAny>,
     ) {
-        (self.bindings.clone(), self.store.clone(), match self.instance {
-            ScreenType::Supported(instance) => Some(instance),
-            ScreenType::Unsupported => None,
-        })
+        (
+            self.bindings.clone(),
+            self.store.clone(),
+            match self.instance {
+                ScreenType::Supported(instance) => Some(instance),
+                ScreenType::Unsupported => None,
+            },
+        )
     }
 }
 
@@ -53,7 +63,13 @@ impl GenericScreen for PluginScreen {
             return spawn(async { Err(PullError::Unsupported) });
         };
         spawn(async move {
-            match bindings.plugin_system_screen().screen().call_pull(store.lock().await.as_context_mut(), instance).await.map_err(|error| PullError::Error(error))? {
+            match bindings
+                .plugin_system_screen()
+                .screen()
+                .call_pull(store.lock().await.as_context_mut(), instance)
+                .await
+                .map_err(PullError::Error)?
+            {
                 Ok(result) => Ok(result),
                 Err(error) => Err(PullError::Error(anyhow!(error))),
             }

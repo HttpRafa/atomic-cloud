@@ -8,7 +8,12 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::{manager::NodeManager, Allocation}, plugin::BoxedScreen, server::{Flags, Heart, Server, State}, user::manager::UserManager, Shared
+        group::manager::GroupManager,
+        node::{manager::NodeManager, Allocation},
+        plugin::BoxedScreen,
+        server::{Flags, Heart, Server, State},
+        user::manager::UserManager,
+        Shared,
     },
     config::Config,
 };

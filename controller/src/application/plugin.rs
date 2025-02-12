@@ -5,7 +5,8 @@ use tonic::async_trait;
 use url::Url;
 
 use super::{
-    node::Capabilities, server::{manager::StartRequest, screen::GenericScreen, Server}
+    node::Capabilities,
+    server::{manager::StartRequest, screen::GenericScreen, Server},
 };
 
 pub mod manager;

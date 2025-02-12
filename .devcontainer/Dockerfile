@@ -9,7 +9,7 @@ RUN pacman-key --init
 RUN pacman -Syu --noconfirm
 
 # Install required packages
-RUN pacman -S base-devel git less nano openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
+RUN pacman -S base-devel htop git less nano openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
 
 # Install gRPC UI
 RUN aur-install grpcui-bin

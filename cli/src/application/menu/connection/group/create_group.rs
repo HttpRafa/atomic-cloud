@@ -22,6 +22,8 @@ use crate::application::{
     profile::{Profile, Profiles},
 };
 
+use std::fmt::Write as _;
+
 pub struct CreateGroupMenu;
 
 struct Data {
@@ -277,7 +279,7 @@ impl Display for KeyValueList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut result = String::new();
         for pair in &self.key_values {
-            result.push_str(&format!("{}={},", pair.key, pair.value));
+            write!(&mut result, "{}={},", pair.key, pair.value).expect("Failed to write to string");
         }
         write!(f, "{result}")
     }

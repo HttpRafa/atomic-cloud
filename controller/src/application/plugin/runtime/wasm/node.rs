@@ -12,7 +12,9 @@ use crate::application::{
 };
 
 use super::{
-    ext::screen::PluginScreen, generated::{self, exports::plugin::system::bridge}, PluginState
+    ext::screen::PluginScreen,
+    generated::{self, exports::plugin::system::bridge},
+    PluginState,
 };
 
 pub struct PluginNode {
@@ -122,7 +124,11 @@ impl GenericNode for PluginNode {
                 .call_start(store.lock().await.as_context_mut(), instance, &server)
                 .await
             {
-                Ok(screen) => Ok(Box::new(PluginScreen::new(bindings.clone(), store.clone(), screen)) as BoxedScreen),
+                Ok(screen) => Ok(Box::new(PluginScreen::new(
+                    bindings.clone(),
+                    store.clone(),
+                    screen,
+                )) as BoxedScreen),
                 Err(error) => Err(error),
             }
         })

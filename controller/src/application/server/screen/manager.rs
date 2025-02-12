@@ -53,7 +53,7 @@ impl ActiveScreen {
     pub async fn tick(&mut self) -> Result<()> {
         // Remove all dead subscribers
         self.subscribers
-            .retain(crate::application::subscriber::Subscriber::is_alive);
+            .retain(Subscriber::is_alive);
 
         if self.subscribers.is_empty() {
             // If no one is watching dont pull

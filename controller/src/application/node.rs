@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    plugin::{BoxedNode, BoxedScreen},
-    server::{manager::StartRequest, Resources, Server, Spec},
+    plugin::BoxedNode,
+    server::{manager::StartRequest, screen::BoxedScreen, Resources, Server, Spec},
 };
 
 pub mod manager;
@@ -106,6 +106,10 @@ impl Node {
         StoredNode::from(self)
             .save(&Storage::node_file(&self.name), true)
             .await
+    }
+
+    pub async fn drop_resources(&mut self) -> Result<()> {
+        self.instance.drop_resources().await
     }
 }
 

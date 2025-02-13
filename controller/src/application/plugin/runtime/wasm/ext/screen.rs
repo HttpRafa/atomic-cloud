@@ -1,7 +1,9 @@
-use std::sync::Arc;
+use std::{mem::replace, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
+use simplelog::error;
 use tokio::{spawn, sync::Mutex};
+use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
 use crate::application::{
@@ -13,6 +15,8 @@ use crate::application::{
 };
 
 pub struct PluginScreen {
+    dropped: bool,
+
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,
     instance: ScreenType,
@@ -25,6 +29,7 @@ impl PluginScreen {
         instance: ScreenType,
     ) -> Self {
         Self {
+            dropped: false,
             bindings,
             store,
             instance,
@@ -49,6 +54,7 @@ impl PluginScreen {
     }
 }
 
+#[async_trait]
 impl GenericScreen for PluginScreen {
     fn is_supported(&self) -> bool {
         match &self.instance {
@@ -74,5 +80,26 @@ impl GenericScreen for PluginScreen {
                 Err(error) => Err(PullError::Error(anyhow!(error))),
             }
         })
+    }
+
+    async fn drop_resources(&mut self) -> Result<()> {
+        if let ScreenType::Supported(instance) =
+            replace(&mut self.instance, ScreenType::Unsupported)
+        {
+            instance
+                .resource_drop_async(self.store.lock().await.as_context_mut())
+                .await?;
+        }
+        self.dropped = true;
+
+        Ok(())
+    }
+}
+
+impl Drop for PluginScreen {
+    fn drop(&mut self) {
+        if !self.dropped {
+            error!("Resource was not dropped before being deallocated (memory leak)");
+        }
     }
 }

@@ -197,6 +197,7 @@ impl Plugin {
             .await?;
 
         Ok(Plugin {
+            dropped: false,
             bindings: Arc::new(bindings),
             store: Arc::new(Mutex::new(store)),
             instance,

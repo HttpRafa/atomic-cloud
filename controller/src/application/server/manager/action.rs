@@ -10,8 +10,7 @@ use crate::{
     application::{
         group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
-        plugin::BoxedScreen,
-        server::{Flags, Heart, Server, State},
+        server::{screen::BoxedScreen, Flags, Heart, Server, State},
         user::manager::UserManager,
         Shared,
     },

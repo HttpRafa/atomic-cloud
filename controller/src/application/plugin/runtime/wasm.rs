@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use generated::exports::plugin::system::bridge;
 use node::PluginNode;
+use simplelog::error;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
@@ -15,7 +16,7 @@ use crate::application::{
 };
 
 pub(crate) mod config;
-mod ext;
+pub mod ext;
 pub mod init;
 mod node;
 
@@ -27,6 +28,11 @@ pub mod generated {
         world: "plugin",
         path: "../protocol/wit/",
         async: true,
+        trappable_imports: true,
+        with: {
+            "plugin:system/process/process-builder": super::ext::process::ProcessBuilder,
+            "plugin:system/process/process": super::ext::process::Process,
+        }
     });
 }
 
@@ -40,6 +46,8 @@ pub(crate) struct PluginState {
 }
 
 pub(crate) struct Plugin {
+    dropped: bool,
+
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,
     instance: ResourceAny,
@@ -125,6 +133,23 @@ impl GenericPlugin for Plugin {
                 Err(error) => Err(error),
             }
         })
+    }
+
+    async fn drop_resources(&mut self) -> Result<()> {
+        self.instance
+            .resource_drop_async(self.store.lock().await.as_context_mut())
+            .await?;
+        self.dropped = true;
+
+        Ok(())
+    }
+}
+
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        if !self.dropped {
+            error!("Resource was not dropped before being deallocated (memory leak)");
+        }
     }
 }
 

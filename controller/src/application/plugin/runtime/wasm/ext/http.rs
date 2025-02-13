@@ -1,3 +1,4 @@
+use anyhow::Result;
 use simplelog::warn;
 use tokio::task::spawn_blocking;
 
@@ -17,9 +18,9 @@ impl system::http::Host for PluginState {
         url: String,
         headers: Vec<Header>,
         body: Option<Vec<u8>>,
-    ) -> Option<Response> {
+    ) -> Result<Option<Response>> {
         let name = self.name.clone();
-        spawn_blocking(move || {
+        Ok(spawn_blocking(move || {
             let mut request = match method {
                 Method::Get => minreq::get(url),
                 Method::Patch => minreq::patch(url),
@@ -57,6 +58,6 @@ impl system::http::Host for PluginState {
         })
         .await
         .ok()
-        .flatten()
+        .flatten())
     }
 }

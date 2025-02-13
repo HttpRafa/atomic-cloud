@@ -1,14 +1,16 @@
+use anyhow::Result;
+
 use crate::application::plugin::runtime::wasm::{
     generated::plugin::system::{self, platform::Os},
     PluginState,
 };
 
 impl system::platform::Host for PluginState {
-    async fn get_os(&mut self) -> Os {
+    async fn get_os(&mut self) -> Result<Os> {
         if cfg!(target_os = "windows") {
-            Os::Windows
+            Ok(Os::Windows)
         } else {
-            Os::Unix
+            Ok(Os::Unix)
         }
     }
 }

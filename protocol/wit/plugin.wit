@@ -89,9 +89,9 @@ interface screen {
 interface process {
     use types.{error-message, key-value, directory};
 
-    create: func(command: string) -> process-builder;
-
     resource process-builder {
+        constructor(command: string);
+
         args: func(args: list<string>);
         environment: func(environment: list<key-value>);
         directory: func(directory: directory);
@@ -102,7 +102,7 @@ interface process {
         kill: func() -> result<_, error-message>;
         try-wait: func() -> result<option<s32>, error-message>;
 
-        read-lines: func() -> result<list<string>, error-message>;
+        read-lines: func() -> list<string>;
         write-line: func(line: string) -> result<_, error-message>;
     }
 }
@@ -203,5 +203,5 @@ world plugin {
     import platform;
     import file;
     import http;
-    //import process;
+    import process;
 }

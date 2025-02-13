@@ -81,7 +81,13 @@ impl NodeManager {
             .get_node_mut(name)
             .ok_or(DeleteResourceError::NotFound)?;
         node.delete().await?;
-        self.nodes.remove(name);
+        if let Some(mut node) = self.nodes.remove(name) {
+            // Before we can drop the node we have to drop the wasm resources first
+            node.drop_resources()
+                .await
+                .map_err(DeleteResourceError::Error)?;
+            drop(node); // Drop the node
+        }
         info!("Deleted node {}", name);
         Ok(())
     }
@@ -165,8 +171,14 @@ impl NodeManager {
         Ok(())
     }
 
-    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-    pub fn shutdown(&mut self) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps)]
+    pub async fn shutdown(&mut self) -> Result<()> {
+        for (_, mut node) in self.nodes.drain() {
+            // Before we can drop the node we have to drop the wasm resources first
+            node.drop_resources().await?;
+            drop(node); // Drop the node
+        }
+
         Ok(())
     }
 }

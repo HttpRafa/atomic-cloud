@@ -6,15 +6,15 @@ use url::Url;
 
 use super::{
     node::Capabilities,
-    server::{manager::StartRequest, screen::GenericScreen, Server},
+    server::{manager::StartRequest, screen::BoxedScreen, Server},
 };
 
 pub mod manager;
+mod process;
 mod runtime;
 
 pub type BoxedPlugin = Box<dyn GenericPlugin + Send + Sync>;
 pub type BoxedNode = Box<dyn GenericNode + Send + Sync>;
-pub type BoxedScreen = Box<dyn GenericScreen + Send + Sync>;
 
 #[async_trait]
 pub trait GenericPlugin {
@@ -31,8 +31,12 @@ pub trait GenericPlugin {
 
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;
+
+    /* Memory */
+    async fn drop_resources(&mut self) -> Result<()>;
 }
 
+#[async_trait]
 pub trait GenericNode {
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;
@@ -45,6 +49,9 @@ pub trait GenericNode {
     fn start(&self, server: &Server) -> JoinHandle<Result<BoxedScreen>>;
     fn restart(&self, server: &Server) -> JoinHandle<Result<()>>;
     fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
+
+    /* Memory */
+    async fn drop_resources(&mut self) -> Result<()>;
 }
 
 pub struct Information {

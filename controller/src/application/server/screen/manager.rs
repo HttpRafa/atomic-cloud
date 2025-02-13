@@ -12,12 +12,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
-use crate::{
-    application::{plugin::BoxedScreen, subscriber::Subscriber},
-    network::manage::ScreenLines,
-};
+use crate::{application::subscriber::Subscriber, network::manage::ScreenLines};
 
-use super::ScreenJoinHandle;
+use super::{BoxedScreen, ScreenJoinHandle};
 
 const SCREEN_TICK_RATE: u64 = 2;
 
@@ -45,8 +42,14 @@ impl ScreenManager {
             .insert(*server, ActiveScreen::new(screen));
     }
 
-    pub async fn unregister_screen(&self, server: &Uuid) {
-        self.screens.write().await.remove(server);
+    pub async fn unregister_screen(&self, server: &Uuid) -> Result<()> {
+        if let Some(mut screen) = self.screens.write().await.remove(server) {
+            // Before we can drop the screen we have to drop the wasm resources first
+            screen.drop_resources().await?;
+            drop(screen); // Drop the screen
+        }
+
+        Ok(())
     }
 
     pub async fn subscribe_screen(
@@ -70,6 +73,16 @@ impl ScreenManager {
     pub async fn tick(&self) -> Result<()> {
         for screen in self.screens.write().await.values_mut() {
             screen.tick().await?;
+        }
+        Ok(())
+    }
+
+    #[allow(clippy::unnecessary_wraps)]
+    pub async fn shutdown(&self) -> Result<()> {
+        for (_, mut screen) in self.screens.write().await.drain() {
+            // Before we can drop the screen we have to drop the wasm resources first
+            screen.drop_resources().await?;
+            drop(screen); // Drop the screen
         }
         Ok(())
     }
@@ -149,5 +162,9 @@ impl ActiveScreen {
         };
 
         Ok(())
+    }
+
+    pub async fn drop_resources(&mut self) -> Result<()> {
+        self.screen.drop_resources().await
     }
 }

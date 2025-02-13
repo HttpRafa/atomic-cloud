@@ -157,6 +157,9 @@ impl Controller {
         // Shutdown user manager
         self.users.shutdown()?;
 
+        // Shutdown screen manager
+        self.shared.screens.shutdown().await?;
+
         // Shutdown server manager
         self.servers.shutdown()?;
 
@@ -164,7 +167,7 @@ impl Controller {
         self.groups.shutdown()?;
 
         // Shutdown node manager
-        self.nodes.shutdown()?;
+        self.nodes.shutdown().await?;
 
         // Shutdown plugin manager
         self.plugins.shutdown().await?;

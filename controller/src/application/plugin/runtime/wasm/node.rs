@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use common::network::HostAndPort;
+use simplelog::error;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
+use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
 use crate::application::{
@@ -18,6 +20,8 @@ use super::{
 };
 
 pub struct PluginNode {
+    dropped: bool,
+
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,
     instance: ResourceAny,
@@ -30,6 +34,7 @@ impl PluginNode {
         instance: ResourceAny,
     ) -> Self {
         Self {
+            dropped: false,
             bindings,
             store,
             instance,
@@ -47,6 +52,7 @@ impl PluginNode {
     }
 }
 
+#[async_trait]
 impl GenericNode for PluginNode {
     fn tick(&self) -> JoinHandle<Result<()>> {
         let (bindings, store, instance) = self.get();
@@ -166,6 +172,23 @@ impl GenericNode for PluginNode {
                 Err(error) => Err(error),
             }
         })
+    }
+
+    async fn drop_resources(&mut self) -> Result<()> {
+        self.instance
+            .resource_drop_async(self.store.lock().await.as_context_mut())
+            .await?;
+        self.dropped = true;
+
+        Ok(())
+    }
+}
+
+impl Drop for PluginNode {
+    fn drop(&mut self) {
+        if !self.dropped {
+            error!("Resource was not dropped before being deallocated (memory leak)");
+        }
     }
 }
 

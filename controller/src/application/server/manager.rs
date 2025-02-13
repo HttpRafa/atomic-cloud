@@ -13,13 +13,13 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, plugin::BoxedScreen,
-        user::manager::UserManager, Shared,
+        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
+        Shared,
     },
     config::Config,
 };
 
-use super::{NameAndUuid, Resources, Server, Spec, State};
+use super::{screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
 
 mod action;
 
@@ -173,7 +173,7 @@ impl ServerManager {
                         shared
                             .screens
                             .unregister_screen(request.server.uuid())
-                            .await;
+                            .await?;
                         debug!("Server {} has been stopped", request.server);
                         ActionStage::Finished
                     } else {

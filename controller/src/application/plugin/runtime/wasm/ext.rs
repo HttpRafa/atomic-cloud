@@ -14,6 +14,7 @@ mod file;
 mod http;
 mod log;
 mod platform;
+pub mod process;
 pub mod screen;
 
 impl system::types::Host for PluginState {}

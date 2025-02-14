@@ -78,10 +78,10 @@ interface screen {
 
     variant screen-type {
         unsupported,
-        supported(screen),
+        supported(generic-screen),
     }
 
-    resource screen {
+    resource generic-screen {
         pull: func() -> result<list<string>, error-message>;
     }
 }

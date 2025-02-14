@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use common::name::TimedName;
 
-use crate::generated::{exports::plugin::system::bridge::DiskRetention, plugin::system::types::{Directory, Reference}};
+use crate::generated::{
+    exports::plugin::system::bridge::DiskRetention,
+    plugin::system::types::{Directory, Reference},
+};
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
@@ -48,7 +51,12 @@ impl Storage {
         Self::data_directory(host).join(TEMPLATES_DIRECTORY)
     }
     pub fn template_directory(host: bool, name: &str) -> PathBuf {
-        Self::data_directory(host).join(TEMPLATES_DIRECTORY).join(name)
+        Self::data_directory(host)
+            .join(TEMPLATES_DIRECTORY)
+            .join(name)
+    }
+    pub fn get_template_data_file(host: bool, name: &str) -> PathBuf {
+        Self::template_directory(host, name).join(TEMPLATE_DATA_FILE)
     }
     pub fn create_template_directory(name: &str) -> Directory {
         Directory {
@@ -58,13 +66,13 @@ impl Storage {
                 .to_string(),
         }
     }
-    pub fn get_template_data_file(host: bool, name: &str) -> PathBuf {
-        Self::template_directory(host, name).join(TEMPLATE_DATA_FILE)
-    }
 
     /* Units */
     pub fn temporary_directory(host: bool) -> PathBuf {
         Self::servers_directory(host).join(TEMPORARY_DIRECTORY)
+    }
+    pub fn permanent_folder(host: bool) -> PathBuf {
+        Self::servers_directory(host).join(PERMANENT_DIRECTORY)
     }
     pub fn create_temporary_directory() -> Directory {
         Directory {
@@ -73,9 +81,6 @@ impl Storage {
                 .to_string_lossy()
                 .to_string(),
         }
-    }
-    pub fn permanent_folder(host: bool) -> PathBuf {
-        Self::servers_directory(host).join(PERMANENT_DIRECTORY)
     }
 
     pub fn server_folder(host: bool, name: &TimedName, retention: &DiskRetention) -> PathBuf {

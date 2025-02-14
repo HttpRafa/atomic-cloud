@@ -4,8 +4,11 @@ use generated::{
     export,
     exports::plugin::system::{bridge, screen},
 };
+use node::{screen::Screen, Node};
+use plugin::Local;
 
 mod log;
+mod node;
 mod plugin;
 mod storage;
 
@@ -22,8 +25,13 @@ pub mod generated {
 
 struct Export;
 
-impl bridge::Guest for Export {}
+impl bridge::Guest for Export {
+    type GenericPlugin = Local;
+    type GenericNode = Node;
+}
 
-impl screen::Guest for Export {}
+impl screen::Guest for Export {
+    type GenericScreen = Screen;
+}
 
 export!(Export with_types_in generated);

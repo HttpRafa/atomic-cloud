@@ -12,7 +12,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
 use crate::application::{
     node::Capabilities,
-    plugin::{BoxedNode, GenericPlugin, Information},
+    plugin::{BoxedNode, Features, GenericPlugin, Information},
 };
 
 pub(crate) mod config;
@@ -179,8 +179,19 @@ impl From<bridge::Information> for Information {
         Information {
             authors: val.authors,
             version: val.version,
+            features: val.features.into(),
             ready: val.ready,
         }
+    }
+}
+
+impl From<bridge::Features> for Features {
+    fn from(value: bridge::Features) -> Self {
+        let mut features = Features::empty();
+        if value.contains(bridge::Features::NODE) {
+            features.insert(Features::NODE);
+        }
+        features
     }
 }
 

@@ -9,7 +9,7 @@ members = [
 
     # Drivers
     #"plugins/pterodactyl",
-    #"plugins/local",
+    "plugins/local",
 
     # Clients
     "cli",

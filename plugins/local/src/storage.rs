@@ -1,16 +1,8 @@
-/*
-All the storage related functions are implemented here.
-This makes it easier to change them in the future
-*/
-
 use std::path::PathBuf;
 
 use common::name::TimedName;
 
-use crate::{
-    node::plugin::types::{Directory, Reference},
-    exports::node::plugin::bridge::Retention,
-};
+use crate::generated::{exports::plugin::system::bridge::DiskRetention, plugin::system::types::{Directory, Reference}};
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
@@ -18,14 +10,13 @@ const PRIMARY_CONFIG_FILE: &str = "config.toml";
 
 /* Data */
 const DATA_DIRECTORY: &str = "/data";
-//const TEMPLATES_DIRECTORY: &str = "templates";
-const UNITS_DIRECTORY: &str = "servers";
+const SERVERS_DIRECTORY: &str = "servers";
 
 /* Templates */
 const TEMPLATES_DIRECTORY: &str = "templates";
 const TEMPLATE_DATA_FILE: &str = "template.toml";
 
-/* Units */
+/* Servers */
 const TEMPORARY_DIRECTORY: &str = "temporary";
 const PERMANENT_DIRECTORY: &str = "permanent";
 
@@ -33,86 +24,72 @@ pub struct Storage;
 
 impl Storage {
     /* Configs */
-    pub fn get_configs_folder() -> PathBuf {
+    pub fn configs_directory() -> PathBuf {
         PathBuf::from(CONFIG_DIRECTORY)
     }
-    pub fn get_primary_config_file() -> PathBuf {
-        Storage::get_configs_folder().join(PRIMARY_CONFIG_FILE)
+    pub fn primary_config_file() -> PathBuf {
+        Storage::configs_directory().join(PRIMARY_CONFIG_FILE)
     }
 
     /* Data */
-    pub fn get_data_folder() -> PathBuf {
-        PathBuf::from(DATA_DIRECTORY)
+    pub fn data_directory(host: bool) -> PathBuf {
+        if host {
+            PathBuf::new()
+        } else {
+            PathBuf::from(DATA_DIRECTORY)
+        }
     }
-    pub fn get_servers_folder() -> PathBuf {
-        Self::get_data_folder().join(UNITS_DIRECTORY)
-    }
-    pub fn get_servers_folder_host() -> PathBuf {
-        PathBuf::from(UNITS_DIRECTORY)
+    pub fn servers_directory(host: bool) -> PathBuf {
+        Self::data_directory(host).join(SERVERS_DIRECTORY)
     }
 
     /* Templates */
-    pub fn get_templates_folder() -> PathBuf {
-        Self::get_data_folder().join(TEMPLATES_DIRECTORY)
+    pub fn templates_directory(host: bool) -> PathBuf {
+        Self::data_directory(host).join(TEMPLATES_DIRECTORY)
     }
-    pub fn get_templates_folder_host() -> PathBuf {
-        PathBuf::from(TEMPLATES_DIRECTORY)
+    pub fn template_directory(host: bool, name: &str) -> PathBuf {
+        Self::data_directory(host).join(TEMPLATES_DIRECTORY).join(name)
     }
-    pub fn get_template_folder(name: &str) -> PathBuf {
-        Self::get_data_folder().join(TEMPLATES_DIRECTORY).join(name)
-    }
-    pub fn get_template_folder_host_converted(name: &str) -> Directory {
+    pub fn create_template_directory(name: &str) -> Directory {
         Directory {
             reference: Reference::Data,
-            path: Self::get_templates_folder_host()
-                .join(name)
+            path: Self::template_directory(true, name)
                 .to_string_lossy()
                 .to_string(),
         }
     }
-    pub fn get_template_data_file(name: &str) -> PathBuf {
-        Self::get_template_folder(name).join(TEMPLATE_DATA_FILE)
+    pub fn get_template_data_file(host: bool, name: &str) -> PathBuf {
+        Self::template_directory(host, name).join(TEMPLATE_DATA_FILE)
     }
 
     /* Units */
-    pub fn get_temporary_folder() -> PathBuf {
-        Self::get_servers_folder().join(TEMPORARY_DIRECTORY)
+    pub fn temporary_directory(host: bool) -> PathBuf {
+        Self::servers_directory(host).join(TEMPORARY_DIRECTORY)
     }
-    pub fn get_temporary_folder_host() -> PathBuf {
-        Self::get_servers_folder_host().join(TEMPORARY_DIRECTORY)
-    }
-    pub fn get_temporary_folder_host_converted() -> Directory {
+    pub fn create_temporary_directory() -> Directory {
         Directory {
             reference: Reference::Data,
-            path: Self::get_temporary_folder_host()
+            path: Self::temporary_directory(true)
                 .to_string_lossy()
                 .to_string(),
         }
     }
-    pub fn get_permanent_folder() -> PathBuf {
-        Self::get_servers_folder().join(PERMANENT_DIRECTORY)
-    }
-    pub fn get_permanent_folder_host() -> PathBuf {
-        Self::get_servers_folder_host().join(PERMANENT_DIRECTORY)
+    pub fn permanent_folder(host: bool) -> PathBuf {
+        Self::servers_directory(host).join(PERMANENT_DIRECTORY)
     }
 
-    pub fn get_server_folder(name: &TimedName, retention: &Retention) -> PathBuf {
-        if retention == &Retention::Permanent {
-            Self::get_permanent_folder().join(name.get_name())
-        } else {
-            Self::get_temporary_folder().join(name.get_name())
+    pub fn server_folder(host: bool, name: &TimedName, retention: &DiskRetention) -> PathBuf {
+        match retention {
+            DiskRetention::Temporary => Self::temporary_directory(host).join(name.get_name()),
+            DiskRetention::Permanent => Self::permanent_folder(host).join(name.get_name()),
         }
     }
-
-    pub fn get_server_folder_host_converted(name: &TimedName, retention: &Retention) -> Directory {
-        let path = if retention == &Retention::Permanent {
-            Self::get_permanent_folder_host().join(name.get_name())
-        } else {
-            Self::get_temporary_folder_host().join(name.get_name())
-        };
+    pub fn create_server_directory(name: &TimedName, retention: &DiskRetention) -> Directory {
         Directory {
             reference: Reference::Data,
-            path: path.to_string_lossy().to_string(),
+            path: Self::server_folder(true, name, retention)
+                .to_string_lossy()
+                .to_string(),
         }
     }
 }

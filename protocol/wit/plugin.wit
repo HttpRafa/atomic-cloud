@@ -113,9 +113,14 @@ interface bridge {
 
     type uuid = string;
 
+    flags features {
+        node
+    }
+
     record information {
         authors: list<string>,
         version: string,
+        features: features,
         ready: bool,
     }
 

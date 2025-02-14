@@ -1,24 +1,29 @@
 #![no_main]
 
-use plugin::{Local, LocalCloudletWrapper};
-use exports::node::plugin::bridge::Guest;
-use wit_bindgen::generate;
+use generated::{
+    export,
+    exports::plugin::system::{bridge, screen},
+};
 
-mod plugin;
 mod log;
+mod plugin;
 mod storage;
 
-generate!({
-    world: "plugin",
-    path: "../../protocol/wit/",
-    additional_derives: [PartialEq, Eq],
-});
+#[allow(clippy::all)]
+pub mod generated {
+    use wit_bindgen::generate;
+
+    generate!({
+        world: "plugin",
+        path: "../../protocol/wit/",
+        async: true,
+    });
+}
 
 struct Export;
 
-impl Guest for Export {
-    type GenericDriver = Local;
-    type GenericCloudlet = LocalCloudletWrapper;
-}
+impl bridge::Guest for Export {}
 
-export!(Export);
+impl screen::Guest for Export {}
+
+export!(Export with_types_in generated);

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bitflags::bitflags;
 use common::network::HostAndPort;
 use tokio::task::JoinHandle;
 use tonic::async_trait;
@@ -57,5 +58,13 @@ pub trait GenericNode {
 pub struct Information {
     authors: Vec<String>,
     version: String,
+    features: Features,
     ready: bool,
+}
+
+bitflags! {
+    pub struct Features: u32 {
+        const NODE = 1;
+        const ALL = Self::NODE.bits();
+    }
 }

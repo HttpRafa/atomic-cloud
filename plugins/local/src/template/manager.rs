@@ -21,7 +21,8 @@ impl TemplateManager {
             fs::create_dir_all(&directory)?;
         }
 
-        for (_, _, name, value) in Storage::for_each_content_toml::<StoredTemplate>(
+        for (_, _, name, value) in Storage::for_each_file_in_directory_toml::<StoredTemplate>(
+            Storage::template_data_file_name(),
             &directory,
             "Failed to read template from file",
         )? {

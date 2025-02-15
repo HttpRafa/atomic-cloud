@@ -62,8 +62,8 @@ impl Storage {
             .join(TEMPLATES_DIRECTORY)
             .join(name)
     }
-    pub fn get_template_data_file(host: bool, name: &str) -> PathBuf {
-        Self::template_directory(host, name).join(TEMPLATE_DATA_FILE)
+    pub fn template_data_file_name() -> &'static str {
+        &TEMPLATE_DATA_FILE
     }
     pub fn create_template_directory(name: &str) -> Directory {
         Directory {
@@ -105,17 +105,18 @@ impl Storage {
         }
     }
 
-    pub fn for_each_content_toml<T: SyncLoadFromTomlFile>(
+    pub fn for_each_file_in_directory_toml<T: SyncLoadFromTomlFile>(
+        file_name: &str,
         path: &Path,
         error_message: &str,
     ) -> Result<Vec<(PathBuf, String, String, T)>> {
         let mut result = Vec::new();
         for entry in fs::read_dir(path)? {
             let entry = entry?;
-            if entry.path().is_dir() {
+            if entry.path().is_file() {
                 continue;
             }
-            match T::from_file(&entry.path()) {
+            match T::from_file(&entry.path().join(file_name)) {
                 Ok(value) => {
                     let path = entry.path();
                     match (path.file_name(), path.file_stem()) {
@@ -126,7 +127,7 @@ impl Storage {
                             value,
                         )),
                         _ => {
-                            warn!("Failed to read file names: {:?}", path);
+                            warn!("Failed to read directory names: {:?}", path);
                         }
                     }
                 }

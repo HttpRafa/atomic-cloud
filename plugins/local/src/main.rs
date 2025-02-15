@@ -8,6 +8,7 @@ use node::{screen::Screen, Node};
 use plugin::Local;
 
 mod log;
+mod template;
 mod node;
 mod plugin;
 mod storage;

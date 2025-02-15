@@ -16,6 +16,9 @@ wit-bindgen = "0.39.0"
 # Error handling
 anyhow = "1.0.95"
 
+# Getters
+getset = "0.1.4"
+
 # Configuration
 serde = { version = "1.0.217", features = ["derive"] }
 toml = "0.8.20"

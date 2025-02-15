@@ -1,11 +1,12 @@
-use std::path::PathBuf;
+use std::{fs, path::{Path, PathBuf}};
 
-use common::name::TimedName;
+use anyhow::Result;
+use common::{file::SyncLoadFromTomlFile, name::TimedName};
 
-use crate::generated::{
+use crate::{generated::{
     exports::plugin::system::bridge::DiskRetention,
     plugin::system::types::{Directory, Reference},
-};
+}, warn};
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
@@ -96,5 +97,38 @@ impl Storage {
                 .to_string_lossy()
                 .to_string(),
         }
+    }
+
+    pub async fn for_each_content_toml<T: SyncLoadFromTomlFile>(
+        path: &Path,
+        error_message: &str,
+    ) -> Result<Vec<(PathBuf, String, String, T)>> {
+        let mut result = Vec::new();
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            if entry.path().is_dir() {
+                continue;
+            }
+            match T::from_file(&entry.path()) {
+                Ok(value) => {
+                    let path = entry.path();
+                    match (path.file_name(), path.file_stem()) {
+                        (Some(name), Some(stem)) => result.push((
+                            path.clone(),
+                            name.to_string_lossy().to_string(),
+                            stem.to_string_lossy().to_string(),
+                            value,
+                        )),
+                        _ => {
+                            warn!("Failed to read file names: {:?}", path);
+                        }
+                    }
+                }
+                Err(error) => {
+                    warn!("{}@{:?}: {:?}", error_message, entry.path(), error);
+                }
+            }
+        }
+        Ok(result)
     }
 }

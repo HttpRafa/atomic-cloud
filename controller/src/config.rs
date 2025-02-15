@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, time::Duration};
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tokio::fs;
 
 use crate::storage::{LoadFromTomlFile, Storage};
@@ -9,12 +9,12 @@ use crate::storage::{LoadFromTomlFile, Storage};
 const DEFAULT_CONFIG: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 struct Network {
     bind: SocketAddr,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 struct Timeouts {
     startup: Duration,
     restart: Duration,
@@ -23,7 +23,7 @@ struct Timeouts {
     empty_server: Duration,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 pub struct Config {
     identifier: String,
     network: Network,

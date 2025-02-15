@@ -1,6 +1,6 @@
 use crate::generated::exports::plugin::system::bridge::{
-    Address, Capabilities, ErrorMessage, GuestGenericNode, ScopedErrors, ScreenType,
-    Server, ServerProposal,
+    Address, Capabilities, ErrorMessage, GuestGenericNode, ScopedErrors, ScreenType, Server,
+    ServerProposal,
 };
 
 pub mod screen;

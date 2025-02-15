@@ -9,7 +9,7 @@ pub mod server;
 pub struct Node {}
 
 impl GuestGenericNode for Node {
-    async fn new(
+    fn new(
         _: String,
         name: String,
         id: Option<u32>,
@@ -19,27 +19,27 @@ impl GuestGenericNode for Node {
         todo!()
     }
 
-    async fn tick(&self) -> Result<(), ScopedErrors> {
+    fn tick(&self) -> Result<(), ScopedErrors> {
         todo!()
     }
 
-    async fn allocate(&self, server: ServerProposal) -> Result<Vec<Address>, ErrorMessage> {
+    fn allocate(&self, server: ServerProposal) -> Result<Vec<Address>, ErrorMessage> {
         todo!()
     }
 
-    async fn free(&self, addresses: Vec<Address>) {
+    fn free(&self, addresses: Vec<Address>) {
         todo!()
     }
 
-    async fn start(&self, server: Server) -> ScreenType {
+    fn start(&self, server: Server) -> ScreenType {
         todo!()
     }
 
-    async fn restart(&self, server: Server) {
+    fn restart(&self, server: Server) {
         todo!()
     }
 
-    async fn stop(&self, server: Server) {
+    fn stop(&self, server: Server) {
         todo!()
     }
 }

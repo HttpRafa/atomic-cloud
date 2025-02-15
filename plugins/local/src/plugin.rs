@@ -5,10 +5,17 @@ use common::allocator::NumberAllocator;
 use config::Config;
 
 use crate::{
-    error, generated::{exports::plugin::system::bridge::{
-        Capabilities, ErrorMessage, Features, GenericNode, GuestGenericPlugin, Information,
-        ScopedErrors,
-    }, plugin::system::file::remove_dir_all}, info, storage::Storage
+    error,
+    generated::{
+        exports::plugin::system::bridge::{
+            Capabilities, ErrorMessage, Features, GenericNode, GuestGenericPlugin, Information,
+            ScopedErrors,
+        },
+        plugin::system::file::remove_dir_all,
+    },
+    info,
+    storage::Storage,
+    template::manager::TemplateManager,
 };
 
 pub mod config;
@@ -24,31 +31,46 @@ pub struct Local {
 
     // Using .unwrap() is safe here because the value is always set by the time it is accessed (after the plugin is initialized)
     config: RefCell<Config>,
+    // Rc is used here to allow the allocator to be shared between the plugin and the nodes
     allocator: Rc<RefCell<NumberAllocator<u16>>>,
+
+    // Rc is used here to allow the template manager to be shared between the plugin and the nodes
+    templates: Rc<RefCell<TemplateManager>>,
 }
 
 impl GuestGenericPlugin for Local {
-    async fn new(identifier: String) -> Self {
+    fn new(identifier: String) -> Self {
         Self {
             identifier,
             config: RefCell::new(Config::default()), // Dummy config
             allocator: Rc::new(RefCell::new(NumberAllocator::new(0..10))), // Dummy allocator
+            templates: Rc::new(RefCell::new(TemplateManager::default())),
         }
     }
 
-    async fn init(&self) -> Information {
-        async fn inner(own: &Local) -> Result<()> {
+    fn init(&self) -> Information {
+        fn inner(own: &Local) -> Result<()> {
             // Delete temporary files if they exist
             if Storage::temporary_directory(false).exists() {
                 info!("Removing temporary files");
-                remove_dir_all(&Storage::create_temporary_directory()).await.map_err(|error| anyhow!(error))?;
+                remove_dir_all(&Storage::create_temporary_directory())
+                    
+                    .map_err(|error| anyhow!(error))?;
             }
 
             // Load configuration
             {
                 let config = Config::parse()?;
-                own.allocator.replace(NumberAllocator::new(config.ports().clone()));
+                own.allocator
+                    .replace(NumberAllocator::new(config.ports().clone()));
                 own.config.replace(config);
+            }
+
+            // Load templates
+            {
+                let mut templates = own.templates.borrow_mut();
+                templates.init()?;
+                templates.run_prepare()?
             }
             Ok(())
         }
@@ -57,7 +79,7 @@ impl GuestGenericPlugin for Local {
             authors: AUTHORS.iter().map(|author| author.to_string()).collect(),
             version: VERSION.to_string(),
             features: FEATURES,
-            ready: if let Err(error) = inner(self).await {
+            ready: if let Err(error) = inner(self) {
                 error!("Failed to initialize plugin: {}", error);
                 false
             } else {
@@ -66,7 +88,7 @@ impl GuestGenericPlugin for Local {
         }
     }
 
-    async fn init_node(
+    fn init_node(
         &self,
         name: String,
         capabilities: Capabilities,
@@ -75,11 +97,11 @@ impl GuestGenericPlugin for Local {
         todo!()
     }
 
-    async fn tick(&self) -> Result<(), ScopedErrors> {
-        todo!()
+    fn tick(&self) -> Result<(), ScopedErrors> {
+        Ok(())
     }
 
-    async fn shutdown(&self) -> Result<(), ScopedErrors> {
+    fn shutdown(&self) -> Result<(), ScopedErrors> {
         todo!()
     }
 }

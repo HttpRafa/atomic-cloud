@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
+use common::error::FancyError;
 use simplelog::{error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
@@ -87,7 +88,7 @@ pub async fn init_wasm_plugins(
         )
         .await;
         match plugin {
-            Ok(plugin) => match plugin.init().await {
+            Ok(mut plugin) => match plugin.init().await {
                 Ok(information) => {
                     if information.ready {
                         info!(
@@ -99,14 +100,20 @@ pub async fn init_wasm_plugins(
                         plugins.insert(name, Box::new(plugin));
                     } else {
                         warn!("Plugin {} marked itself as not ready, skipping...", name);
+                        if let Err(error) = plugin.drop_resources().await {
+                            error!("Failed to drop resources for plugin {}: {}", name, error);
+                        }
                     }
                 }
                 Err(error) => error!("Failed to initialize plugin {}: {}", name, error),
             },
-            Err(error) => error!(
-                "Failed to compile plugin {} at location {}: {}",
-                name, source, error
-            ),
+            Err(error) => {
+                error!(
+                    "Failed to compile plugin {} at location {}: {}",
+                    name, source, error
+                );
+                FancyError::print_fancy(&error, false);
+            },
         }
     }
 
@@ -129,8 +136,8 @@ impl Plugin {
         let mut engine_config = wasmtime::Config::new();
         engine_config
             .wasm_component_model(true)
-            .async_support(true)
-            .epoch_interruption(true);
+            .async_support(true);
+            //.epoch_interruption(true);
         if let Err(error) = engine_config.cache_config_load(Storage::wasm_engine_config_file()) {
             warn!("Failed to enable caching for wasmtime engine: {}", error);
         }
@@ -171,11 +178,11 @@ impl Plugin {
         let wasi = wasi
             .preopened_dir(
                 config_directory,
-                "/configs/",
+                "/configs",
                 DirPerms::all(),
                 FilePerms::all(),
             )?
-            .preopened_dir(data_directory, "/data/", DirPerms::all(), FilePerms::all())?
+            .preopened_dir(data_directory, "/data", DirPerms::all(), FilePerms::all())?
             .build();
 
         let resources = ResourceTable::new();

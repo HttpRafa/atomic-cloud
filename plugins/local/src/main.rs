@@ -1,4 +1,5 @@
 #![no_main]
+#![feature(extract_if)]
 
 use generated::{
     export,
@@ -8,10 +9,10 @@ use node::{screen::Screen, Node};
 use plugin::Local;
 
 mod log;
-mod template;
 mod node;
 mod plugin;
 mod storage;
+mod template;
 
 #[allow(clippy::all)]
 pub mod generated {
@@ -20,7 +21,6 @@ pub mod generated {
     generate!({
         world: "plugin",
         path: "../../protocol/wit/",
-        async: true,
     });
 }
 

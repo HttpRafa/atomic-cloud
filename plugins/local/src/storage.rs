@@ -1,12 +1,18 @@
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use common::{file::SyncLoadFromTomlFile, name::TimedName};
 
-use crate::{generated::{
-    exports::plugin::system::bridge::DiskRetention,
-    plugin::system::types::{Directory, Reference},
-}, warn};
+use crate::{
+    generated::{
+        exports::plugin::system::bridge::DiskRetention,
+        plugin::system::types::{Directory, Reference},
+    },
+    warn,
+};
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "/configs";
@@ -99,7 +105,7 @@ impl Storage {
         }
     }
 
-    pub async fn for_each_content_toml<T: SyncLoadFromTomlFile>(
+    pub fn for_each_content_toml<T: SyncLoadFromTomlFile>(
         path: &Path,
         error_message: &str,
     ) -> Result<Vec<(PathBuf, String, String, T)>> {

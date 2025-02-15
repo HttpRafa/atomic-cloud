@@ -201,15 +201,6 @@ impl From<&HostAndPort> for bridge::Address {
     }
 }
 
-impl From<(&String, &String)> for bridge::KeyValue {
-    fn from(val: (&String, &String)) -> Self {
-        bridge::KeyValue {
-            key: val.0.clone(),
-            value: val.1.clone(),
-        }
-    }
-}
-
 impl From<&DiskRetention> for bridge::DiskRetention {
     fn from(val: &DiskRetention) -> Self {
         match val {
@@ -225,12 +216,12 @@ impl From<&Spec> for bridge::Spec {
             settings: val
                 .settings()
                 .iter()
-                .map(std::convert::Into::into)
+                .map(|(key, value)| (key.clone(), value.clone()))
                 .collect(),
             environment: val
                 .environment()
                 .iter()
-                .map(std::convert::Into::into)
+                .map(|(key, value)| (key.clone(), value.clone()))
                 .collect(),
             disk_retention: val.disk_retention().into(),
             image: val.image().clone(),

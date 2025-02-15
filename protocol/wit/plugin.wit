@@ -19,11 +19,6 @@ interface types {
         path: string,
         reference: reference,
     }
-
-    record key-value {
-        key: string,
-        value: string,
-    }
 }
 
 interface log {
@@ -87,13 +82,13 @@ interface screen {
 }
 
 interface process {
-    use types.{error-message, key-value, directory};
+    use types.{error-message, directory};
 
     resource process-builder {
         constructor(command: string);
 
         args: func(args: list<string>);
-        environment: func(environment: list<key-value>);
+        environment: func(environment: list<tuple<string, string>>);
         directory: func(directory: directory);
         spawn: func() -> result<process, error-message>;
     }
@@ -108,7 +103,7 @@ interface process {
 }
 
 interface bridge {
-    use types.{error-message, scoped-errors, key-value};
+    use types.{error-message, scoped-errors};
     use screen.{screen-type};
 
     type uuid = string;
@@ -155,8 +150,8 @@ interface bridge {
     }
 
     record spec {
-        settings: list<key-value>,
-        environment: list<key-value>,
+        settings: list<tuple<string, string>>,
+        environment: list<tuple<string, string>>,
         disk-retention: disk-retention,
         image: string,
     }

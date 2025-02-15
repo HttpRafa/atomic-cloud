@@ -14,7 +14,7 @@ use wasmtime::component::Resource;
 use crate::application::plugin::runtime::wasm::{
     generated::plugin::system::{
         self,
-        types::{Directory, ErrorMessage, KeyValue},
+        types::{Directory, ErrorMessage},
     },
     PluginState,
 };
@@ -112,13 +112,12 @@ impl system::process::HostProcessBuilder for PluginState {
     async fn environment(
         &mut self,
         instance: Resource<ProcessBuilder>,
-        environment: Vec<KeyValue>,
+        environment: Vec<(String, String)>,
     ) -> Result<()> {
-        self.resources.get_mut(&instance)?.environment.extend(
-            environment
-                .into_iter()
-                .map(|value| (value.key, value.value)),
-        );
+        self.resources
+            .get_mut(&instance)?
+            .environment
+            .extend(environment);
         Ok(())
     }
     async fn directory(

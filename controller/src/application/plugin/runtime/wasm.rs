@@ -18,6 +18,7 @@ use crate::application::{
 pub(crate) mod config;
 pub mod ext;
 pub mod init;
+mod epoch;
 mod node;
 
 #[allow(clippy::all)]

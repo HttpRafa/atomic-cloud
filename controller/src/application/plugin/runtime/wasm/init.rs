@@ -17,11 +17,8 @@ use crate::{
 };
 
 use super::{
-    config::{verify_engine_config, PluginsConfig},
-    generated, Plugin, PluginState,
+    config::{verify_engine_config, PluginsConfig}, epoch::{EpochInvoker}, generated, Plugin, PluginState
 };
-
-const INCRMENT_EPOCH_INTERVAL: Duration = Duration::from_millis(100);
 
 pub async fn init_wasm_plugins(
     global_config: &Config,
@@ -37,6 +34,7 @@ pub async fn init_wasm_plugins(
     }
 
     let amount = plugins.len();
+    let mut invoker = EpochInvoker::new();
     for (path, _, name) in Storage::for_each_content(&directory).await? {
         if !path
             .extension()
@@ -87,6 +85,7 @@ pub async fn init_wasm_plugins(
             &plugins_config,
             &data_directory,
             &config_directory,
+            &mut invoker,
         )
         .await;
         match plugin {
@@ -125,6 +124,8 @@ pub async fn init_wasm_plugins(
 
     if amount == plugins.len() {
         warn!("The Wasm plugins feature is enabled, but no Wasm plugins were loaded.");
+    } else {
+        invoker.spawn();
     }
 
     Ok(())
@@ -138,6 +139,7 @@ impl Plugin {
         plugins_config: &PluginsConfig,
         data_directory: &Path,
         config_directory: &Path,
+        invoker: &mut EpochInvoker,
     ) -> Result<Self> {
         let mut engine_config = wasmtime::Config::new();
         engine_config
@@ -200,7 +202,7 @@ impl Plugin {
                 resources,
             },
         );
-        store.epoch_deadline_async_yield_and_update(6);
+        store.epoch_deadline_async_yield_and_update(2);
 
         let bindings =
             generated::Plugin::instantiate_async(&mut store, &component, &linker).await?;
@@ -211,18 +213,7 @@ impl Plugin {
             .await?;
 
         // Start thread that calls the increment epoch function
-        {
-            let engine = engine.weak();
-            thread::spawn(move || loop {
-                thread::sleep(INCRMENT_EPOCH_INTERVAL);
-                if let Some(engine) = engine.upgrade() {
-                    engine.increment_epoch();
-                } else {
-                    debug!("Engine dropped, stopping epoch increment thread");
-                    break;
-                }
-            });
-        }
+        invoker.push(&engine);
 
         Ok(Plugin {
             dropped: false,

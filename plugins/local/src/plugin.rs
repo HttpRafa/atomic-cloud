@@ -54,7 +54,6 @@ impl GuestGenericPlugin for Local {
             if Storage::temporary_directory(false).exists() {
                 info!("Removing temporary files");
                 remove_dir_all(&Storage::create_temporary_directory())
-                    
                     .map_err(|error| anyhow!(error))?;
             }
 

@@ -60,7 +60,7 @@ impl PluginManager {
 
         for (_, mut plugin) in self.plugins.drain() {
             // Before we can drop the plugin we have to drop the wasm resources first
-            plugin.drop_resources().await?;
+            plugin.cleanup().await?;
             drop(plugin); // Drop the plugin
         }
         Ok(())

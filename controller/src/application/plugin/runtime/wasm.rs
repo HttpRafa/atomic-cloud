@@ -7,7 +7,7 @@ use simplelog::error;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
-use wasmtime::{component::ResourceAny, AsContextMut, Store};
+use wasmtime::{component::ResourceAny, AsContextMut, Engine, Store};
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
 use crate::application::{
@@ -48,6 +48,7 @@ pub(crate) struct PluginState {
 pub(crate) struct Plugin {
     dropped: bool,
 
+    engine: Engine,
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,
     instance: ResourceAny,
@@ -135,7 +136,7 @@ impl GenericPlugin for Plugin {
         })
     }
 
-    async fn drop_resources(&mut self) -> Result<()> {
+    async fn cleanup(&mut self) -> Result<()> {
         self.instance
             .resource_drop_async(self.store.lock().await.as_context_mut())
             .await?;

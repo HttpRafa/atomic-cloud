@@ -13,7 +13,7 @@ pub trait GenericScreen {
     fn pull(&self) -> ScreenJoinHandle;
 
     /* Memory */
-    async fn drop_resources(&mut self) -> Result<()>;
+    async fn cleanup(&mut self) -> Result<()>;
 }
 
 pub enum PullError {

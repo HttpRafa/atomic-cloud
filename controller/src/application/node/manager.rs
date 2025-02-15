@@ -83,9 +83,7 @@ impl NodeManager {
         node.delete().await?;
         if let Some(mut node) = self.nodes.remove(name) {
             // Before we can drop the node we have to drop the wasm resources first
-            node.drop_resources()
-                .await
-                .map_err(DeleteResourceError::Error)?;
+            node.cleanup().await.map_err(DeleteResourceError::Error)?;
             drop(node); // Drop the node
         }
         info!("Deleted node {}", name);
@@ -175,7 +173,7 @@ impl NodeManager {
     pub async fn shutdown(&mut self) -> Result<()> {
         for (_, mut node) in self.nodes.drain() {
             // Before we can drop the node we have to drop the wasm resources first
-            node.drop_resources().await?;
+            node.cleanup().await?;
             drop(node); // Drop the node
         }
 

@@ -1,8 +1,8 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, path::Path, sync::Arc, thread, time::Duration};
 
 use anyhow::Result;
 use common::error::FancyError;
-use simplelog::{error, info, warn};
+use simplelog::{debug, error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
     component::{Component, Linker},
@@ -20,6 +20,8 @@ use super::{
     config::{verify_engine_config, PluginsConfig},
     generated, Plugin, PluginState,
 };
+
+const INCRMENT_EPOCH_INTERVAL: Duration = Duration::from_millis(100);
 
 pub async fn init_wasm_plugins(
     global_config: &Config,
@@ -100,12 +102,16 @@ pub async fn init_wasm_plugins(
                         plugins.insert(name, Box::new(plugin));
                     } else {
                         warn!("Plugin {} marked itself as not ready, skipping...", name);
-                        if let Err(error) = plugin.drop_resources().await {
+                        if let Err(error) = plugin.cleanup().await {
                             error!("Failed to drop resources for plugin {}: {}", name, error);
+                            FancyError::print_fancy(&error, false);
                         }
                     }
                 }
-                Err(error) => error!("Failed to initialize plugin {}: {}", name, error),
+                Err(error) => {
+                    error!("Failed to initialize plugin {}: {}", name, error);
+                    FancyError::print_fancy(&error, false);
+                }
             },
             Err(error) => {
                 error!(
@@ -113,7 +119,7 @@ pub async fn init_wasm_plugins(
                     name, source, error
                 );
                 FancyError::print_fancy(&error, false);
-            },
+            }
         }
     }
 
@@ -134,10 +140,8 @@ impl Plugin {
         config_directory: &Path,
     ) -> Result<Self> {
         let mut engine_config = wasmtime::Config::new();
-        engine_config
-            .wasm_component_model(true)
-            .async_support(true);
-            //.epoch_interruption(true);
+        engine_config.wasm_component_model(true).async_support(true);
+        //.epoch_interruption(true);
         if let Err(error) = engine_config.cache_config_load(Storage::wasm_engine_config_file()) {
             warn!("Failed to enable caching for wasmtime engine: {}", error);
         }
@@ -194,6 +198,7 @@ impl Plugin {
                 resources,
             },
         );
+        store.epoch_deadline_async_yield_and_update(5);
 
         let bindings =
             generated::Plugin::instantiate_async(&mut store, &component, &linker).await?;
@@ -203,8 +208,23 @@ impl Plugin {
             .call_constructor(&mut store, global_config.identifier())
             .await?;
 
+        // Start thread that calls the increment epoch function
+        {
+            let engine = engine.weak();
+            thread::spawn(move || loop {
+                thread::sleep(INCRMENT_EPOCH_INTERVAL);
+                if let Some(engine) = engine.upgrade() {
+                    engine.increment_epoch();
+                } else {
+                    debug!("Engine dropped, stopping epoch increment thread");
+                    break;
+                }
+            });
+        }
+
         Ok(Plugin {
             dropped: false,
+            engine,
             bindings: Arc::new(bindings),
             store: Arc::new(Mutex::new(store)),
             instance,

@@ -33,8 +33,8 @@ pub trait GenericPlugin {
     /* Ticking */
     fn tick(&self) -> JoinHandle<Result<()>>;
 
-    /* Memory */
-    async fn drop_resources(&mut self) -> Result<()>;
+    /* Management */
+    async fn cleanup(&mut self) -> Result<()>;
 }
 
 #[async_trait]
@@ -52,7 +52,7 @@ pub trait GenericNode {
     fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
 
     /* Memory */
-    async fn drop_resources(&mut self) -> Result<()>;
+    async fn cleanup(&mut self) -> Result<()>;
 }
 
 pub struct Information {

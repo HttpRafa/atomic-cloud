@@ -82,7 +82,7 @@ impl GenericScreen for PluginScreen {
         })
     }
 
-    async fn drop_resources(&mut self) -> Result<()> {
+    async fn cleanup(&mut self) -> Result<()> {
         if let ScreenType::Supported(instance) =
             replace(&mut self.instance, ScreenType::Unsupported)
         {

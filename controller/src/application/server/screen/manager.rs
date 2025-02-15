@@ -45,7 +45,7 @@ impl ScreenManager {
     pub async fn unregister_screen(&self, server: &Uuid) -> Result<()> {
         if let Some(mut screen) = self.screens.write().await.remove(server) {
             // Before we can drop the screen we have to drop the wasm resources first
-            screen.drop_resources().await?;
+            screen.cleanup().await?;
             drop(screen); // Drop the screen
         }
 
@@ -81,7 +81,7 @@ impl ScreenManager {
     pub async fn shutdown(&self) -> Result<()> {
         for (_, mut screen) in self.screens.write().await.drain() {
             // Before we can drop the screen we have to drop the wasm resources first
-            screen.drop_resources().await?;
+            screen.cleanup().await?;
             drop(screen); // Drop the screen
         }
         Ok(())
@@ -164,7 +164,7 @@ impl ActiveScreen {
         Ok(())
     }
 
-    pub async fn drop_resources(&mut self) -> Result<()> {
-        self.screen.drop_resources().await
+    pub async fn cleanup(&mut self) -> Result<()> {
+        self.screen.cleanup().await
     }
 }

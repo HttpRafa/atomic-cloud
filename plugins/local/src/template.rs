@@ -47,9 +47,7 @@ impl Template {
         let builder = ProcessBuilder::new(&prepare.command);
         builder.args(&prepare.args);
         builder.environment(&self.environment);
-        builder
-            .directory(&Storage::create_template_directory(&self.name))
-            ;
+        builder.directory(&Storage::create_template_directory(&self.name));
         builder.spawn().map_err(|error| anyhow!(error))
     }
 }

@@ -108,8 +108,8 @@ impl Node {
             .await
     }
 
-    pub async fn drop_resources(&mut self) -> Result<()> {
-        self.instance.drop_resources().await
+    pub async fn cleanup(&mut self) -> Result<()> {
+        self.instance.cleanup().await
     }
 }
 

@@ -24,9 +24,7 @@ impl TemplateManager {
         for (_, _, name, value) in Storage::for_each_content_toml::<StoredTemplate>(
             &directory,
             "Failed to read template from file",
-        )
-        ?
-        {
+        )? {
             info!("Loaded template {}", name);
             self.templates
                 .insert(name.clone(), Template::new(&name, &value));
@@ -54,7 +52,6 @@ impl TemplateManager {
             for (template, process) in &processes {
                 if process
                     .try_wait()
-                    
                     .map_err(|error| anyhow!(error))?
                     .is_none()
                 {

@@ -63,7 +63,7 @@ impl Storage {
             .join(name)
     }
     pub fn template_data_file_name() -> &'static str {
-        &TEMPLATE_DATA_FILE
+        TEMPLATE_DATA_FILE
     }
     pub fn create_template_directory(name: &str) -> Directory {
         Directory {
@@ -78,8 +78,13 @@ impl Storage {
     pub fn temporary_directory(host: bool) -> PathBuf {
         Self::servers_directory(host).join(TEMPORARY_DIRECTORY)
     }
-    pub fn permanent_folder(host: bool) -> PathBuf {
-        Self::servers_directory(host).join(PERMANENT_DIRECTORY)
+    pub fn temporary_directory_for_node(host: bool, node: &str) -> PathBuf {
+        Self::temporary_directory(host).join(node)
+    }
+    pub fn permanent_directory_for_node(host: bool, node: &str) -> PathBuf {
+        Self::servers_directory(host)
+            .join(PERMANENT_DIRECTORY)
+            .join(node)
     }
     pub fn create_temporary_directory() -> Directory {
         Directory {
@@ -90,16 +95,29 @@ impl Storage {
         }
     }
 
-    pub fn server_folder(host: bool, name: &TimedName, retention: &DiskRetention) -> PathBuf {
+    pub fn server_directory(
+        host: bool,
+        node: &str,
+        name: &TimedName,
+        retention: &DiskRetention,
+    ) -> PathBuf {
         match retention {
-            DiskRetention::Temporary => Self::temporary_directory(host).join(name.get_name()),
-            DiskRetention::Permanent => Self::permanent_folder(host).join(name.get_name()),
+            DiskRetention::Temporary => {
+                Self::temporary_directory_for_node(host, node).join(name.get_name())
+            }
+            DiskRetention::Permanent => {
+                Self::permanent_directory_for_node(host, node).join(name.get_name())
+            }
         }
     }
-    pub fn create_server_directory(name: &TimedName, retention: &DiskRetention) -> Directory {
+    pub fn create_server_directory(
+        node: &str,
+        name: &TimedName,
+        retention: &DiskRetention,
+    ) -> Directory {
         Directory {
             reference: Reference::Data,
-            path: Self::server_folder(true, name, retention)
+            path: Self::server_directory(true, node, name, retention)
                 .to_string_lossy()
                 .to_string(),
         }

@@ -178,7 +178,6 @@ interface bridge {
     }
 
     resource generic-node {
-        constructor(cloud-identifier: string, name: string, id: option<u32>, capabilities: capabilities, controller: string);
         tick: func() -> result<_, scoped-errors>;
         allocate: func(server: server-proposal) -> result<list<address>, error-message>;
         free: func(addresses: list<address>);

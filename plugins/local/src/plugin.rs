@@ -14,6 +14,7 @@ use crate::{
         plugin::system::file::remove_dir_all,
     },
     info,
+    node::{InnerNode, Node},
     storage::Storage,
     template::manager::TemplateManager,
 };
@@ -26,23 +27,22 @@ include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const FEATURES: Features = Features::all();
 
+// Rc is used here to allow resorces to be shared between the plugin and the nodes
 pub struct Local {
-    identifier: String,
+    nodes: RefCell<Vec<Rc<InnerNode>>>,
 
     // Using .unwrap() is safe here because the value is always set by the time it is accessed (after the plugin is initialized)
-    config: RefCell<Config>,
-    // Rc is used here to allow the allocator to be shared between the plugin and the nodes
-    allocator: Rc<RefCell<NumberAllocator<u16>>>,
+    config: Rc<RefCell<Config>>,
 
-    // Rc is used here to allow the template manager to be shared between the plugin and the nodes
+    allocator: Rc<RefCell<NumberAllocator<u16>>>,
     templates: Rc<RefCell<TemplateManager>>,
 }
 
 impl GuestGenericPlugin for Local {
-    fn new(identifier: String) -> Self {
+    fn new(_: String) -> Self {
         Self {
-            identifier,
-            config: RefCell::new(Config::default()), // Dummy config
+            nodes: RefCell::new(vec![]),
+            config: Rc::new(RefCell::new(Config::default())), // Dummy config
             allocator: Rc::new(RefCell::new(NumberAllocator::new(0..10))), // Dummy allocator
             templates: Rc::new(RefCell::new(TemplateManager::default())),
         }
@@ -93,7 +93,18 @@ impl GuestGenericPlugin for Local {
         capabilities: Capabilities,
         controller: String,
     ) -> Result<GenericNode, ErrorMessage> {
-        todo!()
+        let node = Node::new(
+            name.clone(),
+            capabilities,
+            controller,
+            self.config.clone(),
+            self.allocator.clone(),
+            self.templates.clone(),
+        );
+
+        self.nodes.borrow_mut().push(node.0.clone());
+        info!("Initialized node {}", name);
+        Ok(GenericNode::new(node))
     }
 
     fn tick(&self) -> Result<(), ScopedErrors> {
@@ -101,6 +112,6 @@ impl GuestGenericPlugin for Local {
     }
 
     fn shutdown(&self) -> Result<(), ScopedErrors> {
-        todo!()
+        Ok(())
     }
 }

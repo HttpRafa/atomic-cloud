@@ -1,6 +1,6 @@
 # File path and environment variable
 $PropertiesFile = "server.properties"
-$Port = $env:UNIT_PORT
+$Port = $env:SERVER_PORT
 
 # Check if the file exists
 if (Test-Path $PropertiesFile) {

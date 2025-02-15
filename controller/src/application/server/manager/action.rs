@@ -164,7 +164,6 @@ impl ServerManager {
                 shared.auth.unregister(&server.token).await;
 
                 users.remove_users_on_server(server.id.uuid());
-                // TODO: Cleanup subscriptions
 
                 Ok(node.stop(server))
             } else {

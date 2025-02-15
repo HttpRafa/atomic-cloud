@@ -2,7 +2,7 @@
 
 # File path and environment variable
 PROPERTIES_FILE="server.properties"
-PORT="${UNIT_PORT}"
+PORT="${SERVER_PORT}"
 
 # Update or add the server-port line
 if [ -f "$PROPERTIES_FILE" ]; then

@@ -64,11 +64,16 @@ impl TemplateManager {
             }
 
             if !running {
+                info!("All prepare scripts have finished");
                 break;
             }
         }
 
         Ok(())
+    }
+
+    pub fn get_template(&self, name: &str) -> Option<&Template> {
+        self.templates.get(name)
     }
 }
 

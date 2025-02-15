@@ -12,9 +12,7 @@ pub struct EpochInvoker {
 impl EpochInvoker {
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            engines: vec![],
-        }
+        Self { engines: vec![] }
     }
 
     pub fn push(&mut self, engine: &Engine) {
@@ -22,7 +20,10 @@ impl EpochInvoker {
     }
 
     pub fn spawn(mut self) {
-        debug!("Starting epoch invoker to increment epoch every {:?}", INCRMENT_EPOCH_INTERVAL);
+        debug!(
+            "Starting epoch invoker to increment epoch every {:?}",
+            INCRMENT_EPOCH_INTERVAL
+        );
         thread::spawn(move || loop {
             thread::sleep(INCRMENT_EPOCH_INTERVAL);
             self.engines.retain(|engine| {

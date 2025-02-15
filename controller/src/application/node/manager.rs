@@ -169,7 +169,6 @@ impl NodeManager {
         Ok(())
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     pub async fn shutdown(&mut self) -> Result<()> {
         for (_, mut node) in self.nodes.drain() {
             // Before we can drop the node we have to drop the wasm resources first

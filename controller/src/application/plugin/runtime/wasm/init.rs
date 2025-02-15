@@ -1,8 +1,8 @@
-use std::{collections::HashMap, path::Path, sync::Arc, thread, time::Duration};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
 use common::error::FancyError;
-use simplelog::{debug, error, info, warn};
+use simplelog::{error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
     component::{Component, Linker},
@@ -17,7 +17,9 @@ use crate::{
 };
 
 use super::{
-    config::{verify_engine_config, PluginsConfig}, epoch::{EpochInvoker}, generated, Plugin, PluginState
+    config::{verify_engine_config, PluginsConfig},
+    epoch::EpochInvoker,
+    generated, Plugin, PluginState,
 };
 
 pub async fn init_wasm_plugins(

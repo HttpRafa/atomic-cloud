@@ -11,7 +11,6 @@ use super::{
 };
 
 pub mod manager;
-mod process;
 mod runtime;
 
 pub type BoxedPlugin = Box<dyn GenericPlugin + Send + Sync>;

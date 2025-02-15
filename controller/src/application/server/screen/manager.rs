@@ -69,7 +69,6 @@ impl ScreenManager {
 
 // Ticking
 impl ScreenManager {
-    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
     pub async fn tick(&self) -> Result<()> {
         for screen in self.screens.write().await.values_mut() {
             screen.tick().await?;
@@ -77,7 +76,6 @@ impl ScreenManager {
         Ok(())
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     pub async fn shutdown(&self) -> Result<()> {
         for (_, mut screen) in self.screens.write().await.drain() {
             // Before we can drop the screen we have to drop the wasm resources first

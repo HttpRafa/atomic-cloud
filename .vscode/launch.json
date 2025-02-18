@@ -10,7 +10,8 @@
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=common"
+                    "--package=common",
+                    "--all-features"
                 ],
                 "filter": {
                     "name": "common",
@@ -28,7 +29,8 @@
                 "args": [
                     "build",
                     "--bin=controller",
-                    "--package=controller"
+                    "--package=controller",
+                    "--all-features"
                 ],
                 "filter": {
                     "name": "controller",
@@ -47,7 +49,8 @@
                     "test",
                     "--no-run",
                     "--bin=controller",
-                    "--package=controller"
+                    "--package=controller",
+                    "--all-features"
                 ],
                 "filter": {
                     "name": "controller",
@@ -65,7 +68,8 @@
                 "args": [
                     "build",
                     "--bin=cli",
-                    "--package=cli"
+                    "--package=cli",
+                    "--all-features"
                 ],
                 "filter": {
                     "name": "cli",
@@ -84,7 +88,8 @@
                     "test",
                     "--no-run",
                     "--bin=cli",
-                    "--package=cli"
+                    "--package=cli",
+                    "--all-features"
                 ],
                 "filter": {
                     "name": "cli",

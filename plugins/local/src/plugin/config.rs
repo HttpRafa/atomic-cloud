@@ -1,4 +1,4 @@
-use std::{fs, ops::Range};
+use std::{fs, ops::Range, time::Duration};
 
 use anyhow::Result;
 use common::file::SyncLoadFromTomlFile;
@@ -10,9 +10,21 @@ const DEFAULT_CONFIG: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
 #[derive(Deserialize, Default)]
-pub struct Config {
-    address: String,
+struct Network {
+    host: String,
     ports: Range<u16>,
+}
+
+#[derive(Deserialize, Default)]
+struct Timeouts {
+    stop: Duration,
+    restart: Duration,
+}
+
+#[derive(Deserialize, Default)]
+pub struct Config {
+    network: Network,
+    timeouts: Timeouts,
 }
 
 impl Config {
@@ -29,12 +41,20 @@ impl Config {
         }
     }
 
-    pub fn address(&self) -> &str {
-        &self.address
+    pub fn host(&self) -> &str {
+        &self.network.host
     }
 
     pub fn ports(&self) -> &Range<u16> {
-        &self.ports
+        &self.network.ports
+    }
+
+    pub fn stop_timeout(&self) -> &Duration {
+        &self.timeouts.stop
+    }
+
+    pub fn restart_timeout(&self) -> &Duration {
+        &self.timeouts.restart
     }
 }
 

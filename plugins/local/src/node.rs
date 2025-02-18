@@ -64,7 +64,7 @@ impl GuestGenericNode for Node {
         let mut ports = Vec::with_capacity(server.resources.ports as usize);
         let mut allocator = self.0.allocator.borrow_mut();
 
-        let host = self.0.config.borrow().address().to_string();
+        let host = self.0.config.borrow().host().to_string();
         for _ in 0..server.resources.ports {
             if let Some(port) = allocator.allocate() {
                 ports.push(Address {

@@ -55,7 +55,7 @@ impl Node {
 
 impl GuestGenericNode for Node {
     fn tick(&self) -> Result<(), ScopedErrors> {
-        self.0.servers.borrow_mut().tick()?;
+        self.0.servers.borrow_mut().tick(&self.0.config.borrow())?;
 
         Ok(())
     }

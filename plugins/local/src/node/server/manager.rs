@@ -12,10 +12,10 @@ use crate::{
         plugin::system::types::ScopedError,
     },
     info,
-    node::InnerNode,
+    node::InnerNode, plugin::config::Config,
 };
 
-use super::Server;
+use super::{Server, State};
 
 pub struct ServerManager {
     servers: HashMap<Uuid, Server>,
@@ -28,16 +28,21 @@ impl ServerManager {
         })
     }
 
-    pub fn tick(&mut self) -> Result<(), ScopedErrors> {
+    pub fn tick(&mut self, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
-        for server in self.servers.values_mut() {
-            if let Err(error) = server.tick() {
-                errors.push(ScopedError {
-                    scope: server.name.get_name().to_string(),
-                    message: error.to_string(),
-                });
+        self.servers.retain(|_, server| {
+            match server.tick(config) {
+                Ok(State::Dead) => false,
+                Ok(_) => true,
+                Err(error) => {
+                    errors.push(ScopedError {
+                        scope: server.name.get_name().to_string(),
+                        message: error.to_string(),
+                    });
+                    true
+                },
             }
-        }
+        });
         if !errors.is_empty() {
             return Err(errors);
         }

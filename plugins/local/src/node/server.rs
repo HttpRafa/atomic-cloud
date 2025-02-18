@@ -10,9 +10,7 @@ use crate::{
             screen::{GenericScreen, ScreenType},
         },
         plugin::system::process::{Process, ProcessBuilder},
-    },
-    storage::Storage,
-    template::Template,
+    }, info, plugin::config::Config, storage::Storage, template::Template, warn
 };
 
 use super::{screen::Screen, InnerNode};
@@ -93,8 +91,36 @@ impl Server {
         })
     }
 
-    pub fn tick(&mut self) -> Result<()> {
-        Ok(())
+    pub fn tick(&mut self, config: &Config) -> Result<&State> {
+        self.state = match self.state {
+            State::Restarting(instant) => {
+                if &instant.elapsed() > config.restart_timeout() {
+                    warn!("Server {} failed to stop in {:?}. Killing and respawning process...", self.name.get_name(), config.restart_timeout());
+                    self.respawn()?;
+                    State::Running
+                } else if let Some(code) = self.process.try_wait().map_err(|error| anyhow!(error))? {
+                    info!("Server {} exited with code {}", self.name.get_name(), code);
+                    self.respawn()?;
+                    State::Running
+                } else {
+                    State::Restarting(instant)
+                }
+            },
+            State::Stopping(instant) => {
+                if &instant.elapsed() > config.restart_timeout() {
+                    warn!("Server {} failed to stop in {:?}. Killing process...", self.name.get_name(), config.restart_timeout());
+                    self.kill()?;
+                    State::Dead
+                } else if let Some(code) = self.process.try_wait().map_err(|error| anyhow!(error))? {
+                    info!("Server {} exited with code {}", self.name.get_name(), code);
+                    State::Dead
+                } else {
+                    State::Stopping(instant)
+                }
+            },
+            _ => State::Running,
+        };
+        Ok(&self.state)
     }
 
     pub fn restart(&mut self, node: &InnerNode) -> Result<()> {
@@ -127,7 +153,13 @@ impl Server {
         Ok(())
     }
 
-    pub fn respawn(&mut self) -> Result<()> {
+    fn kill(&mut self) -> Result<()> {
+        self.process.kill().map_err(|error| anyhow!(error))?;
+        Ok(())
+    }
+
+    fn respawn(&mut self) -> Result<()> {
+        self.kill()?;
         self.process = Rc::new(self.builder.spawn().map_err(|error| anyhow!(error))?);
         Ok(())
     }
@@ -141,4 +173,5 @@ pub enum State {
     Running,
     Restarting(Instant),
     Stopping(Instant),
+    Dead,
 }

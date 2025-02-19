@@ -12,7 +12,8 @@ use crate::{
         plugin::system::types::ScopedError,
     },
     info,
-    node::InnerNode, plugin::config::Config,
+    node::InnerNode,
+    plugin::config::Config,
 };
 
 use super::{Server, State};
@@ -30,17 +31,15 @@ impl ServerManager {
 
     pub fn tick(&mut self, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
-        self.servers.retain(|_, server| {
-            match server.tick(config) {
-                Ok(State::Dead) => false,
-                Ok(_) => true,
-                Err(error) => {
-                    errors.push(ScopedError {
-                        scope: server.name.get_name().to_string(),
-                        message: error.to_string(),
-                    });
-                    true
-                },
+        self.servers.retain(|_, server| match server.tick(config) {
+            Ok(State::Dead) => false,
+            Ok(_) => true,
+            Err(error) => {
+                errors.push(ScopedError {
+                    scope: server.name.get_name().to_string(),
+                    message: error.to_string(),
+                });
+                true
             }
         });
         if !errors.is_empty() {

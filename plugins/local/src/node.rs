@@ -76,7 +76,7 @@ impl GuestGenericNode for Node {
             }
         }
 
-        todo!()
+        Ok(ports)
     }
 
     fn free(&self, addresses: Vec<Address>) {

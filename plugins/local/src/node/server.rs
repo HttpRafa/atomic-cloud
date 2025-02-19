@@ -10,7 +10,12 @@ use crate::{
             screen::{GenericScreen, ScreenType},
         },
         plugin::system::process::{Process, ProcessBuilder},
-    }, info, plugin::config::Config, storage::Storage, template::Template, warn
+    },
+    info,
+    plugin::config::Config,
+    storage::Storage,
+    template::Template,
+    warn,
 };
 
 use super::{screen::Screen, InnerNode};
@@ -95,29 +100,41 @@ impl Server {
         self.state = match self.state {
             State::Restarting(instant) => {
                 if &instant.elapsed() > config.restart_timeout() {
-                    warn!("Server {} failed to stop in {:?}. Killing and respawning process...", self.name.get_name(), config.restart_timeout());
+                    warn!(
+                        "Server {} failed to stop in {:?}. Killing and respawning process...",
+                        self.name.get_name(),
+                        config.restart_timeout()
+                    );
                     self.respawn()?;
                     State::Running
-                } else if let Some(code) = self.process.try_wait().map_err(|error| anyhow!(error))? {
+                } else if let Some(code) =
+                    self.process.try_wait().map_err(|error| anyhow!(error))?
+                {
                     info!("Server {} exited with code {}", self.name.get_name(), code);
                     self.respawn()?;
                     State::Running
                 } else {
                     State::Restarting(instant)
                 }
-            },
+            }
             State::Stopping(instant) => {
                 if &instant.elapsed() > config.restart_timeout() {
-                    warn!("Server {} failed to stop in {:?}. Killing process...", self.name.get_name(), config.restart_timeout());
+                    warn!(
+                        "Server {} failed to stop in {:?}. Killing process...",
+                        self.name.get_name(),
+                        config.restart_timeout()
+                    );
                     self.kill()?;
                     State::Dead
-                } else if let Some(code) = self.process.try_wait().map_err(|error| anyhow!(error))? {
+                } else if let Some(code) =
+                    self.process.try_wait().map_err(|error| anyhow!(error))?
+                {
                     info!("Server {} exited with code {}", self.name.get_name(), code);
                     State::Dead
                 } else {
                     State::Stopping(instant)
                 }
-            },
+            }
             _ => State::Running,
         };
         Ok(&self.state)

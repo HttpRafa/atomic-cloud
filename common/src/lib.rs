@@ -1,3 +1,5 @@
+#![feature(sync_unsafe_cell)]
+
 pub mod allocator;
 pub mod cache;
 pub mod error;

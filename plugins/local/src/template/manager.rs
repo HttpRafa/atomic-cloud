@@ -26,7 +26,12 @@ impl TemplateManager {
             &directory,
             "Failed to read template from file",
         )? {
-            info!("Loaded template {} {} by {}", name, value.version(), value.authors().join(","));
+            info!(
+                "Loaded template {} {} by {}",
+                name,
+                value.version(),
+                value.authors().join(",")
+            );
             self.templates
                 .insert(name.clone(), Template::new(&name, &value));
         }

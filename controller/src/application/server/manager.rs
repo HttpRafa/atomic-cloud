@@ -1,13 +1,12 @@
 use std::{
     collections::{BinaryHeap, HashMap},
-    mem,
     sync::Arc,
 };
 
 use anyhow::Result;
 use common::network::HostAndPort;
 use getset::Getters;
-use simplelog::{debug, warn};
+use simplelog::warn;
 use tokio::{task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
@@ -22,6 +21,9 @@ use crate::{
 use super::{screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
 
 mod action;
+mod restart;
+mod start;
+mod stop;
 
 pub struct ServerManager {
     /* Servers */
@@ -121,214 +123,57 @@ impl ServerManager {
         }
 
         // Stop all servers that have been requested to stop
-        let mut requests = vec![];
-        while let Some(mut request) = self.stop_requests.pop() {
-            if let Some(when) = request.when {
-                if when > Instant::now() {
+        {
+            let mut requests = Vec::with_capacity(self.stop_requests.len());
+            for mut request in self.stop_requests.drain(..) {
+                if Self::handle_stop_request(
+                    &mut request,
+                    &mut self.servers,
+                    nodes,
+                    groups,
+                    users,
+                    shared,
+                )
+                .await?
+                {
                     requests.push(request);
-                    continue;
                 }
             }
-
-            let mut reinsert = false;
-            request.stage = match mem::replace(&mut request.stage, ActionStage::Queued) {
-                ActionStage::Queued => {
-                    debug!("Freeing resources for server {}", request.server);
-                    match Self::free(&request, &mut self.servers, nodes) {
-                        Ok(handle) => {
-                            reinsert = true;
-                            ActionStage::Freeing(handle)
-                        }
-                        Err(error) => {
-                            warn!("Failed to free server {}: {}", request.server, error);
-                            ActionStage::Failed
-                        }
-                    }
-                }
-                ActionStage::Freeing(handle) => {
-                    if handle.is_finished() {
-                        handle.await??;
-                        debug!("Stopping server {}", request.server);
-                        match Self::stop(&request, &mut self.servers, nodes, groups, users, shared)
-                            .await
-                        {
-                            Ok(handle) => {
-                                reinsert = true;
-                                ActionStage::Running(handle)
-                            }
-                            Err(error) => {
-                                warn!("Failed to stop server {}: {}", request.server, error);
-                                ActionStage::Failed
-                            }
-                        }
-                    } else {
-                        reinsert = true;
-                        ActionStage::Freeing(handle)
-                    }
-                }
-                ActionStage::Running(handle) => {
-                    if handle.is_finished() {
-                        handle.await??;
-                        // Remove the screen from the shared screen manager
-                        shared
-                            .screens
-                            .unregister_screen(request.server.uuid())
-                            .await?;
-                        debug!("Server {} has been stopped", request.server);
-                        ActionStage::Finished
-                    } else {
-                        reinsert = true;
-                        ActionStage::Running(handle)
-                    }
-                }
-                _ => ActionStage::Finished,
-            };
-            if reinsert {
-                requests.push(request);
-            }
+            self.stop_requests.extend(requests);
         }
-        self.stop_requests.extend(requests);
 
         // Restart all servers that have been requested to restart
-        let mut requests = vec![];
-        while let Some(mut request) = self.restart_requests.pop() {
-            if let Some(when) = request.when {
-                if when > Instant::now() {
+        {
+            let mut requests = Vec::with_capacity(self.restart_requests.len());
+            for mut request in self.restart_requests.drain(..) {
+                if Self::handle_restart_request(&mut request, &mut self.servers, config, nodes)
+                    .await?
+                {
                     requests.push(request);
-                    continue;
                 }
             }
-
-            let mut reinsert = false;
-            request.stage = match mem::replace(&mut request.stage, ActionStage::Queued) {
-                ActionStage::Queued => {
-                    debug!("Restarting server {}", request.server);
-                    match Self::restart(&request, &mut self.servers, config, nodes) {
-                        Ok(handle) => {
-                            reinsert = true;
-                            ActionStage::Running(handle)
-                        }
-                        Err(error) => {
-                            warn!("Failed to restart server {}: {}", request.server, error);
-                            ActionStage::Failed
-                        }
-                    }
-                }
-                ActionStage::Running(handle) => {
-                    if handle.is_finished() {
-                        handle.await??;
-                        debug!("Server {} has been restarted", request.server);
-                        ActionStage::Finished
-                    } else {
-                        reinsert = true;
-                        ActionStage::Running(handle)
-                    }
-                }
-                _ => ActionStage::Finished,
-            };
-            if reinsert {
-                requests.push(request);
-            }
+            self.restart_requests.extend(requests);
         }
-        self.restart_requests.extend(requests);
 
         // Start all servers that have been requested to start
-        let mut requests = vec![];
-        while let Some(mut request) = self.start_requests.pop() {
-            if request.nodes.is_empty() {
-                warn!("Server {} has no nodes available to start on.", request.id);
-                continue;
-            }
-
-            if let Some(when) = request.when {
-                if when > Instant::now() {
+        {
+            let mut requests = Vec::with_capacity(self.start_requests.len());
+            for mut request in self.start_requests.drain_sorted() {
+                if Self::handle_start_request(
+                    &mut request,
+                    &mut self.servers,
+                    config,
+                    nodes,
+                    groups,
+                    shared,
+                )
+                .await?
+                {
                     requests.push(request);
-                    continue;
                 }
             }
-
-            let mut reinsert = false;
-            request.stage = match mem::replace(&mut request.stage, StartStage::Queued) {
-                StartStage::Queued => {
-                    debug!("Allocating resources for server {}", request.id);
-                    match Self::allocate(0, &request, nodes) {
-                        Ok(handle) => {
-                            reinsert = true;
-                            StartStage::Allocating((0, handle))
-                        }
-                        Err(error) => {
-                            warn!(
-                                "Failed to allocate resources for server {}: {}",
-                                request.id, error
-                            );
-                            reinsert = false;
-                            StartStage::Failed
-                        }
-                    }
-                }
-                StartStage::Allocating((index, handle)) => {
-                    reinsert = true;
-                    if handle.is_finished() {
-                        let ports = handle.await?;
-                        if let Ok(ports) = ports {
-                            debug!("Creating server {}", request.id);
-                            match Self::start(
-                                index,
-                                &request,
-                                ports,
-                                &mut self.servers,
-                                config,
-                                nodes,
-                                groups,
-                                shared,
-                            )
-                            .await
-                            {
-                                Ok(handle) => StartStage::Creating(handle),
-                                Err(error) => {
-                                    warn!("Failed to create server {}: {}", request.id, error);
-                                    reinsert = false;
-                                    StartStage::Failed
-                                }
-                            }
-                        } else {
-                            match Self::allocate(index + 1, &request, nodes) {
-                                Ok(handle) => StartStage::Allocating((index + 1, handle)),
-                                Err(error) => {
-                                    warn!(
-                                        "Failed to allocate resources for server {}: {}",
-                                        request.id, error
-                                    );
-                                    reinsert = false;
-                                    StartStage::Failed
-                                }
-                            }
-                        }
-                    } else {
-                        StartStage::Allocating((index, handle))
-                    }
-                }
-                StartStage::Creating(handle) => {
-                    if handle.is_finished() {
-                        // Register the screen with the shared screen manager
-                        shared
-                            .screens
-                            .register_screen(request.id.uuid(), handle.await??)
-                            .await;
-                        debug!("Server {} has been created", request.id);
-                        StartStage::Started
-                    } else {
-                        reinsert = true;
-                        StartStage::Creating(handle)
-                    }
-                }
-                _ => StartStage::Started,
-            };
-            if reinsert {
-                requests.push(request);
-            }
+            self.start_requests.extend(requests);
         }
-        self.start_requests.extend(requests);
 
         Ok(())
     }
@@ -389,16 +234,12 @@ enum ActionStage {
     Queued,
     Freeing(JoinHandle<Result<()>>),
     Running(JoinHandle<Result<()>>),
-    Finished,
-    Failed,
 }
 
 enum StartStage {
     Queued,
     Allocating((usize, JoinHandle<Result<Vec<HostAndPort>>>)),
     Creating(JoinHandle<Result<BoxedScreen>>),
-    Started,
-    Failed,
 }
 
 impl StartRequest {

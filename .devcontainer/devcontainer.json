@@ -14,21 +14,15 @@
                 "terminal.integrated.shell.linux": "/bin/bash"
             },
             "extensions": [
-                // Extensions for Rust development
                 "rust-lang.rust-analyzer",
                 "vadimcn.vscode-lldb",
-                "usernamehw.errorlens",
                 "tamasfe.even-better-toml",
 
-                // Extensions for WebAssembly development and gRPC development
-                "peterj.proto",
-                "bytecodealliance.wit-idl",
-
-                // Extensions for general development
                 "fill-labs.dependi",
-                "ms-vscode.makefile-tools",
-                "ms-azuretools.vscode-docker",
-                "github.vscode-github-actions"
+                "usernamehw.errorlens",
+                "Gruntfuggly.todo-tree",
+
+                "GitHub.copilot"
             ]
         }
     },

@@ -57,13 +57,13 @@ impl PluginConfig {
     pub fn has_allow_ip_name_lookup(&self) -> bool {
         self.allow_ip_name_lookup
     }
-    pub fn has_allow_http(&self) -> bool {
+    pub fn _has_allow_http(&self) -> bool {
         self.allow_http
     }
-    pub fn has_allow_process(&self) -> bool {
+    pub fn _has_allow_process(&self) -> bool {
         self.allow_process
     }
-    pub fn has_allow_remove_dir_all(&self) -> bool {
+    pub fn _has_allow_remove_dir_all(&self) -> bool {
         self.allow_remove_dir_all
     }
     pub fn get_mounts(&self) -> &[Mount] {

@@ -16,7 +16,9 @@ use server::{manager::ServerManager, screen::manager::ScreenManager};
 use simplelog::{error, info};
 use subscriber::manager::SubscriberManager;
 use tokio::{
-    select, sync::{mpsc, watch}, time::{interval, MissedTickBehavior}
+    select,
+    sync::{mpsc, watch},
+    time::{interval, Instant, MissedTickBehavior},
 };
 use user::manager::UserManager;
 
@@ -100,7 +102,7 @@ impl Controller {
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
-        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
         while self.state.running {
             self.state.tick(); // Check for exit votes
 
@@ -109,7 +111,7 @@ impl Controller {
                 task = self.tasks.1.recv() => if let Some(task) = task {
                     task.run(self).await?;
                 },
-                _ = self.state.signal.1.changed() => self.shutdown().await?,
+                _ = self.state.signal.1.changed() => self.shutdown()?,
             }
         }
 
@@ -121,8 +123,10 @@ impl Controller {
     }
 
     async fn tick(&mut self) -> Result<()> {
+        let start = Instant::now();
+
         // Tick plugin manager
-        self.plugins.tick()?;
+        self.plugins.tick().await?;
 
         // Tick node manager
         self.nodes.tick()?;
@@ -150,10 +154,17 @@ impl Controller {
         // Tick screen manager
         self.shared.screens.tick().await?;
 
+        // Check if tick took longer than expected
+        let elapsed = start.elapsed();
+        #[allow(clippy::cast_possible_truncation)]
+        if elapsed.as_millis() as u64 > 1000 / TICK_RATE {
+            info!("Tick took longer than expected: {:?}", elapsed);
+        }
+
         Ok(())
     }
 
-    async fn shutdown(&mut self) -> Result<()> {
+    fn shutdown(&mut self) -> Result<()> {
         info!("Starting shutdown sequence...");
 
         // Shutdown group manager
@@ -232,7 +243,11 @@ impl Voter {
 impl State {
     #[must_use]
     fn new() -> Self {
-        Self { running: true, signal: watch::channel(true), votes: (false, 0, Arc::new(AtomicU8::new(0))) }
+        Self {
+            running: true,
+            signal: watch::channel(true),
+            votes: (false, 0, Arc::new(AtomicU8::new(0))),
+        }
     }
 
     fn tick(&mut self) {

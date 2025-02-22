@@ -47,7 +47,7 @@ Write-Host "Running Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $env:SERVER_JA
 
 Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $env:SERVER_JARFILE
 
-if ($env:PROJECT -eq "paper") {
+if ($env:PROJECT -eq "paper" -or $env:PROJECT -eq "folia") {
     Write-Host "Installing required client plugin..."
     Invoke-WebRequest -Uri "https://github.com/HttpRafa/atomic-cloud/releases/latest/download/paper-client.jar" -OutFile "paper-client.jar"
     New-Item -ItemType Directory -Path "plugins" -Force | Out-Null

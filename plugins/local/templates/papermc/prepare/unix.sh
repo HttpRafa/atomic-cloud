@@ -49,8 +49,8 @@ echo "Running curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}"
 
 curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}
 
-# Only execute if PROJECT is "paper"
-if [ "${PROJECT}" == "paper" ]; then
+# Only execute if PROJECT is "paper" or "folia"
+if [ "${PROJECT}" == "paper" ] || [ "${PROJECT}" == "folia" ]; then
 	echo "Installing required client plugin..."
 	curl -o cloud.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/paper-client.jar
 	mkdir -p plugins/

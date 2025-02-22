@@ -1,4 +1,4 @@
-use std::{rc::Rc, time::Instant};
+use std::{fmt::Display, rc::Rc, time::Instant};
 
 use anyhow::{anyhow, Result};
 use common::name::TimedName;
@@ -9,7 +9,7 @@ use crate::{
             bridge::{self, DiskRetention},
             screen::{GenericScreen, ScreenType},
         },
-        plugin::system::process::{Process, ProcessBuilder},
+        plugin::system::process::{ExitStatus, Process, ProcessBuilder},
     },
     info,
     plugin::config::Config,
@@ -110,7 +110,11 @@ impl Server {
                 } else if let Some(code) =
                     self.process.try_wait().map_err(|error| anyhow!(error))?
                 {
-                    info!("Server {} exited with code {}", self.name.get_name(), code);
+                    info!(
+                        "Server {} exited with status {}",
+                        self.name.get_name(),
+                        code
+                    );
                     self.respawn()?;
                     State::Running
                 } else {
@@ -118,18 +122,24 @@ impl Server {
                 }
             }
             State::Stopping(instant) => {
-                if &instant.elapsed() > config.restart_timeout() {
+                if &instant.elapsed() > config.stop_timeout() {
                     warn!(
                         "Server {} failed to stop in {:?}. Killing process...",
                         self.name.get_name(),
-                        config.restart_timeout()
+                        config.stop_timeout()
                     );
-                    self.kill()?;
+                    if let Err(error) = self.kill() {
+                        warn!("Failed to kill process: {}", error);
+                    }
                     State::Dead
                 } else if let Some(code) =
                     self.process.try_wait().map_err(|error| anyhow!(error))?
                 {
-                    info!("Server {} exited with code {}", self.name.get_name(), code);
+                    info!(
+                        "Server {} exited with status {}",
+                        self.name.get_name(),
+                        code
+                    );
                     State::Dead
                 } else {
                     State::Stopping(instant)
@@ -176,7 +186,9 @@ impl Server {
     }
 
     fn respawn(&mut self) -> Result<()> {
-        self.kill()?;
+        if let Err(error) = self.kill() {
+            warn!("Failed to kill process: {}", error);
+        }
         self.process = Rc::new(self.builder.spawn().map_err(|error| anyhow!(error))?);
         Ok(())
     }
@@ -191,4 +203,14 @@ pub enum State {
     Restarting(Instant),
     Stopping(Instant),
     Dead,
+}
+
+impl Display for ExitStatus {
+    fn fmt(&self, format: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExitStatus::Code(code) => write!(format, "code {}", code),
+            ExitStatus::Signal(signal) => write!(format, "signal {}", signal),
+            ExitStatus::Unknown => write!(format, "unknown"),
+        }
+    }
 }

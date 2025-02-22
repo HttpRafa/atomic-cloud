@@ -1,7 +1,7 @@
 use std::{collections::HashMap, mem::replace, sync::Arc};
 
 use anyhow::Result;
-use simplelog::{debug, error, warn};
+use simplelog::{debug, error, info, warn};
 use tokio::time::Instant;
 use uuid::Uuid;
 
@@ -55,7 +55,9 @@ impl ServerManager {
                 if handle.is_finished() {
                     let ports = handle.await?;
                     if let Ok(ports) = ports {
-                        debug!("Creating server {}", request.id);
+                        if let Some(port) = ports.first() {
+                            info!("Starting server {} listening on port {}", request.id, port);
+                        }
                         match Self::start(
                             index, request, ports, servers, config, nodes, groups, shared,
                         )
@@ -101,7 +103,7 @@ impl ServerManager {
                         .screens
                         .register_screen(request.id.uuid(), handle.await??)
                         .await;
-                    debug!("Server {} has been created", request.id);
+                    debug!("Server {} has been started", request.id);
                     return Ok(false);
                 }
                 StartStage::Creating(handle)

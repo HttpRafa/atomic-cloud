@@ -41,6 +41,7 @@ impl TemplateManager {
     }
 
     pub fn run_prepare(&self) -> Result<()> {
+        info!("Running prepare scripts...");
         let mut processes = Vec::with_capacity(self.templates.len());
         for template in self.templates.values() {
             match template.spawn_prepare() {
@@ -114,6 +115,7 @@ pub(super) mod stored {
     pub struct StoredTemplate {
         /* Template */
         #[getset(get = "pub")]
+        #[allow(unused)]
         description: String,
         #[getset(get = "pub")]
         version: String,

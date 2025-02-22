@@ -11,4 +11,9 @@ impl GuestGenericScreen for Screen {
     fn pull(&self) -> Result<Vec<String>, ErrorMessage> {
         Ok(self.0.read_lines())
     }
+
+    fn write(&self, data: Vec<u8>) -> Result<(), ErrorMessage> {
+        self.0.write_all(&data)?;
+        self.0.flush()
+    }
 }

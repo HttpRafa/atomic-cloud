@@ -32,14 +32,17 @@ impl ServerManager {
     pub fn tick(&mut self, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
         self.servers.retain(|_, server| match server.tick(config) {
-            Ok(State::Dead) => false,
+            Ok(State::Dead) => {
+                info!("Server {} stopped", server.name.get_name());
+                false
+            }
             Ok(_) => true,
             Err(error) => {
                 errors.push(ScopedError {
                     scope: server.name.get_name().to_string(),
                     message: error.to_string(),
                 });
-                true
+                false
             }
         });
         if !errors.is_empty() {

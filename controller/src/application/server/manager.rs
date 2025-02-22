@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager, OptVoter, Shared, Voter
+        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
+        OptVoter, Shared, Voter,
     },
     config::Config,
 };
@@ -85,12 +86,15 @@ impl ServerManager {
 
     pub fn schedule_start(&mut self, request: StartRequest) {
         if self.voter.is_some() {
-            warn!("Ignoring start request for server {} as the server manager is shutting down.", request.id);
+            warn!(
+                "Ignoring start request for server {} as the server manager is shutting down.",
+                request.id
+            );
             return;
         }
         self.start_requests.push(request);
     }
-    pub fn schedule_restart(&mut self, request: RestartRequest) {
+    pub fn _schedule_restart(&mut self, request: RestartRequest) {
         self.restart_requests.push(request);
     }
     pub fn schedule_stop(&mut self, request: StopRequest) {
@@ -182,10 +186,8 @@ impl ServerManager {
         }
 
         if let Some(voter) = &mut self.voter {
-            if self.servers.is_empty() {
-                if voter.vote() {
-                    info!("All servers have been stopped. Ready to stop...");
-                }
+            if self.servers.is_empty() && voter.vote() {
+                info!("All servers have been stopped. Ready to stop...");
             }
         }
 

@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::ActionResult,
-        server::{NameAndUuid, Server}, Voter,
+        server::{NameAndUuid, Server},
     },
     config::Config,
 };

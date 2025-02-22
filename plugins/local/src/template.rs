@@ -24,7 +24,9 @@ pub struct Template {
     /* Template */
     #[getset(get = "pub")]
     name: String,
+    #[allow(unused)]
     version: String,
+    #[allow(unused)]
     authors: Vec<String>,
 
     /* Files */
@@ -84,12 +86,19 @@ impl Template {
     pub fn write_shutdown(&self, process: &Process) -> Result<()> {
         match &self.shutdown {
             Some(command) => process
-                .write_line(command)
-                .map_err(|error| anyhow!("Failed to send shutdown command to process: {}", error)),
+                .write_all(format!("{}\n", command).as_bytes())
+                .map_err(|error| {
+                    anyhow!("Failed to send shutdown command to process: {}", error)
+                })?,
             None => process
-                .write_line("^C")
-                .map_err(|error| anyhow!("Failed to send Ctl+C command to process: {}", error)),
+                .write_all("^C\n".as_bytes())
+                .map_err(|error| anyhow!("Failed to send Ctl+C command to process: {}", error))?,
         }
+
+        process
+            .flush()
+            .map_err(|error| anyhow!("Failed to flush processes stdin: {}", error))?;
+        Ok(())
     }
 
     pub fn copy_self(&self, to: &Path) -> Result<()> {

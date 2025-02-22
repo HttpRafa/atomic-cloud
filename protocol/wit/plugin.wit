@@ -78,11 +78,18 @@ interface screen {
 
     resource generic-screen {
         pull: func() -> result<list<string>, error-message>;
+        write: func(data: list<u8>) -> result<_, error-message>;
     }
 }
 
 interface process {
     use types.{error-message, directory};
+
+    variant exit-status {
+        code(s32),
+        signal(s32),
+        unknown,
+    }
 
     resource process-builder {
         constructor(command: string);
@@ -95,10 +102,11 @@ interface process {
 
     resource process {
         kill: func() -> result<_, error-message>;
-        try-wait: func() -> result<option<s32>, error-message>;
+        try-wait: func() -> result<option<exit-status>, error-message>;
 
         read-lines: func() -> list<string>;
-        write-line: func(line: string) -> result<_, error-message>;
+        write-all: func(data: list<u8>) -> result<_, error-message>;
+        flush: func() -> result<_, error-message>;
     }
 }
 

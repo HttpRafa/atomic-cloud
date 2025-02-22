@@ -17,9 +17,11 @@ pub type Authorization = Arc<OwnedAuthorization>;
 
 pub trait GenericAuthorization {
     fn get_server(&self) -> Option<&AuthServer>;
+    #[allow(unused)]
     fn get_user(&self) -> Option<&AdminUser>;
     fn is_type(&self, auth: AuthType) -> bool;
 
+    #[allow(unused)]
     fn is_allowed(&self, flag: u32) -> bool;
 
     fn recreate(&self) -> OwnedAuthorization;

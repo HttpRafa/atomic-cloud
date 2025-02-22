@@ -18,6 +18,7 @@ pub mod server;
 pub struct InnerNode {
     /* Node */
     name: String,
+    #[allow(unused)]
     capabilities: Capabilities,
     controller: String,
 

@@ -68,7 +68,7 @@ impl<'a> Transfer<'a> {
         if let Some(data) = transfer.to.new_transfer(transfer.user.id.uuid()) {
             shared
                 .subscribers
-                .publish_transfer(transfer.to.id().uuid(), data)
+                .publish_transfer(transfer.from.uuid(), data)
                 .await;
 
             transfer.user.server =

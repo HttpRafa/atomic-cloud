@@ -4,6 +4,8 @@ authors = ["HttpRafa"]
 
 exclusions = ["template.toml", "prepare/"]
 
+shutdown = "stop"
+
 [environment]
 PROJECT = "paper"
 VERSION = "latest"

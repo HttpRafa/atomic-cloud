@@ -79,7 +79,7 @@ pub async fn init_wasm_plugins(
                 });
         }
 
-        info!("Compiling plugin '{}'...", name);
+        info!("Compiling plugin {}...", name);
         let plugin = Plugin::new(
             &name,
             &source,

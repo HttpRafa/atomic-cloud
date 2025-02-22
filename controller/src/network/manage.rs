@@ -30,7 +30,7 @@ use super::proto::manage::{
     self,
     manage_service_server::ManageService,
     resource::{Category, DelReq, SetReq},
-    screen::Lines,
+    screen::{Lines, WriteReq},
     transfer::{target::Type, TransferReq},
 };
 
@@ -333,6 +333,18 @@ impl ManageService for ManageServiceImpl {
     }
 
     // Screen
+    async fn write_to_screen(&self, request: Request<WriteReq>) -> Result<Response<()>, Status> {
+        let request = request.into_inner();
+        let Ok(uuid) = Uuid::from_str(&request.id) else {
+            return Err(Status::invalid_argument("Invalid UUID provided"));
+        };
+
+        match self.1.screens.write(&uuid, &request.data).await?.await {
+            Ok(Err(error)) => Err(error.into()),
+            Err(error) => Err(Status::internal(error.to_string())),
+            Ok(_) => Ok(Response::new(())),
+        }
+    }
     async fn subscribe_to_screen(
         &self,
         request: Request<String>,

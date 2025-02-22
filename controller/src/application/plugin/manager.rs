@@ -3,16 +3,21 @@ use std::collections::HashMap;
 use anyhow::Result;
 use futures::future::join_all;
 use simplelog::info;
+use tick::Ticker;
 
-use crate::{application::Voter, config::Config};
+use crate::config::Config;
 
 use super::BoxedPlugin;
 
 #[cfg(feature = "wasm-plugins")]
 use crate::application::plugin::runtime::wasm::init::init_wasm_plugins;
 
+mod tick;
+
 pub struct PluginManager {
     plugins: HashMap<String, BoxedPlugin>,
+
+    ticker: Ticker,
 }
 
 impl PluginManager {
@@ -25,7 +30,10 @@ impl PluginManager {
         init_wasm_plugins(config, &mut plugins).await?;
 
         info!("Loaded {} plugin(s)", plugins.len());
-        Ok(Self { plugins })
+        Ok(Self {
+            plugins,
+            ticker: Ticker::new(),
+        })
     }
 
     pub fn get_plugins_keys(&self) -> Vec<&String> {
@@ -40,10 +48,8 @@ impl PluginManager {
 // Ticking
 impl PluginManager {
     #[allow(clippy::unnecessary_wraps)]
-    pub fn tick(&mut self) -> Result<()> {
-        for plugin in self.plugins.values() {
-            plugin.tick();
-        }
+    pub async fn tick(&mut self) -> Result<()> {
+        self.ticker.tick(&self.plugins).await?;
         Ok(())
     }
 

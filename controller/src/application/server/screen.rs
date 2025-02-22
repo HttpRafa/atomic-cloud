@@ -5,29 +5,31 @@ use tonic::{async_trait, Status};
 pub mod manager;
 
 pub type BoxedScreen = Box<dyn GenericScreen + Send + Sync>;
-pub type ScreenJoinHandle = JoinHandle<Result<Vec<String>, PullError>>;
+pub type ScreenPullJoinHandle = JoinHandle<Result<Vec<String>, ScreenError>>;
+pub type ScreenWriteJoinHandle = JoinHandle<Result<(), ScreenError>>;
 
 #[async_trait]
 pub trait GenericScreen {
     fn is_supported(&self) -> bool;
-    fn pull(&self) -> ScreenJoinHandle;
+    fn pull(&self) -> ScreenPullJoinHandle;
+    fn write(&self, data: &[u8]) -> ScreenWriteJoinHandle;
 
     /* Memory */
     async fn cleanup(&mut self) -> Result<()>;
 }
 
-pub enum PullError {
+pub enum ScreenError {
     Unsupported,
     Error(anyhow::Error),
 }
 
-impl From<PullError> for Status {
-    fn from(val: PullError) -> Self {
+impl From<ScreenError> for Status {
+    fn from(val: ScreenError) -> Self {
         match val {
-            PullError::Unsupported => {
+            ScreenError::Unsupported => {
                 Status::unimplemented("This feature is not supported by the plugin")
             }
-            PullError::Error(error) => Status::internal(format!("Error: {error}")),
+            ScreenError::Error(error) => Status::internal(format!("Error: {error}")),
         }
     }
 }

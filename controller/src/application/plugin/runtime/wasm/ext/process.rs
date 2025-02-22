@@ -1,4 +1,4 @@
-use std::{collections::HashMap, process::Stdio};
+use std::{collections::HashMap, os::unix::process::ExitStatusExt, process::Stdio};
 
 use anyhow::Result;
 use simplelog::debug;
@@ -14,6 +14,7 @@ use wasmtime::component::Resource;
 use crate::application::plugin::runtime::wasm::{
     generated::plugin::system::{
         self,
+        process::ExitStatus,
         types::{Directory, ErrorMessage},
     },
     PluginState,
@@ -172,13 +173,23 @@ impl system::process::HostProcess for PluginState {
     async fn try_wait(
         &mut self,
         instance: Resource<Process>,
-    ) -> Result<Result<Option<i32>, ErrorMessage>> {
+    ) -> Result<Result<Option<ExitStatus>, ErrorMessage>> {
         Ok(self
             .resources
             .get_mut(&instance)?
             .child
             .try_wait()
-            .map(|status| status.and_then(|code| code.code()))
+            .map(|status| {
+                status.map(|status| {
+                    if let Some(code) = status.code() {
+                        ExitStatus::Code(code)
+                    } else if let Some(signal) = status.signal() {
+                        ExitStatus::Signal(signal)
+                    } else {
+                        ExitStatus::Unknown
+                    }
+                })
+            })
             .map_err(|error| format!("Failed to try waiting for process: {error}")))
     }
     async fn read_lines(&mut self, instance: Resource<Process>) -> Result<Vec<String>> {
@@ -189,14 +200,23 @@ impl system::process::HostProcess for PluginState {
         }
         Ok(lines)
     }
-    async fn write_line(
+    async fn write_all(
         &mut self,
         instance: Resource<Process>,
-        line: String,
+        data: Vec<u8>,
     ) -> Result<Result<(), ErrorMessage>> {
         if let Some(stdin) = &mut self.resources.get_mut(&instance)?.streams.stdin {
             return Ok(stdin
-                .write_all(line.as_bytes())
+                .write_all(&data)
+                .await
+                .map_err(|error| format!("Failed to write to process: {error}")));
+        }
+        Ok(Err("Process stdin is not available".to_string()))
+    }
+    async fn flush(&mut self, instance: Resource<Process>) -> Result<Result<(), ErrorMessage>> {
+        if let Some(stdin) = &mut self.resources.get_mut(&instance)?.streams.stdin {
+            return Ok(stdin
+                .flush()
                 .await
                 .map_err(|error| format!("Failed to write to process: {error}")));
         }

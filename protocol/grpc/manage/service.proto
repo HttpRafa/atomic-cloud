@@ -44,6 +44,7 @@ service ManageService {
   rpc GetServers(google.protobuf.Empty) returns (Server.List);
 
   // Screen operations
+  rpc WriteToScreen(Screen.WriteReq) returns (google.protobuf.Empty);
   rpc SubscribeToScreen(google.protobuf.StringValue) returns (stream Screen.Lines);
 
   // User operations

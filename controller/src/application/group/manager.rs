@@ -8,7 +8,9 @@ use tokio::fs;
 
 use crate::{
     application::{
-        node::manager::NodeManager, server::{manager::ServerManager, Resources, Spec}, OptVoter, Voter
+        node::manager::NodeManager,
+        server::{manager::ServerManager, Resources, Spec},
+        OptVoter, Voter,
     },
     config::Config,
     resource::{CreateResourceError, DeleteResourceError},
@@ -48,13 +50,14 @@ impl GroupManager {
                 }
                 true
             });
-
-            info!("Loaded group {}", name);
             groups.insert(name.clone(), Group::new(&name, &value));
         }
 
         info!("Loaded {} group(s)", groups.len());
-        Ok(Self { voter: None, groups })
+        Ok(Self {
+            voter: None,
+            groups,
+        })
     }
 
     pub async fn delete_group(&mut self, name: &str) -> Result<(), DeleteResourceError> {

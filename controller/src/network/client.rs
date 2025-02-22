@@ -2,6 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use beat::BeatTask;
+use group::GetGroupsTask;
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use server::GetServersTask;
@@ -222,9 +223,17 @@ impl ClientService for ClientServiceImpl {
     // Group
     async fn get_groups(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<client::group::List>, Status> {
-        todo!()
+        Ok(Response::new(
+            Task::execute::<client::group::List, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetGroupsTask())),
+            )
+            .await?,
+        ))
     }
 
     // Version info

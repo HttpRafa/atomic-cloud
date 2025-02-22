@@ -81,7 +81,6 @@ pub enum DiskRetention {
 #[derive(PartialEq, Clone)]
 pub enum State {
     Starting,
-    Preparing,
     Restarting,
     Running,
     Stopping,

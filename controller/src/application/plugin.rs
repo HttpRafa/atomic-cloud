@@ -57,6 +57,7 @@ pub trait GenericNode {
 pub struct Information {
     authors: Vec<String>,
     version: String,
+    #[allow(unused)]
     features: Features,
     ready: bool,
 }

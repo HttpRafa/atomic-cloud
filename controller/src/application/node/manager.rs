@@ -10,7 +10,7 @@ use crate::{
     application::{
         group::manager::GroupManager,
         plugin::{manager::PluginManager, BoxedNode},
-        server::manager::ServerManager, Voter,
+        server::manager::ServerManager,
     },
     resource::{CreateResourceError, DeleteResourceError},
     storage::Storage,
@@ -54,7 +54,6 @@ impl NodeManager {
                 .await
             {
                 Ok(instance) => {
-                    info!("Loaded node {}", name);
                     nodes.insert(name.clone(), Node::new(&name, &value, instance));
                 }
                 Err(error) => error!("Failed to initialize node {}: {}", name, error),

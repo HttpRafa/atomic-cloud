@@ -49,6 +49,7 @@ pub(crate) struct PluginState {
 pub(crate) struct Plugin {
     dropped: bool,
 
+    #[allow(unused)]
     engine: Engine,
     bindings: Arc<generated::Plugin>,
     store: Arc<Mutex<Store<PluginState>>>,

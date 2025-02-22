@@ -1,12 +1,12 @@
 use std::{collections::HashMap, mem::replace, sync::Arc};
 
 use anyhow::Result;
-use simplelog::{debug, warn};
+use simplelog::{debug, info, warn};
 use tokio::time::Instant;
 use uuid::Uuid;
 
 use crate::application::{
-    group::manager::GroupManager, node::manager::NodeManager, server::{Server, State},
+    group::manager::GroupManager, node::manager::NodeManager, server::Server,
     user::manager::UserManager, Shared,
 };
 
@@ -44,7 +44,7 @@ impl ServerManager {
             ActionStage::Freeing(handle) => {
                 if handle.is_finished() {
                     handle.await??;
-                    debug!("Stopping server {}", request.server);
+                    info!("Stopping server {}", request.server);
                     match Self::stop(request, servers, nodes, groups, users, shared).await {
                         Ok(handle) => ActionStage::Running(handle),
                         Err(error) => {

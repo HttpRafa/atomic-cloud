@@ -166,7 +166,7 @@ impl ServerManager {
 
                 users.remove_users_on_server(server.id.uuid());
 
-                Ok(node.stop(&server))
+                Ok(node.stop(server))
             } else {
                 Err(anyhow!(
                     "Node {} not found while trying to stop {}",

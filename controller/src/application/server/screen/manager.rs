@@ -12,9 +12,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
-use crate::{application::{subscriber::Subscriber, Voter}, network::manage::ScreenLines};
+use crate::{application::subscriber::Subscriber, network::manage::ScreenLines};
 
-use super::{BoxedScreen, ScreenJoinHandle};
+use super::{BoxedScreen, ScreenPullJoinHandle, ScreenWriteJoinHandle};
 
 const SCREEN_TICK_RATE: u64 = 2;
 
@@ -50,6 +50,14 @@ impl ScreenManager {
         }
 
         Ok(())
+    }
+
+    pub async fn write(&self, server: &Uuid, data: &[u8]) -> Result<ScreenWriteJoinHandle, Status> {
+        let screens = self.screens.read().await;
+        let screen = screens.get(server).ok_or(Status::unimplemented(
+            "The plugin that handles this screen does not support it",
+        ))?;
+        Ok(screen.write(data))
     }
 
     pub async fn subscribe_screen(
@@ -89,7 +97,7 @@ impl ScreenManager {
 struct ActiveScreen {
     interval: Interval,
     screen: BoxedScreen,
-    handle: Option<ScreenJoinHandle>,
+    handle: Option<ScreenPullJoinHandle>,
     subscribers: SubscriberHolder<ScreenLines>,
     cache: FixedSizeCache<String>,
 }
@@ -105,6 +113,10 @@ impl ActiveScreen {
             subscribers: vec![],
             cache: FixedSizeCache::new(91),
         }
+    }
+
+    pub fn write(&self, data: &[u8]) -> ScreenWriteJoinHandle {
+        self.screen.write(data)
     }
 
     pub async fn push(&mut self, subscriber: Subscriber<ScreenLines>) {

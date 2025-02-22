@@ -11,7 +11,7 @@ use crate::application::{
         generated::{self, exports::plugin::system::bridge::ScreenType},
         PluginState,
     },
-    server::screen::{GenericScreen, PullError, ScreenJoinHandle},
+    server::screen::{GenericScreen, ScreenError, ScreenPullJoinHandle, ScreenWriteJoinHandle},
 };
 
 pub struct PluginScreen {
@@ -63,10 +63,10 @@ impl GenericScreen for PluginScreen {
         }
     }
 
-    fn pull(&self) -> ScreenJoinHandle {
+    fn pull(&self) -> ScreenPullJoinHandle {
         let (bindings, store, instance) = self.get();
         let Some(instance) = instance else {
-            return spawn(async { Err(PullError::Unsupported) });
+            return spawn(async { Err(ScreenError::Unsupported) });
         };
         spawn(async move {
             match bindings
@@ -74,10 +74,30 @@ impl GenericScreen for PluginScreen {
                 .generic_screen()
                 .call_pull(store.lock().await.as_context_mut(), instance)
                 .await
-                .map_err(PullError::Error)?
+                .map_err(ScreenError::Error)?
             {
                 Ok(result) => Ok(result),
-                Err(error) => Err(PullError::Error(anyhow!(error))),
+                Err(error) => Err(ScreenError::Error(anyhow!(error))),
+            }
+        })
+    }
+
+    fn write(&self, data: &[u8]) -> ScreenWriteJoinHandle {
+        let (bindings, store, instance) = self.get();
+        let Some(instance) = instance else {
+            return spawn(async { Err(ScreenError::Unsupported) });
+        };
+        let data = data.to_vec();
+        spawn(async move {
+            match bindings
+                .plugin_system_screen()
+                .generic_screen()
+                .call_write(store.lock().await.as_context_mut(), instance, &data)
+                .await
+                .map_err(ScreenError::Error)?
+            {
+                Ok(result) => Ok(result),
+                Err(error) => Err(ScreenError::Error(anyhow!(error))),
             }
         })
     }

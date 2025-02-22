@@ -14,15 +14,15 @@ common = { path = "../../common" }
 wit-bindgen = "0.39.0"
 
 # Error handling
-anyhow = "1.0.95"
+anyhow = "1.0.96"
 
 # Configuration
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 toml = "0.8.20"
 
 # Pelican API
 url = { version = "2.5.4", features = ["serde"] }
-serde_json = "1.0.138"
+serde_json = "1.0.139"
 
 [build-dependencies]
 toml = "0.8.20"

@@ -14,13 +14,13 @@ common = { path = "../../common" }
 wit-bindgen = "0.39.0"
 
 # Error handling
-anyhow = "1.0.95"
+anyhow = "1.0.96"
 
 # Getters
 getset = "0.1.4"
 
 # Configuration
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 toml = "0.8.20"
 walkdir = "2.5.0"
 

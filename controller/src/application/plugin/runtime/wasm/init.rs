@@ -9,6 +9,7 @@ use wasmtime::{
     Engine, Store,
 };
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
+use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::{
     application::plugin::{runtime::source::Source, BoxedPlugin, GenericPlugin},
@@ -157,6 +158,7 @@ impl Plugin {
 
         let mut linker = Linker::new(&engine);
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
+        wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         generated::Plugin::add_to_linker(&mut linker, |state: &mut PluginState| state)?;
 
         let mut wasi = WasiCtxBuilder::new();
@@ -201,6 +203,7 @@ impl Plugin {
             PluginState {
                 name: name.to_string(),
                 wasi,
+                http: WasiHttpCtx::new(),
                 resources,
             },
         );

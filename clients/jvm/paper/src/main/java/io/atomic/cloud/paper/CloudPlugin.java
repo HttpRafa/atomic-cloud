@@ -48,7 +48,6 @@ public class CloudPlugin extends JavaPlugin {
 
         LOGGER.info("Connecting to controller...");
         this.connection.connect();
-        this.connection.sendReset();
         this.heart.start();
     }
 
@@ -58,9 +57,9 @@ public class CloudPlugin extends JavaPlugin {
         registerListeners();
 
         // Mark server as running
-        this.connection.markRunning();
+        this.connection.setRunning();
         if (this.settings.autoReady()) {
-            this.connection.markReady();
+            this.connection.setReady(true);
         }
 
         // Enable transfer system

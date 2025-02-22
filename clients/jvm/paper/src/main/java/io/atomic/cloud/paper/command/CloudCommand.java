@@ -18,24 +18,20 @@ public class CloudCommand {
                     var sender = context.getSource().getSender();
                     var connection = CloudPlugin.INSTANCE.connection();
 
-                    connection
-                            .getControllerVersion()
-                            .thenAcceptBoth(connection.getProtocolVersion(), (version, protocol) -> {
-                                sender.sendMessage(Component.text("╔════════════════════", NamedTextColor.GRAY));
-                                sender.sendRichMessage("<gray>║ <gradient:#084CFB:#43E8FF>AtomicCloud</gradient>");
-                                sender.sendRichMessage(
-                                        "<gray>║ <gradient:#084CFB:#43E8FF>Client Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                                + CloudPlugin.INSTANCE
-                                                        .getPluginMeta()
-                                                        .getVersion() + "</gradient>");
-                                sender.sendRichMessage(
-                                        "<gray>║ <gradient:#084CFB:#43E8FF>Controller Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                                + version.getValue() + "</gradient>");
-                                sender.sendRichMessage(
-                                        "<gray>║ <gradient:#084CFB:#43E8FF>Controller Protocol Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                                + protocol.getValue() + "</gradient>");
-                                sender.sendMessage(Component.text("╚════════════════════", NamedTextColor.GRAY));
-                            });
+                    connection.getCtrlVer().thenAcceptBoth(connection.getProtoVer(), (version, protocol) -> {
+                        sender.sendMessage(Component.text("╔════════════════════", NamedTextColor.GRAY));
+                        sender.sendRichMessage("<gray>║ <gradient:#084CFB:#43E8FF>AtomicCloud</gradient>");
+                        sender.sendRichMessage(
+                                "<gray>║ <gradient:#084CFB:#43E8FF>Client Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
+                                        + CloudPlugin.INSTANCE.getPluginMeta().getVersion() + "</gradient>");
+                        sender.sendRichMessage(
+                                "<gray>║ <gradient:#084CFB:#43E8FF>Controller Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
+                                        + version.getValue() + "</gradient>");
+                        sender.sendRichMessage(
+                                "<gray>║ <gradient:#084CFB:#43E8FF>Controller Protocol Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
+                                        + protocol.getValue() + "</gradient>");
+                        sender.sendMessage(Component.text("╚════════════════════", NamedTextColor.GRAY));
+                    });
 
                     return Command.SINGLE_SUCCESS;
                 })

@@ -2,7 +2,7 @@ package io.atomic.cloud.api.objects;
 
 import java.util.UUID;
 
-public interface CloudUnit {
+public interface CloudServer {
 
     String name();
 

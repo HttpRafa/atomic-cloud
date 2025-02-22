@@ -15,14 +15,8 @@ public interface LocalCloudUnit {
     CompletableFuture<Void> shutdown();
 
     /**
-     * Mark this server as ready
-     * @return a future to be completed once the server has been marked as ready
+     * Mark this server as ready/not ready
+     * @return a future to be completed once the server has been marked as ready/not ready
      */
-    CompletableFuture<Void> markReady();
-
-    /**
-     * Mark this server as not ready
-     * @return a future to be completed once the server has been marked as not ready
-     */
-    CompletableFuture<Void> markNotReady();
+    CompletableFuture<Void> setReady(boolean ready);
 }

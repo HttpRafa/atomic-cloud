@@ -1,6 +1,6 @@
 package io.atomic.cloud.api.objects;
 
-public interface CloudDeployment {
+public interface CloudGroup {
 
     String name();
 }

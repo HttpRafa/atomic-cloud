@@ -1,7 +1,7 @@
 package io.atomic.cloud.api.transfer;
 
-import io.atomic.cloud.api.objects.CloudDeployment;
-import io.atomic.cloud.api.objects.CloudUnit;
+import io.atomic.cloud.api.objects.CloudGroup;
+import io.atomic.cloud.api.objects.CloudServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -13,7 +13,7 @@ public interface Transfers {
      * @param userUUID A list of user UUIDs to transfer. These users must belong to the current server; otherwise, the controller will return an error.
      * @return The number of users successfully transferred.
      */
-    CompletableFuture<Integer> transferUsersToUnit(CloudUnit server, UUID... userUUID);
+    CompletableFuture<Integer> transferUsersToServer(CloudServer server, UUID... userUUID);
 
     /**
      * Sends a request to the controller to transfer the specified users to a new server on specific group.
@@ -21,7 +21,7 @@ public interface Transfers {
      * @param userUUID A list of user UUIDs to transfer. These users must belong to the current server; otherwise, the controller will return an error.
      * @return The number of users successfully transferred.
      */
-    CompletableFuture<Integer> transferUsersToDeployment(CloudDeployment group, UUID... userUUID);
+    CompletableFuture<Integer> transferUsersToGroup(CloudGroup group, UUID... userUUID);
 
     /**
      * Sends a request to the controller to transfer the specified users to a new server marked as fallback.

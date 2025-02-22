@@ -1,12 +1,12 @@
 package io.atomic.cloud.common.objects;
 
-import io.atomic.cloud.api.objects.CloudDeployment;
+import io.atomic.cloud.api.objects.CloudGroup;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class SimpleCloudDeployment implements CloudDeployment {
+public class SimpleCloudGroup implements CloudGroup {
 
     protected final String name;
 }

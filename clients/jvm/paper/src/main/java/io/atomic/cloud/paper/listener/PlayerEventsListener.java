@@ -1,6 +1,6 @@
 package io.atomic.cloud.paper.listener;
 
-import io.atomic.cloud.grpc.server.UserManagement;
+import io.atomic.cloud.grpc.client.User;
 import io.atomic.cloud.paper.CloudPlugin;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -14,9 +14,9 @@ public class PlayerEventsListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
         var player = event.getPlayer();
-        var user = UserManagement.UserConnectedRequest.newBuilder()
+        var user = User.ConnectedReq.newBuilder()
                 .setName(player.getName())
-                .setUuid(player.getUniqueId().toString())
+                .setId(player.getUniqueId().toString())
                 .build();
         CloudPlugin.INSTANCE.connection().userConnected(user);
     }
@@ -24,8 +24,8 @@ public class PlayerEventsListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPlayerLeft(@NotNull PlayerQuitEvent event) {
         var player = event.getPlayer();
-        var user = UserManagement.UserDisconnectedRequest.newBuilder()
-                .setUuid(player.getUniqueId().toString())
+        var user = User.DisconnectedReq.newBuilder()
+                .setId(player.getUniqueId().toString())
                 .build();
         CloudPlugin.INSTANCE.connection().userDisconnected(user);
     }

@@ -25,7 +25,7 @@ allprojects {
         implementation("com.google.protobuf:protobuf-java:${project.properties["protobuf_version"]}")
         runtimeOnly("io.grpc:grpc-netty-shaded:${project.properties["grpc_version"]}")
 
-        // Jetbrains annotations
+        // JetBrains annotations
         compileOnly("org.jetbrains:annotations:${project.properties["jetbrains_annotations_version"]}")
 
         // Lombok
@@ -80,7 +80,7 @@ allprojects {
     sourceSets {
         main {
             proto {
-                srcDir("$rootDir/../../protocol/grpc/server/")
+                srcDir("$rootDir/../../protocol/grpc/")
             }
         }
     }

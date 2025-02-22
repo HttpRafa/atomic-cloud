@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+message Transfer {
+  message Target {
+    enum Type {
+      SERVER = 0;
+      GROUP = 1;
+      FALLBACK = 2;
+    }
+    Type type = 1;
+    optional string target = 2;
+  }
+  message TransferReq {
+    repeated string ids = 1;
+    Target target = 2;
+  }
+}

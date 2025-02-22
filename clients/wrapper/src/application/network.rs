@@ -7,7 +7,7 @@ use url::Url;
 
 use proto::{
     transfer_management::ResolvedTransferResponse,
-    unit_service_client::UnitServiceClient,
+    server_service_client::UnitServiceClient,
     user_management::{UserConnectedRequest, UserDisconnectedRequest},
 };
 use tonic::{transport::Channel, Request, Response, Status, Streaming};
@@ -16,7 +16,7 @@ use tonic::{transport::Channel, Request, Response, Status, Streaming};
 pub mod proto {
     use tonic::include_proto;
 
-    include_proto!("unit");
+    include_proto!("server");
 }
 
 pub type CloudConnectionHandle = Arc<CloudConnection>;
@@ -55,7 +55,7 @@ impl CloudConnection {
             token = Some(value);
         } else {
             error!(
-                "<red>Missing</> UNIT_TOKEN environment variable. Please set it to the token of this unit"
+                "<red>Missing</> UNIT_TOKEN environment variable. Please set it to the token of this server"
             );
             exit(1);
         }

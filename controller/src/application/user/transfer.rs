@@ -1,126 +1,130 @@
-use std::time::Instant;
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
-use simplelog::{error, info, warn};
+use simplelog::info;
+use tokio::time::Instant;
+use tonic::Status;
+use uuid::Uuid;
 
-use crate::application::deployment::DeploymentHandle;
 use crate::application::{
-    event::{transfer::UserTransferRequested, EventKey},
-    unit::{UnitHandle, WeakUnitHandle},
+    auth::Authorization,
+    group::manager::GroupManager,
+    server::{manager::ServerManager, NameAndUuid, Server},
+    Shared,
 };
 
-use super::{CurrentUnit, UserHandle, Users, WeakUserHandle};
+use super::{CurrentServer, User};
 
-impl Users {
-    pub fn resolve_transfer(&self, user: &UserHandle, target: &TransferTarget) -> Option<Transfer> {
-        let from = {
-            let unit = user.unit.read().unwrap();
-            if let CurrentUnit::Connected(from) = unit.deref() {
-                from.clone()
+impl<'a> Transfer<'a> {
+    pub fn resolve(
+        auth: &Authorization,
+        user: &'a mut User,
+        target: &TransferTarget,
+        servers: &'a ServerManager,
+        groups: &GroupManager,
+    ) -> Result<Transfer<'a>, ResolveError> {
+        // Check if auth is allowed to transfer user
+        if let Some(server) = auth.get_server() {
+            if let CurrentServer::Connected(current) = &user.server {
+                if current.uuid() != server.uuid() {
+                    return Err(ResolveError::AccessDenied);
+                }
             } else {
-                return None;
+                return Err(ResolveError::AccessDenied);
             }
+        }
+
+        let CurrentServer::Connected(from) = &user.server else {
+            return Err(ResolveError::UserNotFound);
         };
 
-        match target {
-            TransferTarget::Unit(to) => {
-                return Some(Transfer::new(
-                    Arc::downgrade(user),
-                    from.clone(),
-                    Arc::downgrade(to),
-                ));
+        let to = match target {
+            TransferTarget::Server(to) => {
+                servers.get_server(to).ok_or(ResolveError::ServerNotFound)?
             }
-            TransferTarget::Deployment(deployment) => {
-                if let Some(to) = deployment.get_free_unit() {
-                    return Some(Transfer::new(
-                        Arc::downgrade(user),
-                        from.clone(),
-                        Arc::downgrade(&to),
-                    ));
-                } else {
-                    warn!("<red>Failed</> to find free unit in deployment <blue>{}</> while resolving transfer of user <blue>{}</>", deployment.name, user.name);
-                }
+            TransferTarget::Group(group) => {
+                let group = groups.get_group(group).ok_or(ResolveError::GroupNotFound)?;
+                group
+                    .find_free_server(servers)
+                    .ok_or(ResolveError::NotServerAvailable)?
             }
-            TransferTarget::Fallback => {
-                let controller = self
-                    .controller
-                    .upgrade()
-                    .expect("Failed to upgrade controller. This should never happen");
-                if let Some(fallback) = controller
-                    .get_units()
-                    .find_fallback_unit(
-                        &from
-                            .upgrade()
-                            .expect("Failed to upgrade unit. This should never happen"),
-                    )
-                    .map(TransferTarget::Unit)
-                {
-                    return self.resolve_transfer(user, &fallback);
-                } else {
-                    warn!("<red>Failed</> to find fallback unit while resolving transfer of user <blue>{}</>", user.name);
-                }
-            }
-        }
+            TransferTarget::Fallback => servers
+                .find_fallback_server(from.uuid())
+                .ok_or(ResolveError::NotServerAvailable)?,
+        };
 
-        None
+        Ok(Transfer::new(user, from.clone(), to, Instant::now()))
     }
 
-    pub fn transfer_user(&self, transfer: Transfer) -> bool {
-        if let Some((user, from, to)) = transfer.get_strong() {
-            info!(
-                "Transfering user <blue>{}</> from <blue>{}</> to unit <blue>{}</>",
-                user.name, from.name, to.name
-            );
+    pub async fn transfer_user(
+        transfer: &mut Transfer<'a>,
+        shared: &Arc<Shared>,
+    ) -> Result<(), Status> {
+        info!(
+            "Transfering user {} from {} to server {}",
+            transfer.user.id,
+            transfer.from,
+            transfer.to.id()
+        );
+        if let Some(data) = transfer.to.new_transfer(transfer.user.id.uuid()) {
+            shared
+                .subscribers
+                .publish_transfer(transfer.from.uuid(), data)
+                .await;
 
-            let controller = self
-                .controller
-                .upgrade()
-                .expect("Failed to upgrade controller. This should never happen");
-            controller.get_event_bus().dispatch(
-                &EventKey::Transfer(from.uuid),
-                &UserTransferRequested {
-                    transfer: transfer.clone(),
-                },
-            );
-
-            *user.unit.write().unwrap() = CurrentUnit::Transfering(transfer);
-            return true;
+            transfer.user.server =
+                CurrentServer::Transfering((transfer.timestamp, transfer.to.id().clone()));
+            Ok(())
         } else {
-            error!("<red>Failed</> to transfer user because some required information is missing",);
+            Err(Status::unavailable(
+                "Target server seems to have no network address",
+            ))
         }
-
-        false
     }
+}
+
+pub enum ResolveError {
+    UserNotFound,
+    ServerNotFound,
+    NotServerAvailable,
+    GroupNotFound,
+
+    AccessDenied,
 }
 
 pub enum TransferTarget {
-    Unit(UnitHandle),
-    Deployment(DeploymentHandle),
+    Server(Uuid),
+    Group(String),
     Fallback,
 }
 
-#[derive(Clone, Debug)]
-pub struct Transfer {
-    pub timestamp: Instant,
-    pub user: WeakUserHandle,
-    pub from: WeakUnitHandle,
-    pub to: WeakUnitHandle,
+pub struct Transfer<'a> {
+    user: &'a mut User,
+    from: NameAndUuid,
+    to: &'a Server,
+    timestamp: Instant,
 }
 
-impl Transfer {
-    pub fn new(user: WeakUserHandle, from: WeakUnitHandle, to: WeakUnitHandle) -> Self {
+impl<'a> Transfer<'a> {
+    fn new(user: &'a mut User, from: NameAndUuid, to: &'a Server, timestamp: Instant) -> Self {
         Self {
-            timestamp: Instant::now(),
             user,
             from,
             to,
+            timestamp,
         }
     }
+}
 
-    pub fn get_strong(&self) -> Option<(UserHandle, UnitHandle, UnitHandle)> {
-        let user = self.user.upgrade()?;
-        let from = self.from.upgrade()?;
-        let to = self.to.upgrade()?;
-        Some((user, from, to))
+impl From<ResolveError> for Status {
+    fn from(val: ResolveError) -> Self {
+        match val {
+            ResolveError::UserNotFound => Status::not_found("User not found"),
+            ResolveError::ServerNotFound => Status::not_found("Server not found"),
+            ResolveError::NotServerAvailable => Status::unavailable("Server not available"),
+            ResolveError::GroupNotFound => Status::not_found("Group not found"),
+            ResolveError::AccessDenied => {
+                Status::permission_denied("Missing permissions to transfer user")
+            }
+        }
     }
 }

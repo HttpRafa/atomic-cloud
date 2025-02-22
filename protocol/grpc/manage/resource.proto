@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+message Resource {
+  enum Category {
+    NODE = 0;
+    GROUP = 1;
+    SERVER = 2;
+  }
+  message SetReq {
+    Category category = 1;
+    string id = 2;
+    bool active = 3;
+  }
+  message DelReq {
+    Category category = 1;
+    string id = 2;
+  }
+}

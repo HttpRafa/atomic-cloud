@@ -23,6 +23,6 @@ public class Heart {
     }
 
     public void beat() {
-        this.connection.beatHeart();
+        this.connection.beat();
     }
 }

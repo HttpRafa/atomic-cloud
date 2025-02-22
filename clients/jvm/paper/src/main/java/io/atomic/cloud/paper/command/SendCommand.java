@@ -1,7 +1,7 @@
 package io.atomic.cloud.paper.command;
 
 import com.mojang.brigadier.Command;
-import io.atomic.cloud.grpc.unit.TransferManagement;
+import io.atomic.cloud.grpc.client.Transfer;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.atomic.cloud.paper.command.argument.TransferTargetArgument;
 import io.atomic.cloud.paper.permission.Permissions;
@@ -26,15 +26,14 @@ public class SendCommand {
                                     var users = context.getArgument("user", PlayerSelectorArgumentResolver.class)
                                             .resolve(context.getSource());
                                     var userCount = users.size();
-                                    var target =
-                                            context.getArgument("target", TransferManagement.TransferTargetValue.class);
+                                    var target = context.getArgument("target", Transfer.Target.class);
 
                                     sender.sendRichMessage("<gray>Transferring <aqua>" + userCount
                                             + " <gray>users to <blue>" + formatTarget(target) + "<dark_gray>...");
 
                                     connection
-                                            .transferUsers(TransferManagement.TransferUsersRequest.newBuilder()
-                                                    .addAllUserUuids(users.stream()
+                                            .transferUsers(Transfer.TransferReq.newBuilder()
+                                                    .addAllIds(users.stream()
                                                             .map(item -> item.getUniqueId()
                                                                     .toString())
                                                             .toList())
@@ -56,16 +55,16 @@ public class SendCommand {
     }
 
     @Contract(pure = true)
-    private static @NotNull String formatTarget(TransferManagement.@NotNull TransferTargetValue target) {
-        switch (target.getTargetType()) {
-            case TransferManagement.TransferTargetValue.TargetType.FALLBACK -> {
+    private static @NotNull String formatTarget(Transfer.@NotNull Target target) {
+        switch (target.getType()) {
+            case Transfer.Target.Type.FALLBACK -> {
                 return "fallback";
             }
-            case TransferManagement.TransferTargetValue.TargetType.UNIT -> {
-                return "unit:" + target.getTarget();
+            case Transfer.Target.Type.SERVER -> {
+                return "server:" + target.getTarget();
             }
-            case TransferManagement.TransferTargetValue.TargetType.DEPLOYMENT -> {
-                return "deployment:" + target.getTarget();
+            case Transfer.Target.Type.GROUP -> {
+                return "group:" + target.getTarget();
             }
         }
         return "unknown";

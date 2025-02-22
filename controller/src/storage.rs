@@ -3,78 +3,169 @@ All the storage related functions are implemented here.
 This makes it easier to change them in the future
 */
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use anyhow::Result;
+use serde::{de::DeserializeOwned, Serialize};
+use simplelog::warn;
+use tokio::fs;
 
 /* Logs */
 const LOGS_DIRECTORY: &str = "logs";
 const LATEST_LOG_FILE: &str = "latest.log";
 
-/* Cloudlets */
-const CLOUDLETS_DIRECTORY: &str = "cloudlets";
+/* Nodes */
+const NODES_DIRECTORY: &str = "nodes";
 
-/* Deployments */
-const DEPLOYMENTS_DIRECTORY: &str = "deployments";
+/* Groups */
+const GROUPS_DIRECTORY: &str = "groups";
 
 /* Auth */
-const AUTH_DIRECTORY: &str = "auth";
 const USERS_DIRECTORY: &str = "users";
 
 /* Configs */
 const CONFIG_DIRECTORY: &str = "configs";
 const PRIMARY_CONFIG_FILE: &str = "config.toml";
 
-/* Drivers */
-const DRIVERS_DIRECTORY: &str = "drivers";
+/* Wasm Configs */
+const WASM_PLUGINS_CONFIG_FILE: &str = "wasm-plugins.toml";
+const WASM_ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
+
+/* Plugins */
+const PLUGINS_DIRECTORY: &str = "plugins";
 const DATA_DIRECTORY: &str = "data";
 
 pub struct Storage;
 
 impl Storage {
     /* Logs */
-    pub fn get_latest_log_file() -> PathBuf {
+    pub fn latest_log_file() -> PathBuf {
         PathBuf::from(LOGS_DIRECTORY).join(LATEST_LOG_FILE)
     }
 
-    /* Cloudlets */
-    pub fn get_cloudlets_folder() -> PathBuf {
-        PathBuf::from(CLOUDLETS_DIRECTORY)
+    /* Nodes */
+    pub fn nodes_directory() -> PathBuf {
+        PathBuf::from(NODES_DIRECTORY)
     }
-    pub fn get_cloudlet_file(name: &str) -> PathBuf {
-        Storage::get_cloudlets_folder().join(format!("{}.toml", name))
+    pub fn node_file(name: &str) -> PathBuf {
+        Storage::nodes_directory().join(format!("{name}.toml"))
     }
 
-    /* Deployments */
-    pub fn get_deployments_folder() -> PathBuf {
-        PathBuf::from(DEPLOYMENTS_DIRECTORY)
+    /* Groups */
+    pub fn groups_directory() -> PathBuf {
+        PathBuf::from(GROUPS_DIRECTORY)
     }
-    pub fn get_deployment_file(name: &str) -> PathBuf {
-        Storage::get_deployments_folder().join(format!("{}.toml", name))
+    pub fn group_file(name: &str) -> PathBuf {
+        Storage::groups_directory().join(format!("{name}.toml"))
     }
 
     /* Auth */
-    pub fn get_users_folder() -> PathBuf {
-        PathBuf::from(AUTH_DIRECTORY).join(USERS_DIRECTORY)
+    pub fn users_directory() -> PathBuf {
+        PathBuf::from(USERS_DIRECTORY)
     }
-    pub fn get_user_file(name: &str) -> PathBuf {
-        Storage::get_users_folder().join(format!("{}.toml", name))
+    pub fn user_file(name: &str) -> PathBuf {
+        Storage::users_directory().join(format!("{name}.toml"))
     }
 
     /* Configs */
-    pub fn get_configs_folder() -> PathBuf {
+    pub fn configs_directory() -> PathBuf {
         PathBuf::from(CONFIG_DIRECTORY)
     }
-    pub fn get_primary_config_file() -> PathBuf {
-        Storage::get_configs_folder().join(PRIMARY_CONFIG_FILE)
+    pub fn primary_config_file() -> PathBuf {
+        Storage::configs_directory().join(PRIMARY_CONFIG_FILE)
     }
 
-    /* Drivers */
-    pub fn get_drivers_folder() -> PathBuf {
-        PathBuf::from(DRIVERS_DIRECTORY)
+    /* Wasm Configs */
+    pub fn wasm_plugins_config_file() -> PathBuf {
+        Storage::configs_directory().join(WASM_PLUGINS_CONFIG_FILE)
     }
-    pub fn get_data_folder_for_driver(name: &str) -> PathBuf {
+    pub fn wasm_engine_config_file() -> PathBuf {
+        Storage::configs_directory().join(WASM_ENGINE_CONFIG_FILE)
+    }
+
+    /* Plugins */
+    pub fn plugins_directory() -> PathBuf {
+        PathBuf::from(PLUGINS_DIRECTORY)
+    }
+    pub fn data_directory_for_plugin(name: &str) -> PathBuf {
         PathBuf::from(DATA_DIRECTORY).join(name)
     }
-    pub fn get_config_folder_for_driver(name: &str) -> PathBuf {
-        Storage::get_configs_folder().join(name)
+    pub fn config_directory_for_plugin(name: &str) -> PathBuf {
+        Storage::configs_directory().join(name)
+    }
+
+    pub async fn for_each_content(path: &Path) -> Result<Vec<(PathBuf, String, String)>> {
+        let mut result = Vec::new();
+        let mut directory = fs::read_dir(path).await?;
+        while let Some(entry) = directory.next_entry().await? {
+            if entry.path().is_dir() {
+                continue;
+            }
+            let path = entry.path();
+            match (path.file_name(), path.file_stem()) {
+                (Some(name), Some(stem)) => result.push((
+                    path.clone(),
+                    name.to_string_lossy().to_string(),
+                    stem.to_string_lossy().to_string(),
+                )),
+                _ => {
+                    warn!("Failed to read file names: {:?}", path);
+                }
+            }
+        }
+        Ok(result)
+    }
+
+    pub async fn for_each_content_toml<T: LoadFromTomlFile>(
+        path: &Path,
+        error_message: &str,
+    ) -> Result<Vec<(PathBuf, String, String, T)>> {
+        let mut result = Vec::new();
+        let mut directory = fs::read_dir(path).await?;
+        while let Some(entry) = directory.next_entry().await? {
+            if entry.path().is_dir() {
+                continue;
+            }
+            match T::from_file(&entry.path()).await {
+                Ok(value) => {
+                    let path = entry.path();
+                    match (path.file_name(), path.file_stem()) {
+                        (Some(name), Some(stem)) => result.push((
+                            path.clone(),
+                            name.to_string_lossy().to_string(),
+                            stem.to_string_lossy().to_string(),
+                            value,
+                        )),
+                        _ => {
+                            warn!("Failed to read file names: {:?}", path);
+                        }
+                    }
+                }
+                Err(error) => {
+                    warn!("{}@{:?}: {:?}", error_message, entry.path(), error);
+                }
+            }
+        }
+        Ok(result)
+    }
+}
+
+pub trait SaveToTomlFile: Serialize {
+    async fn save(&self, path: &Path, create_parent: bool) -> Result<()> {
+        if create_parent {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).await?;
+            }
+        }
+        fs::write(path, toml::to_string(self)?).await?;
+        Ok(())
+    }
+}
+
+pub trait LoadFromTomlFile: DeserializeOwned {
+    async fn from_file(path: &Path) -> Result<Self> {
+        let data = fs::read_to_string(path).await?;
+        let config = toml::from_str(&data)?;
+        Ok(config)
     }
 }

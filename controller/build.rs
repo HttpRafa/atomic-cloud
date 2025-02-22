@@ -1,12 +1,12 @@
 use std::{
     env,
     fs::{self, File},
-    io::Write,
+    io::Write as _,
 };
 
 const PROTO_PATH: &str = "../protocol/grpc";
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn core::error::Error>> {
     generate_build_info();
     generate_grpc_code()?;
     Ok(())
@@ -14,10 +14,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn generate_build_info() {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut file = File::create(format!("{}/build_info.rs", out_dir)).unwrap();
+    let mut file = File::create(format!("{out_dir}/build_info.rs")).unwrap();
 
-    let commit = env::var("CURRENT_COMMIT").unwrap_or_else(|_| "unknown".to_string());
-    let build = env::var("CURRENT_BUILD").unwrap_or_else(|_| "0".to_string());
+    let commit = env::var("CURRENT_COMMIT").unwrap_or_else(|_| "unknown".to_owned());
+    let build = env::var("CURRENT_BUILD").unwrap_or_else(|_| "0".to_owned());
 
     let version = get_version_info().expect("Unable to get version information");
     let protocol_version =
@@ -28,14 +28,14 @@ fn generate_build_info() {
     writeln!(file, "    major: {},", version.0).unwrap();
     writeln!(file, "    minor: {},", version.1).unwrap();
     writeln!(file, "    patch: {},", version.2).unwrap();
-    writeln!(file, "    build: {},", build).unwrap();
-    writeln!(file, "    commit: \"{}\",", commit).unwrap();
+    writeln!(file, "    build: {build},").unwrap();
+    writeln!(file, "    commit: \"{commit}\",").unwrap();
     writeln!(file, "    stage: Stage::{},", version.3).unwrap();
-    writeln!(file, "    protocol: {},", protocol_version).unwrap();
+    writeln!(file, "    protocol: {protocol_version},").unwrap();
     writeln!(file, "}};").unwrap();
 }
 
-fn get_version_info() -> Result<(u16, u16, u16, String), Box<dyn std::error::Error>> {
+fn get_version_info() -> Result<(u16, u16, u16, String), Box<dyn core::error::Error>> {
     let cargo_toml_content = fs::read_to_string("Cargo.toml")?;
     let cargo_toml: toml::Value = toml::from_str(&cargo_toml_content)?;
 
@@ -53,7 +53,7 @@ fn get_version_info() -> Result<(u16, u16, u16, String), Box<dyn std::error::Err
         let stage = if version_parts.len() > 1 {
             version_parts[1][0..1].to_uppercase() + &version_parts[1][1..]
         } else {
-            "Stable".to_string()
+            "Stable".to_owned()
         };
         Ok((
             version_numbers[0],
@@ -66,7 +66,7 @@ fn get_version_info() -> Result<(u16, u16, u16, String), Box<dyn std::error::Err
     }
 }
 
-fn get_protocol_version_info() -> Result<u32, Box<dyn std::error::Error>> {
+fn get_protocol_version_info() -> Result<u32, Box<dyn core::error::Error>> {
     let cargo_toml_content = fs::read_to_string("../Cargo.toml")?;
     let cargo_toml: toml::Value = toml::from_str(&cargo_toml_content)?;
 
@@ -76,13 +76,13 @@ fn get_protocol_version_info() -> Result<u32, Box<dyn std::error::Error>> {
     value.ok_or("Unable to get protocol version from Cargo.toml".into())
 }
 
-fn generate_grpc_code() -> Result<(), Box<dyn std::error::Error>> {
+fn generate_grpc_code() -> Result<(), Box<dyn core::error::Error>> {
     tonic_build::configure()
         .build_client(false)
         .compile_protos(
             &[
-                format!("{}/admin/admin.proto", PROTO_PATH),
-                format!("{}/unit/unit.proto", PROTO_PATH),
+                format!("{PROTO_PATH}/manage/service.proto"),
+                format!("{PROTO_PATH}/client/service.proto"),
             ],
             &[PROTO_PATH],
         )?;

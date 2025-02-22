@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+message Node {
+  message Item {
+    string name = 1;
+    string plugin = 2;
+    
+    optional uint32 memory = 3;
+    optional uint32 max = 4;
+    optional string child = 5;
+    string ctrlAddr = 6;
+  }
+  message List {
+    repeated string nodes = 1;
+  }
+}

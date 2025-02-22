@@ -1,0 +1,18 @@
+[network]
+# The host address that users can use to reach servers started with this instance
+host = "127.0.0.1"
+
+# The range of ports that this plugin will use to start servers
+[network.ports]
+start = 27000
+end = 27100
+
+# The duration the plugin will wait for a server to stop before forcefully terminating the process
+[timeouts.stop]
+secs = 30
+nanos = 0
+
+# The duration the plugin will wait for a server to stop before forcefully terminating and respawning it
+[timeouts.restart]
+secs = 30
+nanos = 0

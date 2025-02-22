@@ -1,18 +1,18 @@
-# Use the official ArchLinux image with a AUR helper installed
-FROM ghcr.io/greyltc-org/archlinux-aur:paru
+FROM debian:unstable
 
 ARG REMOTE_USER
 ARG REMOTE_UID
 ARG REMOTE_GID
 
-RUN pacman-key --init
-RUN pacman -Syu --noconfirm
+# Update and upgrade the system
+RUN apt update && apt upgrade -y
 
-# Install required packages
-RUN pacman -S base-devel git less nano openssh nano protobuf rustup jdk21-openjdk gradle mkdocs-material --noconfirm
-
-# Install gRPC UI
-RUN aur-install grpcui-bin
+# Install necessary packages
+RUN apt install -y \
+    build-essential git gh \
+    protobuf-compiler \
+    rustup \
+    openjdk-21-jdk gradle
 
 RUN <<EOF
     groupadd -g ${REMOTE_GID} ${REMOTE_USER}

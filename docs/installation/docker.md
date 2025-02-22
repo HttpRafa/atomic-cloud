@@ -15,15 +15,15 @@ services:
     ports:
       - "12892:12892"
     environment:
-      - PTERODACTYL=true # Enable Pterodactyl driver installation
-      - LOCAL=true       # Enable Local driver installation
+      - PTERODACTYL=true # Enable Pterodactyl plugin installation
+      - LOCAL=true       # Enable Local plugin installation
     volumes:
       - ./logs:/app/logs
       - ./auth:/app/auth
       - ./configs:/app/configs
-      - ./cloudlets:/app/cloudlets
-      - ./deployments:/app/deployments
-      - ./drivers:/app/drivers
+      - ./nodes:/app/nodes
+      - ./groups:/app/groups
+      - ./plugins:/app/plugins
 ```
 
 ## Step 2: Start the Container

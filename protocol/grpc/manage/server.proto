@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+import "common/common.proto";
+
+message Server {
+  message List {
+    repeated Short servers = 1;
+  }
+  message Short {
+    string name = 1;
+    string id = 2;
+    optional string group = 3;
+    string node = 4;
+  }
+  message Detail {
+    string name = 1;
+    string id = 2;
+    optional string group = 3;
+    string node = 4;
+    Allocation allocation = 5;
+    uint32 users = 6;
+    string token = 7;
+    State state = 8;
+    bool ready = 9;
+  }
+  message Allocation {
+    repeated common.Address ports = 1;
+    Resources resources = 2;
+    Spec spec = 3;
+  }
+  message Resources {
+    uint32 memory = 1;
+    uint32 swap = 2;
+    uint32 cpu = 3;
+    uint32 io = 4;
+    uint32 disk = 5;
+    uint32 ports = 6;
+  }
+  message Spec {
+    string img = 1;
+    uint32 maxPlayers = 2;
+    repeated common.KeyValue settings = 3;
+    repeated common.KeyValue env = 4;
+    optional DiskRetention retention = 5;
+    optional Fallback fallback = 6;
+  }
+  message Fallback {
+    int32 prio = 1;
+  }
+  enum DiskRetention {
+    TEMPORARY = 0;
+    PERMANENT = 1;
+  }
+  enum State {
+    STARTING = 0;
+    PREPARING = 1;
+    RESTARTING = 2;
+    RUNNING = 3;
+    STOPPING = 4;
+  }
+}

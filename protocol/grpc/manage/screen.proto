@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+message Screen {
+  message WriteReq {
+    string id = 1;
+    bytes data = 2;
+  }
+  message Lines {
+    repeated string lines = 1;
+  }
+}

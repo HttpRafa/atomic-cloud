@@ -10,7 +10,7 @@ use crate::{
     application::{
         group::manager::GroupManager,
         plugin::{manager::PluginManager, BoxedNode},
-        server::manager::ServerManager,
+        server::manager::ServerManager, Voter,
     },
     resource::{CreateResourceError, DeleteResourceError},
     storage::Storage,
@@ -169,7 +169,7 @@ impl NodeManager {
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    pub async fn cleanup(&mut self) -> Result<()> {
         for (_, mut node) in self.nodes.drain() {
             // Before we can drop the node we have to drop the wasm resources first
             node.cleanup().await?;

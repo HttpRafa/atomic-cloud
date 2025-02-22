@@ -6,14 +6,13 @@ use std::{
 use anyhow::Result;
 use common::network::HostAndPort;
 use getset::Getters;
-use simplelog::warn;
+use simplelog::{info, warn};
 use tokio::{task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
-        Shared,
+        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager, OptVoter, Shared, Voter
     },
     config::Config,
 };
@@ -26,6 +25,8 @@ mod start;
 mod stop;
 
 pub struct ServerManager {
+    voter: OptVoter,
+
     /* Servers */
     servers: HashMap<Uuid, Server>,
 
@@ -38,6 +39,7 @@ pub struct ServerManager {
 impl ServerManager {
     pub fn init() -> Self {
         Self {
+            voter: None,
             servers: HashMap::new(),
             start_requests: BinaryHeap::new(),
             restart_requests: vec![],
@@ -82,6 +84,10 @@ impl ServerManager {
     }
 
     pub fn schedule_start(&mut self, request: StartRequest) {
+        if self.voter.is_some() {
+            warn!("Ignoring start request for server {} as the server manager is shutting down.", request.id);
+            return;
+        }
         self.start_requests.push(request);
     }
     pub fn schedule_restart(&mut self, request: RestartRequest) {
@@ -175,11 +181,36 @@ impl ServerManager {
             self.start_requests.extend(requests);
         }
 
+        if let Some(voter) = &mut self.voter {
+            if self.servers.is_empty() {
+                if voter.vote() {
+                    info!("All servers have been stopped. Ready to stop...");
+                }
+            }
+        }
+
         Ok(())
     }
 
     #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-    pub fn shutdown(&mut self) -> Result<()> {
+    pub fn shutdown(&mut self, voter: Voter) -> Result<()> {
+        self.voter = Some(voter);
+
+        info!("Canceling all start requests...");
+        self.start_requests.clear();
+        self.restart_requests.clear();
+        info!("Shutting down all servers...");
+        let mut requests = Vec::with_capacity(self.servers.len());
+        for server in self.servers.values() {
+            requests.push(StopRequest::new(None, server.id().clone()));
+        }
+        self.schedule_stops(requests);
+
+        Ok(())
+    }
+
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn cleanup(&mut self) -> Result<()> {
         Ok(())
     }
 }

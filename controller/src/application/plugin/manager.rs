@@ -4,7 +4,7 @@ use anyhow::Result;
 use futures::future::join_all;
 use simplelog::info;
 
-use crate::config::Config;
+use crate::{application::Voter, config::Config};
 
 use super::BoxedPlugin;
 
@@ -47,7 +47,7 @@ impl PluginManager {
         Ok(())
     }
 
-    pub async fn shutdown(&mut self) -> Result<()> {
+    pub async fn cleanup(&mut self) -> Result<()> {
         let tasks = join_all(self.plugins.values().map(|plugin| plugin.shutdown())).await;
 
         for task in tasks {

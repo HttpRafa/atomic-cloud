@@ -12,7 +12,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
-use crate::{application::subscriber::Subscriber, network::manage::ScreenLines};
+use crate::{application::{subscriber::Subscriber, Voter}, network::manage::ScreenLines};
 
 use super::{BoxedScreen, ScreenJoinHandle};
 
@@ -76,7 +76,7 @@ impl ScreenManager {
         Ok(())
     }
 
-    pub async fn shutdown(&self) -> Result<()> {
+    pub async fn cleanup(&self) -> Result<()> {
         for (_, mut screen) in self.screens.write().await.drain() {
             // Before we can drop the screen we have to drop the wasm resources first
             screen.cleanup().await?;

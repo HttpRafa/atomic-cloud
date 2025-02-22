@@ -6,7 +6,7 @@ use tokio::time::Instant;
 use uuid::Uuid;
 
 use crate::application::{
-    group::manager::GroupManager, node::manager::NodeManager, server::Server,
+    group::manager::GroupManager, node::manager::NodeManager, server::{Server, State},
     user::manager::UserManager, Shared,
 };
 
@@ -64,6 +64,7 @@ impl ServerManager {
                         .screens
                         .unregister_screen(request.server.uuid())
                         .await?;
+                    servers.remove(request.server.uuid());
                     debug!("Server {} has been stopped", request.server);
                     return Ok(false);
                 }

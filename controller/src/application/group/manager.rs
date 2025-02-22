@@ -8,8 +8,7 @@ use tokio::fs;
 
 use crate::{
     application::{
-        node::manager::NodeManager,
-        server::{manager::ServerManager, Resources, Spec},
+        node::manager::NodeManager, server::{manager::ServerManager, Resources, Spec}, OptVoter, Voter
     },
     config::Config,
     resource::{CreateResourceError, DeleteResourceError},
@@ -19,6 +18,8 @@ use crate::{
 use super::{Group, ScalingPolicy, StartConstraints};
 
 pub struct GroupManager {
+    voter: OptVoter,
+
     groups: HashMap<String, Group>,
 }
 
@@ -53,7 +54,7 @@ impl GroupManager {
         }
 
         info!("Loaded {} group(s)", groups.len());
-        Ok(Self { groups })
+        Ok(Self { voter: None, groups })
     }
 
     pub async fn delete_group(&mut self, name: &str) -> Result<(), DeleteResourceError> {
@@ -137,6 +138,11 @@ impl Group {
 // Ticking
 impl GroupManager {
     pub fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
+        if self.voter.is_some() {
+            // Do not tick if we are shutting down
+            return Ok(());
+        }
+
         for group in self.groups.values_mut() {
             group.tick(config, servers)?;
         }
@@ -144,7 +150,14 @@ impl GroupManager {
     }
 
     #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
-    pub fn shutdown(&mut self) -> Result<()> {
+    pub fn shutdown(&mut self, mut voter: Voter) -> Result<()> {
+        voter.vote();
+        self.voter = Some(voter);
+        Ok(())
+    }
+
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn cleanup(&mut self) -> Result<()> {
         Ok(())
     }
 }

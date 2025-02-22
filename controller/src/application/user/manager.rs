@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::ActionResult,
-        server::{NameAndUuid, Server},
+        server::{NameAndUuid, Server}, Voter,
     },
     config::Config,
 };
@@ -145,7 +145,7 @@ impl UserManager {
     }
 
     #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-    pub fn shutdown(&mut self) -> Result<()> {
+    pub fn cleanup(&mut self) -> Result<()> {
         Ok(())
     }
 }

@@ -126,7 +126,8 @@ impl ServerManager {
         servers: &mut HashMap<Uuid, Server>,
         nodes: &NodeManager,
     ) -> Result<JoinHandle<Result<()>>> {
-        if let Some(server) = servers.get(request.server.uuid()) {
+        if let Some(server) = servers.get_mut(request.server.uuid()) {
+            server.state = State::Stopping;
             if let Some(node) = nodes.get_node(&server.node) {
                 Ok(node.free(&server.allocation.ports))
             } else {
@@ -165,7 +166,7 @@ impl ServerManager {
 
                 users.remove_users_on_server(server.id.uuid());
 
-                Ok(node.stop(server))
+                Ok(node.stop(&server))
             } else {
                 Err(anyhow!(
                     "Node {} not found while trying to stop {}",

@@ -11,6 +11,7 @@ use super::{
     group::{create_group::CreateGroupMenu, get_group::GetGroupMenu, get_groups::GetGroupsMenu},
     node::{create_node::CreateNodeMenu, get_node::GetNodeMenu, get_nodes::GetNodesMenu},
     resource::{delete_resource::DeleteResourceMenu, set_resource::SetResourceMenu},
+    screen::OpenScreenMenu,
     server::{get_server::GetServerMenu, get_servers::GetServersMenu},
     user::transfer_users::TransferUsersMenu,
 };
@@ -33,6 +34,9 @@ enum Action {
     // Server operations
     GetServer,
     GetServers,
+
+    // Screen operations
+    OpenScreen,
 
     // Transfer operations
     TransferUsers,
@@ -61,6 +65,8 @@ impl Display for Action {
 
             Action::GetServer => write!(f, "Get information about a certain Server"),
             Action::GetServers => write!(f, "Get all Servers"),
+
+            Action::OpenScreen => write!(f, "Open the screen of a server"),
 
             Action::TransferUsers => write!(f, "Transfer a users to a different Server"),
 
@@ -110,6 +116,7 @@ impl ConnectionStartMenu {
                 Action::GetGroups,
                 Action::GetServers,
                 Action::GetVersions,
+                Action::OpenScreen,
                 Action::DisconnectFromController,
             ],
         ) {
@@ -131,6 +138,7 @@ impl ConnectionStartMenu {
                 }
                 Action::RequestStop => RequestStopMenu::show(profile, connection, profiles).await,
                 Action::GetVersions => GetVersionsMenu::show(profile, connection, profiles).await,
+                Action::OpenScreen => OpenScreenMenu::show(profile, connection, profiles).await,
                 Action::DisconnectFromController => MenuResult::Exit,
             },
             Err(error) => MenuUtils::handle_error(error),

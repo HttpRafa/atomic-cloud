@@ -6,12 +6,13 @@ use proto::manage::{
     manage_service_client::ManageServiceClient,
     node,
     resource::{self, DelReq, SetReq},
+    screen,
     server::{self, DiskRetention},
     transfer::{self, target, TransferReq},
     user,
 };
 use simplelog::warn;
-use tonic::{transport::Channel, Request};
+use tonic::{transport::Channel, Request, Streaming};
 use url::Url;
 
 use crate::VERSION;
@@ -91,7 +92,6 @@ impl CloudConnection {
 
     pub async fn request_stop(&mut self) -> Result<()> {
         let request = self.create_request(());
-
         self.client.as_mut().unwrap().request_stop(request).await?;
         Ok(())
     }
@@ -203,6 +203,27 @@ impl CloudConnection {
             .await?
             .into_inner()
             .servers)
+    }
+
+    pub async fn write_to_screen(&mut self, write: screen::WriteReq) -> Result<()> {
+        let request = self.create_request(write);
+        self.client
+            .as_mut()
+            .unwrap()
+            .write_to_screen(request)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn subscribe_to_screen(&mut self, id: &str) -> Result<Streaming<screen::Lines>> {
+        let request = self.create_request(id.to_owned());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .subscribe_to_screen(request)
+            .await?
+            .into_inner())
     }
 
     pub async fn get_users(&mut self) -> Result<Vec<user::Item>> {

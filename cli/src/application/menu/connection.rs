@@ -12,6 +12,7 @@ mod general;
 mod group;
 mod node;
 mod resource;
+mod screen;
 mod server;
 mod start;
 mod user;

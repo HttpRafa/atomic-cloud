@@ -11,41 +11,47 @@ common = { path = "../common" }
 simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
-anyhow = "1.0.95"
+anyhow = "1.0.96"
+
+# Getters and bitflags
+getset = "0.1.4"
+bitflags = "2.8.0"
 
 # Signal handling
 ctrlc = "3.4.5"
 
 # Unit system
-uuid = { version = "1.12.0", features = ["v4"] }
+uuid = { version = "1.14.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.26", features = ["derive"] }
+clap = { version = "4.5.30", features = ["derive"] }
 
 # Regex parsing
 regex = "1.11.1"
 
 # Configuration
-serde = { version = "1.0.217", features = ["derive"] }
-toml = "0.8.19"
+serde = { version = "1.0.218", features = ["derive"] }
+toml = "0.8.20"
 
 # Async runtime
-tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "fs", "process", "macros"] }
 tokio-stream = "0.1.17"
+futures = "0.3.31"
 
 # API
 url = { version = "2.5.4", features = ["serde"] }
-prost = "0.13.4"
+prost = "0.13.5"
 tonic = "0.12.3"
 
 # Drivers
-wasmtime = { version = "28.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
-wasmtime-wasi = { version = "28.0.1", optional = true }
-minreq = { version = "2.13.0", features = ["https-rustls"], optional = true }
+wasmtime = { version = "30.0.1", default-features = false, features = ["runtime", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime-wasi = { version = "30.0.1", optional = true }
+wasmtime-wasi-http = { version = "30.0.1", optional = true }
+minreq = { version = "2.13.2", features = ["https-rustls"], optional = true }
 
 [build-dependencies]
-toml = "0.8.19"
+toml = "0.8.20"
 tonic-build = "0.12.3"
 
 [features]
-wasm-drivers = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]
+wasm-plugins = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:wasmtime-wasi-http", "dep:minreq"]

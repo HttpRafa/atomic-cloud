@@ -1,0 +1,214 @@
+package plugin:system;
+
+interface types {
+    type error-message = string;
+    type scoped-errors = list<scoped-error>;
+
+    record scoped-error {
+        scope: string,
+        message: error-message,
+    }
+
+    variant reference {
+        controller,
+        configs,
+        data,
+    }
+
+    record directory {
+        path: string,
+        reference: reference,
+    }
+}
+
+interface log {
+    variant level {
+        debug,
+        info,
+        warn,
+        error,
+    }
+    log-string: func(level: level, message: string);
+}
+
+interface platform {
+    variant os {
+        unix,
+        windows,
+    }
+    get-os: func() -> os;
+}
+
+interface file {
+    use types.{error-message, directory};
+    remove-dir-all: func(directory: directory) -> result<_, error-message>;
+}
+
+interface http {
+    variant method {
+        get,
+        patch,
+        post,
+        put,
+        delete,
+    }
+
+    record header {
+        key: string,
+        value: string,
+    }
+
+    record response {
+        status-code: u32,
+        reason-phrase: string,
+        headers: list<header>,
+        bytes: list<u8>,
+    }
+
+    send-http-request: func(method: method, url: string, headers: list<header>, body: option<list<u8>>) -> option<response>;
+}
+
+interface screen {
+    use types.{error-message};
+
+    variant screen-type {
+        unsupported,
+        supported(generic-screen),
+    }
+
+    resource generic-screen {
+        pull: func() -> result<list<string>, error-message>;
+        write: func(data: list<u8>) -> result<_, error-message>;
+    }
+}
+
+interface process {
+    use types.{error-message, directory};
+
+    variant exit-status {
+        code(s32),
+        signal(s32),
+        unknown,
+    }
+
+    resource process-builder {
+        constructor(command: string);
+
+        args: func(args: list<string>);
+        environment: func(environment: list<tuple<string, string>>);
+        directory: func(directory: directory);
+        spawn: func() -> result<process, error-message>;
+    }
+
+    resource process {
+        kill: func() -> result<_, error-message>;
+        try-wait: func() -> result<option<exit-status>, error-message>;
+
+        read-lines: func() -> list<string>;
+        write-all: func(data: list<u8>) -> result<_, error-message>;
+        flush: func() -> result<_, error-message>;
+    }
+}
+
+interface bridge {
+    use types.{error-message, scoped-errors};
+    use screen.{screen-type};
+
+    type uuid = string;
+
+    flags features {
+        node
+    }
+
+    record information {
+        authors: list<string>,
+        version: string,
+        features: features,
+        ready: bool,
+    }
+
+    record capabilities {
+        memory: option<u32>,
+        max-servers: option<u32>,
+        child: option<string>,
+    }
+
+    record address {
+        host: string,
+        port: u16,
+    }
+
+    record resources {
+        memory: u32,
+        swap: u32,
+        cpu: u32,
+        io: u32,
+        disk: u32,
+        ports: u32,
+    }
+
+    record setting {
+        key: string,
+        value: string,
+    }
+
+    variant disk-retention {
+        permanent,
+        temporary,
+    }
+
+    record spec {
+        settings: list<tuple<string, string>>,
+        environment: list<tuple<string, string>>,
+        disk-retention: disk-retention,
+        image: string,
+    }
+
+    record allocation {
+        ports: list<address>,
+        resources: resources,
+        spec: spec,
+    }
+
+    record server-proposal {
+        name: string,
+        group: option<string>,
+        resources: resources,
+        spec: spec,
+    }
+
+    record server {
+        name: string,
+        uuid: uuid,
+        group: option<string>,
+        allocation: allocation,
+        token: string,
+    }
+
+    resource generic-node {
+        tick: func() -> result<_, scoped-errors>;
+        allocate: func(server: server-proposal) -> result<list<address>, error-message>;
+        free: func(addresses: list<address>);
+        start: func(server: server) -> screen-type;
+        restart: func(server: server);
+        stop: func(server: server);
+    }
+
+    resource generic-plugin {
+        constructor(cloud-identifier: string);
+        init: func() -> information;
+        init-node: func(name: string, capabilities: capabilities, controller: string) -> result<generic-node, error-message>;
+        tick: func() -> result<_, scoped-errors>;
+        shutdown: func() -> result<_, scoped-errors>;
+    }
+}
+
+world plugin {
+    export bridge;
+    export screen;
+    import log;
+    import platform;
+    import file;
+    import http;
+    import process;
+}

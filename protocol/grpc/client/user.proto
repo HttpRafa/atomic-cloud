@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.client";
+
+package client;
+
+message User {
+  message ConnectedReq {
+    string id = 1;
+    string name = 2;
+  }
+  message DisconnectedReq {
+    string id = 1;
+  }
+}

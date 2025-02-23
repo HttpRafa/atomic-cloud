@@ -8,17 +8,16 @@ members = [
     "controller",
 
     # Drivers
-    "drivers/pterodactyl",
-    "drivers/local",
+    #"plugins/pterodactyl",
+    "plugins/local",
 
     # Clients
     "cli",
-    "clients/wrapper",
+    #"clients/wrapper",
 ]
 
 [workspace.metadata]
-protocol-version = 5
+protocol-version = 6
 
 [profile.release]
 lto = true
-strip = true

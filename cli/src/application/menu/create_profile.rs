@@ -3,7 +3,6 @@ use inquire::{
     Password, Text,
 };
 use loading::Loading;
-use simplelog::debug;
 
 use crate::{
     application::profile::{Profile, Profiles},
@@ -33,10 +32,7 @@ impl CreateProfileMenu {
         }
         let name = match prompt.prompt() {
             Ok(name) => name,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
-            }
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let authorization = match Password::new("What is the authorization token for this profile?")
@@ -47,10 +43,7 @@ impl CreateProfileMenu {
             .prompt()
         {
             Ok(authorization) => authorization,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
-            }
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let url = match MenuUtils::parsed_value(
@@ -59,10 +52,7 @@ impl CreateProfileMenu {
             "Please enter a valid URL",
         ) {
             Ok(url) => url,
-            Err(error) => {
-                debug!("{}", error);
-                return MenuResult::Aborted;
-            }
+            Err(error) => return MenuUtils::handle_error(error),
         };
 
         let progress = Loading::default();
@@ -78,16 +68,16 @@ impl CreateProfileMenu {
                 }
             }
             Err(error) => {
-                progress.fail(format!("Failed to connect to the controller: {}", error));
+                progress.fail(format!("Failed to connect to the controller: {error}"));
                 progress.end();
-                return MenuResult::Failed;
+                return MenuResult::Failed(error);
             }
         }
-        progress.text(format!("Saving profile \"{}\"", name));
-        if let Err(error) = profiles.create_profile(&profile) {
-            progress.fail(format!("Failed to create profile: {}", error));
+        progress.text(format!("Saving profile \"{name}\""));
+        if let Err(error) = profiles.create_profile(&profile).await {
+            progress.fail(format!("Failed to create profile: {error}"));
             progress.end();
-            return MenuResult::Failed;
+            return MenuResult::Failed(error);
         }
         progress.success("Profile created successfully");
         progress.end();

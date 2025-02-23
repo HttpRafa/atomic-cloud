@@ -1,15 +1,22 @@
 # Welcome
 
-Welcome to the Atomic Cloud project. Please note that the cloud is currently in its **early** development stages, and you may encounter bugs. If you experience any issues, kindly report them by opening an issue on our [GitHub repository](https://github.com/HttpRafa/atomic-cloud).
+Welcome to the **Atomic Cloud** project! Please note that the cloud is currently in its **early development stages**, and you might encounter occasional bugs. If you experience any issues, please report them by opening an issue on our [GitHub repository](https://github.com/HttpRafa/atomic-cloud).
 
 ## Documentation Status 🚧
-This documentation is a work in progress. We apologize for any grammatical errors or incomplete sections you may come across. We welcome contributions from the community. If you wish to help improve the documentation, please feel free to submit a Pull Request.
+
+This documentation is a work in progress. We apologize for any grammatical errors or incomplete sections. We welcome contributions from the commservery—if you’d like to help improve the documentation, please consider submitting a Pull Request.
 
 ## Installation
-The Atomic Cloud consists of two main components: the Controller and the CLI.
+
+Atomic Cloud comprises two main components: the **Controller** and the **CLI**. Below are the recommended installation options:
+
+- **Docker Installation**: We recommend installing via a Docker image for ease of group. Follow the instructions in our [Docker Installation Guide](installation/docker.md).
+- **Standard Installation**: If you prefer not to use Docker, refer to our [Standard Installation Guide](installation/normal.md).
 
 ### Controller
-The [Controller](controller/installation/docker/) should be installed in an environment that can operate continuously, such as a Raspberry Pi or a cloud server. It is responsible for managing the core functionalities of the cloud system.
+
+The [Controller](usage/controller/index.md) is designed to run in a continuously operating environment, such as a Raspberry Pi or a cloud server. It is responsible for managing the core functionalities of the cloud system.
 
 ### CLI
-The [CLI](cli/installation/) is a client application that allows you to interact with the Controller. It can be installed on your local computer, providing you with convenient access to manage the cloud system.
+
+The [CLI](usage/cli/index.md) is a client application that allows you to interact with the Controller. You can install it on your local machine to manage the cloud system conveniently.

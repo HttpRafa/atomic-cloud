@@ -1,53 +1,28 @@
+use futures::executor::block_on;
 use std::sync::Arc;
-
 use tonic::{service::Interceptor, Request, Status};
 
-use crate::application::Controller;
+use crate::application::Shared;
 
 #[derive(Clone)]
-pub struct AdminInterceptor {
-    pub controller: Arc<Controller>,
-}
+pub struct AuthInterceptor(pub Arc<Shared>);
 
-impl Interceptor for AdminInterceptor {
+impl Interceptor for AuthInterceptor {
     fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
         let metadata = request.metadata();
         let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
-        match token {
-            Some(token) => {
-                let user = self.controller.get_auth().get_user(token);
-                if let Some(user) = user {
-                    request.extensions_mut().insert(user);
+        if let Some(token) = token {
+            match block_on(self.0.auth.has_access(token)) {
+                Some(auth) => {
+                    request.extensions_mut().insert(auth);
                     Ok(request)
-                } else {
-                    Err(Status::unauthenticated("Invalid user token"))
                 }
+                _ => Err(Status::unauthenticated(
+                    "Invalid authorization token provided",
+                )),
             }
-            None => Err(Status::unauthenticated("No user token provided")),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct UnitInterceptor {
-    pub controller: Arc<Controller>,
-}
-
-impl Interceptor for UnitInterceptor {
-    fn call(&mut self, mut request: Request<()>) -> Result<Request<()>, Status> {
-        let metadata = request.metadata();
-        let token = metadata.get("authorization").and_then(|t| t.to_str().ok());
-        match token {
-            Some(token) => {
-                let unit = self.controller.get_auth().get_unit(token);
-                if let Some(unit) = unit {
-                    request.extensions_mut().insert(unit);
-                    Ok(request)
-                } else {
-                    Err(Status::unauthenticated("Invalid unit token"))
-                }
-            }
-            None => Err(Status::unauthenticated("No unit token provided")),
+        } else {
+            Err(Status::unauthenticated("No authorization token provided"))
         }
     }
 }

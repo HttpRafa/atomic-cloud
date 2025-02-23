@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+import "manage/server.proto";
+
+message Group {
+  message Item {
+    string name = 1;
+    repeated string nodes = 2;
+    Constraints constraints = 3;
+    optional Scaling scaling = 4;
+    Server.Resources resources = 5;
+    Server.Spec spec = 6;
+  }
+  message Constraints {
+    uint32 min = 1;
+    uint32 max = 2;
+    int32 prio = 3;
+  }
+  message Scaling {
+    float startThreshold = 1;
+    bool stopEmpty = 2;
+  }
+  message List {
+    repeated string groups = 1;
+  }
+}

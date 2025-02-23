@@ -1,10 +1,11 @@
 package io.atomic.cloud.common.connection;
 
+import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.common.cache.CachedObject;
-import io.atomic.cloud.grpc.unit.*;
+import io.atomic.cloud.grpc.client.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -27,13 +28,13 @@ public class CloudConnection {
     private final URL address;
     private final String token;
 
-    private UnitServiceGrpc.UnitServiceStub client;
+    private ClientServiceGrpc.ClientServiceStub client;
 
     // Cache values
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
-    private final CachedObject<UnitInformation.UnitListResponse> unitsInfo = new CachedObject<>();
-    private final CachedObject<DeploymentInformation.DeploymentListResponse> deploymentsInfo = new CachedObject<>();
+    private final CachedObject<Server.List> serversInfo = new CachedObject<>();
+    private final CachedObject<Group.List> groupsInfo = new CachedObject<>();
 
     public void connect() {
         var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
@@ -43,7 +44,7 @@ public class CloudConnection {
             channel.usePlaintext();
         }
 
-        this.client = UnitServiceGrpc.newStub(channel.build()).withCallCredentials(new CallCredentials() {
+        this.client = ClientServiceGrpc.newStub(channel.build()).withCallCredentials(new CallCredentials() {
             @Override
             public void applyRequestMetadata(RequestInfo requestInfo, Executor executor, MetadataApplier applier) {
                 var metadata = new Metadata();
@@ -53,27 +54,21 @@ public class CloudConnection {
         });
     }
 
-    public CompletableFuture<Empty> beatHeart() {
+    public CompletableFuture<Empty> beat() {
         var observer = new StreamObserverImpl<Empty>();
-        this.client.beatHeart(Empty.getDefaultInstance(), observer);
+        this.client.beat(Empty.getDefaultInstance(), observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> markReady() {
+    public CompletableFuture<Empty> setReady(boolean ready) {
         var observer = new StreamObserverImpl<Empty>();
-        this.client.markReady(Empty.getDefaultInstance(), observer);
+        this.client.setReady(BoolValue.of(ready), observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> markNotReady() {
+    public CompletableFuture<Empty> setRunning() {
         var observer = new StreamObserverImpl<Empty>();
-        this.client.markNotReady(Empty.getDefaultInstance(), observer);
-        return observer.future();
-    }
-
-    public CompletableFuture<Empty> markRunning() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.markRunning(Empty.getDefaultInstance(), observer);
+        this.client.setRunning(Empty.getDefaultInstance(), observer);
         return observer.future();
     }
 
@@ -83,112 +78,100 @@ public class CloudConnection {
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userConnected(UserManagement.UserConnectedRequest user) {
+    public CompletableFuture<Empty> userConnected(User.ConnectedReq user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userConnected(user, observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> userDisconnected(UserManagement.UserDisconnectedRequest user) {
+    public CompletableFuture<Empty> userDisconnected(User.DisconnectedReq user) {
         var observer = new StreamObserverImpl<Empty>();
         this.client.userDisconnected(user, observer);
         return observer.future();
     }
 
-    public void subscribeToTransfers(StreamObserver<TransferManagement.ResolvedTransferResponse> observer) {
+    public void subscribeToTransfers(StreamObserver<Transfer.TransferRes> observer) {
         this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
     }
 
-    public CompletableFuture<UInt32Value> transferUsers(TransferManagement.TransferUsersRequest transfer) {
+    public CompletableFuture<UInt32Value> transferUsers(Transfer.TransferReq transfer) {
         var observer = new StreamObserverImpl<UInt32Value>();
         this.client.transferUsers(transfer, observer);
         return observer.future();
     }
 
-    public CompletableFuture<UInt32Value> sendMessageToChannel(ChannelManagement.ChannelMessageValue message) {
+    public CompletableFuture<UInt32Value> publishMessage(Channel.Msg message) {
         var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.sendMessageToChannel(message, observer);
+        this.client.publishMessage(message, observer);
         return observer.future();
     }
 
-    public CompletableFuture<Empty> unsubscribeFromChannel(String channel) {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.unsubscribeFromChannel(StringValue.of(channel), observer);
-        return observer.future();
-    }
-
-    public void subscribeToChannel(String channel, StreamObserver<ChannelManagement.ChannelMessageValue> observer) {
+    public void subscribeToChannel(String channel, StreamObserver<Channel.Msg> observer) {
         this.client.subscribeToChannel(StringValue.of(channel), observer);
     }
 
-    public Optional<UnitInformation.UnitListResponse> getUnitsNow() {
-        var cached = this.unitsInfo.getValue();
+    public synchronized Optional<Server.List> getServersNow() {
+        var cached = this.serversInfo.getValue();
         if (cached.isEmpty()) {
-            this.getUnits(); // Request value from controller
+            this.getServers(); // Request value from controller
         }
         return cached;
     }
 
-    public CompletableFuture<UnitInformation.UnitListResponse> getUnits() {
-        var cached = this.unitsInfo.getValue();
+    public synchronized CompletableFuture<Server.List> getServers() {
+        var cached = this.serversInfo.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
-        var observer = new StreamObserverImpl<UnitInformation.UnitListResponse>();
-        this.client.getUnits(Empty.getDefaultInstance(), observer);
+        var observer = new StreamObserverImpl<Server.List>();
+        this.client.getServers(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            this.unitsInfo.setValue(value);
+            this.serversInfo.setValue(value);
             return value;
         });
     }
 
-    public Optional<DeploymentInformation.DeploymentListResponse> getDeploymentsNow() {
-        var cached = this.deploymentsInfo.getValue();
+    public synchronized Optional<Group.List> getGroupsNow() {
+        var cached = this.groupsInfo.getValue();
         if (cached.isEmpty()) {
-            this.getDeployments(); // Request value from controller
+            this.getGroups(); // Request value from controller
         }
         return cached;
     }
 
-    public CompletableFuture<DeploymentInformation.DeploymentListResponse> getDeployments() {
-        var cached = this.deploymentsInfo.getValue();
+    public synchronized CompletableFuture<Group.List> getGroups() {
+        var cached = this.groupsInfo.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
-        var observer = new StreamObserverImpl<DeploymentInformation.DeploymentListResponse>();
-        this.client.getDeployments(Empty.getDefaultInstance(), observer);
+        var observer = new StreamObserverImpl<Group.List>();
+        this.client.getGroups(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
-            this.deploymentsInfo.setValue(value);
+            this.groupsInfo.setValue(value);
             return value;
         });
     }
 
-    public CompletableFuture<Empty> sendReset() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.reset(Empty.getDefaultInstance(), observer);
-        return observer.future();
-    }
-
-    public synchronized CompletableFuture<UInt32Value> getProtocolVersion() {
+    public synchronized CompletableFuture<UInt32Value> getProtoVer() {
         var cached = this.protocolVersion.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.getProtocolVersion(Empty.getDefaultInstance(), observer);
+        this.client.getProtoVer(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
             this.protocolVersion.setValue(value);
             return value;
         });
     }
 
-    public synchronized CompletableFuture<StringValue> getControllerVersion() {
+    public synchronized CompletableFuture<StringValue> getCtrlVer() {
         var cached = this.controllerVersion.getValue();
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(cached.get());
         }
         var observer = new StreamObserverImpl<StringValue>();
-        this.client.getControllerVersion(Empty.getDefaultInstance(), observer);
+        this.client.getCtrlVer(Empty.getDefaultInstance(), observer);
         return observer.future().thenApply((value) -> {
             this.controllerVersion.setValue(value);
             return value;
@@ -198,11 +181,11 @@ public class CloudConnection {
     @Contract(" -> new")
     public static @NotNull CloudConnection createFromEnv() {
         var address = System.getenv("CONTROLLER_ADDRESS");
-        var token = System.getenv("UNIT_TOKEN");
+        var token = System.getenv("SERVER_TOKEN");
         if (address == null) {
             throw new IllegalStateException("CONTROLLER_ADDRESS not set");
         } else if (token == null) {
-            throw new IllegalStateException("UNIT_TOKEN not set");
+            throw new IllegalStateException("SERVER_TOKEN not set");
         }
 
         URL url;

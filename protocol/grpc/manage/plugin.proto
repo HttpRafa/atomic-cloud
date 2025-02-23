@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.atomic.cloud.grpc.manage";
+
+package manage;
+
+message Plugin {
+  message List {
+    repeated string plugins = 1;
+  }
+}

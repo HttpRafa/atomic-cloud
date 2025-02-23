@@ -16,12 +16,7 @@ public class SimpleLocalCloudUnit implements LocalCloudUnit {
     }
 
     @Override
-    public CompletableFuture<Void> markReady() {
-        return this.connection.markReady().thenRun(() -> {});
-    }
-
-    @Override
-    public CompletableFuture<Void> markNotReady() {
-        return this.connection.markNotReady().thenRun(() -> {});
+    public CompletableFuture<Void> setReady(boolean ready) {
+        return this.connection.setReady(ready).thenRun(() -> {});
     }
 }

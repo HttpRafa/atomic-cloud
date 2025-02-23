@@ -1,0 +1,37 @@
+# This identifier is used for the controller.
+# It is useful when you have centralized storage for all controllers.
+identifier = "%RANDOM%"
+
+[network]
+# The controller will listen on this address.
+bind = "0.0.0.0:8080"
+
+# The maximum time the controller will wait for the instance to start up.
+# If this timeout is reached, the startup will be considered as failed.
+[timeouts.startup]
+secs = 150
+nanos = 0
+
+# The maximum time the controller will wait for the instance to restart.
+# If this timeout is reached, the restart will be considered as failed.
+[timeouts.restart]
+secs = 120
+nanos = 0
+
+# The interval between heartbeats sent by the controller.
+# NOTE: If you change this value, make sure to update the instance's heartbeat timeout as well.
+[timeouts.heartbeat]
+secs = 15
+nanos = 0
+
+# The maximum time the controller will wait for a user to transfer to a different instance.
+# If this timeout is reached, the transfer will be considered as failed.
+[timeouts.transfer]
+secs = 10
+nanos = 0
+
+# The maximum time the controller will wait for an empty server to be filled.
+# If this timeout is reached, the server will be stopped.
+[timeouts.empty_server]
+secs = 60
+nanos = 0

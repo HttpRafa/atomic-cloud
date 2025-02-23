@@ -1,0 +1,29 @@
+description = "PaperMC improves Minecraft's ecosystem with fast, secure software and an expanding plugin API, providing quick releases and helpful support as the most widely used, performant, and stable software available."
+version = "0.1.0"
+authors = ["HttpRafa"]
+
+exclusions = ["template.toml", "prepare/"]
+
+shutdown = "stop"
+
+[environment]
+PROJECT = "paper"
+VERSION = "latest"
+BUILD_NUMBER = "latest"
+SERVER_JARFILE = "server.jar"
+
+[prepare.unix]
+command = "bash"
+args = ["-c", "chmod +x prepare/unix.sh && ./prepare/unix.sh"]
+
+[prepare.windows]
+command = "powershell.exe"
+args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "prepare/windows.ps1"]
+
+[startup.unix]
+command = "bash"
+args = ["-c", "chmod +x startup/unix.sh && ./startup/unix.sh"]
+
+[startup.windows]
+command = "powershell.exe"
+args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "startup/windows.ps1"]

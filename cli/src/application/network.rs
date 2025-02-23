@@ -1,18 +1,14 @@
 use std::fmt::Display;
 
 use anyhow::Result;
-use proto::{
-    admin_service_client::AdminServiceClient,
-    cloudlet_management::CloudletValue,
-    deployment_management::DeploymentValue,
-    resource_management::{
-        DeleteResourceRequest, ResourceCategory, ResourceStatus, SetResourceStatusRequest,
-    },
-    transfer_management::{
-        transfer_target_value::TargetType, TransferTargetValue, TransferUsersRequest,
-    },
-    unit_management::{unit_spec::Retention, SimpleUnitValue, UnitValue},
-    user_management::UserValue,
+use proto::manage::{
+    group,
+    manage_service_client::ManageServiceClient,
+    node,
+    resource::{self, DelReq, SetReq},
+    server::{self, DiskRetention},
+    transfer::{self, target, TransferReq},
+    user,
 };
 use simplelog::warn;
 use tonic::{transport::Channel, Request};
@@ -22,11 +18,20 @@ use crate::VERSION;
 
 use super::profile::Profile;
 
-#[allow(clippy::all)]
 pub mod proto {
-    use tonic::include_proto;
+    pub mod manage {
+        #![allow(clippy::all, clippy::pedantic)]
+        use tonic::include_proto;
 
-    include_proto!("admin");
+        include_proto!("manage");
+    }
+
+    pub mod common {
+        #![allow(clippy::all, clippy::pedantic)]
+        use tonic::include_proto;
+
+        include_proto!("common");
+    }
 }
 
 pub struct EstablishedConnection {
@@ -44,7 +49,7 @@ pub struct CloudConnection {
     //tls_config: Option<String>,
 
     /* Client */
-    client: Option<AdminServiceClient<Channel>>,
+    client: Option<ManageServiceClient<Channel>>,
 }
 
 impl CloudConnection {
@@ -64,7 +69,7 @@ impl CloudConnection {
         let mut client = Self::from_profile(profile);
         client.connect().await?;
 
-        let protocol = match client.get_protocol_version().await {
+        let protocol = match client.get_proto_ver().await {
             Ok(version) => version,
             Err(error) => {
                 warn!("<yellow>⚠</> Failed to get protocol version: {}", error);
@@ -80,7 +85,7 @@ impl CloudConnection {
     }
 
     pub async fn connect(&mut self) -> Result<()> {
-        self.client = Some(AdminServiceClient::connect(self.address.to_string()).await?);
+        self.client = Some(ManageServiceClient::connect(self.address.to_string()).await?);
         Ok(())
     }
 
@@ -91,17 +96,13 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn set_resource_status(&mut self, request: SetResourceStatusRequest) -> Result<()> {
+    pub async fn set_resource(&mut self, request: SetReq) -> Result<()> {
         let request = self.create_request(request);
-        self.client
-            .as_mut()
-            .unwrap()
-            .set_resource_status(request)
-            .await?;
+        self.client.as_mut().unwrap().set_resource(request).await?;
         Ok(())
     }
 
-    pub async fn delete_resource(&mut self, request: DeleteResourceRequest) -> Result<()> {
+    pub async fn delete_resource(&mut self, request: DelReq) -> Result<()> {
         let request = self.create_request(request);
         self.client
             .as_mut()
@@ -111,130 +112,100 @@ impl CloudConnection {
         Ok(())
     }
 
-    pub async fn get_drivers(&mut self) -> Result<Vec<String>> {
+    pub async fn get_plugins(&mut self) -> Result<Vec<String>> {
         let request = self.create_request(());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_drivers(request)
+            .get_plugins(request)
             .await?
             .into_inner()
-            .drivers)
+            .plugins)
     }
 
-    pub async fn create_cloudlet(&mut self, cloudlet: CloudletValue) -> Result<()> {
-        let request = self.create_request(cloudlet);
-        self.client
-            .as_mut()
-            .unwrap()
-            .create_cloudlet(request)
-            .await?;
+    pub async fn create_node(&mut self, node: node::Item) -> Result<()> {
+        let request = self.create_request(node);
+        self.client.as_mut().unwrap().create_node(request).await?;
         Ok(())
     }
 
-    pub async fn get_cloudlet(&mut self, name: &str) -> Result<CloudletValue> {
+    pub async fn get_node(&mut self, name: &str) -> Result<node::Item> {
         let request = self.create_request(name.to_string());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_cloudlet(request)
+            .get_node(request)
             .await?
             .into_inner())
     }
 
-    pub async fn get_cloudlets(&mut self) -> Result<Vec<String>> {
+    pub async fn get_nodes(&mut self) -> Result<Vec<String>> {
         let request = self.create_request(());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_cloudlets(request)
+            .get_nodes(request)
             .await?
             .into_inner()
-            .cloudlets)
+            .nodes)
     }
 
-    pub async fn create_deployment(&mut self, deployment: DeploymentValue) -> Result<()> {
-        let request = self.create_request(deployment);
-        self.client
-            .as_mut()
-            .unwrap()
-            .create_deployment(request)
-            .await?;
+    pub async fn create_group(&mut self, group: group::Item) -> Result<()> {
+        let request = self.create_request(group);
+        self.client.as_mut().unwrap().create_group(request).await?;
         Ok(())
     }
 
-    pub async fn get_deployment(&mut self, name: &str) -> Result<DeploymentValue> {
+    pub async fn get_group(&mut self, name: &str) -> Result<group::Item> {
         let request = self.create_request(name.to_string());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_deployment(request)
+            .get_group(request)
             .await?
             .into_inner())
     }
 
-    pub async fn get_deployments(&mut self) -> Result<Vec<String>> {
+    pub async fn get_groups(&mut self) -> Result<Vec<String>> {
         let request = self.create_request(());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_deployments(request)
+            .get_groups(request)
             .await?
             .into_inner()
-            .deployments)
+            .groups)
     }
 
-    pub async fn get_unit(&mut self, uuid: &str) -> Result<UnitValue> {
+    pub async fn get_server(&mut self, uuid: &str) -> Result<server::Detail> {
         let request = self.create_request(uuid.to_string());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_unit(request)
+            .get_server(request)
             .await?
             .into_inner())
     }
 
-    pub async fn get_units(&mut self) -> Result<Vec<SimpleUnitValue>> {
+    pub async fn get_servers(&mut self) -> Result<Vec<server::Short>> {
         let request = self.create_request(());
         Ok(self
             .client
             .as_mut()
             .unwrap()
-            .get_units(request)
+            .get_servers(request)
             .await?
             .into_inner()
-            .units)
+            .servers)
     }
 
-    pub async fn get_protocol_version(&mut self) -> Result<u32> {
-        let request = self.create_request(());
-        Ok(self
-            .client
-            .as_mut()
-            .unwrap()
-            .get_protocol_version(request)
-            .await?
-            .into_inner())
-    }
-
-    pub async fn get_controller_version(&mut self) -> Result<String> {
-        let request = self.create_request(());
-        Ok(self
-            .client
-            .as_mut()
-            .unwrap()
-            .get_controller_version(request)
-            .await?
-            .into_inner())
-    }
-
-    pub async fn get_users(&mut self) -> Result<Vec<UserValue>> {
+    pub async fn get_users(&mut self) -> Result<Vec<user::Item>> {
         let request = self.create_request(());
         Ok(self
             .client
@@ -246,7 +217,7 @@ impl CloudConnection {
             .users)
     }
 
-    pub async fn transfer_users(&mut self, request: TransferUsersRequest) -> Result<()> {
+    pub async fn transfer_users(&mut self, request: TransferReq) -> Result<()> {
         let request = self.create_request(request);
         self.client
             .as_mut()
@@ -254,6 +225,28 @@ impl CloudConnection {
             .transfer_users(request)
             .await?;
         Ok(())
+    }
+
+    pub async fn get_proto_ver(&mut self) -> Result<u32> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_proto_ver(request)
+            .await?
+            .into_inner())
+    }
+
+    pub async fn get_ctrl_ver(&mut self) -> Result<String> {
+        let request = self.create_request(());
+        Ok(self
+            .client
+            .as_mut()
+            .unwrap()
+            .get_ctrl_ver(request)
+            .await?
+            .into_inner())
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {
@@ -268,58 +261,63 @@ impl CloudConnection {
     }
 }
 
-impl Display for Retention {
+impl Display for DiskRetention {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Retention::Temporary => write!(f, "Temporary"),
-            Retention::Permanent => write!(f, "Permanent"),
+            DiskRetention::Temporary => write!(f, "Temporary"),
+            DiskRetention::Permanent => write!(f, "Permanent"),
         }
     }
 }
 
-impl Display for UserValue {
+impl Display for user::Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ({})", self.name, self.uuid)
+        write!(f, "{} ({})", self.name, self.id)
     }
 }
 
-impl Display for TargetType {
+impl Display for server::Short {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({})", self.name, self.id)
+    }
+}
+
+impl Display for target::Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TargetType::Unit => write!(f, "Unit"),
-            TargetType::Deployment => write!(f, "Deployment"),
-            TargetType::Fallback => write!(f, "Fallback"),
+            target::Type::Server => write!(f, "Server"),
+            target::Type::Group => write!(f, "Group"),
+            target::Type::Fallback => write!(f, "Fallback"),
         }
     }
 }
 
-impl Display for TransferTargetValue {
+impl Display for transfer::Target {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match TargetType::try_from(self.target_type)
+        match target::Type::try_from(self.r#type)
             .expect("There is something wrong with the target type")
         {
-            TargetType::Unit => write!(f, "Unit ({})", self.target.as_ref().unwrap()),
-            TargetType::Deployment => write!(f, "Deployment ({})", self.target.as_ref().unwrap()),
-            TargetType::Fallback => write!(f, "Fallback"),
+            target::Type::Server => write!(
+                f,
+                "Server ({})",
+                self.target.as_ref().unwrap_or(&String::from("None"))
+            ),
+            target::Type::Group => write!(
+                f,
+                "Group ({})",
+                self.target.as_ref().unwrap_or(&String::from("None"))
+            ),
+            target::Type::Fallback => write!(f, "Fallback"),
         }
     }
 }
 
-impl Display for ResourceCategory {
+impl Display for resource::Category {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ResourceCategory::Cloudlet => write!(f, "Cloudlet"),
-            ResourceCategory::Deployment => write!(f, "Deployment"),
-            ResourceCategory::Unit => write!(f, "Unit"),
-        }
-    }
-}
-
-impl Display for ResourceStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ResourceStatus::Active => write!(f, "Active"),
-            ResourceStatus::Inactive => write!(f, "Inactive"),
+            resource::Category::Node => write!(f, "Node"),
+            resource::Category::Group => write!(f, "Group"),
+            resource::Category::Server => write!(f, "Server"),
         }
     }
 }

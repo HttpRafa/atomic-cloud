@@ -94,7 +94,7 @@ impl CloudInit {
             "«{}» {} | {} by {}",
             "*".blue(),
             application.blue(),
-            format!("v{}", version).blue(),
+            format!("v{version}").blue(),
             authors.join(", ").blue()
         );
         println!();

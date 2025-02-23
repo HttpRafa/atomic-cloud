@@ -1,0 +1,28 @@
+cargo-features = ["per-package-target"]
+
+[package]
+name = "local"
+version = "0.0.0-nightly"
+edition = "2021"
+forced-target = "wasm32-wasip2"
+
+[dependencies]
+# Common
+common = { path = "../../common" }
+
+# Wasm plugin
+wit-bindgen = "0.39.0"
+
+# Error handling
+anyhow = "1.0.96"
+
+# Getters
+getset = "0.1.4"
+
+# Configuration
+serde = { version = "1.0.218", features = ["derive"] }
+toml = "0.8.20"
+walkdir = "2.5.0"
+
+[build-dependencies]
+toml = "0.8.20"

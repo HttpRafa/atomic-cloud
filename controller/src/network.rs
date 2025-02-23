@@ -1,97 +1,88 @@
+use std::{net::SocketAddr, sync::Arc};
+
 use anyhow::Result;
-use auth::{AdminInterceptor, UnitInterceptor};
-use simplelog::{error, info};
-use std::sync::Arc;
+use auth::AuthInterceptor;
+use client::ClientServiceImpl;
+use common::error::FancyError;
+use manage::ManageServiceImpl;
+use proto::{
+    client::client_service_server::ClientServiceServer,
+    manage::manage_service_server::ManageServiceServer,
+};
+use simplelog::info;
 use tokio::{
-    sync::watch::{self, Receiver, Sender},
+    spawn,
+    sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
 };
 use tonic::transport::Server;
 
-use crate::application::{Controller, WeakControllerHandle};
-use admin::{proto::admin_service_server::AdminServiceServer, AdminServiceImpl};
-use unit::{proto::unit_service_server::UnitServiceServer, UnitServiceImpl};
+use crate::{
+    application::{Shared, TaskSender},
+    config::Config,
+};
 
-mod admin;
 mod auth;
-mod stream;
-pub mod unit;
+pub mod client;
+pub mod manage;
+mod proto;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,
     handle: JoinHandle<()>,
-    controller: WeakControllerHandle,
 }
 
 impl NetworkStack {
-    pub fn start(controller: Arc<Controller>) -> Self {
-        info!("<green>Starting</> networking stack...");
-
-        let (sender, receiver) = watch::channel(false);
-
-        return NetworkStack {
-            shutdown: sender,
-            handle: controller
-                .get_runtime()
-                .as_ref()
-                .unwrap()
-                .spawn(launch_server(controller.clone(), receiver)),
-            controller: Arc::downgrade(&controller),
-        };
-
-        async fn launch_server(controller: Arc<Controller>, shutdown: Receiver<bool>) {
-            if let Err(error) = run(controller, shutdown).await {
-                error!("Failed to start gRPC server: {}", error);
-            }
-        }
-
-        async fn run(controller: Arc<Controller>, mut shutdown: Receiver<bool>) -> Result<()> {
-            let address = controller
-                .configuration
-                .network
-                .bind
-                .expect("No bind address found in the config");
-
-            let admin_service = AdminServiceImpl {
-                controller: Arc::clone(&controller),
-            };
-            let unit_service = UnitServiceImpl {
-                controller: Arc::clone(&controller),
-            };
-
-            info!("Controller <blue>listening</> on <blue>{}</>", address);
+    pub fn start(config: &Config, shared: &Arc<Shared>, queue: &TaskSender) -> Self {
+        async fn run(
+            bind: SocketAddr,
+            shared: Arc<Shared>,
+            queue: TaskSender,
+            mut shutdown: Receiver<bool>,
+        ) -> Result<()> {
+            let auth_interceptor = AuthInterceptor(shared.clone());
+            info!("Controller listening on {}", bind);
 
             Server::builder()
-                .add_service(AdminServiceServer::with_interceptor(
-                    admin_service,
-                    AdminInterceptor {
-                        controller: Arc::clone(&controller),
-                    },
+                .add_service(ManageServiceServer::with_interceptor(
+                    ManageServiceImpl(queue.clone(), shared.clone()),
+                    auth_interceptor.clone(),
                 ))
-                .add_service(UnitServiceServer::with_interceptor(
-                    unit_service,
-                    UnitInterceptor { controller },
+                .add_service(ClientServiceServer::with_interceptor(
+                    ClientServiceImpl(queue, shared),
+                    auth_interceptor,
                 ))
-                .serve_with_shutdown(address, async {
+                .serve_with_shutdown(bind, async {
                     shutdown.changed().await.ok();
                 })
                 .await?;
 
             Ok(())
         }
+
+        info!("Starting network stack...");
+
+        let (sender, receiver) = channel(false);
+        let bind = *config.network_bind();
+        let shared = shared.clone();
+        let queue = queue.clone();
+
+        let task = spawn(async move {
+            if let Err(error) = run(bind, shared, queue, receiver).await {
+                FancyError::print_fancy(&error, false);
+            }
+        });
+
+        Self {
+            shutdown: sender,
+            handle: task,
+        }
     }
 
-    pub fn shutdown(self) {
-        self.shutdown
-            .send(true)
-            .expect("Failed to send shutdown signal");
-        if let Some(controller) = self.controller.upgrade() {
-            controller
-                .get_runtime()
-                .as_ref()
-                .unwrap()
-                .block_on(self.handle)
-                .expect("Failed to shutdown network stack");
-        }
+    pub async fn shutdown(self) -> Result<()> {
+        info!("Stopping network stack...");
+        let _ = self.shutdown.send(true); // Ignore error if receiver is dropped
+        self.handle.await?;
+        Ok(())
     }
 }

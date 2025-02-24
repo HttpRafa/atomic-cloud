@@ -45,7 +45,7 @@ pub struct Server {
     ready: bool,
 }
 
-#[derive(Clone, Getters, MutGetters)]
+#[derive(Clone, PartialEq, Getters, MutGetters)]
 pub struct NameAndUuid {
     #[getset(get = "pub", get_mut = "pub")]
     name: String,

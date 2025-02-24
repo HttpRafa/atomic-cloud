@@ -12,11 +12,11 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
-use crate::{application::subscriber::Subscriber, network::manage::ScreenLines};
+use crate::{application::{subscriber::Subscriber, TICK_RATE}, network::manage::ScreenLines};
 
 use super::{BoxedScreen, ScreenPullJoinHandle, ScreenWriteJoinHandle};
 
-const SCREEN_TICK_RATE: u64 = 2;
+const SCREEN_TICK_RATE: u64 = TICK_RATE / 2;
 
 type SubscriberHolder<B> = Vec<Subscriber<B>>;
 
@@ -165,7 +165,7 @@ impl ActiveScreen {
                 if let Ok(lines) = lines {
                     self.cache.extend(lines);
                 }
-                None
+                Some(self.screen.pull())
             }
             Some(handle) => Some(handle),
             None => Some(self.screen.pull()),

@@ -32,7 +32,7 @@ pub mod server;
 pub mod subscriber;
 pub mod user;
 
-const TICK_RATE: u64 = 10;
+pub const TICK_RATE: u64 = 10;
 const TASK_BUFFER: usize = 128;
 
 pub type TaskSender = mpsc::Sender<Task>;

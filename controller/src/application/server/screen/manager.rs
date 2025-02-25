@@ -12,7 +12,10 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
-use crate::{application::{subscriber::Subscriber, TICK_RATE}, network::manage::ScreenLines};
+use crate::{
+    application::{subscriber::Subscriber, TICK_RATE},
+    network::manage::ScreenLines,
+};
 
 use super::{BoxedScreen, ScreenPullJoinHandle, ScreenWriteJoinHandle};
 

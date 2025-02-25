@@ -1,4 +1,4 @@
-use std::{collections::HashMap, vec};
+use std::collections::HashMap;
 
 use anyhow::Result;
 use common::allocator::NumberAllocator;
@@ -133,7 +133,7 @@ impl Group {
             resources: group.resources().clone(),
             spec: group.spec().clone(),
             id_allocator: NumberAllocator::new(1..usize::MAX),
-            servers: vec![],
+            servers: HashMap::new(),
         }
     }
 }

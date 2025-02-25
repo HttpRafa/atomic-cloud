@@ -156,7 +156,7 @@ impl ServerManager {
             if let Some(node) = nodes.get_node(&server.node) {
                 if let Some(group) = &server.group {
                     if let Some(group) = groups.get_group_mut(group) {
-                        group.remove_server(server.id.uuid());
+                        group.remove_server(&server.id);
                     } else {
                         error!("Group {} not found while trying to stop server {}. Removing group from server", group, server.id);
                         server.group = None;

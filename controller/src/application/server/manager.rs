@@ -3,8 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Result;
-use common::network::HostAndPort;
+use anyhow::{anyhow, Result};
+use common::{error::FancyError, network::HostAndPort};
 use getset::Getters;
 use simplelog::{info, warn};
 use tokio::{task::JoinHandle, time::Instant};
@@ -95,13 +95,35 @@ impl ServerManager {
         self.start_requests.push(request);
     }
     pub fn _schedule_restart(&mut self, request: RestartRequest) {
+        if self.restart_requests.contains(&request) {
+            FancyError::print_fancy(
+                &anyhow!(
+                    "Ignoring duplicate restart request for server {}. This is likely a bug.",
+                    request.server
+                ),
+                false,
+            );
+            return;
+        }
         self.restart_requests.push(request);
     }
     pub fn schedule_stop(&mut self, request: StopRequest) {
+        if self.stop_requests.contains(&request) {
+            FancyError::print_fancy(
+                &anyhow!(
+                    "Ignoring duplicate stop request for server {}. This is likely a bug.",
+                    request.server
+                ),
+                false,
+            );
+            return;
+        }
         self.stop_requests.push(request);
     }
     pub fn schedule_stops(&mut self, requests: Vec<StopRequest>) {
-        self.stop_requests.extend(requests);
+        for request in requests {
+            self.schedule_stop(request);
+        }
     }
 }
 
@@ -315,6 +337,18 @@ impl StopRequest {
             server,
             stage: ActionStage::Queued,
         }
+    }
+}
+
+impl PartialEq for StopRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.server.uuid == other.server.uuid
+    }
+}
+
+impl PartialEq for RestartRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.server.uuid == other.server.uuid
     }
 }
 

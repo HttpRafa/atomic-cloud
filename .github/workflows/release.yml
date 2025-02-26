@@ -116,9 +116,6 @@ jobs:
           # cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
 
           # cp ./target/wasm32-wasip2/release/pterodactyl.wasm pterodactyl-plugin.wasm
-          touch wrapper-linux-x86_64
-          touch wrapper-windows-x86_64.exe
-          touch pterodactyl-plugin.wasm
           
           cp ./target/wasm32-wasip2/release/local.wasm local-plugin.wasm
 
@@ -137,8 +134,5 @@ jobs:
             controller-windows-x86_64.exe
             cli-linux-x86_64
             cli-windows-x86_64.exe
-            wrapper-linux-x86_64
-            wrapper-windows-x86_64.exe
-            pterodactyl-plugin.wasm
             local-plugin.wasm
             paper-client.jar

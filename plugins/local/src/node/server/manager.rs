@@ -6,7 +6,7 @@ use crate::{
     error,
     generated::{
         exports::plugin::system::{
-            bridge::{self, ScopedErrors, Uuid},
+            bridge::{self, Guard, ScopedErrors, Uuid},
             screen::ScreenType,
         },
         plugin::system::types::ScopedError,
@@ -95,7 +95,7 @@ impl ServerManager {
         }
     }
 
-    pub fn stop(&mut self, node: &InnerNode, server: bridge::Server) {
+    pub fn stop(&mut self, node: &InnerNode, server: bridge::Server, guard: Guard) {
         let server = match self.servers.get_mut(&server.name) {
             Some(server) => server,
             None => {
@@ -104,7 +104,7 @@ impl ServerManager {
             }
         };
 
-        if let Err(error) = server.stop(node) {
+        if let Err(error) = server.stop(node, guard) {
             error!(
                 "Failed to stop server {}: {}",
                 server.name.get_name(),

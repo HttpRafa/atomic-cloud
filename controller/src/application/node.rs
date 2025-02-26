@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     plugin::BoxedNode,
-    server::{manager::StartRequest, screen::BoxedScreen, Resources, Server, Spec},
+    server::{guard::Guard, manager::StartRequest, screen::BoxedScreen, Resources, Server, Spec},
 };
 
 pub mod manager;
@@ -98,8 +98,8 @@ impl Node {
     pub fn restart(&self, server: &Server) -> JoinHandle<Result<()>> {
         self.instance.restart(server)
     }
-    pub fn stop(&self, server: &Server) -> JoinHandle<Result<()>> {
-        self.instance.stop(server)
+    pub fn stop(&self, server: &Server, guard: Guard) -> JoinHandle<Result<()>> {
+        self.instance.stop(server, guard)
     }
 
     pub async fn save(&self) -> Result<()> {

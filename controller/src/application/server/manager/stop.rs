@@ -10,7 +10,7 @@ use crate::application::{
     user::manager::UserManager, Shared,
 };
 
-use super::{ActionStage, ServerManager, StopRequest};
+use super::{ServerManager, StopRequest, StopStage};
 
 impl ServerManager {
     // Return true if the request should be ticked again.
@@ -29,46 +29,57 @@ impl ServerManager {
         }
 
         // Cache old stage to compute the new stage based on the old stage
-        let stage = replace(&mut request.stage, ActionStage::Queued);
+        let stage = replace(&mut request.stage, StopStage::Queued);
         request.stage = match stage {
-            ActionStage::Queued => {
-                debug!("Freeing resources for server {}", request.server);
-                match Self::free(request, servers, nodes) {
-                    Ok(handle) => ActionStage::Freeing(handle),
+            StopStage::Queued => {
+                info!("Stopping server {}", request.server);
+                match Self::stop(request, servers, nodes) {
+                    Ok((handle, guard)) => StopStage::Running(handle, guard),
                     Err(error) => {
-                        warn!("Failed to free server {}: {}", request.server, error);
+                        warn!("Failed to stop server {}: {}", request.server, error);
                         return Ok(false);
                     }
                 }
             }
-            ActionStage::Freeing(handle) => {
+            StopStage::Running(handle, guard) => {
                 if handle.is_finished() {
                     handle.await??;
-                    info!("Stopping server {}", request.server);
-                    match Self::stop(request, servers, nodes, groups, users, shared).await {
-                        Ok(handle) => ActionStage::Running(handle),
+                    debug!("Server {} is now stopping in the background waiting for the plugin to finish", request.server);
+                    StopStage::Stopping(guard)
+                } else {
+                    StopStage::Running(handle, guard)
+                }
+            }
+            StopStage::Stopping(guard) => {
+                if guard.is_dropped() {
+                    debug!(
+                        "Server {} has been marked as stopped by the plugin. Freeing resources..",
+                        request.server
+                    );
+                    debug!("Freeing resources for server {}", request.server);
+                    match Self::free(request, servers, nodes) {
+                        Ok(handle) => StopStage::Freeing(handle),
                         Err(error) => {
-                            warn!("Failed to stop server {}: {}", request.server, error);
+                            warn!("Failed to free server {}: {}", request.server, error);
                             return Ok(false);
                         }
                     }
                 } else {
-                    ActionStage::Freeing(handle)
+                    StopStage::Stopping(guard)
                 }
             }
-            ActionStage::Running(handle) => {
+            StopStage::Freeing(handle) => {
                 if handle.is_finished() {
                     handle.await??;
-                    // Remove the screen from the shared screen manager
-                    shared
-                        .screens
-                        .unregister_screen(request.server.uuid())
-                        .await?;
-                    servers.remove(request.server.uuid());
+                    debug!(
+                        "Server {} has been freed on the plugin side doing it on the controller...",
+                        request.server
+                    );
+                    Self::remove(request, servers, groups, users, shared).await?;
                     debug!("Server {} has been stopped", request.server);
                     return Ok(false);
                 }
-                ActionStage::Running(handle)
+                StopStage::Freeing(handle)
             }
         };
         Ok(true)

@@ -13,6 +13,7 @@ use crate::network::client::TransferMsg;
 
 use super::node::Allocation;
 
+pub mod guard;
 pub mod manager;
 pub mod screen;
 

@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
 use crate::generated::{
-    exports::plugin::system::{bridge::ErrorMessage, screen::GuestGenericScreen},
+    exports::plugin::system::{bridge::ErrorMessage, screen::GuestScreen},
     plugin::system::process::Process,
 };
 
 pub struct Screen(pub Rc<Process>);
 
-impl GuestGenericScreen for Screen {
+impl GuestScreen for Screen {
     fn pull(&self) -> Result<Vec<String>, ErrorMessage> {
         Ok(self.0.read_lines())
     }

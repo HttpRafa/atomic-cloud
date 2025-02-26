@@ -6,8 +6,8 @@ use common::name::TimedName;
 use crate::{
     generated::{
         exports::plugin::system::{
-            bridge::{self, DiskRetention},
-            screen::{GenericScreen, ScreenType},
+            bridge::{self, DiskRetention, Guard},
+            screen::{Screen as GenericScreen, ScreenType},
         },
         plugin::system::process::{ExitStatus, Process, ProcessBuilder},
     },
@@ -35,6 +35,7 @@ pub struct Server {
     process: Rc<Process>,
 
     state: State,
+    guard: Option<Guard>,
 }
 
 impl Server {
@@ -93,6 +94,7 @@ impl Server {
             builder,
             process: Rc::new(process),
             state: State::Running,
+            guard: None,
         })
     }
 
@@ -161,8 +163,9 @@ impl Server {
         Ok(())
     }
 
-    pub fn stop(&mut self, node: &InnerNode) -> Result<()> {
+    pub fn stop(&mut self, node: &InnerNode, guard: Guard) -> Result<()> {
         self.state = State::Stopping(Instant::now());
+        self.guard = Some(guard);
         match self.request.allocation.spec.disk_retention {
             DiskRetention::Temporary => {
                 self.process

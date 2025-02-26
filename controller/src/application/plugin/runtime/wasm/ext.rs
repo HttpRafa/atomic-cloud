@@ -11,6 +11,7 @@ use super::{
 };
 
 mod file;
+pub mod guard;
 mod http;
 mod log;
 mod platform;

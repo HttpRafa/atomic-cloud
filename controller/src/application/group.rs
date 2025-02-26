@@ -93,7 +93,8 @@ impl Group {
                                 );
                                 requests.push(StopRequest::new(None, server.id().clone()));
                                 to_stop -= 1;
-                            } else {
+                                server.flags_mut().clear_stop();
+                            } else if !server.flags().is_stop_set() {
                                 debug!("Server {} is empty, starting stop timer...", server.id());
                                 server
                                     .flags_mut()

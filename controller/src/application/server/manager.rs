@@ -3,8 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{anyhow, Result};
-use common::{error::FancyError, network::HostAndPort};
+use anyhow::Result;
+use common::network::HostAndPort;
 use getset::Getters;
 use simplelog::{info, warn};
 use tokio::{task::JoinHandle, time::Instant};
@@ -18,7 +18,7 @@ use crate::{
     config::Config,
 };
 
-use super::{screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
+use super::{guard::WeakGuard, screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
 
 mod action;
 mod restart;
@@ -96,26 +96,12 @@ impl ServerManager {
     }
     pub fn _schedule_restart(&mut self, request: RestartRequest) {
         if self.restart_requests.contains(&request) {
-            FancyError::print_fancy(
-                &anyhow!(
-                    "Ignoring duplicate restart request for server {}. This is likely a bug.",
-                    request.server
-                ),
-                false,
-            );
             return;
         }
         self.restart_requests.push(request);
     }
     pub fn schedule_stop(&mut self, request: StopRequest) {
         if self.stop_requests.contains(&request) {
-            FancyError::print_fancy(
-                &anyhow!(
-                    "Ignoring duplicate stop request for server {}. This is likely a bug.",
-                    request.server
-                ),
-                false,
-            );
             return;
         }
         self.stop_requests.push(request);
@@ -271,7 +257,7 @@ pub struct RestartRequest {
 
     /* Stage */
     #[getset(get = "pub")]
-    stage: ActionStage,
+    stage: RestartStage,
 }
 
 #[derive(Getters)]
@@ -282,18 +268,24 @@ pub struct StopRequest {
 
     /* Stage */
     #[getset(get = "pub")]
-    stage: ActionStage,
+    stage: StopStage,
 }
 
-enum ActionStage {
+enum RestartStage {
+    Queued,
+    Running(JoinHandle<Result<()>>),
+}
+
+enum StopStage {
     Queued,
     Freeing(JoinHandle<Result<()>>),
-    Running(JoinHandle<Result<()>>),
+    Running(JoinHandle<Result<()>>, WeakGuard),
+    Stopping(WeakGuard),
 }
 
 enum StartStage {
     Queued,
-    Allocating((usize, JoinHandle<Result<Vec<HostAndPort>>>)),
+    Allocating(usize, JoinHandle<Result<Vec<HostAndPort>>>),
     Creating(JoinHandle<Result<BoxedScreen>>),
 }
 
@@ -325,7 +317,7 @@ impl RestartRequest {
         Self {
             when,
             server,
-            stage: ActionStage::Queued,
+            stage: RestartStage::Queued,
         }
     }
 }
@@ -335,7 +327,7 @@ impl StopRequest {
         Self {
             when,
             server,
-            stage: ActionStage::Queued,
+            stage: StopStage::Queued,
         }
     }
 }

@@ -10,7 +10,11 @@ use crate::{
     application::{
         group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
-        server::{screen::BoxedScreen, Flags, Heart, Server, State},
+        server::{
+            guard::{Guard, WeakGuard},
+            screen::BoxedScreen,
+            Flags, Heart, Server, State,
+        },
         user::manager::UserManager,
         Shared,
     },
@@ -121,6 +125,29 @@ impl ServerManager {
             ))
         }
     }
+    pub fn stop(
+        request: &StopRequest,
+        servers: &mut HashMap<Uuid, Server>,
+        nodes: &NodeManager,
+    ) -> Result<(JoinHandle<Result<()>>, WeakGuard)> {
+        if let Some(server) = servers.get_mut(request.server.uuid()) {
+            if let Some(node) = nodes.get_node(&server.node) {
+                let (guard, weak_guard) = Guard::new();
+                Ok((node.stop(server, guard), weak_guard))
+            } else {
+                Err(anyhow!(
+                    "Node {} not found while trying to stop {}",
+                    server.node,
+                    request.server
+                ))
+            }
+        } else {
+            Err(anyhow!(
+                "Server {} not found while trying to stop",
+                request.server
+            ))
+        }
+    }
     pub fn free(
         request: &StopRequest,
         servers: &mut HashMap<Uuid, Server>,
@@ -144,41 +171,34 @@ impl ServerManager {
             ))
         }
     }
-    pub async fn stop(
+    pub async fn remove(
         request: &StopRequest,
         servers: &mut HashMap<Uuid, Server>,
-        nodes: &NodeManager,
         groups: &mut GroupManager,
         users: &mut UserManager,
         shared: &Arc<Shared>,
-    ) -> Result<JoinHandle<Result<()>>> {
-        if let Some(server) = servers.get_mut(request.server.uuid()) {
-            if let Some(node) = nodes.get_node(&server.node) {
-                if let Some(group) = &server.group {
-                    if let Some(group) = groups.get_group_mut(group) {
-                        group.remove_server(&server.id);
-                    } else {
-                        error!("Group {} not found while trying to stop server {}. Removing group from server", group, server.id);
-                        server.group = None;
-                    }
+    ) -> Result<()> {
+        if let Some(server) = servers.remove(request.server.uuid()) {
+            if let Some(group) = &server.group {
+                if let Some(group) = groups.get_group_mut(group) {
+                    group.remove_server(&server.id);
+                } else {
+                    error!(
+                        "Group {} not found while trying to remove server {}.",
+                        group, server.id
+                    );
                 }
-                shared.auth.unregister(&server.token).await;
-
-                users.remove_users_on_server(server.id.uuid());
-
-                Ok(node.stop(server))
-            } else {
-                Err(anyhow!(
-                    "Node {} not found while trying to stop {}",
-                    server.node,
-                    request.server
-                ))
             }
-        } else {
-            Err(anyhow!(
-                "Server {} not found while trying to stop",
-                request.server
-            ))
+            shared.auth.unregister(&server.token).await;
+
+            users.remove_users_on_server(server.id.uuid());
+
+            // Remove the screen from the shared screen manager
+            shared
+                .screens
+                .unregister_screen(request.server.uuid())
+                .await?;
         }
+        Ok(())
     }
 }

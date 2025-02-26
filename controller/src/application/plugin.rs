@@ -7,7 +7,7 @@ use url::Url;
 
 use super::{
     node::Capabilities,
-    server::{manager::StartRequest, screen::BoxedScreen, Server},
+    server::{guard::Guard, manager::StartRequest, screen::BoxedScreen, Server},
 };
 
 pub mod manager;
@@ -48,7 +48,7 @@ pub trait GenericNode {
     /* Servers */
     fn start(&self, server: &Server) -> JoinHandle<Result<BoxedScreen>>;
     fn restart(&self, server: &Server) -> JoinHandle<Result<()>>;
-    fn stop(&self, server: &Server) -> JoinHandle<Result<()>>;
+    fn stop(&self, server: &Server, guard: Guard) -> JoinHandle<Result<()>>;
 
     /* Memory */
     async fn cleanup(&mut self) -> Result<()>;

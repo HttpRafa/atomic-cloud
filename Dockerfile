@@ -31,7 +31,7 @@ RUN chmod +x /app/entrypoint.sh
 COPY --from=builder /usr/src/app/target/release/controller /app/controller
 
 # Expose the port
-EXPOSE 12892
+EXPOSE 8080
 
 # Run the controller
 CMD ["./entrypoint.sh"]

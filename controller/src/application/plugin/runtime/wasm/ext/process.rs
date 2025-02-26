@@ -1,4 +1,7 @@
-use std::{collections::HashMap, os::unix::process::ExitStatusExt, process::Stdio};
+use std::{
+    collections::HashMap,
+    process::{self, Stdio},
+};
 
 use anyhow::Result;
 use simplelog::debug;
@@ -19,6 +22,9 @@ use crate::application::plugin::runtime::wasm::{
     },
     PluginState,
 };
+
+#[cfg(unix)]
+use std::os::unix::process::ExitStatusExt;
 
 const STREAM_BUFFER: usize = 64;
 
@@ -179,17 +185,7 @@ impl system::process::HostProcess for PluginState {
             .get_mut(&instance)?
             .child
             .try_wait()
-            .map(|status| {
-                status.map(|status| {
-                    if let Some(code) = status.code() {
-                        ExitStatus::Code(code)
-                    } else if let Some(signal) = status.signal() {
-                        ExitStatus::Signal(signal)
-                    } else {
-                        ExitStatus::Unknown
-                    }
-                })
-            })
+            .map(|status| status.map(create_exit_status))
             .map_err(|error| format!("Failed to try waiting for process: {error}")))
     }
     async fn read_lines(&mut self, instance: Resource<Process>) -> Result<Vec<String>> {
@@ -226,5 +222,25 @@ impl system::process::HostProcess for PluginState {
         let process = self.resources.delete(instance)?;
         process.streams.abort();
         Ok(())
+    }
+}
+
+#[cfg(unix)]
+fn create_exit_status(status: process::ExitStatus) -> ExitStatus {
+    if let Some(code) = status.code() {
+        ExitStatus::Code(code)
+    } else if let Some(signal) = status.signal() {
+        ExitStatus::Signal(signal)
+    } else {
+        ExitStatus::Unknown
+    }
+}
+
+#[cfg(windows)]
+fn create_exit_status(status: process::ExitStatus) -> ExitStatus {
+    if let Some(code) = status.code() {
+        ExitStatus::Code(code)
+    } else {
+        ExitStatus::Unknown
     }
 }

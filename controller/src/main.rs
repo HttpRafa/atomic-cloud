@@ -1,4 +1,4 @@
-#![feature(binary_heap_drain_sorted)]
+#![feature(hash_extract_if, binary_heap_drain_sorted)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(clippy::ref_option)]
 

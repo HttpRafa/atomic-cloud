@@ -13,6 +13,7 @@ use crate::network::client::TransferMsg;
 
 use super::node::Allocation;
 
+pub mod guard;
 pub mod manager;
 pub mod screen;
 
@@ -45,7 +46,7 @@ pub struct Server {
     ready: bool,
 }
 
-#[derive(Clone, Getters, MutGetters)]
+#[derive(Clone, PartialEq, Eq, Hash, Getters, MutGetters)]
 pub struct NameAndUuid {
     #[getset(get = "pub", get_mut = "pub")]
     name: String,

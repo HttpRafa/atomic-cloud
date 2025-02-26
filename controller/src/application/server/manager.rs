@@ -18,7 +18,7 @@ use crate::{
     config::Config,
 };
 
-use super::{screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
+use super::{guard::WeakGuard, screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
 
 mod action;
 mod restart;
@@ -95,13 +95,21 @@ impl ServerManager {
         self.start_requests.push(request);
     }
     pub fn _schedule_restart(&mut self, request: RestartRequest) {
+        if self.restart_requests.contains(&request) {
+            return;
+        }
         self.restart_requests.push(request);
     }
     pub fn schedule_stop(&mut self, request: StopRequest) {
+        if self.stop_requests.contains(&request) {
+            return;
+        }
         self.stop_requests.push(request);
     }
     pub fn schedule_stops(&mut self, requests: Vec<StopRequest>) {
-        self.stop_requests.extend(requests);
+        for request in requests {
+            self.schedule_stop(request);
+        }
     }
 }
 
@@ -249,7 +257,7 @@ pub struct RestartRequest {
 
     /* Stage */
     #[getset(get = "pub")]
-    stage: ActionStage,
+    stage: RestartStage,
 }
 
 #[derive(Getters)]
@@ -260,18 +268,24 @@ pub struct StopRequest {
 
     /* Stage */
     #[getset(get = "pub")]
-    stage: ActionStage,
+    stage: StopStage,
 }
 
-enum ActionStage {
+enum RestartStage {
+    Queued,
+    Running(JoinHandle<Result<()>>),
+}
+
+enum StopStage {
     Queued,
     Freeing(JoinHandle<Result<()>>),
-    Running(JoinHandle<Result<()>>),
+    Running(JoinHandle<Result<()>>, WeakGuard),
+    Stopping(WeakGuard),
 }
 
 enum StartStage {
     Queued,
-    Allocating((usize, JoinHandle<Result<Vec<HostAndPort>>>)),
+    Allocating(usize, JoinHandle<Result<Vec<HostAndPort>>>),
     Creating(JoinHandle<Result<BoxedScreen>>),
 }
 
@@ -303,7 +317,7 @@ impl RestartRequest {
         Self {
             when,
             server,
-            stage: ActionStage::Queued,
+            stage: RestartStage::Queued,
         }
     }
 }
@@ -313,8 +327,20 @@ impl StopRequest {
         Self {
             when,
             server,
-            stage: ActionStage::Queued,
+            stage: StopStage::Queued,
         }
+    }
+}
+
+impl PartialEq for StopRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.server.uuid == other.server.uuid
+    }
+}
+
+impl PartialEq for RestartRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.server.uuid == other.server.uuid
     }
 }
 

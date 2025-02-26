@@ -1,5 +1,4 @@
 #![no_main]
-#![feature(extract_if)]
 
 use generated::{
     export,
@@ -27,12 +26,12 @@ pub mod generated {
 struct Export;
 
 impl bridge::Guest for Export {
-    type GenericPlugin = Local;
-    type GenericNode = Node;
+    type Plugin = Local;
+    type Node = Node;
 }
 
 impl screen::Guest for Export {
-    type GenericScreen = Screen;
+    type Screen = Screen;
 }
 
 export!(Export with_types_in generated);

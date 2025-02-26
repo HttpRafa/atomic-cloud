@@ -5,7 +5,7 @@ use server::manager::ServerManager;
 
 use crate::{
     generated::exports::plugin::system::bridge::{
-        Address, Capabilities, ErrorMessage, GuestGenericNode, ScopedErrors, ScreenType, Server,
+        Address, Capabilities, ErrorMessage, Guard, GuestNode, ScopedErrors, ScreenType, Server,
         ServerProposal,
     },
     plugin::config::Config,
@@ -54,7 +54,7 @@ impl Node {
     }
 }
 
-impl GuestGenericNode for Node {
+impl GuestNode for Node {
     fn tick(&self) -> Result<(), ScopedErrors> {
         self.0.servers.borrow_mut().tick(&self.0.config.borrow())?;
 
@@ -95,7 +95,7 @@ impl GuestGenericNode for Node {
         self.0.servers.borrow_mut().restart(&self.0, server)
     }
 
-    fn stop(&self, server: Server) {
-        self.0.servers.borrow_mut().stop(&self.0, server)
+    fn stop(&self, server: Server, guard: Guard) {
+        self.0.servers.borrow_mut().stop(&self.0, server, guard)
     }
 }

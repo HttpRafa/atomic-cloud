@@ -32,6 +32,7 @@ pub mod generated {
         async: true,
         trappable_imports: true,
         with: {
+            "plugin:system/guard/guard": crate::application::server::guard::Guard,
             "plugin:system/process/process-builder": super::ext::process::ProcessBuilder,
             "plugin:system/process/process": super::ext::process::Process,
         }
@@ -65,7 +66,7 @@ impl GenericPlugin for Plugin {
         let mut store = store.lock().await;
         match bindings
             .plugin_system_bridge()
-            .generic_plugin()
+            .plugin()
             .call_init(store.as_context_mut(), instance)
             .await
         {
@@ -83,7 +84,7 @@ impl GenericPlugin for Plugin {
         let (bindings, store, instance) = self.get();
         match bindings
             .plugin_system_bridge()
-            .generic_plugin()
+            .plugin()
             .call_init_node(
                 store.clone().lock().await.as_context_mut(),
                 instance,
@@ -103,7 +104,7 @@ impl GenericPlugin for Plugin {
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
-                .generic_plugin()
+                .plugin()
                 .call_shutdown(store.lock().await.as_context_mut(), instance)
                 .await
             {
@@ -124,7 +125,7 @@ impl GenericPlugin for Plugin {
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
-                .generic_plugin()
+                .plugin()
                 .call_tick(store.lock().await.as_context_mut(), instance)
                 .await
             {

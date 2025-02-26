@@ -71,7 +71,7 @@ impl GenericScreen for PluginScreen {
         spawn(async move {
             match bindings
                 .plugin_system_screen()
-                .generic_screen()
+                .screen()
                 .call_pull(store.lock().await.as_context_mut(), instance)
                 .await
                 .map_err(ScreenError::Error)?
@@ -91,7 +91,7 @@ impl GenericScreen for PluginScreen {
         spawn(async move {
             match bindings
                 .plugin_system_screen()
-                .generic_screen()
+                .screen()
                 .call_write(store.lock().await.as_context_mut(), instance, &data)
                 .await
                 .map_err(ScreenError::Error)?

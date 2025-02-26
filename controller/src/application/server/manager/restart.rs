@@ -6,11 +6,14 @@ use tokio::time::Instant;
 use uuid::Uuid;
 
 use crate::{
-    application::{node::manager::NodeManager, server::Server},
+    application::{
+        node::manager::NodeManager,
+        server::{manager::RestartStage, Server},
+    },
     config::Config,
 };
 
-use super::{ActionStage, RestartRequest, ServerManager};
+use super::{RestartRequest, ServerManager};
 
 impl ServerManager {
     // Return true if the request should be ticked again.
@@ -27,29 +30,25 @@ impl ServerManager {
         }
 
         // Cache old stage to compute the new stage based on the old stage
-        let stage = replace(&mut request.stage, ActionStage::Queued);
+        let stage = replace(&mut request.stage, RestartStage::Queued);
         request.stage = match stage {
-            ActionStage::Queued => {
+            RestartStage::Queued => {
                 debug!("Restarting server {}", request.server);
                 match Self::restart(request, servers, config, nodes) {
-                    Ok(handle) => ActionStage::Running(handle),
+                    Ok(handle) => RestartStage::Running(handle),
                     Err(error) => {
                         warn!("Failed to restart server {}: {}", request.server, error);
                         return Ok(false);
                     }
                 }
             }
-            ActionStage::Running(handle) => {
+            RestartStage::Running(handle) => {
                 if handle.is_finished() {
                     handle.await??;
                     debug!("Server {} has been restarted", request.server);
                     return Ok(false);
                 }
-                ActionStage::Running(handle)
-            }
-            ActionStage::Freeing(_) => {
-                warn!("Server {} is in an invalid state", request.server);
-                return Ok(false);
+                RestartStage::Running(handle)
             }
         };
         Ok(true)

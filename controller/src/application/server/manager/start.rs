@@ -41,7 +41,7 @@ impl ServerManager {
             StartStage::Queued => {
                 debug!("Allocating resources for server {}", request.id);
                 match Self::allocate(0, request, nodes) {
-                    Ok(handle) => StartStage::Allocating((0, handle)),
+                    Ok(handle) => StartStage::Allocating(0, handle),
                     Err(error) => {
                         warn!(
                             "Failed to allocate resources for server {}: {}",
@@ -51,7 +51,7 @@ impl ServerManager {
                     }
                 }
             }
-            StartStage::Allocating((index, handle)) => {
+            StartStage::Allocating(index, handle) => {
                 if handle.is_finished() {
                     let ports = handle.await?;
                     if let Ok(ports) = ports {
@@ -82,7 +82,7 @@ impl ServerManager {
                             return Ok(false);
                         }
                         match Self::allocate(index + 1, request, nodes) {
-                            Ok(handle) => StartStage::Allocating((index + 1, handle)),
+                            Ok(handle) => StartStage::Allocating(index + 1, handle),
                             Err(error) => {
                                 warn!(
                                     "Failed to allocate resources for server {}: {}",
@@ -93,7 +93,7 @@ impl ServerManager {
                         }
                     }
                 } else {
-                    StartStage::Allocating((index, handle))
+                    StartStage::Allocating(index, handle)
                 }
             }
             StartStage::Creating(handle) => {

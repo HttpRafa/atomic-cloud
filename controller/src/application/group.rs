@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use common::allocator::NumberAllocator;
 use getset::Getters;
@@ -5,7 +7,6 @@ use manager::stored::StoredGroup;
 use serde::{Deserialize, Serialize};
 use simplelog::{debug, info};
 use tokio::fs;
-use uuid::Uuid;
 
 use crate::{
     application::server::manager::StopRequest,
@@ -48,7 +49,7 @@ pub struct Group {
 
     /* What do i need to know? */
     id_allocator: NumberAllocator<usize>,
-    servers: Vec<AssociatedServer>,
+    servers: HashMap<NameAndUuid, GroupServer>,
 }
 
 impl Group {
@@ -67,54 +68,48 @@ impl Group {
 
         // Apply scaling policy
         if self.scaling.enabled {
-            self.servers.retain(|server| match server {
-                AssociatedServer::Active(server) => {
-                    servers.get_server(server.uuid()).is_some_and(|server| {
-                        if *server.connected_users() as f32 / *self.spec.max_players() as f32
-                            >= self.scaling.start_threshold
-                        {
-                            target_count += 1;
-                        }
-                        true
-                    })
-                }
-                AssociatedServer::Queueing(_) => true,
+            self.servers.retain(|id, server| match &server.1 {
+                Stage::Active => servers.get_server(id.uuid()).is_some_and(|server| {
+                    if *server.connected_users() as f32 / *self.spec.max_players() as f32
+                        >= self.scaling.start_threshold
+                    {
+                        target_count += 1;
+                    }
+                    true
+                }),
+                Stage::Queueing => true,
             });
 
             if self.scaling.stop_empty_servers && self.servers.len() as u32 > target_count {
                 let mut to_stop = self.servers.len() as u32 - target_count;
                 let mut requests = vec![];
-                self.servers.retain(|server| match server {
-                    AssociatedServer::Active(server) => {
-                        servers.get_server_mut(server.uuid()).is_some_and(|server| {
-                            if server.connected_users() == &0 {
-                                if server.flags().should_stop() && to_stop > 0 {
-                                    debug!(
+                self.servers.retain(|id, server| match &server.1 {
+                    Stage::Active => servers.get_server_mut(id.uuid()).is_some_and(|server| {
+                        if server.connected_users() == &0 {
+                            if server.flags().should_stop() && to_stop > 0 {
+                                debug!(
                                     "Server {} is empty and reached the timeout, stopping it...",
                                     server.id()
                                 );
-                                    requests.push(StopRequest::new(None, server.id().clone()));
-                                    to_stop -= 1;
-                                } else {
-                                    debug!(
-                                        "Server {} is empty, starting stop timer...",
-                                        server.id()
-                                    );
-                                    server
-                                        .flags_mut()
-                                        .replace_stop(*config.empty_server_timeout());
-                                }
-                            } else if server.flags().is_stop_set() {
-                                debug!(
-                                    "Server {} is no longer empty, clearing stop timer...",
-                                    server.id()
-                                );
+                                requests.push(StopRequest::new(None, server.id().clone()));
+                                to_stop -= 1;
                                 server.flags_mut().clear_stop();
+                            } else if !server.flags().is_stop_set() {
+                                debug!("Server {} is empty, starting stop timer...", server.id());
+                                server
+                                    .flags_mut()
+                                    .replace_stop(*config.empty_server_timeout());
                             }
-                            true
-                        })
-                    }
-                    AssociatedServer::Queueing(_) => true,
+                        } else if server.flags().is_stop_set() {
+                            debug!(
+                                "Server {} is no longer empty, clearing stop timer...",
+                                server.id()
+                            );
+                            server.flags_mut().clear_stop();
+                        }
+                        true
+                    }),
+                    Stage::Queueing => true,
                 });
                 servers.schedule_stops(requests);
             }
@@ -138,7 +133,7 @@ impl Group {
                 &self.spec,
             );
             self.servers
-                .push(AssociatedServer::Queueing(request.id().clone()));
+                .insert(request.id().clone(), GroupServer::new(id));
             debug!(
                 "Scheduled server({}) start for group {}",
                 request.id(),
@@ -177,13 +172,13 @@ impl Group {
         } else if !active && self.status == LifecycleStatus::Active {
             // Retire group
             // Stop all servers and cancel all starts
-            self.servers.retain(|server| match server {
-                AssociatedServer::Active(server) => {
-                    servers.schedule_stop(StopRequest::new(None, server.clone()));
+            self.servers.retain(|id, server| match &server.1 {
+                Stage::Active => {
+                    servers.schedule_stop(StopRequest::new(None, id.clone()));
                     true
                 }
-                AssociatedServer::Queueing(server) => {
-                    servers.cancel_start(server.uuid());
+                Stage::Queueing => {
+                    servers.cancel_start(id.uuid());
                     false
                 }
             });
@@ -197,33 +192,24 @@ impl Group {
     }
 
     pub fn find_free_server<'a>(&self, servers: &'a ServerManager) -> Option<&'a Server> {
-        self.servers.iter().find_map(|server| match server {
-            AssociatedServer::Active(server) => servers.get_server(server.uuid()),
-            AssociatedServer::Queueing(_) => None,
-        })
+        self.servers
+            .iter()
+            .find_map(|(id, server)| match &server.1 {
+                Stage::Active => servers.get_server(id.uuid()),
+                Stage::Queueing => None,
+            })
     }
 
     pub fn set_server_active(&mut self, id: &NameAndUuid) {
-        self.servers.retain(|server| {
-            if let AssociatedServer::Queueing(server) = server {
-                if server.uuid() == id.uuid() {
-                    return false;
-                }
-            }
-            true
+        self.servers.entry(id.clone()).and_modify(|server| {
+            server.1 = Stage::Active;
         });
-        self.servers.push(AssociatedServer::Active(id.clone()));
     }
 
-    pub fn remove_server(&mut self, uuid: &Uuid) {
-        self.servers.retain(|server| {
-            if let AssociatedServer::Active(server) = server {
-                if server.uuid() == uuid {
-                    return false;
-                }
-            }
-            true
-        });
+    pub fn remove_server(&mut self, id: &NameAndUuid) {
+        if let Some(server) = self.servers.remove(id) {
+            self.id_allocator.release(server.0);
+        }
     }
 
     pub async fn save(&self) -> Result<()> {
@@ -253,9 +239,17 @@ pub struct ScalingPolicy {
     stop_empty_servers: bool,
 }
 
-pub enum AssociatedServer {
-    Queueing(NameAndUuid),
-    Active(NameAndUuid),
+struct GroupServer(usize, Stage);
+
+enum Stage {
+    Queueing,
+    Active,
+}
+
+impl GroupServer {
+    pub fn new(id: usize) -> Self {
+        Self(id, Stage::Queueing)
+    }
 }
 
 impl StartConstraints {

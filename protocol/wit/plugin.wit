@@ -73,10 +73,10 @@ interface screen {
 
     variant screen-type {
         unsupported,
-        supported(generic-screen),
+        supported(screen),
     }
 
-    resource generic-screen {
+    resource screen {
         pull: func() -> result<list<string>, error-message>;
         write: func(data: list<u8>) -> result<_, error-message>;
     }
@@ -110,9 +110,14 @@ interface process {
     }
 }
 
+interface guard {
+    resource guard {}
+}
+
 interface bridge {
     use types.{error-message, scoped-errors};
     use screen.{screen-type};
+    use guard.{guard};
 
     type uuid = string;
 
@@ -185,19 +190,19 @@ interface bridge {
         token: string,
     }
 
-    resource generic-node {
+    resource node {
         tick: func() -> result<_, scoped-errors>;
         allocate: func(server: server-proposal) -> result<list<address>, error-message>;
         free: func(addresses: list<address>);
         start: func(server: server) -> screen-type;
         restart: func(server: server);
-        stop: func(server: server);
+        stop: func(server: server, guard: guard);
     }
 
-    resource generic-plugin {
+    resource plugin {
         constructor(cloud-identifier: string);
         init: func() -> information;
-        init-node: func(name: string, capabilities: capabilities, controller: string) -> result<generic-node, error-message>;
+        init-node: func(name: string, capabilities: capabilities, controller: string) -> result<node, error-message>;
         tick: func() -> result<_, scoped-errors>;
         shutdown: func() -> result<_, scoped-errors>;
     }
@@ -206,6 +211,7 @@ interface bridge {
 world plugin {
     export bridge;
     export screen;
+    import guard;
     import log;
     import platform;
     import file;

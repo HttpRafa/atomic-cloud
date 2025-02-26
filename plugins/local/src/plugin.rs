@@ -8,7 +8,7 @@ use crate::{
     error,
     generated::{
         exports::plugin::system::bridge::{
-            Capabilities, ErrorMessage, Features, GenericNode, GuestGenericPlugin, Information,
+            Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
             ScopedErrors,
         },
         plugin::system::file::remove_dir_all,
@@ -38,7 +38,7 @@ pub struct Local {
     templates: Rc<RefCell<TemplateManager>>,
 }
 
-impl GuestGenericPlugin for Local {
+impl GuestPlugin for Local {
     fn new(_: String) -> Self {
         Self {
             nodes: RefCell::new(vec![]),

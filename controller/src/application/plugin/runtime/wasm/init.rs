@@ -213,7 +213,7 @@ impl Plugin {
             generated::Plugin::instantiate_async(&mut store, &component, &linker).await?;
         let instance = bindings
             .plugin_system_bridge()
-            .generic_plugin()
+            .plugin()
             .call_constructor(&mut store, global_config.identifier())
             .await?;
 

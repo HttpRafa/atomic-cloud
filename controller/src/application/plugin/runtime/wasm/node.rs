@@ -10,7 +10,7 @@ use wasmtime::{component::ResourceAny, AsContextMut, Store};
 use crate::application::{
     node::Allocation,
     plugin::{BoxedScreen, GenericNode},
-    server::{manager::StartRequest, DiskRetention, Resources, Server, Spec},
+    server::{guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Spec},
 };
 
 use super::{
@@ -59,7 +59,7 @@ impl GenericNode for PluginNode {
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
-                .generic_node()
+                .node()
                 .call_tick(store.lock().await.as_context_mut(), instance)
                 .await
             {
@@ -82,7 +82,7 @@ impl GenericNode for PluginNode {
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
-                .generic_node()
+                .node()
                 .call_allocate(store.lock().await.as_context_mut(), instance, &proposal)
                 .await
             {
@@ -107,15 +107,11 @@ impl GenericNode for PluginNode {
 
         let (bindings, store, instance) = self.get();
         spawn(async move {
-            match bindings
+            bindings
                 .plugin_system_bridge()
-                .generic_node()
+                .node()
                 .call_free(store.lock().await.as_context_mut(), instance, &ports)
                 .await
-            {
-                Ok(()) => Ok(()),
-                Err(error) => Err(error),
-            }
         })
     }
 
@@ -126,7 +122,7 @@ impl GenericNode for PluginNode {
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
-                .generic_node()
+                .node()
                 .call_start(store.lock().await.as_context_mut(), instance, &server)
                 .await
             {
@@ -145,32 +141,27 @@ impl GenericNode for PluginNode {
 
         let (bindings, store, instance) = self.get();
         spawn(async move {
-            match bindings
+            bindings
                 .plugin_system_bridge()
-                .generic_node()
+                .node()
                 .call_restart(store.lock().await.as_context_mut(), instance, &server)
                 .await
-            {
-                Ok(()) => Ok(()),
-                Err(error) => Err(error),
-            }
         })
     }
 
-    fn stop(&self, server: &Server) -> JoinHandle<Result<()>> {
+    fn stop(&self, server: &Server, guard: Guard) -> JoinHandle<Result<()>> {
         let server = server.into();
 
         let (bindings, store, instance) = self.get();
         spawn(async move {
-            match bindings
+            let mut store = store.lock().await;
+            let guard = store.data_mut().new_guard(guard)?;
+
+            bindings
                 .plugin_system_bridge()
-                .generic_node()
-                .call_stop(store.lock().await.as_context_mut(), instance, &server)
+                .node()
+                .call_stop(store.as_context_mut(), instance, &server, guard)
                 .await
-            {
-                Ok(()) => Ok(()),
-                Err(error) => Err(error),
-            }
         })
     }
 

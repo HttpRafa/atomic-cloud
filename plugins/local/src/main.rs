@@ -1,5 +1,4 @@
 #![no_main]
-#![feature(extract_if)]
 
 use generated::{
     export,

@@ -62,14 +62,30 @@ impl GuestNode for Node {
     }
 
     fn allocate(&self, server: ServerProposal) -> Result<Vec<Address>, ErrorMessage> {
-        let mut ports = Vec::with_capacity(server.resources.ports as usize);
-        let mut allocator = self.0.allocator.borrow_mut();
+        let required = server.resources.ports as usize;
+        let config = self.0.config.borrow();
+        let host = config.host();
+        let mappings = config.mappings();
 
-        let host = self.0.config.borrow().host().to_string();
-        for _ in 0..server.resources.ports {
+        let mut ports: Vec<Address> = mappings
+            .get(&server.name)
+            .map(|ports| {
+                ports
+                    .iter()
+                    .take(required)
+                    .map(|port| Address {
+                        host: host.to_owned(),
+                        port: *port,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let mut allocator = self.0.allocator.borrow_mut();
+        for _ in ports.len()..required {
             if let Some(port) = allocator.allocate() {
                 ports.push(Address {
-                    host: host.clone(),
+                    host: host.to_owned(),
                     port,
                 });
             } else {

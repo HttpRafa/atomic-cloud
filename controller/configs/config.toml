@@ -6,6 +6,12 @@ identifier = "%RANDOM%"
 # The controller will listen on this address.
 bind = "0.0.0.0:8080"
 
+[network.tls]
+# Enable or disable TLS. If enabled and not cert and key are provided, the controller will generate a self-signed certificate.
+enabled = true
+# What alternative names should be used for the self signed TLS certificate.
+alt_names = ["localhost"]
+
 # The maximum time the controller will wait for the instance to start up.
 # If this timeout is reached, the startup will be considered as failed.
 [timeouts.startup]

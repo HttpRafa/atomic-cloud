@@ -12,6 +12,7 @@ use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::application::{
+    global::GlobalData,
     node::Capabilities,
     plugin::{BoxedNode, Features, GenericPlugin, Information},
 };
@@ -40,6 +41,9 @@ pub mod generated {
 }
 
 pub(crate) struct PluginState {
+    /* Global */
+    global: Arc<GlobalData>,
+
     /* Plugin */
     name: String,
 

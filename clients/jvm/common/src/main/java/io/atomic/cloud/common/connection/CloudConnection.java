@@ -10,14 +10,17 @@ import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.common.cache.CachedObject;
 import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.grpc.client.*;
-import io.grpc.CallCredentials;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Metadata;
+import io.atomic.cloud.grpc.client.Channel;
+import io.atomic.cloud.grpc.client.Server;
+import io.grpc.*;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -34,6 +37,7 @@ public class CloudConnection {
 
     private final URL address;
     private final String token;
+    private final String certificate;
 
     private ClientServiceGrpc.ClientServiceStub client;
     private ClientServiceGrpc.ClientServiceFutureStub futureClient;
@@ -44,14 +48,20 @@ public class CloudConnection {
     private final CachedObject<Server.List> serversInfo = new CachedObject<>();
     private final CachedObject<Group.List> groupsInfo = new CachedObject<>();
 
-    public void connect() {
-        var channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
-        if (this.address.getProtocol().equals("https")) {
-            channel.useTransportSecurity();
+    public void connect() throws IOException {
+        ManagedChannelBuilder<?> channel;
+        if (this.certificate != null) {
+            channel = Grpc.newChannelBuilderForAddress(
+                    this.address.getHost(),
+                    this.address.getPort(),
+                    TlsChannelCredentials.newBuilder()
+                            .trustManager(new ByteArrayInputStream(this.certificate.getBytes(StandardCharsets.UTF_8)))
+                            .build());
         } else {
+            channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
             channel.usePlaintext();
         }
-        var credentials = new CallCredentials() {
+        var callCredentials = new CallCredentials() {
             @Override
             public void applyRequestMetadata(
                     RequestInfo requestInfo, Executor executor, @NotNull MetadataApplier applier) {
@@ -62,8 +72,8 @@ public class CloudConnection {
         };
 
         var managedChannel = channel.build();
-        this.client = ClientServiceGrpc.newStub(managedChannel).withCallCredentials(credentials);
-        this.futureClient = ClientServiceGrpc.newFutureStub(managedChannel).withCallCredentials(credentials);
+        this.client = ClientServiceGrpc.newStub(managedChannel).withCallCredentials(callCredentials);
+        this.futureClient = ClientServiceGrpc.newFutureStub(managedChannel).withCallCredentials(callCredentials);
     }
 
     public CompletableFuture<Empty> beat() {
@@ -181,13 +191,15 @@ public class CloudConnection {
             throw new IllegalStateException("SERVER_TOKEN not set");
         }
 
+        var certificate = System.getenv("CONTROLLER_CERTIFICATE");
+
         URL url;
         try {
             url = new URI(address).toURL();
         } catch (MalformedURLException | URISyntaxException exception) {
             throw new IllegalStateException("Failed to parse CONTROLLER_ADDRESS variable", exception);
         }
-        return new CloudConnection(url, token);
+        return new CloudConnection(url, token, certificate);
     }
 
     private <T> @NotNull CompletableFuture<T> wrapInFuture(@NotNull ListenableFuture<T> future) {

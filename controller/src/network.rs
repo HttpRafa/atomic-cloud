@@ -15,10 +15,10 @@ use tokio::{
     sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
 };
-use tonic::transport::Server;
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::{
-    application::{Shared, TaskSender},
+    application::{global::GlobalData, Shared, TaskSender},
     config::Config,
 };
 
@@ -26,6 +26,7 @@ mod auth;
 pub mod client;
 pub mod manage;
 mod proto;
+pub mod tls;
 
 pub struct NetworkStack {
     shutdown: Sender<bool>,
@@ -33,17 +34,29 @@ pub struct NetworkStack {
 }
 
 impl NetworkStack {
-    pub fn start(config: &Config, shared: &Arc<Shared>, queue: &TaskSender) -> Self {
+    pub fn start(
+        config: &Config,
+        shared: &Arc<Shared>,
+        global: &Arc<GlobalData>,
+        queue: &TaskSender,
+    ) -> Self {
         async fn run(
             bind: SocketAddr,
+            identity: Option<Identity>,
             shared: Arc<Shared>,
             queue: TaskSender,
             mut shutdown: Receiver<bool>,
         ) -> Result<()> {
+            let mut builder = Server::builder();
+
+            if let Some(identity) = identity {
+                builder = builder.tls_config(ServerTlsConfig::new().identity(identity))?;
+            }
+
             let auth_interceptor = AuthInterceptor(shared.clone());
             info!("Controller listening on {}", bind);
 
-            Server::builder()
+            builder
                 .add_service(ManageServiceServer::with_interceptor(
                     ManageServiceImpl(queue.clone(), shared.clone()),
                     auth_interceptor.clone(),
@@ -64,11 +77,12 @@ impl NetworkStack {
 
         let (sender, receiver) = channel(false);
         let bind = *config.network_bind();
+        let identity = global.tls.as_ref().map(|(_, identity)| identity.clone());
         let shared = shared.clone();
         let queue = queue.clone();
 
         let task = spawn(async move {
-            if let Err(error) = run(bind, shared, queue, receiver).await {
+            if let Err(error) = run(bind, identity, shared, queue, receiver).await {
                 FancyError::print_fancy(&error, false);
             }
         });

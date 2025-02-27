@@ -17,10 +17,10 @@ anyhow = "1.0.96"
 ctrlc = "3.4.5"
 
 # User system
-uuid = { version = "1.14.0", features = ["v4"] }
+uuid = { version = "1.15.1", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.30", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 
 # Regex parsing
 regex = "1.11.1"

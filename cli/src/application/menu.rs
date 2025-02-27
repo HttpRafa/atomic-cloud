@@ -2,7 +2,8 @@ use std::{fmt::Display, str::FromStr};
 
 use anyhow::{Error, Result};
 use inquire::{
-    validator::ValueRequiredValidator, Confirm, CustomType, InquireError, MultiSelect, Select, Text,
+    validator::ValueRequiredValidator, Confirm, CustomType, Editor, InquireError, MultiSelect,
+    Select, Text,
 };
 
 mod connection;
@@ -28,6 +29,10 @@ impl MenuUtils {
             }
             _ => MenuResult::Failed(error.into()),
         }
+    }
+
+    pub fn editor(message: &str, help: &str) -> Result<String, InquireError> {
+        Editor::new(message).with_help_message(help).prompt()
     }
 
     pub fn text(message: &str, help: &str) -> Result<String, InquireError> {

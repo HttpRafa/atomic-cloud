@@ -12,7 +12,7 @@ colored = "3.0.0"
 anyhow = "1.0.96"
 
 # Command line arguments
-clap = { version = "4.5.30", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 
 # Configuration
 serde = { version = "1.0.218", features = ["derive"] }

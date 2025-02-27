@@ -9,7 +9,10 @@ use crate::{
             bridge::{self, DiskRetention, Guard},
             screen::{Screen as GenericScreen, ScreenType},
         },
-        plugin::system::process::{ExitStatus, Process, ProcessBuilder},
+        plugin::system::{
+            process::{ExitStatus, Process, ProcessBuilder},
+            tls::get_certificate,
+        },
     },
     info,
     plugin::config::Config,
@@ -24,6 +27,7 @@ pub mod manager;
 
 /* Variables */
 const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
+const CONTROLLER_CERTIFICATE: &str = "CONTROLLER_CERTIFICATE";
 const SERVER_TOKEN: &str = "SERVER_TOKEN";
 const SERVER_PORT: &str = "SERVER_PORT";
 
@@ -63,7 +67,7 @@ impl Server {
 
         // Prepare the environment
         let mut environment = request.allocation.spec.environment.clone();
-        environment.reserve(3);
+        environment.reserve(4);
         environment.push((CONTROLLER_ADDRESS.to_string(), node.controller.clone()));
         environment.push((SERVER_TOKEN.to_string(), request.token.clone()));
         environment.push((
@@ -76,6 +80,11 @@ impl Server {
                 .port
                 .to_string(),
         ));
+
+        // If we use a certificate, add it to the environment
+        if let Some(certificate) = get_certificate() {
+            environment.push((CONTROLLER_CERTIFICATE.to_string(), certificate));
+        }
 
         // Spawn the server
         let (process, builder) = template.spawn(

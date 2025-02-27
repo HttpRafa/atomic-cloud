@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use futures::future::join_all;
 use simplelog::info;
 use tick::Ticker;
 
-use crate::config::Config;
+use crate::{application::global::GlobalData, config::Config};
 
 use super::BoxedPlugin;
 
@@ -21,13 +21,13 @@ pub struct PluginManager {
 }
 
 impl PluginManager {
-    pub async fn init(config: &Config) -> Result<Self> {
+    pub async fn init(config: &Config, global: &Arc<GlobalData>) -> Result<Self> {
         info!("Loading plugins...");
 
         let mut plugins = HashMap::new();
 
         #[cfg(feature = "wasm-plugins")]
-        init_wasm_plugins(config, &mut plugins).await?;
+        init_wasm_plugins(config, global, &mut plugins).await?;
 
         info!("Loaded {} plugin(s)", plugins.len());
         Ok(Self {

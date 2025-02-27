@@ -29,4 +29,5 @@ public interface Transfers {
      * @return The number of users successfully transferred.
      */
     CompletableFuture<Integer> transferUsersToFallback(UUID... userUUID);
+
 }

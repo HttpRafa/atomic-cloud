@@ -1,6 +1,6 @@
-package io.atomic.cloud.common.objects;
+package io.atomic.cloud.common.resource.object;
 
-import io.atomic.cloud.api.objects.LocalCloudServer;
+import io.atomic.cloud.api.resource.object.LocalCloudServer;
 import io.atomic.cloud.common.connection.CloudConnection;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;

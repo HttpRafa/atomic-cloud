@@ -1,4 +1,4 @@
-package io.atomic.cloud.api.objects;
+package io.atomic.cloud.api.resource.object;
 
 public interface CloudGroup {
 

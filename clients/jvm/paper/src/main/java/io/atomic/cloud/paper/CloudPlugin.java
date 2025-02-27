@@ -4,7 +4,8 @@ import io.atomic.cloud.api.Cloud;
 import io.atomic.cloud.common.channel.ChannelManager;
 import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.common.health.Heart;
-import io.atomic.cloud.common.objects.SimpleLocalCloudServer;
+import io.atomic.cloud.common.resource.ResourceManager;
+import io.atomic.cloud.common.resource.object.SimpleLocalCloudServer;
 import io.atomic.cloud.common.transfer.TransferManager;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
@@ -29,6 +30,7 @@ public class CloudPlugin extends JavaPlugin {
     private final Settings settings = new Settings();
     private ChannelManager channels;
     private TransferManager transfers;
+    private ResourceManager resources;
     private Heart heart;
     private CloudConnection connection;
     private SimpleLocalCloudServer self;
@@ -44,6 +46,7 @@ public class CloudPlugin extends JavaPlugin {
         this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
         this.channels = new ChannelManager(this.connection);
         this.transfers = new TransferManager(this.connection);
+        this.resources = new ResourceManager(this.connection);
         this.transferHandler = new TransferHandler(this.connection);
 
         LOGGER.info("Connecting to controller...");
@@ -69,10 +72,14 @@ public class CloudPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         // Cleanup
-        this.channels.cleanup();
+        this.transferHandler.cleanup();
 
         try {
-            this.self.shutdown().thenRun(heart::stop).join();
+            if (this.settings.suicideOnDisable()) {
+                this.self.shutdown().thenRun(heart::stop).join();
+            } else {
+                this.heart.stop();
+            }
         } catch (Throwable throwable) {
             LOGGER.error("Error while shutting down", throwable);
         }
@@ -88,5 +95,6 @@ public class CloudPlugin extends JavaPlugin {
     public static class Settings {
 
         public boolean autoReady = true;
+        public boolean suicideOnDisable = true;
     }
 }

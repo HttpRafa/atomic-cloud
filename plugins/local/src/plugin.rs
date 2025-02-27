@@ -61,7 +61,7 @@ impl GuestPlugin for Local {
             {
                 let config = Config::parse()?;
                 own.allocator
-                    .replace(NumberAllocator::new(config.ports().clone()));
+                    .replace(NumberAllocator::new(config.range().clone()));
                 own.config.replace(config);
             }
 

@@ -30,7 +30,7 @@ use std::{
 /// ```
 pub struct NumberAllocator<T> {
     next: T,
-    max: T,
+    range: Range<T>,
     available: BTreeSet<T>,
     active: HashSet<T>,
 }
@@ -45,10 +45,34 @@ where
     pub fn new(range: Range<T>) -> Self {
         Self {
             next: range.start,
-            max: range.end,
+            range,
             available: BTreeSet::new(),
             active: HashSet::new(),
         }
+    }
+
+    /// Claims a specific number, marking it as active.
+    ///
+    /// This method allows manually marking a number as active without allocating it.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number to claim.
+    pub fn claim(&mut self, number: T) {
+        self.active.insert(number);
+    }
+
+    /// Checks if a specific number is currently claimed.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number to check.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the number is claimed, `false` otherwise.
+    pub fn is_claimed(&self, number: T) -> bool {
+        self.active.contains(&number)
     }
 
     /// Allocates and returns a number.
@@ -57,12 +81,16 @@ where
     /// Otherwise, the next sequential number is allocated.
     ///
     /// Returns `None` if no numbers are available (i.e. all numbers in the range are allocated).
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the allocated number, or `None` if no numbers are available.
     pub fn allocate(&mut self) -> Option<T> {
         if let Some(&number) = self.available.iter().next() {
             self.available.remove(&number);
             self.active.insert(number);
             Some(number)
-        } else if self.next < self.max {
+        } else if self.next < self.range.end {
             let number = self.next;
             self.next += T::from(1);
             self.active.insert(number);
@@ -76,8 +104,12 @@ where
     ///
     /// If the number was active, it is removed from the active set and added to the available pool.
     /// Released numbers are reused before new sequential numbers are allocated.
+    ///
+    /// # Arguments
+    ///
+    /// * `number` - The number to release.
     pub fn release(&mut self, number: T) {
-        if self.active.remove(&number) {
+        if self.active.remove(&number) && self.range.contains(&number) {
             self.available.insert(number);
         }
     }

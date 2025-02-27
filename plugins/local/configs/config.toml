@@ -4,8 +4,13 @@ host = "127.0.0.1"
 
 # The range of ports that this plugin will use to start servers
 [network.ports]
-start = 27000
-end = 27100
+range = { start = 27000, end = 27100 }
+
+# The mappings of server names to ports that this plugin will use to start servers
+# This can be used to ensure that servers are always started on the same port
+# NOTE: The port dont have to be within the range specified above
+[network.ports.mappings]
+lobby-1 = [ 25565 ]
 
 # The duration the plugin will wait for a server to stop before forcefully terminating the process
 [timeouts.stop]

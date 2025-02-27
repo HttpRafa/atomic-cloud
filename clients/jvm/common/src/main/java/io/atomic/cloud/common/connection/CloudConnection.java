@@ -1,10 +1,14 @@
 package io.atomic.cloud.common.connection;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.common.cache.CachedObject;
+import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.grpc.client.*;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
@@ -17,18 +21,22 @@ import java.net.URL;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import lombok.Getter;
+import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+@SuppressWarnings("UnusedReturnValue")
 @RequiredArgsConstructor
 public class CloudConnection {
+
+    private static final Executor EXECUTOR = Executors.newCachedThreadPool();
 
     private final URL address;
     private final String token;
 
     private ClientServiceGrpc.ClientServiceStub client;
+    private ClientServiceGrpc.ClientServiceFutureStub futureClient;
 
     // Cache values
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
@@ -43,71 +51,51 @@ public class CloudConnection {
         } else {
             channel.usePlaintext();
         }
-
-        this.client = ClientServiceGrpc.newStub(channel.build()).withCallCredentials(new CallCredentials() {
+        var credentials = new CallCredentials() {
             @Override
-            public void applyRequestMetadata(RequestInfo requestInfo, Executor executor, MetadataApplier applier) {
+            public void applyRequestMetadata(
+                    RequestInfo requestInfo, Executor executor, @NotNull MetadataApplier applier) {
                 var metadata = new Metadata();
                 metadata.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), token);
                 applier.apply(metadata);
             }
-        });
+        };
+
+        var managedChannel = channel.build();
+        this.client = ClientServiceGrpc.newStub(managedChannel).withCallCredentials(credentials);
+        this.futureClient = ClientServiceGrpc.newFutureStub(managedChannel).withCallCredentials(credentials);
     }
 
     public CompletableFuture<Empty> beat() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.beat(Empty.getDefaultInstance(), observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.beat(Empty.getDefaultInstance()));
     }
 
     public CompletableFuture<Empty> setReady(boolean ready) {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.setReady(BoolValue.of(ready), observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.setReady(BoolValue.of(ready)));
     }
 
     public CompletableFuture<Empty> setRunning() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.setRunning(Empty.getDefaultInstance(), observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.setRunning(Empty.getDefaultInstance()));
     }
 
     public CompletableFuture<Empty> requestStop() {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.requestStop(Empty.getDefaultInstance(), observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.requestStop(Empty.getDefaultInstance()));
     }
 
     public CompletableFuture<Empty> userConnected(User.ConnectedReq user) {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.userConnected(user, observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.userConnected(user));
     }
 
     public CompletableFuture<Empty> userDisconnected(User.DisconnectedReq user) {
-        var observer = new StreamObserverImpl<Empty>();
-        this.client.userDisconnected(user, observer);
-        return observer.future();
-    }
-
-    public void subscribeToTransfers(StreamObserver<Transfer.TransferRes> observer) {
-        this.client.subscribeToTransfers(Empty.getDefaultInstance(), observer);
+        return this.wrapInFuture(this.futureClient.userDisconnected(user));
     }
 
     public CompletableFuture<UInt32Value> transferUsers(Transfer.TransferReq transfer) {
-        var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.transferUsers(transfer, observer);
-        return observer.future();
+        return this.wrapInFuture(this.futureClient.transferUsers(transfer));
     }
 
     public CompletableFuture<UInt32Value> publishMessage(Channel.Msg message) {
-        var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.publishMessage(message, observer);
-        return observer.future();
-    }
-
-    public void subscribeToChannel(String channel, StreamObserver<Channel.Msg> observer) {
-        this.client.subscribeToChannel(StringValue.of(channel), observer);
+        return this.wrapInFuture(this.futureClient.publishMessage(message));
     }
 
     public synchronized Optional<Server.List> getServersNow() {
@@ -119,16 +107,14 @@ public class CloudConnection {
     }
 
     public synchronized CompletableFuture<Server.List> getServers() {
-        var cached = this.serversInfo.getValue();
-        if (cached.isPresent()) {
-            return CompletableFuture.completedFuture(cached.get());
-        }
-        var observer = new StreamObserverImpl<Server.List>();
-        this.client.getServers(Empty.getDefaultInstance(), observer);
-        return observer.future().thenApply((value) -> {
-            this.serversInfo.setValue(value);
-            return value;
-        });
+        return this.serversInfo
+                .getValue()
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> this.wrapInFuture(this.futureClient.getServers(Empty.getDefaultInstance()))
+                        .thenApply((value) -> {
+                            this.serversInfo.setValue(value);
+                            return value;
+                        }));
     }
 
     public synchronized Optional<Group.List> getGroupsNow() {
@@ -140,42 +126,49 @@ public class CloudConnection {
     }
 
     public synchronized CompletableFuture<Group.List> getGroups() {
-        var cached = this.groupsInfo.getValue();
-        if (cached.isPresent()) {
-            return CompletableFuture.completedFuture(cached.get());
-        }
-        var observer = new StreamObserverImpl<Group.List>();
-        this.client.getGroups(Empty.getDefaultInstance(), observer);
-        return observer.future().thenApply((value) -> {
-            this.groupsInfo.setValue(value);
-            return value;
-        });
+        return this.groupsInfo
+                .getValue()
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> this.wrapInFuture(this.futureClient.getGroups(Empty.getDefaultInstance()))
+                        .thenApply((value) -> {
+                            this.groupsInfo.setValue(value);
+                            return value;
+                        }));
     }
 
     public synchronized CompletableFuture<UInt32Value> getProtoVer() {
-        var cached = this.protocolVersion.getValue();
-        if (cached.isPresent()) {
-            return CompletableFuture.completedFuture(cached.get());
-        }
-        var observer = new StreamObserverImpl<UInt32Value>();
-        this.client.getProtoVer(Empty.getDefaultInstance(), observer);
-        return observer.future().thenApply((value) -> {
-            this.protocolVersion.setValue(value);
-            return value;
-        });
+        return this.protocolVersion
+                .getValue()
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> this.wrapInFuture(this.futureClient.getProtoVer(Empty.getDefaultInstance()))
+                        .thenApply((value) -> {
+                            this.protocolVersion.setValue(value);
+                            return value;
+                        }));
     }
 
     public synchronized CompletableFuture<StringValue> getCtrlVer() {
-        var cached = this.controllerVersion.getValue();
-        if (cached.isPresent()) {
-            return CompletableFuture.completedFuture(cached.get());
-        }
-        var observer = new StreamObserverImpl<StringValue>();
-        this.client.getCtrlVer(Empty.getDefaultInstance(), observer);
-        return observer.future().thenApply((value) -> {
-            this.controllerVersion.setValue(value);
-            return value;
-        });
+        return this.controllerVersion
+                .getValue()
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> this.wrapInFuture(this.futureClient.getCtrlVer(Empty.getDefaultInstance()))
+                        .thenApply((value) -> {
+                            this.controllerVersion.setValue(value);
+                            return value;
+                        }));
+    }
+
+    /* Subscriptions */
+    public CallHandle<?, Transfer.TransferRes> subscribeToTransfers(StreamObserver<Transfer.TransferRes> observer) {
+        var handle = new CallHandle<>(observer);
+        this.client.subscribeToTransfers(Empty.getDefaultInstance(), handle);
+        return handle;
+    }
+
+    public CallHandle<?, Channel.Msg> subscribeToChannel(String channel, StreamObserver<Channel.Msg> observer) {
+        var handle = new CallHandle<>(observer);
+        this.client.subscribeToChannel(StringValue.of(channel), handle);
+        return handle;
     }
 
     @Contract(" -> new")
@@ -197,22 +190,22 @@ public class CloudConnection {
         return new CloudConnection(url, token);
     }
 
-    @Getter
-    public static class StreamObserverImpl<T> implements StreamObserver<T> {
+    private <T> @NotNull CompletableFuture<T> wrapInFuture(@NotNull ListenableFuture<T> future) {
+        var newFuture = new CompletableFuture<T>();
+        Futures.addCallback(
+                future,
+                new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(T result) {
+                        newFuture.complete(result);
+                    }
 
-        private final CompletableFuture<T> future = new CompletableFuture<>();
-
-        @Override
-        public void onNext(T value) {
-            future.complete(value);
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            future.completeExceptionally(t);
-        }
-
-        @Override
-        public void onCompleted() {}
+                    @Override
+                    public void onFailure(@NotNull Throwable throwable) {
+                        newFuture.completeExceptionally(throwable);
+                    }
+                },
+                EXECUTOR);
+        return newFuture;
     }
 }

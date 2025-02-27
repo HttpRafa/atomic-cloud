@@ -1,8 +1,8 @@
 package io.atomic.cloud.common.transfer;
 
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.api.objects.CloudGroup;
-import io.atomic.cloud.api.objects.CloudServer;
+import io.atomic.cloud.api.resource.object.CloudGroup;
+import io.atomic.cloud.api.resource.object.CloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
 import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.grpc.client.Transfer;

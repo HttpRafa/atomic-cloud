@@ -1,7 +1,8 @@
 package io.atomic.cloud.api;
 
 import io.atomic.cloud.api.channel.Channels;
-import io.atomic.cloud.api.objects.LocalCloudUnit;
+import io.atomic.cloud.api.resource.Resources;
+import io.atomic.cloud.api.resource.object.LocalCloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
 
 public class Cloud {
@@ -21,8 +22,16 @@ public class Cloud {
      * Get the current server instance
      * @return the current server instance
      */
-    public static LocalCloudUnit self() {
+    public static LocalCloudServer self() {
         return Cloud.INSTANCE.self();
+    }
+
+    /**
+     * The resources API
+     * @return the resources API
+     */
+    public static Resources resources() {
+        return Cloud.INSTANCE.resources();
     }
 
     /**
@@ -54,7 +63,13 @@ public class Cloud {
          * Get the current server instance
          * @return the current server instance
          */
-        LocalCloudUnit self();
+        LocalCloudServer self();
+
+        /**
+         * The resources API
+         * @return the resources API
+         */
+        Resources resources();
 
         /**
          * The channels API

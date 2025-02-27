@@ -1,7 +1,7 @@
 package io.atomic.cloud.api.transfer;
 
-import io.atomic.cloud.api.objects.CloudGroup;
-import io.atomic.cloud.api.objects.CloudServer;
+import io.atomic.cloud.api.resource.object.CloudGroup;
+import io.atomic.cloud.api.resource.object.CloudServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 

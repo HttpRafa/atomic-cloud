@@ -1,6 +1,7 @@
 package io.atomic.cloud.paper.transfer;
 
 import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.grpc.client.Transfer;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
@@ -11,10 +12,15 @@ import lombok.RequiredArgsConstructor;
 public class TransferHandler implements StreamObserver<Transfer.TransferRes> {
 
     private final CloudConnection cloudConnection;
+    private CallHandle<?, ?> handle;
 
     public void enable() {
         CloudPlugin.LOGGER.info("Enabling transfer system...");
-        this.cloudConnection.subscribeToTransfers(this);
+        this.handle = this.cloudConnection.subscribeToTransfers(this);
+    }
+
+    public void cleanup() {
+        this.handle.cancel();
     }
 
     @Override

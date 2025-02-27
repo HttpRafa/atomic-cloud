@@ -1,36 +1,52 @@
 package io.atomic.cloud.api.channel;
 
-import io.atomic.cloud.api.channel.handler.ChannelHandler;
+import io.atomic.cloud.api.channel.subscription.Bytes;
+import io.atomic.cloud.api.channel.subscription.Strings;
 import java.util.concurrent.CompletableFuture;
+import org.jetbrains.annotations.NotNull;
 
+/**
+ * The Channels interface provides methods for publishing and subscribing to byte and string messages.
+ */
 public interface Channels {
 
     /**
-     * Send a message to a channel
-     * @param channel the channel to send the message to
-     * @param message the message to send
-     * @return a future to be completed once the message has been sent
+     * Publishes byte data to a specified channel.
+     *
+     * @param channel the name of the channel to publish to
+     * @param data the byte array to be published
+     * @return a CompletableFuture that completes with the number of subscribers that received the message
      */
-    CompletableFuture<Void> sendMessage(String channel, String message);
+    CompletableFuture<Integer> publishBytes(String channel, byte[] data);
 
     /**
-     * Subscribe to a channel
-     * @param channel the channel to subscribe to
-     * @return a future to be completed once the subscription has been completed
+     * Subscribes to a specified channel to receive byte messages.
+     *
+     * @param channel the name of the channel to subscribe to
+     * @return a Bytes instance for handling byte messages
      */
-    CompletableFuture<Void> subscribe(String channel);
+    Bytes subscribeToBytes(String channel);
 
     /**
-     * Unsubscribe from a channel
-     * @param channel the channel to unsubscribe from
-     * @return a future to be completed once the unsubscription has been completed
+     * Publishes a string message to a specified channel.
+     * This method converts the string message to a byte array and delegates to publishBytes.
+     *
+     * @param channel the name of the channel to publish to
+     * @param message the string message to be published
+     * @return a CompletableFuture that completes with the number of subscribers that received the message
      */
-    CompletableFuture<Void> unsubscribe(String channel);
+    default CompletableFuture<Integer> publishString(String channel, @NotNull String message) {
+        return this.publishBytes(channel, message.getBytes());
+    }
 
     /**
-     * Register a handler for a channel
-     * @param channel the channel to register the handler for
-     * @param handler the handler to register
+     * Subscribes to a specified channel to receive string messages.
+     * This method wraps the Bytes subscription to handle string messages.
+     *
+     * @param channel the name of the channel to subscribe to
+     * @return a Strings instance for handling string messages
      */
-    void registerHandler(String channel, ChannelHandler handler);
+    default Strings subscribeToStrings(String channel) {
+        return new Strings(this.subscribeToBytes(channel));
+    }
 }

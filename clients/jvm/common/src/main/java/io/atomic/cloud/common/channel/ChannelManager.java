@@ -1,8 +1,12 @@
 package io.atomic.cloud.common.channel;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.api.channel.Channels;
-import io.atomic.cloud.api.channel.handler.ChannelHandler;
+import io.atomic.cloud.api.channel.subscription.Bytes;
+import io.atomic.cloud.common.channel.subscription.BytesImpl;
 import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.grpc.client.Channel;
 import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 
@@ -12,22 +16,18 @@ public class ChannelManager implements Channels {
     private final CloudConnection connection;
 
     @Override
-    public CompletableFuture<Void> sendMessage(String channel, String message) {
-        return CompletableFuture.completedFuture(null);
+    public CompletableFuture<Integer> publishBytes(String channel, byte[] data) {
+        return this.connection
+                .publishMessage(Channel.Msg.newBuilder()
+                        .setChannel(channel)
+                        .setData(ByteString.copyFrom(data))
+                        .setTimestamp(System.currentTimeMillis())
+                        .build())
+                .thenApply(UInt32Value::getValue);
     }
 
     @Override
-    public CompletableFuture<Void> subscribe(String channel) {
-        return CompletableFuture.completedFuture(null);
+    public Bytes subscribeToBytes(String channel) {
+        return BytesImpl.create(channel, this.connection);
     }
-
-    @Override
-    public CompletableFuture<Void> unsubscribe(String channel) {
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public void registerHandler(String channel, ChannelHandler handler) {}
-
-    public void cleanup() {}
 }

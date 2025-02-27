@@ -12,7 +12,10 @@ use proto::manage::{
     user,
 };
 use simplelog::warn;
-use tonic::{transport::Channel, Request, Streaming};
+use tonic::{
+    transport::{Certificate, Channel, ClientTlsConfig},
+    Request, Streaming,
+};
 use url::Url;
 
 use crate::VERSION;
@@ -47,7 +50,7 @@ pub struct CloudConnection {
     token: String,
 
     /* TLS */
-    //tls_config: Option<String>,
+    cert: Option<String>,
 
     /* Client */
     client: Option<ManageServiceClient<Channel>>,
@@ -55,13 +58,18 @@ pub struct CloudConnection {
 
 impl CloudConnection {
     pub fn from_profile(profile: &Profile) -> Self {
-        Self::new(profile.url.clone(), profile.authorization.clone())
+        Self::new(
+            profile.url.clone(),
+            profile.authorization.clone(),
+            profile.cert.clone(),
+        )
     }
 
-    pub fn new(address: Url, token: String) -> Self {
+    pub fn new(address: Url, token: String, cert: Option<String>) -> Self {
         Self {
             address,
             token,
+            cert,
             client: None,
         }
     }
@@ -86,7 +94,15 @@ impl CloudConnection {
     }
 
     pub async fn connect(&mut self) -> Result<()> {
-        self.client = Some(ManageServiceClient::connect(self.address.to_string()).await?);
+        let mut tls = ClientTlsConfig::new().with_enabled_roots();
+        if let Some(cert) = &self.cert {
+            tls = tls.ca_certificate(Certificate::from_pem(cert));
+        }
+        let channel = Channel::from_shared(self.address.to_string())?
+            .tls_config(tls)?
+            .connect()
+            .await?;
+        self.client = Some(ManageServiceClient::new(channel));
         Ok(())
     }
 

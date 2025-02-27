@@ -10,8 +10,14 @@ const DEFAULT_CONFIG: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
 #[derive(Deserialize)]
+struct Tls {
+    alt_names: Vec<String>,
+}
+
+#[derive(Deserialize)]
 struct Network {
     bind: SocketAddr,
+    tls: Tls,
 }
 
 #[derive(Deserialize)]
@@ -50,6 +56,10 @@ impl Config {
 
     pub fn network_bind(&self) -> &SocketAddr {
         &self.network.bind
+    }
+
+    pub fn cert_alt_names(&self) -> &[String] {
+        &self.network.tls.alt_names
     }
 
     pub fn startup_timeout(&self) -> &Duration {

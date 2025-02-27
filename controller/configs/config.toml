@@ -6,6 +6,10 @@ identifier = "%RANDOM%"
 # The controller will listen on this address.
 bind = "0.0.0.0:8080"
 
+[network.tls]
+# What alternative names should be used for the TLS certificate.
+alt_names = ["localhost"]
+
 # The maximum time the controller will wait for the instance to start up.
 # If this timeout is reached, the startup will be considered as failed.
 [timeouts.startup]

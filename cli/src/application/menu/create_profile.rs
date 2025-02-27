@@ -55,8 +55,19 @@ impl CreateProfileMenu {
             Err(error) => return MenuUtils::handle_error(error),
         };
 
+        let cert = match MenuUtils::confirm("Does this profile use self signed certificates?") {
+            Ok(true) => {
+                match MenuUtils::editor("What is the certificate for this profile?", ".cert file") {
+                    Ok(cert) => Some(cert),
+                    Err(error) => return MenuUtils::handle_error(error),
+                }
+            }
+            Ok(false) => None,
+            Err(error) => return MenuUtils::handle_error(error),
+        };
+
         let progress = Loading::default();
-        let profile = Profile::new(&name, &authorization, url);
+        let profile = Profile::new(&name, &authorization, url, cert);
         progress.text(format!(
             "Connecting to the controller \"{}\" at {} to verify the profile",
             profile.name, profile.url

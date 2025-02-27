@@ -17,7 +17,7 @@ wit-bindgen = "0.39.0"
 anyhow = "1.0.96"
 
 # Getters
-getset = "0.1.4"
+getset = "0.1.5"
 
 # Configuration
 serde = { version = "1.0.218", features = ["derive"] }

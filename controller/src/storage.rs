@@ -31,6 +31,11 @@ const PRIMARY_CONFIG_FILE: &str = "config.toml";
 const WASM_PLUGINS_CONFIG_FILE: &str = "wasm-plugins.toml";
 const WASM_ENGINE_CONFIG_FILE: &str = "wasm-engine.toml";
 
+/* Certificates */
+const CERT_DIRECTORY: &str = "certs";
+const CERT_FILE: &str = "certificate.crt";
+const CERT_PRIVATE_KEY_FILE: &str = "private.key";
+
 /* Plugins */
 const PLUGINS_DIRECTORY: &str = "plugins";
 const DATA_DIRECTORY: &str = "data";
@@ -81,6 +86,17 @@ impl Storage {
     }
     pub fn wasm_engine_config_file() -> PathBuf {
         Storage::configs_directory().join(WASM_ENGINE_CONFIG_FILE)
+    }
+
+    /* Certificates */
+    pub fn cert_directory() -> PathBuf {
+        PathBuf::from(CERT_DIRECTORY)
+    }
+    pub fn cert_file() -> PathBuf {
+        Storage::cert_directory().join(CERT_FILE)
+    }
+    pub fn cert_private_key_file() -> PathBuf {
+        Storage::cert_directory().join(CERT_PRIVATE_KEY_FILE)
     }
 
     /* Plugins */

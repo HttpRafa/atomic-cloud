@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ public class CloudPlugin extends JavaPlugin {
 
     private TransferHandler transferHandler;
 
+    @SneakyThrows
     @Override
     public void onLoad() {
         Cloud.setup(new CloudImpl());

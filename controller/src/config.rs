@@ -11,6 +11,7 @@ const DEFAULT_CONFIG: &str =
 
 #[derive(Deserialize)]
 struct Tls {
+    enabled: bool,
     alt_names: Vec<String>,
 }
 
@@ -58,7 +59,11 @@ impl Config {
         &self.network.bind
     }
 
-    pub fn cert_alt_names(&self) -> &[String] {
+    pub fn tls_enabled(&self) -> bool {
+        self.network.tls.enabled
+    }
+
+    pub fn tls_alt_names(&self) -> &[String] {
         &self.network.tls.alt_names
     }
 

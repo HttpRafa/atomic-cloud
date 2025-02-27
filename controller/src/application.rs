@@ -9,6 +9,7 @@ use std::{
 use anyhow::Result;
 use auth::manager::AuthManager;
 use getset::{Getters, MutGetters};
+use global::GlobalData;
 use group::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
@@ -25,6 +26,7 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
+pub mod global;
 pub mod group;
 pub mod node;
 pub mod plugin;
@@ -47,6 +49,7 @@ pub struct Controller {
 
     /* Shared Components */
     pub shared: Arc<Shared>,
+    pub global: Arc<GlobalData>,
 
     /* Components */
     pub plugins: PluginManager,
@@ -73,8 +76,11 @@ impl Controller {
             subscribers: SubscriberManager::init(),
             screens: ScreenManager::init(),
         });
+        let global = Arc::new(GlobalData::init(&config).await?);
 
-        let plugins = PluginManager::init(&config).await?;
+        let tasks = mpsc::channel(TASK_BUFFER);
+
+        let plugins = PluginManager::init(&config, &global).await?;
         let nodes = NodeManager::init(&plugins).await?;
         let groups = GroupManager::init(&nodes).await?;
 
@@ -83,8 +89,9 @@ impl Controller {
 
         Ok(Self {
             state: State::new(),
-            tasks: mpsc::channel(TASK_BUFFER),
+            tasks,
             shared,
+            global,
             plugins,
             nodes,
             groups,
@@ -98,7 +105,7 @@ impl Controller {
         // Setup signal handlers
         self.setup_handlers()?;
 
-        let network = NetworkStack::start(&self.config, &self.shared, &self.tasks.0);
+        let network = NetworkStack::start(&self.config, &self.shared, &self.global, &self.tasks.0);
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
@@ -107,7 +114,7 @@ impl Controller {
             self.state.tick(); // Check for exit votes
 
             select! {
-                _ = interval.tick() => self.tick().await?,
+                _ = interval.tick() => self.tick(&network).await?,
                 task = self.tasks.1.recv() => if let Some(task) = task {
                     task.run(self).await?;
                 },
@@ -122,7 +129,7 @@ impl Controller {
         Ok(())
     }
 
-    async fn tick(&mut self) -> Result<()> {
+    async fn tick(&mut self, _network: &NetworkStack) -> Result<()> {
         let start = Instant::now();
 
         // Tick plugin manager

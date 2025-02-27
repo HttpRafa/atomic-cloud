@@ -9,7 +9,7 @@ use crate::storage::Storage;
 pub struct Tls;
 
 impl Tls {
-    pub async fn load_server_identity(alt_names: &[String]) -> Result<Identity> {
+    pub async fn load_server_identity(alt_names: &[String]) -> Result<(String, Identity)> {
         let directory = Storage::cert_directory();
         if !directory.exists() {
             fs::create_dir_all(&directory).await?;
@@ -25,7 +25,10 @@ impl Tls {
         let cert = fs::read(&cert).await?;
         let private_key = fs::read(&private_key).await?;
 
-        Ok(Identity::from_pem(cert, private_key))
+        Ok((
+            String::from_utf8(cert.clone())?,
+            Identity::from_pem(cert, private_key),
+        ))
     }
 
     pub async fn generate_cert(alt_names: &[String]) -> Result<()> {

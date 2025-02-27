@@ -39,6 +39,10 @@ interface platform {
     get-os: func() -> os;
 }
 
+interface tls {
+    get-certificate: func() -> option<string>;
+}
+
 interface file {
     use types.{error-message, directory};
     remove-dir-all: func(directory: directory) -> result<_, error-message>;
@@ -214,6 +218,7 @@ world plugin {
     import guard;
     import log;
     import platform;
+    import tls;
     import file;
     import http;
     import process;

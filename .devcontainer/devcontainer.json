@@ -26,6 +26,5 @@
             ]
         }
     },
-    "remoteUser": "${localEnv:USER:code}",
-    "postStartCommand": "cargo clean"
+    "remoteUser": "${localEnv:USER:code}"
 }

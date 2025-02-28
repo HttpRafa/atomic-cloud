@@ -8,7 +8,6 @@ Channels are a pub/sub (publish/subscribe) messaging system within Atomic Cloud 
 - [Prerequisites](#prerequisites)
 - [Receiving Messages](#receiving-messages)
 - [Sending Messages](#sending-messages)
-- [Conclusion](#conclusion)
 
 ## What Are Channels?
 
@@ -34,13 +33,12 @@ To receive messages from a channel, subscribe and register a message handler usi
 ### Example
 
 ```java
-// Subscribe to the "party/invites" channel
-Cloud.channels().subscribe("party/invites");
-
-// Register a handler to process incoming messages on "party/invites"
-Cloud.channels().registerHandler("party/invites", (message) -> {
-    // Define your message handling logic here
-    System.out.println("Received message: " + message);
+var channel = Cloud.channels().subscribeToStrings("testChannel");
+channel.handler(message -> {
+  // A message was received from the channel.
+});
+channel.errorHandler(throwable -> {
+  // Oh no! An error occurred while trying to receive a message from the channel.
 });
 ```
 
@@ -53,12 +51,7 @@ Sending messages is simple. Use the API to send a message to a channel, and all 
 ### Example
 
 ```java
-// Send a message to the "party/invites" channel
-Cloud.channels().sendMessage("party/invites", "test");
+Cloud.channels().publishString("testChannel", "MESSAGE");
 ```
 
-In this example, the string `"test"` is broadcast to all clients subscribed to the "party/invites" channel.
-
-## Conclusion
-
-Channels in Atomic Cloud offer a robust and secure method for inter‑server communication, allowing you to easily implement real‑time features with minimal setup. By following the steps above, you can integrate channels into your project to enable seamless, efficient messaging between distributed services.
+In this example, the string `"MESSAGE"` is broadcast to all clients subscribed to the "testChannel" channel.

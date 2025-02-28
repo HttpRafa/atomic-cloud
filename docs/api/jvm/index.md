@@ -11,7 +11,7 @@ To include the API in a **Maven** project, add the following dependency to your 
 <dependency>
     <groupId>io.atomic.cloud</groupId>
     <artifactId>api</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -19,8 +19,20 @@ To include the API in a **Maven** project, add the following dependency to your 
 For **Gradle** projects, add the following dependency to your `build.gradle.kts` file:
 
 ```kotlin
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/HttpRafa/atomic-cloud")
+        name = "GitHub Packages"
+        credentials {
+            username = project.findProperty("gpr.username") as String?
+            password = project.findProperty("gpr.password") as String?
+        }
+    }
+}
+
 dependencies {
-    implementation("io.atomic.cloud:api:0.1.0-SNAPSHOT")
+    implementation("io.atomic.cloud:api:0.7.0-SNAPSHOT")
 }
 ```
 
@@ -28,6 +40,6 @@ If you're using Groovy-based Gradle (`build.gradle`), use:
 
 ```gradle
 dependencies {
-    implementation 'io.atomic.cloud:api:0.1.0-SNAPSHOT'
+    implementation 'io.atomic.cloud:api:0.7.0-SNAPSHOT'
 }
 ```

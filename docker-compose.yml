@@ -12,9 +12,11 @@ services:
       - PTERODACTYL=true
       - LOCAL=true
     volumes:
-      - ./run/logs:/app/logs
-      - ./run/auth:/app/auth
+      - ./run/certs:/app/certs
       - ./run/configs:/app/configs
-      - ./run/nodes:/app/nodes
       - ./run/groups:/app/groups
+      - ./run/logs:/app/logs
+      - ./run/nodes:/app/nodes
       - ./run/plugins:/app/plugins
+      - ./run/users:/app/users
+      - ./run/data:/app/data

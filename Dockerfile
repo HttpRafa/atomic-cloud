@@ -18,7 +18,7 @@ RUN cargo build -p controller --features wasm-plugins --release
 FROM alpine:latest
 
 # Install necessary runtime dependencies
-RUN apk add --no-cache curl unzip
+RUN apk add --no-cache curl unzip openjdk21-jre
 
 # Set the working directory
 WORKDIR /app

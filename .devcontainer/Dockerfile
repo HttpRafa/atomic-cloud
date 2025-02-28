@@ -10,6 +10,7 @@ RUN apt update && apt upgrade -y
 # Install necessary packages
 RUN apt install -y \
     build-essential git gh \
+    mkdocs-material \
     protobuf-compiler \
     rustup \
     openjdk-21-jdk gradle

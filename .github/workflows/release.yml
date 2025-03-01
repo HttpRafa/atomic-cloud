@@ -112,8 +112,8 @@ jobs:
           cp ./target/x86_64-unknown-linux-gnu/release/cli cli-linux-x86_64
           cp ./target/x86_64-pc-windows-gnu/release/cli.exe cli-windows-x86_64.exe
 
-          # cp ./target/x86_64-unknown-linux-gnu/release/wrapper wrapper-linux-x86_64
-          # cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
+          cp ./target/x86_64-unknown-linux-gnu/release/wrapper wrapper-linux-x86_64
+          cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
 
           # cp ./target/wasm32-wasip2/release/pterodactyl.wasm pterodactyl-plugin.wasm
           
@@ -134,5 +134,7 @@ jobs:
             controller-windows-x86_64.exe
             cli-linux-x86_64
             cli-windows-x86_64.exe
+            wrapper-linux-x86_64
+            wrapper-windows-x86_64.exe
             local-plugin.wasm
             paper-client.jar

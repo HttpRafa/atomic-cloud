@@ -101,7 +101,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .beat(request)
             .await?;
         Ok(())
@@ -114,7 +114,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .set_ready(request)
             .await?;
         Ok(())
@@ -127,7 +127,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .set_running(request)
             .await?;
         Ok(())
@@ -140,7 +140,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .request_stop(request)
             .await?;
         Ok(())
@@ -153,7 +153,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .user_connected(request)
             .await?;
         Ok(())
@@ -166,7 +166,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .user_disconnected(request)
             .await?;
         Ok(())
@@ -179,7 +179,7 @@ impl CloudConnection {
             .lock()
             .await
             .as_mut()
-            .unwrap()
+            .expect("No connection created")
             .subscribe_to_transfers(request)
             .await
     }

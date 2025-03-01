@@ -104,7 +104,7 @@ jobs:
           CURRENT_BUILD: ${{ github.run_number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Copy Files
+      - name: Copy Compiled Files
         run: |
           cp ./target/x86_64-unknown-linux-gnu/release/controller controller-linux-x86_64
           cp ./target/x86_64-pc-windows-gnu/release/controller.exe controller-windows-x86_64.exe
@@ -120,6 +120,11 @@ jobs:
           cp ./target/wasm32-wasip2/release/local.wasm local-plugin.wasm
 
           cp $(find ./clients/jvm/paper/build -name "*-all.jar") paper-client.jar
+
+      - name: Create egg zip and template zip
+        run: |
+          tar -czvf templates.tar.gz -C templates .
+          tar -czvf eggs.tar.gz -C eggs .
 
       - name: Create Release
         id: create_release
@@ -137,4 +142,6 @@ jobs:
             wrapper-linux-x86_64
             wrapper-windows-x86_64.exe
             local-plugin.wasm
+            templates.tar.gz
+            eggs.tar.gz
             paper-client.jar

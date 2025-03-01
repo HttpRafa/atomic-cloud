@@ -29,9 +29,9 @@ regex = "1.11.1"
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
+tonic = { version = "0.12.3", features = ["tls"] }
 url = "2.5.4"
 prost = "0.13.5"
-tonic = "0.12.3"
 
 [build-dependencies]
 toml = "0.8.20"

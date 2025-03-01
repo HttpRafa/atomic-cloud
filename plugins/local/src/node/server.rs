@@ -33,7 +33,7 @@ const SERVER_PORT: &str = "SERVER_PORT";
 
 pub struct Server {
     name: TimedName,
-    request: bridge::Server,
+    _request: bridge::Server,
     template: String,
     builder: ProcessBuilder,
     process: Rc<Process>,
@@ -98,7 +98,7 @@ impl Server {
 
         Ok(Self {
             name,
-            request,
+            _request: request,
             template: template.name().to_string(),
             builder,
             process: Rc::new(process),
@@ -175,20 +175,11 @@ impl Server {
     pub fn stop(&mut self, node: &InnerNode, guard: Guard) -> Result<()> {
         self.state = State::Stopping(Instant::now());
         self.guard = Some(guard);
-        match self.request.allocation.spec.disk_retention {
-            DiskRetention::Temporary => {
-                self.process
-                    .kill()
-                    .map_err(|error| anyhow!("Failed to kill process: {}", error))?;
-            }
-            DiskRetention::Permanent => {
-                let templates = node.templates.borrow();
-                let template = templates
-                    .get_template(&self.template)
-                    .ok_or(anyhow!("Template not found while stopping server"))?;
-                template.write_shutdown(&self.process)?;
-            }
-        }
+        let templates = node.templates.borrow();
+        let template = templates
+            .get_template(&self.template)
+            .ok_or(anyhow!("Template not found while stopping server"))?;
+        template.write_shutdown(&self.process)?;
         Ok(())
     }
 

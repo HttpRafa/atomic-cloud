@@ -7,12 +7,13 @@ use std::{
     time::Duration,
 };
 
+use anyhow::Result;
 use detection::RegexDetector;
 use heart::Heart;
 use network::CloudConnection;
 use process::ManagedProcess;
 use simplelog::{error, info};
-use tokio::{select, time::interval};
+use tokio::select;
 use transfer::Transfers;
 use user::Users;
 
@@ -25,10 +26,8 @@ mod process;
 mod transfer;
 mod user;
 
-const TICK_RATE: u64 = 1;
-
 // TODO: Change this to a configuration value
-static BEAT_INTERVAL: Duration = Duration::from_secs(5);
+static BEAT_INTERVAL: Duration = Duration::from_secs(10);
 
 pub struct Wrapper {
     /* Immutable */
@@ -57,7 +56,7 @@ impl Wrapper {
 
         let connection = CloudConnection::from_env();
         if let Err(error) = connection.connect().await {
-            error!("<red>Failed</> to connect to cloud: {}", error);
+            error!("Failed to connect to cloud: {}", error);
             exit(1);
         }
 
@@ -73,22 +72,16 @@ impl Wrapper {
         }
     }
 
-    pub async fn start(&mut self) {
+    pub async fn start(&mut self) -> Result<()> {
         // Set up signal handlers
         let running = Arc::downgrade(&self.running);
         ctrlc::set_handler(move || {
-            info!("<red>Interrupt</> signal received. <red>Stopping</>...");
+            info!("Interrupt signal received. Stopping...");
             if let Some(running) = running.upgrade() {
                 running.store(false, Ordering::Relaxed);
             }
         })
         .expect("Failed to set Ctrl+C handler");
-
-        // Tell the controller we are a new client
-        self.connection
-            .send_reset()
-            .await
-            .expect("Failed to send reset signal to controller");
 
         // Start child process
         self.start_child();
@@ -96,12 +89,8 @@ impl Wrapper {
         // Subscribe to network events
         self.transfers.subscribe().await;
 
-        let mut tick_interval = interval(Duration::from_millis(1000 / TICK_RATE));
         while self.running.load(Ordering::Relaxed) {
-            select! {
-                _ = tick_interval.tick() => self.tick().await,
-                _ = self.process.as_mut().unwrap().stdout_tick(&mut self.users) => {},
-            }
+            self.tick().await;
         }
 
         // Kill child process
@@ -109,25 +98,22 @@ impl Wrapper {
             process.kill_if_running().await;
         }
 
-        info!("All <green>done</>! Bye :)");
+        info!("All done! Bye :)");
+        Ok(())
     }
 
     pub fn request_stop(&self) {
-        info!("Wrapper stop requested. <red>Stopping</>...");
+        info!("Wrapper stop requested. Stopping...");
         self.running.store(false, Ordering::Relaxed);
     }
 
     async fn tick(&mut self) {
-        // Heartbeat
-        self.heart.tick().await;
-
         if let Some(process) = &mut self.process {
-            // Process transfers
-            self.transfers.tick(process, &self.users).await;
-
-            // Request stop when child process stopped
-            if process.tick().await {
-                self.request_stop();
+            select! {
+                message = self.transfers.next_message() => self.transfers.handle_message(message, &mut process.stdin, &self.users).await,
+                _ = self.heart.wait_for_beat() => self.heart.beat().await,
+                result = process.process.wait() => if process.handle_process_exit(result).await { self.request_stop() },
+                line = process.stdout.next_line() => process.handle_stdout_line(line, &mut self.users).await,
             }
         }
     }

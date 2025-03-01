@@ -96,6 +96,7 @@ impl NetworkStack {
     pub async fn shutdown(self) -> Result<()> {
         info!("Stopping network stack...");
         let _ = self.shutdown.send(true); // Ignore error if receiver is dropped
+        info!("Waiting for network stack to stop...");
         self.handle.await?;
         Ok(())
     }

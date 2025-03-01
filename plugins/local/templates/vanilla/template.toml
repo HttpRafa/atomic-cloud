@@ -9,7 +9,7 @@ shutdown = "stop"
 [environment]
 VERSION = "latest"
 SERVER_JARFILE = "server.jar"
-TRANSFER_COMMAND = "transfer %NAME% %HOST%:%PORT%"
+TRANSFER_COMMAND = "transfer %HOST% %PORT% %NAME%"
 STARTED_REGEX = "Done \\([0-9]+\\.[0-9]+s\\)! For help, type \"help\""
 STOPPING_REGEX = "Stopping the server"
 USER_CONNECTED_REGEX = "UUID of player ([a-zA-Z0-9_-]+) is ([a-zA-Z0-9_-]+)"

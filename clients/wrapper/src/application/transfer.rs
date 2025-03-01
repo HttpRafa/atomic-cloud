@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::{
     network::{proto::transfer::TransferRes, CloudConnectionHandle},
-    process::ManagedProcess,
+    process::stdin::ManagedStdin,
     user::Users,
 };
 
@@ -54,28 +54,40 @@ impl Transfers {
         }
     }
 
-    pub async fn tick(&mut self, process: &mut ManagedProcess, users: &Users) {
+    pub async fn next_message(&mut self) -> Option<TransferRes> {
         if let Some(stream) = &mut self.stream {
-            while let Ok(Some(transfer)) = stream.message().await {
-                if let Ok(uuid) = Uuid::from_str(&transfer.id) {
-                    if let Some(user) = users.get_user_from_uuid(uuid).await {
-                        info!(
-                            "Transferred user {} to {}:{}",
-                            user.name, transfer.host, transfer.port
-                        );
-                        let command = self
-                            .command
-                            .replace("%NAME%", &user.name)
-                            .replace("%UUID%", &user.uuid.to_string())
-                            .replace("%HOST%", &transfer.host)
-                            .replace("%PORT%", &transfer.port.to_string());
-                        process.write_to_stdin(&command).await;
-                    } else {
-                        error!("Received transfer from unknown user: {}", transfer.id);
-                    }
+            if let Ok(result) = stream.message().await {
+                return result;
+            }
+        }
+        None
+    }
+
+    pub async fn handle_message(
+        &self,
+        message: Option<TransferRes>,
+        stdin: &mut ManagedStdin,
+        users: &Users,
+    ) {
+        if let Some(transfer) = message {
+            if let Ok(uuid) = Uuid::from_str(&transfer.id) {
+                if let Some(user) = users.get_user_from_uuid(uuid).await {
+                    info!(
+                        "Transferred user {} to {}:{}",
+                        user.name, transfer.host, transfer.port
+                    );
+                    let command = self
+                        .command
+                        .replace("%NAME%", &user.name)
+                        .replace("%UUID%", &user.uuid.to_string())
+                        .replace("%HOST%", &transfer.host)
+                        .replace("%PORT%", &transfer.port.to_string());
+                    stdin.write_line(&command).await;
                 } else {
-                    error!("Failed to parse uuid: {}", transfer.id);
+                    error!("Received transfer from unknown user: {}", transfer.id);
                 }
+            } else {
+                error!("Failed to parse uuid: {}", transfer.id);
             }
         }
     }

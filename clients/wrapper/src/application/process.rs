@@ -1,14 +1,22 @@
-use std::process::{exit, Stdio};
+use std::process::{exit, ExitStatus, Stdio};
 
+use anyhow::Result;
 use simplelog::{error, info};
+use stdin::ManagedStdin;
+use stdout::ManagedStdout;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
-    process::{Child, ChildStdin, ChildStdout, Command},
+    io::{self},
+    process::{Child, Command},
 };
 
 use crate::application::detection::Detection;
 
 use super::{detection::RegexDetector, network::CloudConnectionHandle, user::Users};
+
+pub const STD_BUFFER_SIZE: usize = 1024;
+
+pub mod stdin;
+mod stdout;
 
 #[derive(PartialEq)]
 pub enum State {
@@ -20,7 +28,7 @@ pub enum State {
 
 pub struct ManagedProcess {
     /* Process */
-    process: Child,
+    pub process: Child,
     state: State,
 
     /* Detection and Network */
@@ -28,10 +36,10 @@ pub struct ManagedProcess {
     connection: CloudConnectionHandle,
 
     /* StdOut Reader */
-    stdout: BufReader<ChildStdout>,
+    pub stdout: ManagedStdout,
 
     /* StdIn Writer */
-    stdin: BufWriter<ChildStdin>,
+    pub stdin: ManagedStdin,
 }
 
 impl ManagedProcess {
@@ -46,8 +54,9 @@ impl ManagedProcess {
 
         let mut process = match Command::new(program)
             .args(args)
-            .stdin(Stdio::inherit())
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
+            .kill_on_drop(true)
             .spawn()
         {
             Ok(child) => child,
@@ -57,13 +66,13 @@ impl ManagedProcess {
             }
         };
 
-        let stdout = BufReader::new(
+        let stdout = ManagedStdout::new(
             process
                 .stdout
                 .take()
                 .expect("Failed to open stdout of child"),
         );
-        let stdin = BufWriter::new(process.stdin.take().expect("Failed to open stdin of child"));
+        let stdin = ManagedStdin::new(process.stdin.take().expect("Failed to open stdin of child"));
 
         Self {
             process,
@@ -75,43 +84,50 @@ impl ManagedProcess {
         }
     }
 
-    pub async fn tick(&mut self) -> bool {
-        if let Some(status) = self.process.try_wait().ok().flatten() {
+    pub async fn handle_process_exit(&mut self, result: io::Result<ExitStatus>) -> bool {
+        // Check for if the process is still running
+        if let Ok(status) = result {
             info!("Child process exited with {}", status);
             self.handle_state_change(State::Stopped).await;
-            return true;
+            true
+        } else {
+            false
         }
-        false
     }
 
-    pub async fn stdout_tick(&mut self, users: &mut Users) {
-        let mut buffer = String::new();
-        if self.stdout.read_line(&mut buffer).await.unwrap() > 0 {
-            let line = buffer.trim();
-            println!("# {}", line);
-            match self.detector.detect(line) {
-                Detection::Started => {
-                    self.handle_state_change(State::Running).await;
-                }
-                Detection::Stopping => {
-                    self.handle_state_change(State::Stopping).await;
-                }
-                Detection::UserConnected(user) => {
-                    if user.name.is_none() || user.uuid.is_none() {
-                        return;
+    pub async fn handle_stdout_line(&mut self, line: Option<Result<String>>, users: &mut Users) {
+        match line {
+            Some(Ok(line)) => {
+                let line = line.trim();
+                println!("# {}", line);
+                match self.detector.detect(line) {
+                    Detection::Started => {
+                        self.handle_state_change(State::Running).await;
                     }
-                    users
-                        .handle_connect(user.name.unwrap(), user.uuid.unwrap())
-                        .await;
-                }
-                Detection::UserDisconnected(user) => {
-                    if user.name.is_none() {
-                        return;
+                    Detection::Stopping => {
+                        self.handle_state_change(State::Stopping).await;
                     }
-                    users.handle_disconnect(user.name.unwrap()).await;
+                    Detection::UserConnected(user) => {
+                        if user.name.is_none() || user.uuid.is_none() {
+                            return;
+                        }
+                        users
+                            .handle_connect(user.name.unwrap(), user.uuid.unwrap())
+                            .await;
+                    }
+                    Detection::UserDisconnected(user) => {
+                        if user.name.is_none() {
+                            return;
+                        }
+                        users.handle_disconnect(user.name.unwrap()).await;
+                    }
+                    Detection::None => { /* Do nothing */ }
                 }
-                Detection::None => { /* Do nothing */ }
             }
+            Some(Err(error)) => {
+                error!("Failed to read from stdout: {}", error);
+            }
+            None => { /* Do nothing */ }
         }
     }
 
@@ -128,11 +144,6 @@ impl ManagedProcess {
                 .expect("Failed to wait for child process");
         }
         self.handle_state_change(State::Stopped).await;
-    }
-
-    pub async fn write_to_stdin(&mut self, message: &str) {
-        self.stdin.write_all(message.as_bytes()).await.unwrap();
-        self.stdin.flush().await.unwrap();
     }
 
     async fn handle_state_change(&mut self, state: State) {

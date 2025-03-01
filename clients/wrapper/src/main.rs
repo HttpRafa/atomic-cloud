@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::exit};
 
 use application::Wrapper;
 use args::Args;
@@ -15,7 +15,7 @@ include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const LOG_FILE: &str = "wrapper.log";
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() {
     let args = Args::parse();
     CloudInit::init_logging(args.debug, false, PathBuf::from(LOG_FILE));
@@ -26,4 +26,6 @@ async fn main() {
     if let Err(error) = wrapper.start().await {
         FancyError::print_fancy(&error, true);
     }
+    info!("My work here is done. Terminating myself...");
+    exit(0);
 }

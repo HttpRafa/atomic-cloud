@@ -1,38 +1,31 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{sync::Arc, time::Duration};
 
 use simplelog::error;
+use tokio::time::{interval, Interval};
 
 use super::network::CloudConnection;
 
 pub struct Heart {
     /* Timings */
-    pub interval: Duration,
-    pub next_beat: Instant,
+    interval: Interval,
 
     /* Network */
     connection: Arc<CloudConnection>,
 }
 
 impl Heart {
-    pub fn new(interval: Duration, connection: Arc<CloudConnection>) -> Self {
+    pub fn new(period: Duration, connection: Arc<CloudConnection>) -> Self {
         Self {
-            interval,
-            next_beat: Instant::now(),
+            interval: interval(period),
             connection,
         }
     }
 
-    pub async fn tick(&mut self) {
-        if self.next_beat < Instant::now() {
-            self.beat().await;
-        }
+    pub async fn wait_for_beat(&mut self) {
+        self.interval.tick().await;
     }
 
     pub async fn beat(&mut self) {
-        self.next_beat = Instant::now() + self.interval;
         if let Err(error) = self.connection.beat().await {
             error!("Failed to report health to controller: {}", error);
         }

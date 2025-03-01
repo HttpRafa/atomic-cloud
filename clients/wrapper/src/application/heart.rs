@@ -33,8 +33,8 @@ impl Heart {
 
     pub async fn beat(&mut self) {
         self.next_beat = Instant::now() + self.interval;
-        if let Err(error) = self.connection.beat_heart().await {
-            error!("<red>Failed</> to report health to controller: {}", error);
+        if let Err(error) = self.connection.beat().await {
+            error!("Failed to report health to controller: {}", error);
         }
     }
 }

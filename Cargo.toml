@@ -13,7 +13,7 @@ members = [
 
     # Clients
     "cli",
-    #"clients/wrapper",
+    "clients/wrapper",
 ]
 
 [workspace.metadata]

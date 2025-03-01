@@ -22,34 +22,28 @@ impl Users {
     }
 
     pub async fn handle_connect(&mut self, name: String, uuid: Uuid) {
-        info!("<blue>{}</> connected to server", name);
+        info!("{} connected to server", name);
 
         if let Err(error) = self
             .connection
             .user_connected(name.clone(), uuid.to_string())
             .await
         {
-            error!(
-                "<red>Failed</> to notify controller that user connected: {}",
-                error
-            );
+            error!("Failed to notify controller that user connected: {}", error);
         }
         self.users.insert(name.clone(), User { name, uuid });
     }
 
     pub async fn handle_disconnect(&mut self, name: String) {
         if let Some(user) = self.users.remove(&name) {
-            info!("<blue>{}</> disconnected from server", user.name);
+            info!("{} disconnected from server", user.name);
 
             if let Err(error) = self
                 .connection
                 .user_disconnected(user.uuid.to_string())
                 .await
             {
-                error!(
-                    "<red>Failed</> to notify controller that user connected: {}",
-                    error
-                );
+                error!("Failed to notify controller that user connected: {}", error);
             }
         }
     }

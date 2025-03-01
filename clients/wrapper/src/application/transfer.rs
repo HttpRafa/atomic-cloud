@@ -5,7 +5,7 @@ use tonic::Streaming;
 use uuid::Uuid;
 
 use super::{
-    network::{proto::transfer_management::ResolvedTransferResponse, CloudConnectionHandle},
+    network::{proto::transfer::TransferRes, CloudConnectionHandle},
     process::ManagedProcess,
     user::Users,
 };
@@ -15,7 +15,7 @@ pub struct Transfers {
     connection: CloudConnectionHandle,
 
     /* Stream */
-    stream: Option<Streaming<ResolvedTransferResponse>>,
+    stream: Option<Streaming<TransferRes>>,
 
     /* Transfer Command */
     command: String,
@@ -28,7 +28,7 @@ impl Transfers {
         if let Ok(value) = std::env::var("TRANSFER_COMMAND") {
             transfer_command = value;
         } else {
-            error!("<red>Missing</> TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received");
+            error!("Missing TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received");
             exit(1);
         }
 
@@ -49,7 +49,7 @@ impl Transfers {
                 self.stream = Some(stream.into_inner());
             }
             Err(error) => {
-                error!("<red>Failed</> to subscribe to transfers: {}", error);
+                error!("Failed to subscribe to transfers: {}", error);
             }
         }
     }
@@ -57,10 +57,10 @@ impl Transfers {
     pub async fn tick(&mut self, process: &mut ManagedProcess, users: &Users) {
         if let Some(stream) = &mut self.stream {
             while let Ok(Some(transfer)) = stream.message().await {
-                if let Ok(uuid) = Uuid::from_str(&transfer.user_uuid) {
+                if let Ok(uuid) = Uuid::from_str(&transfer.id) {
                     if let Some(user) = users.get_user_from_uuid(uuid).await {
                         info!(
-                            "Transferred user <blue>{}</> to <blue>{}</>:<blue>{}</>",
+                            "Transferred user {} to {}:{}",
                             user.name, transfer.host, transfer.port
                         );
                         let command = self
@@ -71,13 +71,10 @@ impl Transfers {
                             .replace("%PORT%", &transfer.port.to_string());
                         process.write_to_stdin(&command).await;
                     } else {
-                        error!(
-                            "Received transfer from unknown user: <blue>{}</>",
-                            transfer.user_uuid
-                        );
+                        error!("Received transfer from unknown user: {}", transfer.id);
                     }
                 } else {
-                    error!("<red>Failed</> to parse uuid: {}", transfer.user_uuid);
+                    error!("Failed to parse uuid: {}", transfer.id);
                 }
             }
         }

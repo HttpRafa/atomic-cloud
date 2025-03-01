@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use anyhow::Result;
 use detection::RegexDetector;
 use heart::Heart;
 use network::CloudConnection;
@@ -57,7 +58,7 @@ impl Wrapper {
 
         let connection = CloudConnection::from_env();
         if let Err(error) = connection.connect().await {
-            error!("<red>Failed</> to connect to cloud: {}", error);
+            error!("Failed to connect to cloud: {}", error);
             exit(1);
         }
 
@@ -73,22 +74,16 @@ impl Wrapper {
         }
     }
 
-    pub async fn start(&mut self) {
+    pub async fn start(&mut self) -> Result<()> {
         // Set up signal handlers
         let running = Arc::downgrade(&self.running);
         ctrlc::set_handler(move || {
-            info!("<red>Interrupt</> signal received. <red>Stopping</>...");
+            info!("Interrupt signal received. Stopping...");
             if let Some(running) = running.upgrade() {
                 running.store(false, Ordering::Relaxed);
             }
         })
         .expect("Failed to set Ctrl+C handler");
-
-        // Tell the controller we are a new client
-        self.connection
-            .send_reset()
-            .await
-            .expect("Failed to send reset signal to controller");
 
         // Start child process
         self.start_child();
@@ -109,11 +104,12 @@ impl Wrapper {
             process.kill_if_running().await;
         }
 
-        info!("All <green>done</>! Bye :)");
+        info!("All done! Bye :)");
+        Ok(())
     }
 
     pub fn request_stop(&self) {
-        info!("Wrapper stop requested. <red>Stopping</>...");
+        info!("Wrapper stop requested. Stopping...");
         self.running.store(false, Ordering::Relaxed);
     }
 

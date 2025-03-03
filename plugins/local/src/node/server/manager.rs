@@ -29,11 +29,17 @@ impl ServerManager {
         })
     }
 
-    pub fn tick(&mut self, config: &Config) -> Result<(), ScopedErrors> {
+    pub fn tick(&mut self, node: &str, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
         self.servers.retain(|_, server| match server.tick(config) {
             Ok(State::Dead) => {
-                info!("Server {} stopped", server.name.get_name());
+                info!("Server {} stopped. Clean", server.name.get_name());
+                if let Err(error) = server.cleanup(node) {
+                    errors.push(ScopedError {
+                        scope: server.name.get_name().to_string(),
+                        message: error.to_string(),
+                    });
+                }
                 false
             }
             Ok(_) => true,
@@ -42,6 +48,12 @@ impl ServerManager {
                     scope: server.name.get_name().to_string(),
                     message: error.to_string(),
                 });
+                if let Err(error) = server.cleanup(node) {
+                    errors.push(ScopedError {
+                        scope: server.name.get_name().to_string(),
+                        message: error.to_string(),
+                    });
+                }
                 false
             }
         });

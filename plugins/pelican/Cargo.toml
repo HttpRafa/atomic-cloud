@@ -1,7 +1,7 @@
 cargo-features = ["per-package-target"]
 
 [package]
-name = "pterodactyl"
+name = "pelican"
 version = "0.0.0-nightly"
 edition = "2021"
 forced-target = "wasm32-wasip2"

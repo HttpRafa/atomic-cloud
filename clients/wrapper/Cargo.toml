@@ -11,7 +11,7 @@ common = { path = "../../common" }
 simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 
 # Signal handling
 ctrlc = "3.4.5"

@@ -9,7 +9,7 @@ simplelog = { version = "0.12.2", features = ["paris"] }
 colored = "3.0.0"
 
 # Error handling
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 
 # Command line arguments
 clap = { version = "4.5.31", features = ["derive"] }

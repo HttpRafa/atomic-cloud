@@ -19,7 +19,7 @@ inquire = { version = "0.7.5", features = ["editor"] }
 rustyline = "15.0.0"
 
 # Error handling
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 
 # Command line arguments
 clap = { version = "4.5.31", features = ["derive"] }

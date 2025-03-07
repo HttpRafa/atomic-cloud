@@ -16,7 +16,7 @@ use crate::{
     plugin::config::Config,
 };
 
-mod remote;
+pub mod remote;
 pub mod screen;
 mod server;
 
@@ -28,7 +28,7 @@ pub struct InnerNode {
     controller: String,
 
     /* Shared */
-    config: Rc<Config>,
+    config: Rc<RefCell<Config>>,
     remote: Remote,
 
     /* Servers */
@@ -42,7 +42,7 @@ impl Node {
         name: String,
         capabilities: Capabilities,
         controller: String,
-        config: Rc<Config>,
+        config: Rc<RefCell<Config>>,
         remote: Remote,
     ) -> Self {
         Self(Rc::new(InnerNode {

@@ -9,7 +9,8 @@ use crate::{
         Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
         ScopedErrors,
     },
-    node::InnerNode,
+    info,
+    node::{remote::Remote, InnerNode, Node},
 };
 
 pub mod config;
@@ -71,7 +72,19 @@ impl GuestPlugin for Pelican {
         controller: String,
     ) -> Result<GenericNode, ErrorMessage> {
         if let Some(value) = capabilities.child.as_ref() {
-            todo!()
+            let remote =
+                Remote::new(&self.config.borrow(), value).map_err(|error| error.to_string())?;
+            let node = Node::new(
+                name.clone(),
+                capabilities,
+                controller,
+                self.config.clone(),
+                remote,
+            );
+
+            self.nodes.borrow_mut().push(node.0.clone());
+            info!("Initialized node {}", name);
+            Ok(GenericNode::new(node))
         } else {
             Err("Node lacks the required child capability".to_string())
         }

@@ -7,7 +7,7 @@ url = "https://pelican.example.com"
 token = "your-token-here"
 
 # Credentials to use to authenticate to the client side of the pelican panel
-[client]
+[user]
 username = "atomic-cloud"
 token = "your-token-here"
 

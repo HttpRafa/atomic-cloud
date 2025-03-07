@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use endpoint::Endpoint;
+use remote::Remote;
 use server::manager::ServerManager;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
     plugin::config::Config,
 };
 
-mod endpoint;
+mod remote;
 pub mod screen;
 mod server;
 
@@ -29,7 +29,7 @@ pub struct InnerNode {
 
     /* Shared */
     config: Rc<Config>,
-    endpoint: Endpoint,
+    remote: Remote,
 
     /* Servers */
     servers: RefCell<ServerManager>,
@@ -43,14 +43,14 @@ impl Node {
         capabilities: Capabilities,
         controller: String,
         config: Rc<Config>,
-        endpoint: Endpoint,
+        remote: Remote,
     ) -> Self {
         Self(Rc::new(InnerNode {
             name,
             capabilities,
             controller,
             config,
-            endpoint,
+            remote,
             servers: ServerManager::init(),
         }))
     }

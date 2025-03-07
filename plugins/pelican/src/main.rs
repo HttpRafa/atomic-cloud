@@ -5,7 +5,7 @@ use generated::{
     exports::plugin::system::{bridge, screen},
 };
 use node::{screen::Screen, Node};
-use plugin::Local;
+use plugin::Pelican;
 
 mod log;
 mod node;
@@ -25,7 +25,7 @@ pub mod generated {
 struct Export;
 
 impl bridge::Guest for Export {
-    type Plugin = Local;
+    type Plugin = Pelican;
     type Node = Node;
 }
 

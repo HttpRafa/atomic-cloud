@@ -4,10 +4,10 @@ pub struct Screen;
 
 impl GuestScreen for Screen {
     fn pull(&self) -> Result<Vec<String>, ErrorMessage> {
-        Ok(vec![])
+        unimplemented!("Screen::pull")
     }
 
     fn write(&self, _: Vec<u8>) -> Result<(), ErrorMessage> {
-        Ok(())
+        unimplemented!("Screen::write")
     }
 }

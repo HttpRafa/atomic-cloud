@@ -21,7 +21,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 pub const FEATURES: Features = Features::all();
 
 // Rc is used here to allow resorces to be shared between the plugin and the nodes
-pub struct Local {
+pub struct Pelican {
     /* Cloud Identification */
     identifier: String,
 
@@ -32,7 +32,7 @@ pub struct Local {
     nodes: RefCell<Vec<Rc<InnerNode>>>,
 }
 
-impl GuestPlugin for Local {
+impl GuestPlugin for Pelican {
     fn new(identifier: String) -> Self {
         Self {
             identifier,
@@ -42,7 +42,7 @@ impl GuestPlugin for Local {
     }
 
     fn init(&self) -> Information {
-        fn inner(own: &Local) -> Result<()> {
+        fn inner(own: &Pelican) -> Result<()> {
             // Load configuration
             {
                 let config = Config::parse()?;
@@ -70,7 +70,11 @@ impl GuestPlugin for Local {
         capabilities: Capabilities,
         controller: String,
     ) -> Result<GenericNode, ErrorMessage> {
-        todo!("Implement init_node")
+        if let Some(value) = capabilities.child.as_ref() {
+            todo!()
+        } else {
+            Err("Node lacks the required child capability".to_string())
+        }
     }
 
     fn tick(&self) -> Result<(), ScopedErrors> {

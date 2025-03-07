@@ -21,7 +21,7 @@ struct Application {
 }
 
 #[derive(Deserialize, Default)]
-struct Client {
+struct User {
     username: String,
     token: String,
 }
@@ -36,7 +36,7 @@ struct Timeouts {
 pub struct Config {
     network: Network,
     application: Application,
-    client: Client,
+    user: User,
     timeouts: Timeouts,
 }
 
@@ -63,11 +63,11 @@ impl Config {
     }
 
     pub fn username(&self) -> &str {
-        &self.client.username
+        &self.user.username
     }
 
-    pub fn client_token(&self) -> &str {
-        &self.client.token
+    pub fn user_token(&self) -> &str {
+        &self.user.token
     }
 
     pub fn stop_timeout(&self) -> &Duration {
@@ -82,7 +82,7 @@ impl Config {
 impl Default for Network {
     fn default() -> Self {
         Self {
-            url: Url::parse("https://localhost:8080").unwrap(),
+            url: Url::parse("https://localhost:8080").expect("Invalid URL"),
         }
     }
 }

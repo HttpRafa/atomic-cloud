@@ -1,0 +1,22 @@
+[network]
+# The url of the pelican panel this plugin will use to start servers
+url = "https://pelican.example.com"
+
+# Credentials to use to authenticate with the pelican panel
+[application]
+token = "your-token-here"
+
+# Credentials to use to authenticate to the client side of the pelican panel
+[client]
+username = "atomic-cloud"
+token = "your-token-here"
+
+# The duration the plugin will wait for a server to stop before forcefully terminating the process
+[timeouts.stop]
+secs = 30
+nanos = 0
+
+# The duration the plugin will wait for a server to stop before forcefully terminating and respawning it
+[timeouts.restart]
+secs = 30
+nanos = 0

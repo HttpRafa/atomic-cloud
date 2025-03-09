@@ -6,7 +6,7 @@ use crate::{
     generated::plugin::system::http::{send_http_request, Header, Method, Response},
 };
 
-use super::{Endpoint, Remote};
+use super::{Backend, Endpoint};
 
 pub mod data;
 
@@ -14,7 +14,7 @@ pub mod data;
 const APPLICATION_ENDPOINT: &str = "api/application";
 const CLIENT_ENDPOINT: &str = "api/client";
 
-impl Remote {
+impl Backend {
     pub fn api_find_on_pages<T: DeserializeOwned>(
         &self,
         method: Method,
@@ -33,7 +33,7 @@ impl Remote {
         value
     }
 
-    fn for_each_on_pages<T: DeserializeOwned>(
+    pub fn for_each_on_pages<T: DeserializeOwned>(
         &self,
         method: Method,
         endpoint: &Endpoint,
@@ -79,7 +79,7 @@ impl Remote {
         self.send_to_api_parse(Method::Post, endpoint, target, 201, body.as_deref(), None)
     }
 
-    fn send_to_api(
+    pub fn send_to_api(
         &self,
         method: Method,
         endpoint: &Endpoint,

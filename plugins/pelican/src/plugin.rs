@@ -10,7 +10,7 @@ use crate::{
         ScopedErrors,
     },
     info,
-    node::{remote::Remote, InnerNode, Node},
+    node::{backend::Backend, InnerNode, Node},
 };
 
 pub mod config;
@@ -72,14 +72,15 @@ impl GuestPlugin for Pelican {
         controller: String,
     ) -> Result<GenericNode, ErrorMessage> {
         if let Some(value) = capabilities.child.as_ref() {
-            let remote =
-                Remote::new(&self.config.borrow(), value).map_err(|error| error.to_string())?;
+            let backend =
+                Backend::new(&self.config.borrow(), value).map_err(|error| error.to_string())?;
             let node = Node::new(
+                self.identifier.clone(),
                 name.clone(),
                 capabilities,
                 controller,
                 self.config.clone(),
-                remote,
+                backend,
             );
 
             self.nodes.borrow_mut().push(node.0.clone());

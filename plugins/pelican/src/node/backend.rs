@@ -1,14 +1,15 @@
-
 use anyhow::{anyhow, Result};
 use url::Url;
 
 use crate::plugin::config::Config;
 
+pub mod allocation;
 mod common;
-mod node;
-mod user;
+pub mod node;
+pub mod server;
+pub mod user;
 
-pub struct Remote {
+pub struct Backend {
     url: Url,
     token: String,
     username: String,
@@ -23,9 +24,9 @@ pub enum Endpoint {
     Application,
 }
 
-impl Remote {
+impl Backend {
     pub fn new(config: &Config, node: &str) -> Result<Self> {
-        let mut remote = Self {
+        let mut backend = Self {
             url: config.url().clone(),
             token: config.token().to_string(),
             username: config.username().to_string(),
@@ -36,7 +37,7 @@ impl Remote {
         };
 
         // Update the node_id field
-        remote.node_id = remote
+        backend.node_id = backend
             .get_node_by_name(node)
             .ok_or(anyhow!(
                 "Failed to get node {} from panel. Does it exist?",
@@ -45,14 +46,14 @@ impl Remote {
             .id;
 
         // Update the user_id field
-        remote.user_id = remote
-            .get_user_by_name(&remote.username)
+        backend.user_id = backend
+            .get_user_by_name(&backend.username)
             .ok_or(anyhow!(
                 "Failed to get user {} from panel. Does he exist?",
                 config.username()
             ))?
             .id;
 
-        Ok(remote)
+        Ok(backend)
     }
 }

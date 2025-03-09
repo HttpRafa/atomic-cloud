@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
-use remote::Remote;
+use allocation::manager::AllocationManager;
+use backend::Backend;
 use server::manager::ServerManager;
 
 use crate::{
@@ -16,11 +17,15 @@ use crate::{
     plugin::config::Config,
 };
 
-pub mod remote;
+mod allocation;
+pub mod backend;
 pub mod screen;
 mod server;
 
 pub struct InnerNode {
+    /* Cloud Identification */
+    identifier: String,
+
     /* Node */
     name: String,
     #[allow(unused)]
@@ -29,9 +34,12 @@ pub struct InnerNode {
 
     /* Shared */
     config: Rc<RefCell<Config>>,
-    remote: Remote,
 
-    /* Servers */
+    /* Panel */
+    backend: Backend,
+
+    /* Servers and Allocations */
+    allocations: RefCell<AllocationManager>,
     servers: RefCell<ServerManager>,
 }
 
@@ -39,18 +47,21 @@ pub struct Node(pub Rc<InnerNode>);
 
 impl Node {
     pub fn new(
+        identifier: String,
         name: String,
         capabilities: Capabilities,
         controller: String,
         config: Rc<RefCell<Config>>,
-        remote: Remote,
+        backend: Backend,
     ) -> Self {
         Self(Rc::new(InnerNode {
+            identifier,
             name,
             capabilities,
             controller,
             config,
-            remote,
+            backend,
+            allocations: AllocationManager::init(),
             servers: ServerManager::init(),
         }))
     }
@@ -62,10 +73,16 @@ impl GuestNode for Node {
     }
 
     fn allocate(&self, server: ServerProposal) -> Result<Vec<Address>, ErrorMessage> {
-        Ok(vec![])
+        self.0
+            .allocations
+            .borrow_mut()
+            .allocate(&self.0, server)
+            .map_err(|error| error.to_string())
     }
 
-    fn free(&self, addresses: Vec<Address>) {}
+    fn free(&self, addresses: Vec<Address>) {
+        self.0.allocations.borrow_mut().free(addresses)
+    }
 
     fn start(&self, server: Server) -> ScreenType {
         ScreenType::Unsupported

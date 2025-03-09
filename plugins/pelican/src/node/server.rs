@@ -1,1 +1,7 @@
 pub mod manager;
+
+/* Variables */
+const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
+const CONTROLLER_CERTIFICATE: &str = "CONTROLLER_CERTIFICATE";
+const SERVER_TOKEN: &str = "SERVER_TOKEN";
+const SERVER_PORT: &str = "SERVER_PORT";

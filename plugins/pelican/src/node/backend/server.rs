@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use common::name::TimedName;
 use data::{
@@ -18,7 +17,7 @@ impl Backend {
         backend_server: &BServer,
         server: &Server,
         primary_allocation: u32,
-        environment: &HashMap<String, String>,
+        environment: &[(String, String)],
     ) {
         // Update the environment variables
         for (key, value) in environment {
@@ -106,9 +105,9 @@ impl Backend {
         name: &TimedName,
         server: &Server,
         allocations: &[BAllocation],
-        environment: HashMap<String, String>,
-        egg: BServerEgg,
-        features: BServerFeatureLimits,
+        environment: &[(String, String)],
+        egg: &BServerEgg,
+        features: &BServerFeatureLimits,
     ) -> Option<BServer> {
         let backend_server = BCServer {
             name: name.get_name_cloned(),
@@ -117,9 +116,9 @@ impl Backend {
             egg: egg.id,
             docker_image: server.allocation.spec.image.clone(),
             startup: egg.startup.to_owned(),
-            environment,
+            environment: environment.iter().cloned().collect(),
             limits: server.allocation.resources.into(),
-            feature_limits: features,
+            feature_limits: features.clone(),
             allocation: BCServerAllocation::from(allocations),
             start_on_completion: true,
         };

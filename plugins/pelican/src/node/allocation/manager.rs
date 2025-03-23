@@ -71,4 +71,12 @@ impl AllocationManager {
             }
         }
     }
+
+    pub fn get_allocations(&self, allocations: &[Address]) -> Vec<BAllocation> {
+        allocations
+            .iter()
+            .map_while(|address| self.allocations.get(&address.port))
+            .cloned()
+            .collect()
+    }
 }

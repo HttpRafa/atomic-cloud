@@ -69,6 +69,11 @@ impl Node {
 
 impl GuestNode for Node {
     fn tick(&self) -> Result<(), ScopedErrors> {
+        self.0
+            .servers
+            .borrow_mut()
+            .tick(&self.0.name, &self.0.config.borrow())?;
+
         Ok(())
     }
 
@@ -85,7 +90,7 @@ impl GuestNode for Node {
     }
 
     fn start(&self, server: Server) -> ScreenType {
-        ScreenType::Unsupported
+        self.0.servers.borrow_mut().start(&self.0, server)
     }
 
     fn restart(&self, server: Server) {}

@@ -205,13 +205,13 @@ impl CreateGroupMenu {
         )?;
         let settings = MenuUtils::parsed_value::<KeyValueList>(
             "What settings should the controller pass to the plugin when starting a server?",
-            "Format: key=value,key=value,key=value,...",
+            "Format: key=value,key=value,key=value,... (or leave it empty for none)",
             "Please check your syntax. Something seems wrong.",
         )?
         .key_values;
         let env = MenuUtils::parsed_value::<KeyValueList>(
             "What environment variables should the controller pass to the plugin when starting a server?",
-            "Format: key=value,key=value,key=value,...",
+            "Format: key=value,key=value,key=value,... (or leave it empty for none)",
             "Please check your syntax something is wrong",
         )?
         .key_values;
@@ -256,9 +256,12 @@ struct KeyValueList {
 impl FromStr for KeyValueList {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
         let mut result = Vec::new();
-        for pair in s.split(',') {
+        if string.is_empty() {
+            return Ok(KeyValueList { key_values: result });
+        }
+        for pair in string.split(',') {
             let mut parts = pair.split('=');
             let key = parts
                 .next()

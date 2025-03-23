@@ -33,7 +33,7 @@ impl ServerManager {
         let mut errors = vec![];
         self.servers.retain(|_, server| match server.tick(config) {
             Ok(State::Dead) => {
-                info!("Server {} stopped. Clean", server.name.get_name());
+                info!("Server {} stopped.", server.name.get_name());
                 if let Err(error) = server.cleanup(node) {
                     errors.push(ScopedError {
                         scope: server.name.get_name().to_string(),

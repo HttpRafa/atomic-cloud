@@ -9,7 +9,7 @@ use crate::{
 
 pub struct BServerEgg {
     pub id: u32,
-    pub startup: String,
+    pub startup: Option<String>,
 }
 
 /* Create Server on panel */
@@ -20,7 +20,7 @@ pub struct BCServer {
     pub user: u32,
     pub egg: u32,
     pub docker_image: String,
-    pub startup: String,
+    pub startup: Option<String>,
     pub environment: HashMap<String, String>,
     pub limits: BServerLimits,
     pub feature_limits: BServerFeatureLimits,

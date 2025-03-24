@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::exports::node::plugin::bridge::Resources;
-
-use super::allocation::BAllocation;
+use crate::{
+    generated::exports::plugin::system::bridge::Resources,
+    node::backend::allocation::data::BAllocation,
+};
 
 pub struct BServerEgg {
     pub id: u32,
-    pub startup: String,
+    pub startup: Option<String>,
 }
 
 /* Create Server on panel */
@@ -19,7 +20,7 @@ pub struct BCServer {
     pub user: u32,
     pub egg: u32,
     pub docker_image: String,
-    pub startup: String,
+    pub startup: Option<String>,
     pub environment: HashMap<String, String>,
     pub limits: BServerLimits,
     pub feature_limits: BServerFeatureLimits,
@@ -102,4 +103,31 @@ pub struct BUpdateBuild {
     pub cpu: u32,
     pub threads: Option<()>, // Used to generate null in the JSON
     pub feature_limits: BServerFeatureLimits,
+}
+
+pub enum PanelState {
+    Starting,
+    Running,
+    Stopping,
+    Offline,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct BResources {
+    pub current_state: String,
+    #[allow(unused)]
+    pub is_suspended: bool,
+    #[allow(unused)]
+    pub resources: BUsedResources,
+}
+
+#[derive(Deserialize, Clone)]
+#[allow(unused)]
+pub struct BUsedResources {
+    pub memory_bytes: u32,
+    pub cpu_absolute: u32,
+    pub disk_bytes: u32,
+    pub network_rx_bytes: u32,
+    pub network_tx_bytes: u32,
+    pub uptime: u32,
 }

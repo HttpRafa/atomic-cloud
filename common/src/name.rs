@@ -47,4 +47,8 @@ impl TimedName {
     pub fn get_raw_name(&self) -> &str {
         &self.raw_name
     }
+    #[must_use]
+    pub fn get_raw_name_cloned(&self) -> String {
+        self.raw_name.clone()
+    }
 }

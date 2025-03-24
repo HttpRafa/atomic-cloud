@@ -142,7 +142,7 @@ impl CreateNodeMenu {
     fn get_child_node() -> Result<Option<String>, InquireError> {
         if MenuUtils::confirm("Does the specified plugin need additional information to determine which node it should use in the backend? This is required when a plugin manages multiple nodes.")? {
             Ok(Some(Text::new("What is the name of the child node the controller should use?")
-                .with_help_message("Example: node0.gameservers.my-pterodactyl.net")
+                .with_help_message("Example: node0.gameservers.my-pelican.net")
                 .with_validator(ValueRequiredValidator::default())
                 .prompt()?))
         } else { Ok(None) }

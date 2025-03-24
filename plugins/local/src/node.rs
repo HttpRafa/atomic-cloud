@@ -56,7 +56,10 @@ impl Node {
 
 impl GuestNode for Node {
     fn tick(&self) -> Result<(), ScopedErrors> {
-        self.0.servers.borrow_mut().tick(&self.0.config.borrow())?;
+        self.0
+            .servers
+            .borrow_mut()
+            .tick(&self.0.name, &self.0.config.borrow())?;
 
         Ok(())
     }

@@ -4,12 +4,14 @@ use anyhow::{anyhow, Result};
 use common::name::TimedName;
 
 use crate::{
+    debug,
     generated::{
         exports::plugin::system::{
             bridge::{self, DiskRetention, Guard},
             screen::{Screen as GenericScreen, ScreenType},
         },
         plugin::system::{
+            file::remove_dir_all,
             process::{ExitStatus, Process, ProcessBuilder},
             tls::get_certificate,
         },
@@ -33,7 +35,7 @@ const SERVER_PORT: &str = "SERVER_PORT";
 
 pub struct Server {
     name: TimedName,
-    _request: bridge::Server,
+    request: bridge::Server,
     template: String,
     builder: ProcessBuilder,
     process: Rc<Process>,
@@ -98,13 +100,31 @@ impl Server {
 
         Ok(Self {
             name,
-            _request: request,
+            request,
             template: template.name().to_string(),
             builder,
             process: Rc::new(process),
             state: State::Running,
             guard: None,
         })
+    }
+
+    pub fn cleanup(&mut self, node: &str) -> Result<()> {
+        debug!("Cleaning up server {}", self.name.get_name());
+        if matches!(
+            self.request.allocation.spec.disk_retention,
+            DiskRetention::Temporary
+        ) {
+            remove_dir_all(&Storage::create_server_directory(
+                node,
+                &self.name,
+                &DiskRetention::Temporary,
+            ))
+            .map_err(|error| anyhow!(error))?;
+        }
+        debug!("Cleaned up server {}", self.name.get_name());
+
+        Ok(())
     }
 
     pub fn tick(&mut self, config: &Config) -> Result<&State> {

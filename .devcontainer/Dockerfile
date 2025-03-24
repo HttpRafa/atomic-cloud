@@ -22,6 +22,9 @@ EOF
 
 ENV HOME=/home/${REMOTE_USER}
 
+# Switch to bash as default shell
+RUN chsh -s /bin/bash ${REMOTE_USER}
+
 USER ${REMOTE_USER}
 
 # Switch to nano as default editor

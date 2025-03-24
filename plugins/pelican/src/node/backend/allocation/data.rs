@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::exports::node::plugin::bridge::Address;
+use crate::generated::exports::plugin::system::bridge::Address;
 
 #[derive(Deserialize, Clone)]
 pub struct BAllocation {

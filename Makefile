@@ -70,7 +70,7 @@ build-wrapper:
 ## Build plugins target
 build-plugins:
 	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
-	cargo build -p pterodactyl --target $(WASM_TARGET) --release
+	cargo build -p pelican --target $(WASM_TARGET) --release
 	cargo build -p local --target $(WASM_TARGET) --release
 
 # Create plugin directory if it doesn't exist

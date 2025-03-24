@@ -1,7 +1,5 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use anyhow::Result;
-
 use crate::{
     error,
     generated::{
@@ -29,53 +27,45 @@ impl ServerManager {
         })
     }
 
-    pub fn tick(&mut self, node: &str, config: &Config) -> Result<(), ScopedErrors> {
+    pub fn tick(&mut self, node: &InnerNode, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
-        self.servers.retain(|_, server| match server.tick(config) {
-            Ok(State::Dead) => {
-                info!("Server {} stopped.", server.name.get_name());
-                if let Err(error) = server.cleanup(node) {
+        self.servers
+            .retain(|_, server| match server.tick(node, config) {
+                Ok(State::Dead) => {
+                    info!("Server {} stopped.", server.name.get_name());
+                    if let Err(error) = server.cleanup(node) {
+                        errors.push(ScopedError {
+                            scope: server.name.get_name().to_string(),
+                            message: error.to_string(),
+                        });
+                    }
+                    false
+                }
+                Ok(_) => true,
+                Err(error) => {
                     errors.push(ScopedError {
                         scope: server.name.get_name().to_string(),
                         message: error.to_string(),
                     });
+                    if let Err(error) = server.cleanup(node) {
+                        errors.push(ScopedError {
+                            scope: server.name.get_name().to_string(),
+                            message: error.to_string(),
+                        });
+                    }
+                    false
                 }
-                false
-            }
-            Ok(_) => true,
-            Err(error) => {
-                errors.push(ScopedError {
-                    scope: server.name.get_name().to_string(),
-                    message: error.to_string(),
-                });
-                if let Err(error) = server.cleanup(node) {
-                    errors.push(ScopedError {
-                        scope: server.name.get_name().to_string(),
-                        message: error.to_string(),
-                    });
-                }
-                false
-            }
-        });
+            });
         if !errors.is_empty() {
             return Err(errors);
         }
         Ok(())
     }
 
-    pub fn spawn(&mut self, node: &InnerNode, request: bridge::Server) -> ScreenType {
-        let templates = node.templates.borrow();
+    pub fn start(&mut self, node: &InnerNode, request: bridge::Server) -> ScreenType {
         let name = request.name.clone();
 
-        let Some(template) = templates.get_template(&request.allocation.spec.image) else {
-            error!(
-                "Template not found while starting server {}: {}",
-                request.name, request.allocation.spec.image
-            );
-            return ScreenType::Unsupported;
-        };
-
-        let server = match Server::spawn(node, request, template) {
+        let server = match Server::start(node, request) {
             Ok(server) => server,
             Err(error) => {
                 error!("Failed to spawn server {}: {}", name, error);

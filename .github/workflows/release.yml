@@ -73,13 +73,13 @@ jobs:
           git checkout -b $BRANCH
           git push -u origin $BRANCH
           sed -i "s/client_version=0\\.0\\.0-nightly/client_version=${VERSION}/g" clients/jvm/gradle.properties
-          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/pterodactyl/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/pelican/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/local/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" clients/wrapper/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" controller/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" common/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" cli/Cargo.toml
-          git add clients/jvm/gradle.properties plugins/pterodactyl/Cargo.toml plugins/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
+          git add clients/jvm/gradle.properties plugins/pelican/Cargo.toml plugins/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
           git commit -m "ci(release): bump version"
           git push
 
@@ -115,13 +115,13 @@ jobs:
           cp ./target/x86_64-unknown-linux-gnu/release/wrapper wrapper-linux-x86_64
           cp ./target/x86_64-pc-windows-gnu/release/wrapper.exe wrapper-windows-x86_64.exe
 
-          # cp ./target/wasm32-wasip2/release/pterodactyl.wasm pterodactyl-plugin.wasm
+          cp ./target/wasm32-wasip2/release/pelican.wasm pelican.wasm
           
-          cp ./target/wasm32-wasip2/release/local.wasm local-plugin.wasm
+          cp ./target/wasm32-wasip2/release/local.wasm local.wasm
 
           cp $(find ./clients/jvm/paper/build -name "*-all.jar") paper-client.jar
 
-      - name: Create egg zip and template zip
+      - name: Create egg tar.gz and template tar.gz
         run: |
           tar -czvf templates.tar.gz -C templates .
           tar -czvf eggs.tar.gz -C eggs .
@@ -141,7 +141,8 @@ jobs:
             cli-windows-x86_64.exe
             wrapper-linux-x86_64
             wrapper-windows-x86_64.exe
-            local-plugin.wasm
+            pelican.wasm
+            local.wasm
             templates.tar.gz
             eggs.tar.gz
             paper-client.jar

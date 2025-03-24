@@ -29,22 +29,24 @@ pub const FEATURES: Features = Features::all();
 
 // Rc is used here to allow resorces to be shared between the plugin and the nodes
 pub struct Local {
-    nodes: RefCell<Vec<Rc<InnerNode>>>,
-
-    // Using .unwrap() is safe here because the value is always set by the time it is accessed (after the plugin is initialized)
+    /* Configuration */
     config: Rc<RefCell<Config>>,
 
+    /* Shared */
     allocator: Rc<RefCell<NumberAllocator<u16>>>,
     templates: Rc<RefCell<TemplateManager>>,
+
+    /* Nodes */
+    nodes: RefCell<Vec<Rc<InnerNode>>>,
 }
 
 impl GuestPlugin for Local {
     fn new(_: String) -> Self {
         Self {
-            nodes: RefCell::new(vec![]),
             config: Rc::new(RefCell::new(Config::default())), // Dummy config
             allocator: Rc::new(RefCell::new(NumberAllocator::new(0..10))), // Dummy allocator
             templates: Rc::new(RefCell::new(TemplateManager::default())),
+            nodes: RefCell::new(vec![]),
         }
     }
 

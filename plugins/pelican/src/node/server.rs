@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use common::name::TimedName;
 
 use crate::{
-    error,
+    debug, error,
     generated::{
         exports::plugin::system::{
             bridge::{self, DiskRetention, Guard},
@@ -12,6 +12,7 @@ use crate::{
         },
         plugin::system::tls::get_certificate,
     },
+    info,
     plugin::config::Config,
     warn,
 };
@@ -19,7 +20,7 @@ use crate::{
 use super::{
     backend::{
         allocation::data::BAllocation,
-        server::data::{BServer, BServerEgg, BServerFeatureLimits},
+        server::data::{BServer, BServerEgg, BServerFeatureLimits, PanelState},
     },
     InnerNode,
 };
@@ -30,11 +31,12 @@ pub mod manager;
 const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
 const CONTROLLER_CERTIFICATE: &str = "CONTROLLER_CERTIFICATE";
 const SERVER_TOKEN: &str = "SERVER_TOKEN";
-const SERVER_PORT: &str = "SERVER_PORT";
 
 pub struct Server {
     name: TimedName,
+    #[allow(unused)]
     request: bridge::Server,
+    #[allow(unused)]
     egg: BServerEgg,
 
     backend: (u32, String),
@@ -172,13 +174,73 @@ impl Server {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn cleanup(&mut self, node: &str) -> Result<()> {
+    // Currently unused
+    pub fn cleanup(&mut self, node: &InnerNode) -> Result<()> {
+        debug!("Cleaning up server {}", self.name.get_name());
+        if matches!(
+            self.request.allocation.spec.disk_retention,
+            DiskRetention::Temporary
+        ) {
+            node.backend.delete_server(self.backend.0);
+        }
+        debug!("Cleaned up server {}", self.name.get_name());
         Ok(())
     }
 
-    pub fn tick(&mut self, config: &Config) -> Result<&State> {
+    pub fn tick(&mut self, node: &InnerNode, config: &Config) -> Result<&State> {
+        self.state = match self.state {
+            State::Restarting(instant) => {
+                if &instant.elapsed() > config.restart_timeout() {
+                    warn!(
+                        "Server {} failed to stop in {:?}. Killing and respawning process...",
+                        self.name.get_name(),
+                        config.restart_timeout()
+                    );
+                    node.backend.restart_server(&self.backend.1);
+                    State::Running
+                } else if let Some(PanelState::Running) =
+                    node.backend.get_server_state(&self.backend.1)
+                {
+                    info!("Server {} is now running again.", self.name.get_name(),);
+                    State::Running
+                } else {
+                    State::Restarting(instant)
+                }
+            }
+            State::Stopping(instant) => {
+                if &instant.elapsed() > config.stop_timeout() {
+                    warn!(
+                        "Server {} failed to stop in {:?}. Killing process...",
+                        self.name.get_name(),
+                        config.stop_timeout()
+                    );
+                    node.backend.kill_server(&self.backend.1);
+                    State::Dead
+                } else if let Some(PanelState::Offline) =
+                    node.backend.get_server_state(&self.backend.1)
+                {
+                    info!("Server {} stopped successfully.", self.name.get_name(),);
+                    State::Dead
+                } else {
+                    State::Stopping(instant)
+                }
+            }
+            _ => State::Running,
+        };
         Ok(&self.state)
+    }
+
+    pub fn restart(&mut self, node: &InnerNode) -> Result<()> {
+        self.state = State::Restarting(Instant::now());
+        node.backend.restart_server(&self.backend.1);
+        Ok(())
+    }
+
+    pub fn stop(&mut self, node: &InnerNode, guard: Guard) -> Result<()> {
+        self.state = State::Stopping(Instant::now());
+        self.guard = Some(guard);
+        node.backend.stop_server(&self.backend.1);
+        Ok(())
     }
 
     pub fn screen(&self) -> ScreenType {

@@ -1,8 +1,7 @@
-
 use common::name::TimedName;
 use data::{
-    BCServer, BCServerAllocation, BKeyValue, BServer, BServerEgg, BServerFeatureLimits, BSignal,
-    BUpdateBuild,
+    BCServer, BCServerAllocation, BKeyValue, BResources, BServer, BServerEgg, BServerFeatureLimits,
+    BSignal, BUpdateBuild, PanelState,
 };
 
 use crate::generated::{exports::plugin::system::bridge::Server, plugin::system::http::Method};
@@ -69,6 +68,27 @@ impl Backend {
         )
     }
 
+    pub fn get_server_state(&self, identifier: &str) -> Option<PanelState> {
+        self.get_server_resources(identifier).map(|resources| {
+            match resources.current_state.as_str() {
+                "starting" => PanelState::Starting,
+                "running" => PanelState::Running,
+                "stopping" => PanelState::Stopping,
+                "offline" => PanelState::Offline,
+                _ => PanelState::Starting,
+            }
+        })
+    }
+
+    fn get_server_resources(&self, identifier: &str) -> Option<BResources> {
+        self.get_object_from_api::<(), BResources>(
+            &Endpoint::Client,
+            &format!("servers/{}/resources", &identifier),
+            &(),
+        )
+        .map(|data| data.attributes)
+    }
+
     pub fn start_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "start")
     }
@@ -79,6 +99,10 @@ impl Backend {
 
     pub fn stop_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "stop")
+    }
+
+    pub fn kill_server(&self, identifier: &str) -> bool {
+        self.change_power_state(identifier, "kill")
     }
 
     fn change_power_state(&self, identifier: &str, state: &str) -> bool {

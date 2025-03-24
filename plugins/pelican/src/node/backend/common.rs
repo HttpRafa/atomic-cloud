@@ -69,6 +69,16 @@ impl Backend {
         self.send_to_api(Method::Delete, endpoint, target, 204, None, None)
     }
 
+    pub fn get_object_from_api<T: Serialize, K: DeserializeOwned>(
+        &self,
+        endpoint: &Endpoint,
+        target: &str,
+        object: &T,
+    ) -> Option<BObject<K>> {
+        let body = serde_json::to_vec(object).ok();
+        self.send_to_api_parse(Method::Get, endpoint, target, 200, body.as_deref(), None)
+    }
+
     pub fn post_object_to_api<T: Serialize, K: DeserializeOwned>(
         &self,
         endpoint: &Endpoint,

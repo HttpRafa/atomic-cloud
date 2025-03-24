@@ -104,3 +104,30 @@ pub struct BUpdateBuild {
     pub threads: Option<()>, // Used to generate null in the JSON
     pub feature_limits: BServerFeatureLimits,
 }
+
+pub enum PanelState {
+    Starting,
+    Running,
+    Stopping,
+    Offline,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct BResources {
+    pub current_state: String,
+    #[allow(unused)]
+    pub is_suspended: bool,
+    #[allow(unused)]
+    pub resources: BUsedResources,
+}
+
+#[derive(Deserialize, Clone)]
+#[allow(unused)]
+pub struct BUsedResources {
+    pub memory_bytes: u32,
+    pub cpu_absolute: u32,
+    pub disk_bytes: u32,
+    pub network_rx_bytes: u32,
+    pub network_tx_bytes: u32,
+    pub uptime: u32,
+}

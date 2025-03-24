@@ -27,6 +27,7 @@ pub struct InnerNode {
     identifier: String,
 
     /* Node */
+    #[allow(unused)]
     name: String,
     #[allow(unused)]
     capabilities: Capabilities,
@@ -72,7 +73,7 @@ impl GuestNode for Node {
         self.0
             .servers
             .borrow_mut()
-            .tick(&self.0.name, &self.0.config.borrow())?;
+            .tick(&self.0, &self.0.config.borrow())?;
 
         Ok(())
     }
@@ -93,7 +94,11 @@ impl GuestNode for Node {
         self.0.servers.borrow_mut().start(&self.0, server)
     }
 
-    fn restart(&self, server: Server) {}
+    fn restart(&self, server: Server) {
+        self.0.servers.borrow_mut().restart(&self.0, server)
+    }
 
-    fn stop(&self, server: Server, guard: Guard) {}
+    fn stop(&self, server: Server, guard: Guard) {
+        self.0.servers.borrow_mut().stop(&self.0, server, guard)
+    }
 }

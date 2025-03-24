@@ -1,11 +1,10 @@
 use std::{cell::RefCell, collections::HashMap};
 
-
 use crate::{
     error,
     generated::{
         exports::plugin::system::{
-            bridge::{self, ScopedErrors, Uuid},
+            bridge::{self, Guard, ScopedErrors, Uuid},
             screen::ScreenType,
         },
         plugin::system::types::ScopedError,
@@ -28,34 +27,35 @@ impl ServerManager {
         })
     }
 
-    pub fn tick(&mut self, node: &str, config: &Config) -> Result<(), ScopedErrors> {
+    pub fn tick(&mut self, node: &InnerNode, config: &Config) -> Result<(), ScopedErrors> {
         let mut errors = vec![];
-        self.servers.retain(|_, server| match server.tick(config) {
-            Ok(State::Dead) => {
-                info!("Server {} stopped.", server.name.get_name());
-                if let Err(error) = server.cleanup(node) {
+        self.servers
+            .retain(|_, server| match server.tick(node, config) {
+                Ok(State::Dead) => {
+                    info!("Server {} stopped.", server.name.get_name());
+                    if let Err(error) = server.cleanup(node) {
+                        errors.push(ScopedError {
+                            scope: server.name.get_name().to_string(),
+                            message: error.to_string(),
+                        });
+                    }
+                    false
+                }
+                Ok(_) => true,
+                Err(error) => {
                     errors.push(ScopedError {
                         scope: server.name.get_name().to_string(),
                         message: error.to_string(),
                     });
+                    if let Err(error) = server.cleanup(node) {
+                        errors.push(ScopedError {
+                            scope: server.name.get_name().to_string(),
+                            message: error.to_string(),
+                        });
+                    }
+                    false
                 }
-                false
-            }
-            Ok(_) => true,
-            Err(error) => {
-                errors.push(ScopedError {
-                    scope: server.name.get_name().to_string(),
-                    message: error.to_string(),
-                });
-                if let Err(error) = server.cleanup(node) {
-                    errors.push(ScopedError {
-                        scope: server.name.get_name().to_string(),
-                        message: error.to_string(),
-                    });
-                }
-                false
-            }
-        });
+            });
         if !errors.is_empty() {
             return Err(errors);
         }
@@ -77,5 +77,41 @@ impl ServerManager {
         info!("Server {} started", name);
         self.servers.insert(name, server);
         screen
+    }
+
+    pub fn restart(&mut self, node: &InnerNode, server: bridge::Server) {
+        let server = match self.servers.get_mut(&server.name) {
+            Some(server) => server,
+            None => {
+                error!("Server not found while restarting server {}", server.name);
+                return;
+            }
+        };
+
+        if let Err(error) = server.restart(node) {
+            error!(
+                "Failed to restart server {}: {}",
+                server.name.get_name(),
+                error
+            );
+        }
+    }
+
+    pub fn stop(&mut self, node: &InnerNode, server: bridge::Server, guard: Guard) {
+        let server = match self.servers.get_mut(&server.name) {
+            Some(server) => server,
+            None => {
+                error!("Server not found while stopping server {}", server.name);
+                return;
+            }
+        };
+
+        if let Err(error) = server.stop(node, guard) {
+            error!(
+                "Failed to stop server {}: {}",
+                server.name.get_name(),
+                error
+            );
+        }
     }
 }

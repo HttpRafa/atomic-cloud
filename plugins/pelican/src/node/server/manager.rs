@@ -72,7 +72,7 @@ impl ServerManager {
                 return ScreenType::Unsupported;
             }
         };
-        let screen = server.screen();
+        let screen = server.screen(node.config.borrow().url());
 
         info!("Server {} started", name);
         self.servers.insert(name, server);

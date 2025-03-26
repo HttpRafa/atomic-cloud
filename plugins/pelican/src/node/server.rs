@@ -1,14 +1,18 @@
-use std::time::Instant;
+use std::{
+    cell::RefCell,
+    time::{Duration, Instant},
+};
 
 use anyhow::{bail, Result};
 use common::name::TimedName;
+use url::Url;
 
 use crate::{
     debug, error,
     generated::{
         exports::plugin::system::{
             bridge::{self, DiskRetention, Guard},
-            screen::ScreenType,
+            screen::{Screen as GenericScreen, ScreenType},
         },
         plugin::system::tls::get_certificate,
     },
@@ -22,6 +26,7 @@ use super::{
         allocation::data::BAllocation,
         server::data::{BServer, BServerEgg, BServerFeatureLimits, PanelState},
     },
+    screen::Screen,
     InnerNode,
 };
 
@@ -32,6 +37,9 @@ const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
 const CONTROLLER_CERTIFICATE: &str = "CONTROLLER_CERTIFICATE";
 const SERVER_TOKEN: &str = "SERVER_TOKEN";
 
+/* Durations */
+const DEFAULT_UPDATE_DURATION: Duration = Duration::from_secs(15);
+
 pub struct Server {
     name: TimedName,
     #[allow(unused)]
@@ -40,6 +48,8 @@ pub struct Server {
     egg: BServerEgg,
 
     backend: (u32, String),
+
+    last_update: Instant,
 
     state: State,
     guard: Option<Guard>,
@@ -137,6 +147,7 @@ impl Server {
             request,
             egg,
             backend: (server.id, server.identifier),
+            last_update: Instant::now(),
             state: State::Running,
             guard: None,
         })
@@ -166,6 +177,7 @@ impl Server {
                 request,
                 egg,
                 backend: (server.id, server.identifier),
+                last_update: Instant::now(),
                 state: State::Running,
                 guard: None,
             })
@@ -189,7 +201,7 @@ impl Server {
 
     pub fn tick(&mut self, node: &InnerNode, config: &Config) -> Result<&State> {
         self.state = match self.state {
-            State::Restarting(instant) => {
+            State::Restarting(instant) => 'update: {
                 if &instant.elapsed() > config.restart_timeout() {
                     warn!(
                         "Server {} failed to stop in {:?}. Killing and respawning process...",
@@ -197,17 +209,20 @@ impl Server {
                         config.restart_timeout()
                     );
                     node.backend.restart_server(&self.backend.1);
-                    State::Running
-                } else if let Some(PanelState::Running) =
-                    node.backend.get_server_state(&self.backend.1)
+                    break 'update State::Running;
+                } else if self.last_update.elapsed() >= DEFAULT_UPDATE_DURATION
+                    && let Some(state) = node.backend.get_server_state(&self.backend.1)
                 {
-                    info!("Server {} is now running again.", self.name.get_name(),);
-                    State::Running
-                } else {
-                    State::Restarting(instant)
+                    if matches!(state, PanelState::Running) {
+                        info!("Server {} is now running again.", self.name.get_name(),);
+                        break 'update State::Running;
+                    } else {
+                        self.last_update = Instant::now();
+                    }
                 }
+                State::Restarting(instant)
             }
-            State::Stopping(instant) => {
+            State::Stopping(instant) => 'update: {
                 if &instant.elapsed() > config.stop_timeout() {
                     warn!(
                         "Server {} failed to stop in {:?}. Killing process...",
@@ -215,15 +230,18 @@ impl Server {
                         config.stop_timeout()
                     );
                     node.backend.kill_server(&self.backend.1);
-                    State::Dead
-                } else if let Some(PanelState::Offline) =
-                    node.backend.get_server_state(&self.backend.1)
+                    break 'update State::Dead;
+                } else if self.last_update.elapsed() >= DEFAULT_UPDATE_DURATION
+                    && let Some(state) = node.backend.get_server_state(&self.backend.1)
                 {
-                    info!("Server {} stopped successfully.", self.name.get_name(),);
-                    State::Dead
-                } else {
-                    State::Stopping(instant)
+                    if matches!(state, PanelState::Offline) {
+                        info!("Server {} stopped successfully.", self.name.get_name(),);
+                        break 'update State::Dead;
+                    } else {
+                        self.last_update = Instant::now();
+                    }
                 }
+                State::Stopping(instant)
             }
             _ => State::Running,
         };
@@ -243,8 +261,12 @@ impl Server {
         Ok(())
     }
 
-    pub fn screen(&self) -> ScreenType {
-        ScreenType::Unsupported
+    pub fn screen(&self, url: &Url) -> ScreenType {
+        let console_url = url.join(&format!("server/{}/console", self.backend.0)).expect("Failed to join URL");
+        ScreenType::Supported(GenericScreen::new(Screen(
+            console_url.to_string(),
+            RefCell::new(true),
+        )))
     }
 }
 

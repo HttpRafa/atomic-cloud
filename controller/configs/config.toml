@@ -15,13 +15,13 @@ alt_names = ["localhost"]
 # The maximum time the controller will wait for the instance to start up.
 # If this timeout is reached, the startup will be considered as failed.
 [timeouts.startup]
-secs = 150
+secs = 240
 nanos = 0
 
 # The maximum time the controller will wait for the instance to restart.
 # If this timeout is reached, the restart will be considered as failed.
 [timeouts.restart]
-secs = 120
+secs = 240
 nanos = 0
 
 # The interval between heartbeats sent by the controller.
@@ -33,7 +33,7 @@ nanos = 0
 # The maximum time the controller will wait for a user to transfer to a different instance.
 # If this timeout is reached, the transfer will be considered as failed.
 [timeouts.transfer]
-secs = 10
+secs = 25
 nanos = 0
 
 # The maximum time the controller will wait for an empty server to be filled.

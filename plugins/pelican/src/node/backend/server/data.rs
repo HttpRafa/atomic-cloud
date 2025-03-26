@@ -125,9 +125,9 @@ pub struct BResources {
 #[allow(unused)]
 pub struct BUsedResources {
     pub memory_bytes: u32,
-    pub cpu_absolute: u32,
     pub disk_bytes: u32,
     pub network_rx_bytes: u32,
     pub network_tx_bytes: u32,
     pub uptime: u32,
+    pub cpu_absolute: f32,
 }

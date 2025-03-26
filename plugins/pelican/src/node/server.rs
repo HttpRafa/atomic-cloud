@@ -262,8 +262,9 @@ impl Server {
     }
 
     pub fn screen(&self, url: &Url) -> ScreenType {
+        let console_url = url.join(&format!("server/{}/console", self.backend.0)).expect("Failed to join URL");
         ScreenType::Supported(GenericScreen::new(Screen(
-            format!("{}server/{}/console", url, self.backend.0),
+            console_url.to_string(),
             RefCell::new(true),
         )))
     }

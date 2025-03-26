@@ -14,10 +14,10 @@ lobby-1 = [ 25565 ]
 
 # The duration the plugin will wait for a server to stop before forcefully terminating the process
 [timeouts.stop]
-secs = 30
+secs = 60
 nanos = 0
 
 # The duration the plugin will wait for a server to stop before forcefully terminating and respawning it
 [timeouts.restart]
-secs = 30
+secs = 60
 nanos = 0

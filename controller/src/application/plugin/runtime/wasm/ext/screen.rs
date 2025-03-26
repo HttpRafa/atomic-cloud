@@ -1,7 +1,7 @@
 use std::{mem::replace, sync::Arc};
 
 use anyhow::{anyhow, Result};
-use simplelog::error;
+use common::error::FancyError;
 use tokio::{spawn, sync::Mutex};
 use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
@@ -119,7 +119,10 @@ impl GenericScreen for PluginScreen {
 impl Drop for PluginScreen {
     fn drop(&mut self) {
         if !self.dropped {
-            error!("Resource was not dropped before being deallocated (memory leak)");
+            FancyError::print_fancy(
+                &anyhow!("Resource was not dropped before being deallocated (memory leak)"),
+                false,
+            );
         }
     }
 }

@@ -1,4 +1,5 @@
 #![no_main]
+#![feature(let_chains)]
 
 use generated::{
     export,

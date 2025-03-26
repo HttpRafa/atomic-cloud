@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use common::error::FancyError;
 use generated::exports::plugin::system::bridge;
 use node::PluginNode;
-use simplelog::error;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
@@ -158,7 +158,10 @@ impl GenericPlugin for Plugin {
 impl Drop for Plugin {
     fn drop(&mut self) {
         if !self.dropped {
-            error!("Resource was not dropped before being deallocated (memory leak)");
+            FancyError::print_fancy(
+                &anyhow!("Resource was not dropped before being deallocated (memory leak)"),
+                false,
+            );
         }
     }
 }

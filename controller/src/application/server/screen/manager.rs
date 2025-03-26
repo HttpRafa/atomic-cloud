@@ -34,8 +34,11 @@ impl ScreenManager {
         }
     }
 
-    pub async fn register_screen(&self, server: &Uuid, screen: BoxedScreen) {
+    pub async fn register_screen(&self, server: &Uuid, mut screen: BoxedScreen) {
         if !screen.is_supported() {
+            if let Err(error) = screen.cleanup().await {
+                warn!("Failed to cleanup unsupported screen: {}", error);
+            }
             return;
         }
 

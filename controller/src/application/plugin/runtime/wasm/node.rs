@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use common::network::HostAndPort;
-use simplelog::error;
+use common::{error::FancyError, network::HostAndPort};
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
@@ -178,7 +177,10 @@ impl GenericNode for PluginNode {
 impl Drop for PluginNode {
     fn drop(&mut self) {
         if !self.dropped {
-            error!("Resource was not dropped before being deallocated (memory leak)");
+            FancyError::print_fancy(
+                &anyhow!("Resource was not dropped before being deallocated (memory leak)"),
+                false,
+            );
         }
     }
 }

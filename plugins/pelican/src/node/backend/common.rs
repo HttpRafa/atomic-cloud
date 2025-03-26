@@ -228,12 +228,14 @@ impl Backend {
         expected_code: u32,
     ) -> Option<T> {
         let response = Self::check_response(url, body, response, expected_code)?;
-        let response = serde_json::from_slice::<T>(&response.bytes);
+        let body = response.bytes;
+        let response = serde_json::from_slice::<T>(&body);
         if let Err(error) = response {
             error!(
                 "Failed to parse response from the Pelican panel at URL {}: {}",
                 url, &error
             );
+            debug!("Response body: {}", String::from_utf8_lossy(&body));
             return None;
         }
         Some(response.unwrap())

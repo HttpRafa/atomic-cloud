@@ -29,7 +29,8 @@ public class SendCommand {
                                     var userCount = users.size();
                                     var target = context.getArgument("target", Transfer.Target.class);
 
-                                    sender.sendMessage(MessageEnum.TRANSFER_USER_AMOUNT.of(MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target)));
+                                    sender.sendMessage(MessageEnum.TRANSFER_USER_AMOUNT.of(
+                                            MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target)));
                                     connection
                                             .transferUsers(Transfer.TransferReq.newBuilder()
                                                     .addAllIds(users.stream()
@@ -40,9 +41,14 @@ public class SendCommand {
                                                     .build())
                                             .whenComplete((result, throwable) -> {
                                                 if (throwable != null) {
-                                                    sender.sendMessage(MessageEnum.TRANSFER_USER_FAILED.of(MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target), throwable.getMessage()));
+                                                    sender.sendMessage(MessageEnum.TRANSFER_USER_FAILED.of(
+                                                            MessageEnum.PREFIX,
+                                                            String.valueOf(userCount),
+                                                            formatTarget(target),
+                                                            throwable.getMessage()));
                                                 } else {
-                                                    sender.sendMessage(MessageEnum.TRANSFER_SUCCESS.of(MessageEnum.PREFIX, String.valueOf(userCount)));
+                                                    sender.sendMessage(MessageEnum.TRANSFER_SUCCESS.of(
+                                                            MessageEnum.PREFIX, String.valueOf(userCount)));
                                                 }
                                             });
                                     return Command.SINGLE_SUCCESS;

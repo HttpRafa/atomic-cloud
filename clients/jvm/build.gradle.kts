@@ -37,12 +37,14 @@ allprojects {
         named<ProcessResources>("processResources") {
             dependsOn("spotlessApply")
         }
+        compileJava{
+            options.encoding = "UTF-8"
+        }
     }
 
     java {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-
         // Enable sources jar
         withSourcesJar()
     }

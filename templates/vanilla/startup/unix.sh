@@ -19,4 +19,4 @@ fi
 
 # Set permissions and execute the server
 chmod +x wrapper
-exec ./wrapper -- java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar $SERVER_JARFILE nogui
+exec ./wrapper -- java -Xms128M  -Xmx${SERVER_MEMORY}M -Dterminal.jline=false -Dterminal.ansi=true -jar $SERVER_JARFILE nogui

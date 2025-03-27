@@ -21,4 +21,4 @@ if (Test-Path $PropertiesFile) {
     Set-Content $PropertiesFile -Value "server-port=$Port"
 }
 
-.\wrapper.exe -- java -Xms128M -XX:MaxRAMPercentage=95.0 -jar $env:SERVER_JARFILE nogui
+.\wrapper.exe -- java -Xms128M -Xmx"$env:SERVER_MEMORY"M -jar $env:SERVER_JARFILE nogui

@@ -31,6 +31,7 @@ pub mod manager;
 const CONTROLLER_ADDRESS: &str = "CONTROLLER_ADDRESS";
 const CONTROLLER_CERTIFICATE: &str = "CONTROLLER_CERTIFICATE";
 const SERVER_TOKEN: &str = "SERVER_TOKEN";
+const SERVER_MEMORY: &str = "SERVER_MEMORY";
 const SERVER_PORT: &str = "SERVER_PORT";
 
 pub struct Server {
@@ -72,6 +73,10 @@ impl Server {
         environment.reserve(4);
         environment.push((CONTROLLER_ADDRESS.to_string(), node.controller.clone()));
         environment.push((SERVER_TOKEN.to_string(), request.token.clone()));
+        environment.push((
+            SERVER_MEMORY.to_string(),
+            request.allocation.resources.memory.to_string(),
+        ));
         environment.push((
             SERVER_PORT.to_string(),
             request

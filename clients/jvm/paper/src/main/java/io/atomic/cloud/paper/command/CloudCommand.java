@@ -2,6 +2,7 @@ package io.atomic.cloud.paper.command;
 
 import com.mojang.brigadier.Command;
 import io.atomic.cloud.paper.CloudPlugin;
+import io.atomic.cloud.paper.enums.MessageEnum;
 import io.atomic.cloud.paper.permission.Permissions;
 import io.papermc.paper.command.brigadier.Commands;
 import net.kyori.adventure.text.Component;
@@ -19,20 +20,14 @@ public class CloudCommand {
                     var connection = CloudPlugin.INSTANCE.connection();
 
                     connection.getCtrlVer().thenAcceptBoth(connection.getProtoVer(), (version, protocol) -> {
-                        sender.sendMessage(Component.text("╔════════════════════", NamedTextColor.GRAY));
-                        sender.sendRichMessage("<gray>║ <gradient:#084CFB:#43E8FF>AtomicCloud</gradient>");
-                        sender.sendRichMessage(
-                                "<gray>║ <gradient:#084CFB:#43E8FF>Client Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                        + CloudPlugin.INSTANCE.getPluginMeta().getVersion() + "</gradient>");
-                        sender.sendRichMessage(
-                                "<gray>║ <gradient:#084CFB:#43E8FF>Controller Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                        + version.getValue() + "</gradient>");
-                        sender.sendRichMessage(
-                                "<gray>║ <gradient:#084CFB:#43E8FF>Controller Protocol Version</gradient> <gray>| <gradient:#43E8FF:#0898FB>"
-                                        + protocol.getValue() + "</gradient>");
-                        sender.sendMessage(Component.text("╚════════════════════", NamedTextColor.GRAY));
+                        sender.sendMessage(MessageEnum.INFO_CMD_LINE.of(null));
+                        sender.sendMessage(MessageEnum.INFO_CMD_STRING_1.of(null));
+                        sender.sendMessage(MessageEnum.INFO_CMD_STRING_2.of(null));
+                        sender.sendMessage(MessageEnum.INFO_CMD_STRING_3.of(null, CloudPlugin.INSTANCE.getPluginMeta().getVersion()));
+                        sender.sendMessage(MessageEnum.INFO_CMD_STRING_4.of(null, version.getValue()));
+                        sender.sendMessage(MessageEnum.INFO_CMD_STRING_5.of(null, String.valueOf(protocol.getValue())));
+                        sender.sendMessage(MessageEnum.INFO_CMD_LINE.of(null));
                     });
-
                     return Command.SINGLE_SUCCESS;
                 })
                 .build());

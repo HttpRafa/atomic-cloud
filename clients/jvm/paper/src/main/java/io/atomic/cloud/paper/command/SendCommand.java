@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command;
 import io.atomic.cloud.grpc.client.Transfer;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.atomic.cloud.paper.command.argument.TransferTargetArgument;
+import io.atomic.cloud.paper.enums.MessageEnum;
 import io.atomic.cloud.paper.permission.Permissions;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
@@ -28,9 +29,7 @@ public class SendCommand {
                                     var userCount = users.size();
                                     var target = context.getArgument("target", Transfer.Target.class);
 
-                                    sender.sendRichMessage("<gray>Transferring <aqua>" + userCount
-                                            + " <gray>users to <blue>" + formatTarget(target) + "<dark_gray>...");
-
+                                    sender.sendMessage(MessageEnum.TRANSFER_USER_AMOUNT.of(MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target)));
                                     connection
                                             .transferUsers(Transfer.TransferReq.newBuilder()
                                                     .addAllIds(users.stream()
@@ -41,12 +40,9 @@ public class SendCommand {
                                                     .build())
                                             .whenComplete((result, throwable) -> {
                                                 if (throwable != null) {
-                                                    sender.sendRichMessage("<red>Failed to transfer " + userCount
-                                                            + " users to " + formatTarget(target) + ": "
-                                                            + throwable.getMessage());
+                                                    sender.sendMessage(MessageEnum.TRANSFER_USER_FAILED.of(MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target), throwable.getMessage()));
                                                 } else {
-                                                    sender.sendRichMessage("<green>Submitted <aqua>" + userCount
-                                                            + " <gray>transfer requests to controller");
+                                                    sender.sendMessage(MessageEnum.TRANSFER_SUCCESS.of(MessageEnum.PREFIX, String.valueOf(userCount)));
                                                 }
                                             });
                                     return Command.SINGLE_SUCCESS;

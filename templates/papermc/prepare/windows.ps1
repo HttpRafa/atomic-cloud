@@ -49,9 +49,11 @@ Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $env:SERVER_JARFILE
 
 if ($env:PROJECT -eq "paper" -or $env:PROJECT -eq "folia") {
     Write-Host "Installing required client plugin..."
-    Invoke-WebRequest -Uri "https://github.com/HttpRafa/atomic-cloud/releases/latest/download/paper-client.jar" -OutFile "paper-client.jar"
+    Invoke-WebRequest -Uri "https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-core.jar" -OutFile "ac-core.jar"
+    Invoke-WebRequest -Uri "https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-send.jar" -OutFile "ac-send.jar"
     New-Item -ItemType Directory -Path "plugins" -Force | Out-Null
-    Move-Item -Path "paper-client.jar" -Destination "plugins\"
+    Move-Item -Path "ac-core.jar" -Destination "plugins\"
+    Move-Item -Path "ac-send.jar" -Destination "plugins\"
     Write-Host "Installed required plugin"
 
     Write-Host "Preparing server..."

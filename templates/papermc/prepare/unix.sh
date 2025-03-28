@@ -52,9 +52,11 @@ curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}
 # Only execute if PROJECT is "paper" or "folia"
 if [ "${PROJECT}" == "paper" ] || [ "${PROJECT}" == "folia" ]; then
 	echo "Installing required client plugin..."
-	curl -o cloud.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/paper-client.jar
+	curl -o ac-core.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-core.jar
+	curl -o ac-send.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-send.jar
 	mkdir -p plugins/
-	mv cloud.jar plugins/
+	mv ac-core.jar plugins/
+	mv ac-send.jar plugins/
 	echo "Installed required plugin"
 	echo "Preparing server..."
 	echo "eula=true" >> eula.txt

@@ -1,0 +1,8 @@
+name: "ac-core"
+version: "${client_version}"
+author: "HttpRafa"
+main: "io.atomic.cloud.paper.CloudPlugin"
+folia-supported: true
+description: "This plugin establishes a connection with the cloud and provides an API"
+api-version: "1.21"
+bootstrapper: "io.atomic.cloud.paper.CloudPluginBootstrap"

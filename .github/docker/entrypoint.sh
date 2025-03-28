@@ -30,14 +30,14 @@ download_wasm() {
 
 # Check if the environment variable PTERODACTYL is set to true
 if [ "$PTERODACTYL" = "true" ]; then
-    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/pelican-plugin.wasm"
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/pelican.wasm"
     WASM_FILE="$DEST_FOLDER/pelican.wasm"
     download_wasm $WASM_URL $WASM_FILE
 fi
 
 # Check if the environment variable LOCAL is set to true
 if [ "$LOCAL" = "true" ]; then
-    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/local-plugin.wasm"
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/local.wasm"
     WASM_FILE="$DEST_FOLDER/local.wasm"
     download_wasm $WASM_URL $WASM_FILE
 fi

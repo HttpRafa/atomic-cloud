@@ -1,4 +1,4 @@
-name: "cloud-send"
+name: "ac-send"
 version: "${client_version}"
 author: "HttpRafa"
 main: "io.atomic.cloud.paper.send.SendPlugin"
@@ -8,7 +8,12 @@ api-version: "1.21"
 bootstrapper: "io.atomic.cloud.paper.send.SendPluginBootstrap"
 dependencies:
   bootstrap:
-    cloud-core:
+    ac-core:
+      load: BEFORE
+      required: true
+      join-classpath: true
+  server:
+    ac-core:
       load: BEFORE
       required: true
       join-classpath: true

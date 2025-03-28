@@ -1,4 +1,4 @@
-name: "cloud-core"
+name: "ac-core"
 version: "${client_version}"
 author: "HttpRafa"
 main: "io.atomic.cloud.paper.CloudPlugin"

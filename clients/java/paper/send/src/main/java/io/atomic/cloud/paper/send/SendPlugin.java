@@ -7,5 +7,5 @@ import org.slf4j.LoggerFactory;
 public class SendPlugin extends JavaPlugin {
 
     public static final SendPlugin INSTANCE = new SendPlugin();
-    public static final Logger LOGGER = LoggerFactory.getLogger("cloud-send");
+    public static final Logger LOGGER = LoggerFactory.getLogger("ac-send");
 }

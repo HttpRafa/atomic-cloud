@@ -26,7 +26,7 @@ public class CloudPlugin extends JavaPlugin {
 
     public static final CloudPlugin INSTANCE = new CloudPlugin();
     public static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(4);
-    public static final Logger LOGGER = LoggerFactory.getLogger("cloud-core");
+    public static final Logger LOGGER = LoggerFactory.getLogger("ac-core");
 
     private final Settings settings = new Settings();
     private ChannelManager channels;

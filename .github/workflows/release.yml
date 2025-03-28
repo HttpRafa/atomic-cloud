@@ -72,7 +72,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git checkout -b $BRANCH
           git push -u origin $BRANCH
-          sed -i "s/client_version=0\\.0\\.0-nightly/client_version=${VERSION}/g" clients/java/gradle.properties
+          sed -i "s/project\\.version=0\\.0\\.0-nightly/project\\.version=${VERSION}/g" clients/java/gradle.properties
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/pelican/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/local/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" clients/wrapper/Cargo.toml

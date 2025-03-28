@@ -72,14 +72,14 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git checkout -b $BRANCH
           git push -u origin $BRANCH
-          sed -i "s/client_version=0\\.0\\.0-nightly/client_version=${VERSION}/g" clients/jvm/gradle.properties
+          sed -i "s/client_version=0\\.0\\.0-nightly/client_version=${VERSION}/g" clients/java/gradle.properties
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/pelican/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/local/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" clients/wrapper/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" controller/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" common/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" cli/Cargo.toml
-          git add clients/jvm/gradle.properties plugins/pelican/Cargo.toml plugins/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
+          git add clients/java/gradle.properties plugins/pelican/Cargo.toml plugins/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
           git commit -m "ci(release): bump version"
           git push
 
@@ -93,11 +93,11 @@ jobs:
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Ensure Gradle Wrapper Permissions
-        working-directory: clients/jvm
+        working-directory: clients/java
         run: chmod +x gradlew
 
       - name: Build & Publish API
-        working-directory: clients/jvm
+        working-directory: clients/java
         run: ./gradlew build publish --no-daemon
         env:
           CURRENT_COMMIT: ${{ github.sha }}
@@ -119,7 +119,8 @@ jobs:
           
           cp ./target/wasm32-wasip2/release/local.wasm local.wasm
 
-          cp $(find ./clients/jvm/paper/build -name "*-all.jar") paper-client.jar
+          cp $(find ./clients/java/paper/build -name "*-all.jar") ac-core.jar
+          cp $(find ./clients/java/paper/send/build -name "*-all.jar") ac-send.jar
 
       - name: Create egg tar.gz and template tar.gz
         run: |
@@ -145,4 +146,5 @@ jobs:
             local.wasm
             templates.tar.gz
             eggs.tar.gz
-            paper-client.jar
+            ac-core.jar
+            ac-send.jar

@@ -71,8 +71,8 @@ jobs:
       - name: Run Tests
         run: cargo test --workspace --exclude pelican --exclude local --all-features --verbose
 
-      - name: Build & Test JVM Client
-        working-directory: clients/jvm
+      - name: Build & Test Java Client
+        working-directory: clients/java
         run: |
           chmod +x gradlew
           ./gradlew build --no-daemon

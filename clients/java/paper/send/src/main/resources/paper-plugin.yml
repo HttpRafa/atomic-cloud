@@ -1,0 +1,14 @@
+name: "cloud-send"
+version: "${client_version}"
+author: "HttpRafa"
+main: "io.atomic.cloud.paper.send.SendPlugin"
+folia-supported: true
+description: "This plugin provides a way to send players to a different server"
+api-version: "1.21"
+bootstrapper: "io.atomic.cloud.paper.send.SendPluginBootstrap"
+dependencies:
+  bootstrap:
+    cloud-core:
+      load: BEFORE
+      required: true
+      join-classpath: true

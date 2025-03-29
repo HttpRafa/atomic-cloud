@@ -31,13 +31,6 @@ tasks {
         }
     }
 
-    shadowJar {
-        mergeServiceFiles()
-
-        relocate("com.google", "io.atomic.cloud.google")
-        relocate("io.grpc", "io.atomic.cloud.grpc")
-    }
-
     assemble {
         dependsOn(shadowJar)
     }

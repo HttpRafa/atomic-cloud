@@ -7,10 +7,9 @@ plugins {
 }
 
 dependencies {
-    implementation("io.grpc:grpc-protobuf:${project.property("grpc.version")}")
-    implementation("io.grpc:grpc-stub:${project.property("grpc.version")}")
-    implementation("com.google.protobuf:protobuf-java:${project.property("protobuf.version")}")
-    runtimeOnly("io.grpc:grpc-netty-shaded:${project.property("grpc.version")}")
+    compileOnly("io.grpc:grpc-protobuf:${project.property("grpc.version")}")
+    compileOnly("io.grpc:grpc-stub:${project.property("grpc.version")}")
+    compileOnly("com.google.protobuf:protobuf-java:${project.property("protobuf.version")}")
 }
 
 sourceSets {

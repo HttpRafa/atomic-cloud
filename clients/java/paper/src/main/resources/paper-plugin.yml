@@ -6,3 +6,4 @@ folia-supported: true
 description: "This plugin establishes a connection with the cloud and provides an API"
 api-version: "1.21"
 bootstrapper: "io.atomic.cloud.paper.CloudPluginBootstrap"
+loader: "io.atomic.cloud.paper.CloudPluginLoader"

@@ -18,3 +18,4 @@ include(":common")
 // Paper
 include(":paper")
 include(":paper:send")
+include(":paper:notify")

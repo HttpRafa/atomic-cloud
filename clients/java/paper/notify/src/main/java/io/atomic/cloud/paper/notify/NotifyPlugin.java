@@ -1,4 +1,4 @@
-package io.atomic.cloud.paper.send;
+package io.atomic.cloud.paper.notify;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;

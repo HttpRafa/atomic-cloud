@@ -121,6 +121,7 @@ jobs:
 
           cp $(find ./clients/java/paper/build -name "*-all.jar") ac-core.jar
           cp $(find ./clients/java/paper/send/build -name "*-all.jar") ac-send.jar
+          cp $(find ./clients/java/paper/notify/build -name "*-all.jar") ac-notify.jar
 
       - name: Create egg tar.gz and template tar.gz
         run: |
@@ -148,3 +149,4 @@ jobs:
             eggs.tar.gz
             ac-core.jar
             ac-send.jar
+            ac-notify.jar

@@ -1,4 +1,4 @@
-package io.atomic.cloud.paper.send;
+package io.atomic.cloud.paper.notify;
 
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginBootstrap;

@@ -35,7 +35,7 @@ futures = "0.3.31"
 # Network
 url = { version = "2.5.4", features = ["serde"] }
 prost = "0.13.5"
-tonic = { version = "0.12.3", features = ["tls", "tls-native-roots"] }
+tonic = { version = "0.13.0", features = ["tls", "tls-native-roots"] }
 
 [build-dependencies]
 toml = "0.8.20"

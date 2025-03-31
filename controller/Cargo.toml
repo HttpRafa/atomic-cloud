@@ -39,7 +39,7 @@ tokio-stream = "0.1.17"
 futures = "0.3.31"
 
 # Network
-tonic = { version = "0.12.3", features = ["tls"] }
+tonic = { version = "0.13.0", features = ["tls"] }
 url = { version = "2.5.4", features = ["serde"] }
 prost = "0.13.5"
 rcgen = "0.13.2"

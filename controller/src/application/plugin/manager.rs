@@ -5,7 +5,7 @@ use futures::future::join_all;
 use simplelog::info;
 use tick::Ticker;
 
-use crate::{application::global::GlobalData, config::Config};
+use crate::{application::Shared, config::Config};
 
 use super::BoxedPlugin;
 
@@ -21,13 +21,13 @@ pub struct PluginManager {
 }
 
 impl PluginManager {
-    pub async fn init(config: &Config, global: &Arc<GlobalData>) -> Result<Self> {
+    pub async fn init(config: &Config, shared: &Arc<Shared>) -> Result<Self> {
         info!("Loading plugins...");
 
         let mut plugins = HashMap::new();
 
         #[cfg(feature = "wasm-plugins")]
-        init_wasm_plugins(config, global, &mut plugins).await?;
+        init_wasm_plugins(config, shared, &mut plugins).await?;
 
         info!("Loaded {} plugin(s)", plugins.len());
         Ok(Self {

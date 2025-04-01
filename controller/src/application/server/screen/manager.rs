@@ -75,7 +75,7 @@ impl ScreenManager {
             "The plugin that handles this screen does not support it",
         ))?;
 
-        let (subscriber, receiver) = Subscriber::create();
+        let (subscriber, receiver) = Subscriber::create_network();
         screen.push(subscriber).await;
         Ok(receiver)
     }
@@ -127,16 +127,14 @@ impl ActiveScreen {
 
     pub async fn push(&mut self, subscriber: Subscriber<ScreenLines>) {
         if self.cache.has_data() {
-            if let Err(error) = subscriber
-                .0
-                .send(Ok(ScreenLines {
+            if subscriber
+                .send_message(ScreenLines {
                     lines: self.cache.clone_items(),
-                }))
+                })
                 .await
             {
                 warn!(
-                    "Failed to send initial screen data to subscriber: {}",
-                    error
+                    "Failed to send initial screen data to subscriber!",
                 );
                 return;
             }
@@ -165,7 +163,7 @@ impl ActiveScreen {
                 {
                     let lines = lines.clone().map(|lines| ScreenLines { lines });
                     for subscriber in &self.subscribers {
-                        subscriber.0.send(lines.clone()).await?;
+                        subscriber.send_network(lines.clone()).await;
                     }
                 }
                 if let Ok(lines) = lines {

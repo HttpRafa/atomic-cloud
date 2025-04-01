@@ -14,7 +14,7 @@ use crate::application::{
 
 use super::{
     ext::screen::PluginScreen,
-    generated::{self, exports::plugin::system::bridge},
+    generated::{self, exports::plugin::system::bridge, plugin::system::data_types},
     PluginState,
 };
 
@@ -194,18 +194,18 @@ impl From<&HostAndPort> for bridge::Address {
     }
 }
 
-impl From<&DiskRetention> for bridge::DiskRetention {
+impl From<&DiskRetention> for data_types::DiskRetention {
     fn from(val: &DiskRetention) -> Self {
         match val {
-            DiskRetention::Permanent => bridge::DiskRetention::Permanent,
-            DiskRetention::Temporary => bridge::DiskRetention::Temporary,
+            DiskRetention::Permanent => data_types::DiskRetention::Permanent,
+            DiskRetention::Temporary => data_types::DiskRetention::Temporary,
         }
     }
 }
 
-impl From<&Spec> for bridge::Spec {
+impl From<&Spec> for data_types::Spec {
     fn from(val: &Spec) -> Self {
-        bridge::Spec {
+        data_types::Spec {
             settings: val
                 .settings()
                 .iter()
@@ -222,9 +222,9 @@ impl From<&Spec> for bridge::Spec {
     }
 }
 
-impl From<&Resources> for bridge::Resources {
+impl From<&Resources> for data_types::Resources {
     fn from(val: &Resources) -> Self {
-        bridge::Resources {
+        data_types::Resources {
             memory: *val.memory(),
             swap: *val.swap(),
             cpu: *val.cpu(),
@@ -235,9 +235,9 @@ impl From<&Resources> for bridge::Resources {
     }
 }
 
-impl From<&Allocation> for bridge::Allocation {
+impl From<&Allocation> for data_types::Allocation {
     fn from(val: &Allocation) -> Self {
-        bridge::Allocation {
+        data_types::Allocation {
             ports: val.ports.iter().map(std::convert::Into::into).collect(),
             resources: val.resources().into(),
             spec: (&val.spec).into(),

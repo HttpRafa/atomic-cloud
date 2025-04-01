@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
-use generated::exports::plugin::system::bridge;
+use generated::{exports::plugin::system::bridge, plugin::system::data_types};
 use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
@@ -12,9 +12,7 @@ use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::application::{
-    global::GlobalData,
-    node::Capabilities,
-    plugin::{BoxedNode, Features, GenericPlugin, Information},
+    node::Capabilities, plugin::{BoxedNode, Features, GenericPlugin, Information}, Shared
 };
 
 pub(crate) mod config;
@@ -22,6 +20,7 @@ mod epoch;
 pub mod ext;
 pub mod init;
 mod node;
+mod subscriber;
 
 #[allow(clippy::all)]
 pub mod generated {
@@ -42,7 +41,7 @@ pub mod generated {
 
 pub(crate) struct PluginState {
     /* Global */
-    global: Arc<GlobalData>,
+    shared: Arc<Shared>,
 
     /* Plugin */
     name: String,
@@ -54,7 +53,11 @@ pub(crate) struct PluginState {
 }
 
 pub(crate) struct Plugin {
+    // State
     dropped: bool,
+
+    // Features
+    features: Features,
 
     #[allow(unused)]
     engine: Engine,
@@ -207,11 +210,14 @@ impl From<bridge::Information> for Information {
     }
 }
 
-impl From<bridge::Features> for Features {
-    fn from(value: bridge::Features) -> Self {
+impl From<data_types::Features> for Features {
+    fn from(value: data_types::Features) -> Self {
         let mut features = Features::empty();
-        if value.contains(bridge::Features::NODE) {
+        if value.contains(data_types::Features::NODE) {
             features.insert(Features::NODE);
+        }
+        if value.contains(data_types::Features::LISTENER) {
+            features.insert(Features::LISTENER);
         }
         features
     }

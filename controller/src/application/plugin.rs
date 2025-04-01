@@ -65,6 +65,7 @@ pub struct Information {
 bitflags! {
     pub struct Features: u32 {
         const NODE = 1;
-        const ALL = Self::NODE.bits();
+        const LISTENER = 1 << 1;
+        const ALL = Self::NODE.bits() | Self::LISTENER.bits();
     }
 }

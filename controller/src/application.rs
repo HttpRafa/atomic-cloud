@@ -9,13 +9,13 @@ use std::{
 use anyhow::Result;
 use auth::manager::AuthManager;
 use getset::{Getters, MutGetters};
-use global::GlobalData;
 use group::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
 use server::{manager::ServerManager, screen::manager::ScreenManager};
 use simplelog::{error, info};
 use subscriber::manager::SubscriberManager;
+use tls::TlsSetting;
 use tokio::{
     select,
     sync::{mpsc, watch},
@@ -26,7 +26,7 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-pub mod global;
+pub mod tls;
 pub mod group;
 pub mod node;
 pub mod plugin;
@@ -49,7 +49,6 @@ pub struct Controller {
 
     /* Shared Components */
     pub shared: Arc<Shared>,
-    pub global: Arc<GlobalData>,
 
     /* Components */
     pub plugins: PluginManager,
@@ -67,6 +66,7 @@ pub struct Shared {
     pub auth: AuthManager,
     pub subscribers: SubscriberManager,
     pub screens: ScreenManager,
+    pub tls: TlsSetting,
 }
 
 impl Controller {
@@ -75,12 +75,12 @@ impl Controller {
             auth: AuthManager::init().await?,
             subscribers: SubscriberManager::init(),
             screens: ScreenManager::init(),
+            tls: TlsSetting::init(&config).await?,
         });
-        let global = Arc::new(GlobalData::init(&config).await?);
 
         let tasks = mpsc::channel(TASK_BUFFER);
 
-        let plugins = PluginManager::init(&config, &global).await?;
+        let plugins = PluginManager::init(&config, &shared).await?;
         let nodes = NodeManager::init(&plugins).await?;
         let groups = GroupManager::init(&nodes).await?;
 
@@ -91,7 +91,6 @@ impl Controller {
             state: State::new(),
             tasks,
             shared,
-            global,
             plugins,
             nodes,
             groups,
@@ -105,7 +104,7 @@ impl Controller {
         // Setup signal handlers
         self.setup_handlers()?;
 
-        let network = NetworkStack::start(&self.config, &self.shared, &self.global, &self.tasks.0);
+        let network = NetworkStack::start(&self.config, &self.shared, &self.tasks.0);
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));

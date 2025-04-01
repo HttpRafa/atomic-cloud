@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthType, server::NameAndUuid, user::transfer::TransferTarget, Shared, TaskSender,
+        auth::AuthType, server::NameAndUuid, subscriber::Subscriber, user::transfer::TransferTarget, Shared, TaskSender
     },
     task::Task,
     VERSION,
@@ -21,13 +21,13 @@ use crate::{
 
 use super::{
     manage::transfer::TransferUsersTask,
-    proto::client::{
+    proto::{client::{
         self,
         channel::Msg,
         client_service_server::ClientService,
         transfer::{target::Type, TransferReq, TransferRes},
         user::{ConnectedReq, DisconnectedReq},
-    },
+    }, common::notify::PowerEvent},
 };
 
 mod beat;
@@ -39,6 +39,7 @@ mod user;
 
 pub type TransferMsg = TransferRes;
 pub type ChannelMsg = Msg;
+pub type PowerEventMsg = PowerEvent;
 
 pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 
@@ -46,6 +47,7 @@ pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 impl ClientService for ClientServiceImpl {
     type SubscribeToTransfersStream = ReceiverStream<Result<TransferRes, Status>>;
     type SubscribeToChannelStream = ReceiverStream<Result<Msg, Status>>;
+    type SubscribeToPowerEventsStream = ReceiverStream<Result<PowerEvent, Status>>;
 
     // Heartbeat
     async fn beat(&self, request: Request<()>) -> Result<Response<()>, Status> {
@@ -178,17 +180,23 @@ impl ClientService for ClientServiceImpl {
             .get_server()
             .expect("Should be ok. Because type is checked in get_auth");
 
+        let (sender, receiver) = Subscriber::create_network();
+        self.1.subscribers.transfer().subscribe_to_scope(*server.uuid(), sender).await;
+
         Ok(Response::new(
-            self.1.subscribers.subscribe_transfer(*server.uuid()).await,
+            receiver
         ))
     }
 
     // Channel
     async fn publish_message(&self, request: Request<Msg>) -> Result<Response<u32>, Status> {
+        let request = request.into_inner();
+        let channel = request.channel.clone();
+
         Ok(Response::new(
             self.1
                 .subscribers
-                .publish_channel(request.into_inner())
+                .channel().publish_to_scope(&channel, request)
                 .await,
         ))
     }
@@ -196,11 +204,17 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<Self::SubscribeToChannelStream>, Status> {
+        let request = request.into_inner();
+
+        let (sender, receiver) = Subscriber::create_network();
+        self.1
+            .subscribers
+            .channel()
+            .subscribe_to_scope(request, sender)
+            .await;
+        
         Ok(Response::new(
-            self.1
-                .subscribers
-                .subscribe_channel(request.into_inner())
-                .await,
+            receiver
         ))
     }
 
@@ -242,5 +256,10 @@ impl ClientService for ClientServiceImpl {
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
         Ok(Response::new(format!("{VERSION}")))
+    }
+
+    // Notify operations
+    async fn subscribe_to_power_events(&self, _request: Request<()>) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
+        Err(Status::unimplemented("Not implemented yet"))
     }
 }

@@ -63,7 +63,7 @@ pub(crate) struct Plugin {
     features: Features,
 
     // Listener
-    listener: Option<PluginListener>,
+    listener: Option<Arc<Mutex<PluginListener>>>,
 
     #[allow(unused)]
     engine: Engine,
@@ -75,7 +75,7 @@ pub(crate) struct Plugin {
 #[async_trait]
 impl GenericPlugin for Plugin {
     async fn init(&self) -> Result<Information> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         let mut store = store.lock().await;
         match bindings
             .plugin_system_bridge()
@@ -94,7 +94,7 @@ impl GenericPlugin for Plugin {
         capabilities: &Capabilities,
         controller: &Url,
     ) -> Result<BoxedNode> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         match bindings
             .plugin_system_bridge()
             .plugin()
@@ -113,7 +113,7 @@ impl GenericPlugin for Plugin {
     }
 
     fn shutdown(&self) -> JoinHandle<Result<()>> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
@@ -134,12 +134,23 @@ impl GenericPlugin for Plugin {
     }
 
     fn tick(&self) -> JoinHandle<Result<()>> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, listener) = self.get();
         spawn(async move {
+            let mut store = store.lock().await;
+
+            // Execute events that need to be fired
+            if let Some(listener) = listener {
+                listener
+                    .lock()
+                    .await
+                    .fire_events(&bindings, &mut store)
+                    .await;
+            }
+
             match bindings
                 .plugin_system_bridge()
                 .plugin()
-                .call_tick(store.lock().await.as_context_mut(), instance)
+                .call_tick(store.as_context_mut(), instance)
                 .await
             {
                 Ok(result) => result.map_err(|errors| {
@@ -158,8 +169,12 @@ impl GenericPlugin for Plugin {
         let mut store = self.store.lock().await;
 
         // Drop the listener
-        if let Some(mut listener) = self.listener.take() {
-            listener.cleanup(store.as_context_mut()).await?;
+        if let Some(listener) = self.listener.take() {
+            listener
+                .lock()
+                .await
+                .cleanup(store.as_context_mut())
+                .await?;
         }
 
         self.instance
@@ -173,7 +188,7 @@ impl GenericPlugin for Plugin {
 
 impl Plugin {
     async fn init_listener(&self) -> Result<PluginListener> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         let mut store = store.lock().await;
         match bindings
             .plugin_system_bridge()
@@ -199,14 +214,21 @@ impl Drop for Plugin {
 }
 
 impl Plugin {
+    #[allow(clippy::complexity)]
     fn get(
         &self,
     ) -> (
         Arc<generated::Plugin>,
         Arc<Mutex<Store<PluginState>>>,
         ResourceAny,
+        Option<Arc<Mutex<PluginListener>>>,
     ) {
-        (self.bindings.clone(), self.store.clone(), self.instance)
+        (
+            self.bindings.clone(),
+            self.store.clone(),
+            self.instance,
+            self.listener.clone(),
+        )
     }
 }
 

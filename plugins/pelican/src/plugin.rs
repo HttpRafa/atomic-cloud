@@ -5,11 +5,18 @@ use config::Config;
 
 use crate::{
     error,
-    generated::exports::plugin::system::bridge::{
-        Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
-        ScopedErrors,
+    generated::{
+        exports::plugin::system::{
+            bridge::{
+                Capabilities, ErrorMessage, GuestPlugin, Information, Listener as GenericListener,
+                Node as GenericNode, ScopedErrors,
+            },
+            event::Events,
+        },
+        plugin::system::data_types::Features,
     },
     info,
+    listener::Listener,
     node::{backend::Backend, InnerNode, Node},
 };
 
@@ -63,6 +70,10 @@ impl GuestPlugin for Pelican {
                 true
             },
         }
+    }
+
+    fn init_listener(&self) -> (Events, GenericListener) {
+        (Events::empty(), GenericListener::new(Listener()))
     }
 
     fn init_node(

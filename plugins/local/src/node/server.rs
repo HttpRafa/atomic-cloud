@@ -7,10 +7,11 @@ use crate::{
     debug,
     generated::{
         exports::plugin::system::{
-            bridge::{self, DiskRetention, Guard},
+            bridge::{self, Guard},
             screen::{Screen as GenericScreen, ScreenType},
         },
         plugin::system::{
+            data_types::DiskRetention,
             file::remove_dir_all,
             process::{ExitStatus, Process, ProcessBuilder},
             tls::get_certificate,

@@ -26,6 +26,7 @@ use super::{
     generated, Plugin, PluginState,
 };
 
+#[allow(clippy::too_many_lines)]
 pub async fn init_wasm_plugins(
     global_config: &Config,
     shared: &Arc<Shared>,
@@ -117,7 +118,7 @@ pub async fn init_wasm_plugins(
                                         "The plugin {} now listens to the specified events",
                                         name
                                     );
-                                    plugin.listener = Some(listener);
+                                    plugin.listener = Some(Arc::new(Mutex::new(listener)));
                                 }
                                 Err(error) => {
                                     error!(

@@ -4,10 +4,10 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 
-pub mod dispatcher;
 pub mod manager;
+pub mod watcher;
 
-const SUBSCRIPTION_BUFFER: usize = 64;
+const SUBSCRIPTION_BUFFER: usize = 128;
 
 enum Dispatch<T> {
     Network(Sender<Result<T, Status>>),

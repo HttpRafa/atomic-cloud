@@ -1,7 +1,7 @@
 use std::{process::exit, sync::Arc};
 
 use anyhow::Result;
-use proto::{
+use proto::manage::{
     client_service_client::ClientServiceClient,
     transfer::TransferRes,
     user::{ConnectedReq, DisconnectedReq},
@@ -15,11 +15,20 @@ use tonic::{
     Request, Response, Status, Streaming,
 };
 
-#[allow(clippy::all)]
 pub mod proto {
-    use tonic::include_proto;
+    pub mod manage {
+        #![allow(clippy::all, clippy::pedantic)]
+        use tonic::include_proto;
 
-    include_proto!("client");
+        include_proto!("client");
+    }
+
+    pub mod common {
+        #![allow(clippy::all, clippy::pedantic)]
+        use tonic::include_proto;
+
+        include_proto!("common");
+    }
 }
 
 pub type CloudConnectionHandle = Arc<CloudConnection>;

@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    generated::exports::plugin::system::bridge::Resources,
-    node::backend::allocation::data::BAllocation,
+    generated::plugin::system::data_types::Resources, node::backend::allocation::data::BAllocation,
 };
 
 pub struct BServerEgg {

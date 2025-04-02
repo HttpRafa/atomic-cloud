@@ -1,6 +1,9 @@
 use getset::Getters;
 
-use crate::application::{node::Allocation, server::NameAndUuid};
+use crate::application::{
+    node::Allocation,
+    server::{NameAndUuid, Server},
+};
 
 #[derive(Getters, Clone)]
 pub struct ServerEvent {
@@ -12,4 +15,15 @@ pub struct ServerEvent {
     pub allocation: Allocation,
     #[getset(get = "pub")]
     pub token: String,
+}
+
+impl From<&Server> for ServerEvent {
+    fn from(value: &Server) -> Self {
+        Self {
+            id: value.id().clone(),
+            group: value.group().clone(),
+            allocation: value.allocation().clone(),
+            token: value.token().clone(),
+        }
+    }
 }

@@ -7,13 +7,17 @@ use config::Config;
 use crate::{
     error,
     generated::{
-        exports::plugin::system::bridge::{
-            Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
-            ScopedErrors,
+        exports::plugin::system::{
+            bridge::{
+                Capabilities, ErrorMessage, GuestPlugin, Information, Listener as GenericListener,
+                Node as GenericNode, ScopedErrors,
+            },
+            event::Events,
         },
-        plugin::system::file::remove_dir_all,
+        plugin::system::{data_types::Features, file::remove_dir_all},
     },
     info,
+    listener::Listener,
     node::{InnerNode, Node},
     storage::Storage,
     template::manager::TemplateManager,
@@ -87,6 +91,10 @@ impl GuestPlugin for Local {
                 true
             },
         }
+    }
+
+    fn init_listener(&self) -> (Events, GenericListener) {
+        (Events::empty(), GenericListener::new(Listener()))
     }
 
     fn init_node(

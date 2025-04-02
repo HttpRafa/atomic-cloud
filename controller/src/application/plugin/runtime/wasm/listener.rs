@@ -12,7 +12,9 @@ use crate::application::{
 };
 
 use super::{
-    generated::{self, exports::plugin::system::event::Events},
+    generated::{
+        self, exports::plugin::system::event::Events, plugin::system::types::ErrorMessage,
+    },
     PluginState,
 };
 
@@ -74,6 +76,18 @@ impl PluginListener {
         events
     }
 
+    fn handle_result(result: Result<Result<(), ErrorMessage>>) {
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => {
+                FancyError::print_fancy(&anyhow!("Failed to fire event: {}", error), false);
+            }
+            Err(error) => {
+                FancyError::print_fancy(&anyhow!("Failed to fire event: {}", error), false);
+            }
+        }
+    }
+
     pub async fn fire_events(
         &mut self,
         bindings: &Arc<generated::Plugin>,
@@ -81,37 +95,23 @@ impl PluginListener {
     ) {
         for event in Self::collect_events(&mut self.server_start) {
             let event = event.into();
-            match bindings
-                .plugin_system_event()
-                .listener()
-                .call_server_start(store.as_context_mut(), self.instance, &event)
-                .await
-            {
-                Ok(_) => {}
-                Err(error) => {
-                    FancyError::print_fancy(
-                        &anyhow!("Failed to fire server start event: {}", error),
-                        false,
-                    );
-                }
-            }
+            Self::handle_result(
+                bindings
+                    .plugin_system_event()
+                    .listener()
+                    .call_server_start(store.as_context_mut(), self.instance, &event)
+                    .await,
+            );
         }
         for event in Self::collect_events(&mut self.server_stop) {
             let event = event.into();
-            match bindings
-                .plugin_system_event()
-                .listener()
-                .call_server_stop(store.as_context_mut(), self.instance, &event)
-                .await
-            {
-                Ok(_) => {}
-                Err(error) => {
-                    FancyError::print_fancy(
-                        &anyhow!("Failed to fire server stop event: {}", error),
-                        false,
-                    );
-                }
-            }
+            Self::handle_result(
+                bindings
+                    .plugin_system_event()
+                    .listener()
+                    .call_server_stop(store.as_context_mut(), self.instance, &event)
+                    .await,
+            );
         }
     }
 

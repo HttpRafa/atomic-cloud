@@ -5,7 +5,7 @@ use tonic::Streaming;
 use uuid::Uuid;
 
 use super::{
-    network::{proto::transfer::TransferRes, CloudConnectionHandle},
+    network::{proto::manage::transfer::TransferRes, CloudConnectionHandle},
     process::stdin::ManagedStdin,
     user::Users,
 };

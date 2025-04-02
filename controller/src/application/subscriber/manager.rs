@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::network::client::{ChannelMsg, TransferMsg};
 
-use super::dispatcher::Watcher;
+use super::watcher::Watcher;
 
 pub mod event;
 

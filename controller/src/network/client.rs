@@ -43,7 +43,6 @@ mod user;
 
 pub type TransferMsg = TransferRes;
 pub type ChannelMsg = Msg;
-pub type PowerEventMsg = PowerEvent;
 
 pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 

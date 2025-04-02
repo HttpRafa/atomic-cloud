@@ -126,18 +126,15 @@ impl ActiveScreen {
     }
 
     pub async fn push(&mut self, subscriber: Subscriber<ScreenLines>) {
-        if self.cache.has_data() {
-            if subscriber
+        if self.cache.has_data()
+            && subscriber
                 .send_message(ScreenLines {
                     lines: self.cache.clone_items(),
                 })
                 .await
-            {
-                warn!(
-                    "Failed to send initial screen data to subscriber!",
-                );
-                return;
-            }
+        {
+            warn!("Failed to send initial screen data to subscriber!",);
+            return;
         }
 
         self.subscribers.push(subscriber);

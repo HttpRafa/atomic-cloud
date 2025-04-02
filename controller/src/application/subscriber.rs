@@ -4,14 +4,14 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 
-pub mod manager;
 pub mod dispatcher;
+pub mod manager;
 
 const SUBSCRIPTION_BUFFER: usize = 64;
 
 enum Dispatch<T> {
     Network(Sender<Result<T, Status>>),
-    Plugin(Sender<Result<T>>)
+    Plugin(Sender<Result<T>>),
 }
 
 pub struct Subscriber<T>(Dispatch<T>);
@@ -19,7 +19,10 @@ pub struct Subscriber<T>(Dispatch<T>);
 impl<T> Subscriber<T> {
     pub fn create_network() -> (Self, ReceiverStream<Result<T, Status>>) {
         let (sender, receiver) = channel(SUBSCRIPTION_BUFFER);
-        (Self(Dispatch::Network(sender)), ReceiverStream::new(receiver))
+        (
+            Self(Dispatch::Network(sender)),
+            ReceiverStream::new(receiver),
+        )
     }
 
     pub fn create_plugin() -> (Self, Receiver<Result<T>>) {

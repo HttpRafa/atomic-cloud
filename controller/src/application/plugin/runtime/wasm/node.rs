@@ -10,6 +10,7 @@ use crate::application::{
     node::Allocation,
     plugin::{BoxedScreen, GenericNode},
     server::{guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Spec},
+    subscriber::manager::event::ServerEvent,
 };
 
 use super::{
@@ -238,7 +239,7 @@ impl From<&Resources> for data_types::Resources {
 impl From<&Allocation> for data_types::Allocation {
     fn from(val: &Allocation) -> Self {
         data_types::Allocation {
-            ports: val.ports.iter().map(std::convert::Into::into).collect(),
+            ports: val.ports.iter().map(Into::into).collect(),
             resources: val.resources().into(),
             spec: (&val.spec).into(),
         }
@@ -247,6 +248,18 @@ impl From<&Allocation> for data_types::Allocation {
 
 impl From<&Server> for bridge::Server {
     fn from(val: &Server) -> Self {
+        bridge::Server {
+            name: val.id().name().clone(),
+            uuid: val.id().uuid().to_string(),
+            group: val.group().clone(),
+            allocation: val.allocation().into(),
+            token: val.token().clone(),
+        }
+    }
+}
+
+impl From<ServerEvent> for bridge::Server {
+    fn from(val: ServerEvent) -> Self {
         bridge::Server {
             name: val.id().name().clone(),
             uuid: val.id().uuid().to_string(),

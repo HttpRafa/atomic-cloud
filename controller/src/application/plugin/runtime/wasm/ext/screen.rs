@@ -7,7 +7,11 @@ use tonic::async_trait;
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
 use crate::application::{
-    plugin::runtime::wasm::{generated::{self, exports::plugin::system::screen::ScreenType}, PluginState}, server::screen::{GenericScreen, ScreenError, ScreenPullJoinHandle, ScreenWriteJoinHandle}
+    plugin::runtime::wasm::{
+        generated::{self, exports::plugin::system::screen::ScreenType},
+        PluginState,
+    },
+    server::screen::{GenericScreen, ScreenError, ScreenPullJoinHandle, ScreenWriteJoinHandle},
 };
 
 pub struct PluginScreen {

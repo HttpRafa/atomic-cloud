@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
 use generated::{exports::plugin::system::bridge, plugin::system::data_types};
+use listener::PluginListener;
 use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
@@ -12,15 +13,17 @@ use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::application::{
-    node::Capabilities, plugin::{BoxedNode, Features, GenericPlugin, Information}, Shared
+    node::Capabilities,
+    plugin::{BoxedNode, Features, GenericPlugin, Information},
+    Shared,
 };
 
 pub(crate) mod config;
 mod epoch;
 pub mod ext;
 pub mod init;
+mod listener;
 mod node;
-mod subscriber;
 
 #[allow(clippy::all)]
 pub mod generated {
@@ -58,6 +61,9 @@ pub(crate) struct Plugin {
 
     // Features
     features: Features,
+
+    // Listener
+    listener: Option<PluginListener>,
 
     #[allow(unused)]
     engine: Engine,
@@ -149,12 +155,35 @@ impl GenericPlugin for Plugin {
     }
 
     async fn cleanup(&mut self) -> Result<()> {
+        let mut store = self.store.lock().await;
+
+        // Drop the listener
+        if let Some(mut listener) = self.listener.take() {
+            listener.cleanup(store.as_context_mut()).await?;
+        }
+
         self.instance
-            .resource_drop_async(self.store.lock().await.as_context_mut())
+            .resource_drop_async(store.as_context_mut())
             .await?;
         self.dropped = true;
 
         Ok(())
+    }
+}
+
+impl Plugin {
+    async fn init_listener(&self) -> Result<PluginListener> {
+        let (bindings, store, instance) = self.get();
+        let mut store = store.lock().await;
+        match bindings
+            .plugin_system_bridge()
+            .plugin()
+            .call_init_listener(store.as_context_mut(), instance)
+            .await
+        {
+            Ok(instance) => Ok(PluginListener::new(instance)),
+            Err(error) => Err(error),
+        }
     }
 }
 

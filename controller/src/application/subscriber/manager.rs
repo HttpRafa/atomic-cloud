@@ -1,13 +1,13 @@
 use anyhow::Result;
+use event::ServerEvent;
 use getset::Getters;
-use simplelog::debug;
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::Status;
 use uuid::Uuid;
 
-use crate::network::client::{ChannelMsg, PowerEventMsg, TransferMsg};
+use crate::network::client::{ChannelMsg, TransferMsg};
 
-use super::{dispatcher::Watcher, Subscriber};
+use super::dispatcher::Watcher;
+
+pub mod event;
 
 #[derive(Getters)]
 pub struct SubscriberManager {
@@ -19,7 +19,9 @@ pub struct SubscriberManager {
 
     /* Events */
     #[getset(get = "pub")]
-    power: Watcher<(), PowerEventMsg>,
+    server_start: Watcher<(), ServerEvent>,
+    #[getset(get = "pub")]
+    server_stop: Watcher<(), ServerEvent>,
 }
 
 impl SubscriberManager {
@@ -27,8 +29,9 @@ impl SubscriberManager {
         Self {
             transfer: Watcher::new(),
             channel: Watcher::new(),
-            
-            power: Watcher::new(),
+
+            server_start: Watcher::new(),
+            server_stop: Watcher::new(),
         }
     }
 }
@@ -40,7 +43,8 @@ impl SubscriberManager {
         self.channel.cleanup().await;
         self.transfer.cleanup().await;
 
-        self.power.cleanup().await;
+        self.server_start.cleanup().await;
+        self.server_stop.cleanup().await;
         Ok(())
     }
 }

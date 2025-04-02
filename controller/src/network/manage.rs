@@ -26,13 +26,16 @@ use crate::{
     VERSION,
 };
 
-use super::proto::{common::notify::PowerEvent, manage::{
-    self,
-    manage_service_server::ManageService,
-    resource::{Category, DelReq, SetReq},
-    screen::{Lines, WriteReq},
-    transfer::{target::Type, TransferReq},
-}};
+use super::proto::{
+    common::notify::PowerEvent,
+    manage::{
+        self,
+        manage_service_server::ManageService,
+        resource::{Category, DelReq, SetReq},
+        screen::{Lines, WriteReq},
+        transfer::{target::Type, TransferReq},
+    },
+};
 
 mod group;
 mod node;
@@ -427,7 +430,10 @@ impl ManageService for ManageServiceImpl {
     }
 
     // Notify operations
-    async fn subscribe_to_power_events(&self, _request: Request<()>) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
+    async fn subscribe_to_power_events(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
         Err(Status::unimplemented("Not implemented yet"))
     }
 }

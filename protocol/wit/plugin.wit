@@ -197,16 +197,13 @@ interface event {
     use data-types.{server};
 
     flags events {
-        power
-    }
-
-    variant action {
-        keep,
-        unregister,
+        server-start,
+        server-stop,
     }
 
     resource listener {
-        handle-power: func(server: server) -> result<action, error-message>;
+        server-start: func(server: server) -> result<_, error-message>;
+        server-stop: func(server: server) -> result<_, error-message>;
     }
 }
 
@@ -215,7 +212,7 @@ interface bridge {
     use data-types.{information, capabilities, address, server-proposal, server};
     use screen.{screen-type};
     use guard.{guard};
-    use event.{events, action, listener};
+    use event.{events, listener};
 
     resource node {
         tick: func() -> result<_, scoped-errors>;
@@ -229,8 +226,8 @@ interface bridge {
     resource plugin {
         constructor(cloud-identifier: string);
         init: func() -> information;
+        init-listener: func() -> tuple<events, listener>;
         init-node: func(name: string, capabilities: capabilities, controller: string) -> result<node, error-message>;
-        init-listener: func() -> result<tuple<events, listener>, error-message>;
         tick: func() -> result<_, scoped-errors>;
         shutdown: func() -> result<_, scoped-errors>;
     }

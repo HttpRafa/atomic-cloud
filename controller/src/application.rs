@@ -26,12 +26,12 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-pub mod tls;
 pub mod group;
 pub mod node;
 pub mod plugin;
 pub mod server;
 pub mod subscriber;
+pub mod tls;
 pub mod user;
 
 pub const TICK_RATE: u64 = 10;

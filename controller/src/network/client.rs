@@ -13,7 +13,8 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        auth::AuthType, server::NameAndUuid, subscriber::Subscriber, user::transfer::TransferTarget, Shared, TaskSender
+        auth::AuthType, server::NameAndUuid, subscriber::Subscriber,
+        user::transfer::TransferTarget, Shared, TaskSender,
     },
     task::Task,
     VERSION,
@@ -21,13 +22,16 @@ use crate::{
 
 use super::{
     manage::transfer::TransferUsersTask,
-    proto::{client::{
-        self,
-        channel::Msg,
-        client_service_server::ClientService,
-        transfer::{target::Type, TransferReq, TransferRes},
-        user::{ConnectedReq, DisconnectedReq},
-    }, common::notify::PowerEvent},
+    proto::{
+        client::{
+            self,
+            channel::Msg,
+            client_service_server::ClientService,
+            transfer::{target::Type, TransferReq, TransferRes},
+            user::{ConnectedReq, DisconnectedReq},
+        },
+        common::notify::PowerEvent,
+    },
 };
 
 mod beat;
@@ -181,11 +185,13 @@ impl ClientService for ClientServiceImpl {
             .expect("Should be ok. Because type is checked in get_auth");
 
         let (sender, receiver) = Subscriber::create_network();
-        self.1.subscribers.transfer().subscribe_to_scope(*server.uuid(), sender).await;
+        self.1
+            .subscribers
+            .transfer()
+            .subscribe_to_scope(*server.uuid(), sender)
+            .await;
 
-        Ok(Response::new(
-            receiver
-        ))
+        Ok(Response::new(receiver))
     }
 
     // Channel
@@ -196,7 +202,8 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(
             self.1
                 .subscribers
-                .channel().publish_to_scope(&channel, request)
+                .channel()
+                .publish_to_scope(&channel, request)
                 .await,
         ))
     }
@@ -212,10 +219,8 @@ impl ClientService for ClientServiceImpl {
             .channel()
             .subscribe_to_scope(request, sender)
             .await;
-        
-        Ok(Response::new(
-            receiver
-        ))
+
+        Ok(Response::new(receiver))
     }
 
     // Server
@@ -259,7 +264,10 @@ impl ClientService for ClientServiceImpl {
     }
 
     // Notify operations
-    async fn subscribe_to_power_events(&self, _request: Request<()>) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
+    async fn subscribe_to_power_events(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
         Err(Status::unimplemented("Not implemented yet"))
     }
 }

@@ -13,7 +13,8 @@ use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::{
     application::{
-        plugin::{runtime::source::Source, BoxedPlugin, Features, GenericPlugin}, Shared
+        plugin::{runtime::source::Source, BoxedPlugin, Features, GenericPlugin},
+        Shared,
     },
     config::Config,
     storage::Storage,
@@ -106,7 +107,28 @@ pub async fn init_wasm_plugins(
                             information.authors.join(", ")
                         );
                         plugin.features = information.features;
-                        
+
+                        // Initialize the plugin listener
+                        if plugin.features.contains(Features::LISTENER) {
+                            match plugin.init_listener().await {
+                                Ok(mut listener) => {
+                                    listener.register(shared).await;
+                                    info!(
+                                        "The plugin {} now listens to the specified events",
+                                        name
+                                    );
+                                    plugin.listener = Some(listener);
+                                }
+                                Err(error) => {
+                                    error!(
+                                        "Failed to initialize listener for plugin {}: {}",
+                                        name, error
+                                    );
+                                    FancyError::print_fancy(&error, false);
+                                }
+                            }
+                        }
+
                         plugins.insert(name, Box::new(plugin));
                     } else {
                         warn!("Plugin {} marked itself as not ready, skipping...", name);
@@ -232,6 +254,7 @@ impl Plugin {
         Ok(Plugin {
             dropped: false,
             features: Features::empty(),
+            listener: None,
             engine,
             bindings: Arc::new(bindings),
             store: Arc::new(Mutex::new(store)),

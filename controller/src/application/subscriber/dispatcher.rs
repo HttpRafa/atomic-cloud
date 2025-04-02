@@ -1,11 +1,13 @@
 use std::{collections::HashMap, hash::Hash};
 
-use simplelog::error;
 use tokio::sync::RwLock;
 
-use super::{Dispatch, Subscriber};
+use super::Subscriber;
 
-pub struct Watcher<A: Eq + Hash, B>(RwLock<Vec<Subscriber<B>>>, RwLock<HashMap<A, Vec<Subscriber<B>>>>);
+pub struct Watcher<A: Eq + Hash, B>(
+    RwLock<Vec<Subscriber<B>>>,
+    RwLock<HashMap<A, Vec<Subscriber<B>>>>,
+);
 
 impl<A: Eq + Hash, B: Clone> Watcher<A, B> {
     pub fn new() -> Self {
@@ -36,7 +38,12 @@ impl<A: Eq + Hash, B: Clone> Watcher<A, B> {
     }
 
     pub async fn subscribe_to_scope(&self, scope: A, subscriber: Subscriber<B>) {
-        self.1.write().await.entry(scope).or_insert_with(Vec::new).push(subscriber);
+        self.1
+            .write()
+            .await
+            .entry(scope)
+            .or_insert_with(Vec::new)
+            .push(subscriber);
     }
 
     pub async fn subscribe(&self, subscriber: Subscriber<B>) {

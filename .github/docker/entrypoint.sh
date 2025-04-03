@@ -42,5 +42,12 @@ if [ "$LOCAL" = "true" ]; then
     download_wasm $WASM_URL $WASM_FILE
 fi
 
+# Check if the environment variable CLOUDFLARE is set to true
+if [ "$CLOUDFLARE" = "true" ]; then
+    WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/cloudflare.wasm"
+    WASM_FILE="$DEST_FOLDER/cloudflare.wasm"
+    download_wasm $WASM_URL $WASM_FILE
+fi
+
 # Run the main command
 exec ./controller "$@"

@@ -17,7 +17,6 @@ use crate::{
         plugin::system::{data_types::Features, file::remove_dir_all},
     },
     info,
-    listener::Listener,
     node::{InnerNode, Node},
     storage::Storage,
     template::manager::TemplateManager,
@@ -29,7 +28,7 @@ pub mod config;
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
-pub const FEATURES: Features = Features::all();
+pub const FEATURES: Features = Features::NODE;
 
 // Rc is used here to allow resorces to be shared between the plugin and the nodes
 pub struct Local {
@@ -94,7 +93,7 @@ impl GuestPlugin for Local {
     }
 
     fn init_listener(&self) -> (Events, GenericListener) {
-        (Events::empty(), GenericListener::new(Listener()))
+        unimplemented!()
     }
 
     fn init_node(

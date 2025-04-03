@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
 use common::error::FancyError;
-use simplelog::{error, info, warn};
+use simplelog::{debug, error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
     component::{Component, Linker},
@@ -114,7 +114,7 @@ pub async fn init_wasm_plugins(
                             match plugin.init_listener().await {
                                 Ok(mut listener) => {
                                     listener.register(shared).await;
-                                    info!(
+                                    debug!(
                                         "The plugin {} now listens to the specified events",
                                         name
                                     );

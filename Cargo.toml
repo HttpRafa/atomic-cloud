@@ -7,9 +7,10 @@ members = [
     # Controller
     "controller",
 
-    # Drivers
+    # Plugins
     "plugins/pelican",
     "plugins/local",
+    "plugins/cloudflare",
 
     # Clients
     "cli",

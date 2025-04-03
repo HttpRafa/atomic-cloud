@@ -75,11 +75,12 @@ jobs:
           sed -i "s/project\\.version=0\\.0\\.0-nightly/project\\.version=${VERSION}/g" clients/java/gradle.properties
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/pelican/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/local/Cargo.toml
+          sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" plugins/cloudflare/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" clients/wrapper/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" controller/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" common/Cargo.toml
           sed -i "s/version = \"0\\.0\\.0-nightly\"/version = \"${VERSION}\"/g" cli/Cargo.toml
-          git add clients/java/gradle.properties plugins/pelican/Cargo.toml plugins/local/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
+          git add clients/java/gradle.properties plugins/pelican/Cargo.toml plugins/local/Cargo.toml plugins/cloudflare/Cargo.toml clients/wrapper/Cargo.toml controller/Cargo.toml common/Cargo.toml cli/Cargo.toml
           git commit -m "ci(release): bump version"
           git push
 
@@ -119,6 +120,8 @@ jobs:
           
           cp ./target/wasm32-wasip2/release/local.wasm local.wasm
 
+          cp ./target/wasm32-wasip2/release/cloudflare.wasm cloudflare.wasm
+
           cp $(find ./clients/java/paper/build -name "*-all.jar") ac-core.jar
           cp $(find ./clients/java/paper/send/build -name "*-all.jar") ac-send.jar
           cp $(find ./clients/java/paper/notify/build -name "*-all.jar") ac-notify.jar
@@ -145,6 +148,7 @@ jobs:
             wrapper-windows-x86_64.exe
             pelican.wasm
             local.wasm
+            cloudflare.wasm
             templates.tar.gz
             eggs.tar.gz
             ac-core.jar

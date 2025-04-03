@@ -3,6 +3,7 @@ package io.atomic.cloud.paper.enums;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.jetbrains.annotations.NotNull;
 
 public enum MessageEnum {
     PREFIX("<color:#50AAFF>ᴀᴄ <gray> ⋆ "),
@@ -21,8 +22,9 @@ public enum MessageEnum {
             "<gold>⚠ <red>Failed to transfer <color:#FA2E2E>{} users <red>to server! <gray>(<gold>{}<gray>)"),
     TRANSFER_SUCCESS(
             "<aqua>☁ <color:#50AAFF>Successfully submitted <color:#23BFFF>{} <color:#50AAFF>transfer requests to controller."),
-    SERVER_STARTING("<green>⬆ <color:#4AE77A>Spinning up server <color:#2DA953>{}!"),
-    SERVER_SHUTDOWN("<red>⬇ <color:#C85252>Shutting down server <color:#FA2E2E>{}!");
+    SERVER_STARTING(
+            "<green>⬆ <color:#4AE77A>Spinning up server <color:#2DA953>{} <color:#4AE77A>on node <color:#2DA953>{}!"),
+    SERVER_STOPPING("<red>⬇ <color:#C85252>Shutting down server <color:#FA2E2E>{}!");
 
     @Getter
     private final String template;
@@ -33,7 +35,7 @@ public enum MessageEnum {
         this.template = template;
     }
 
-    public Component of(MessageEnum prefix, String... param) {
+    public @NotNull Component of(MessageEnum prefix, String... param) {
         String message = "";
         if (prefix == null) {
             message = template;

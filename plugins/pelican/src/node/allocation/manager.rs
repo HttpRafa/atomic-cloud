@@ -4,7 +4,10 @@ use anyhow::Result;
 use common::name::TimedName;
 
 use crate::{
-    generated::exports::plugin::system::bridge::{Address, DiskRetention, ServerProposal},
+    generated::{
+        exports::plugin::system::bridge::{Address, ServerProposal},
+        plugin::system::data_types::DiskRetention,
+    },
     node::{backend::allocation::data::BAllocation, InnerNode},
     warn,
 };

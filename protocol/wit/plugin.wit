@@ -21,6 +21,80 @@ interface types {
     }
 }
 
+interface data-types {
+    type uuid = string;
+
+    flags features {
+        node,
+        listener,
+    }
+
+    record information {
+        authors: list<string>,
+        version: string,
+        features: features,
+        ready: bool,
+    }
+
+    record capabilities {
+        memory: option<u32>,
+        max-servers: option<u32>,
+        child: option<string>,
+    }
+
+    record address {
+        host: string,
+        port: u16,
+    }
+
+    record resources {
+        memory: u32,
+        swap: u32,
+        cpu: u32,
+        io: u32,
+        disk: u32,
+        ports: u32,
+    }
+
+    record setting {
+        key: string,
+        value: string,
+    }
+
+    variant disk-retention {
+        permanent,
+        temporary,
+    }
+
+    record spec {
+        settings: list<tuple<string, string>>,
+        environment: list<tuple<string, string>>,
+        disk-retention: disk-retention,
+        image: string,
+    }
+
+    record allocation {
+        ports: list<address>,
+        resources: resources,
+        spec: spec,
+    }
+
+    record server-proposal {
+        name: string,
+        group: option<string>,
+        resources: resources,
+        spec: spec,
+    }
+
+    record server {
+        name: string,
+        uuid: uuid,
+        group: option<string>,
+        allocation: allocation,
+        token: string,
+    }
+}
+
 interface log {
     variant level {
         debug,
@@ -118,81 +192,27 @@ interface guard {
     resource guard {}
 }
 
+interface event {
+    use types.{error-message};
+    use data-types.{server};
+
+    flags events {
+        server-start,
+        server-stop,
+    }
+
+    resource listener {
+        server-start: func(server: server) -> result<_, error-message>;
+        server-stop: func(server: server) -> result<_, error-message>;
+    }
+}
+
 interface bridge {
     use types.{error-message, scoped-errors};
+    use data-types.{information, capabilities, address, server-proposal, server};
     use screen.{screen-type};
     use guard.{guard};
-
-    type uuid = string;
-
-    flags features {
-        node
-    }
-
-    record information {
-        authors: list<string>,
-        version: string,
-        features: features,
-        ready: bool,
-    }
-
-    record capabilities {
-        memory: option<u32>,
-        max-servers: option<u32>,
-        child: option<string>,
-    }
-
-    record address {
-        host: string,
-        port: u16,
-    }
-
-    record resources {
-        memory: u32,
-        swap: u32,
-        cpu: u32,
-        io: u32,
-        disk: u32,
-        ports: u32,
-    }
-
-    record setting {
-        key: string,
-        value: string,
-    }
-
-    variant disk-retention {
-        permanent,
-        temporary,
-    }
-
-    record spec {
-        settings: list<tuple<string, string>>,
-        environment: list<tuple<string, string>>,
-        disk-retention: disk-retention,
-        image: string,
-    }
-
-    record allocation {
-        ports: list<address>,
-        resources: resources,
-        spec: spec,
-    }
-
-    record server-proposal {
-        name: string,
-        group: option<string>,
-        resources: resources,
-        spec: spec,
-    }
-
-    record server {
-        name: string,
-        uuid: uuid,
-        group: option<string>,
-        allocation: allocation,
-        token: string,
-    }
+    use event.{events, listener};
 
     resource node {
         tick: func() -> result<_, scoped-errors>;
@@ -206,6 +226,7 @@ interface bridge {
     resource plugin {
         constructor(cloud-identifier: string);
         init: func() -> information;
+        init-listener: func() -> tuple<events, listener>;
         init-node: func(name: string, capabilities: capabilities, controller: string) -> result<node, error-message>;
         tick: func() -> result<_, scoped-errors>;
         shutdown: func() -> result<_, scoped-errors>;
@@ -215,6 +236,7 @@ interface bridge {
 world plugin {
     export bridge;
     export screen;
+    export event;
     import guard;
     import log;
     import platform;

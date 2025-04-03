@@ -7,11 +7,14 @@ use config::Config;
 use crate::{
     error,
     generated::{
-        exports::plugin::system::bridge::{
-            Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
-            ScopedErrors,
+        exports::plugin::system::{
+            bridge::{
+                Capabilities, ErrorMessage, GuestPlugin, Information, Listener as GenericListener,
+                Node as GenericNode, ScopedErrors,
+            },
+            event::Events,
         },
-        plugin::system::file::remove_dir_all,
+        plugin::system::{data_types::Features, file::remove_dir_all},
     },
     info,
     node::{InnerNode, Node},
@@ -25,7 +28,7 @@ pub mod config;
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
-pub const FEATURES: Features = Features::all();
+pub const FEATURES: Features = Features::NODE;
 
 // Rc is used here to allow resorces to be shared between the plugin and the nodes
 pub struct Local {
@@ -87,6 +90,10 @@ impl GuestPlugin for Local {
                 true
             },
         }
+    }
+
+    fn init_listener(&self) -> (Events, GenericListener) {
+        unimplemented!()
     }
 
     fn init_node(

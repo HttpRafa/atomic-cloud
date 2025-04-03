@@ -8,6 +8,8 @@ package client;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+import "common/notify.proto";
+
 import "client/user.proto";
 import "client/transfer.proto";
 import "client/channel.proto";
@@ -44,4 +46,7 @@ service ClientService {
   // Version info
   rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
   rpc GetCtrlVer(google.protobuf.Empty) returns (google.protobuf.StringValue);
+
+  // Notify operations
+  rpc SubscribeToPowerEvents(google.protobuf.Empty) returns (stream common.Notify.PowerEvent);
 }

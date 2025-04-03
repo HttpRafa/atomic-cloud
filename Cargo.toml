@@ -7,9 +7,10 @@ members = [
     # Controller
     "controller",
 
-    # Drivers
+    # Plugins
     "plugins/pelican",
     "plugins/local",
+    "plugins/cloudflare",
 
     # Clients
     "cli",
@@ -17,7 +18,7 @@ members = [
 ]
 
 [workspace.metadata]
-protocol-version = 6
+protocol-version = 7
 
 [profile.release]
 lto = true

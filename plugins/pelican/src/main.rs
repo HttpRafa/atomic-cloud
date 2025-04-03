@@ -3,11 +3,13 @@
 
 use generated::{
     export,
-    exports::plugin::system::{bridge, screen},
+    exports::plugin::system::{bridge, event, screen},
 };
+use listener::Listener;
 use node::{screen::Screen, Node};
 use plugin::Pelican;
 
+mod listener;
 mod log;
 mod node;
 mod plugin;
@@ -32,6 +34,10 @@ impl bridge::Guest for Export {
 
 impl screen::Guest for Export {
     type Screen = Screen;
+}
+
+impl event::Guest for Export {
+    type Listener = Listener;
 }
 
 export!(Export with_types_in generated);

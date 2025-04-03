@@ -26,12 +26,15 @@ use crate::{
     VERSION,
 };
 
-use super::proto::manage::{
-    self,
-    manage_service_server::ManageService,
-    resource::{Category, DelReq, SetReq},
-    screen::{Lines, WriteReq},
-    transfer::{target::Type, TransferReq},
+use super::proto::{
+    common::notify::PowerEvent,
+    manage::{
+        self,
+        manage_service_server::ManageService,
+        resource::{Category, DelReq, SetReq},
+        screen::{Lines, WriteReq},
+        transfer::{target::Type, TransferReq},
+    },
 };
 
 mod group;
@@ -50,6 +53,7 @@ pub struct ManageServiceImpl(pub TaskSender, pub Arc<Shared>);
 #[async_trait]
 impl ManageService for ManageServiceImpl {
     type SubscribeToScreenStream = ReceiverStream<Result<Lines, Status>>;
+    type SubscribeToPowerEventsStream = ReceiverStream<Result<PowerEvent, Status>>;
 
     // Power
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
@@ -423,5 +427,13 @@ impl ManageService for ManageServiceImpl {
     }
     async fn get_ctrl_ver(&self, _request: Request<()>) -> Result<Response<String>, Status> {
         Ok(Response::new(format!("{VERSION}")))
+    }
+
+    // Notify operations
+    async fn subscribe_to_power_events(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
+        Err(Status::unimplemented("Not implemented yet"))
     }
 }

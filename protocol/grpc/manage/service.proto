@@ -8,7 +8,7 @@ package manage;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
-import "common/common.proto";
+import "common/notify.proto";
 
 import "manage/resource.proto";
 import "manage/plugin.proto";
@@ -56,4 +56,7 @@ service ManageService {
   // Version info
   rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
   rpc GetCtrlVer(google.protobuf.Empty) returns (google.protobuf.StringValue);
+
+  // Notify operations
+  rpc SubscribeToPowerEvents(google.protobuf.Empty) returns (stream common.Notify.PowerEvent);
 }

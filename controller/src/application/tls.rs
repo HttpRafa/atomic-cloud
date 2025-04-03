@@ -4,11 +4,11 @@ use tonic::transport::Identity;
 
 use crate::{config::Config, network::tls::Tls};
 
-pub struct GlobalData {
+pub struct TlsSetting {
     pub tls: Option<(String, Identity)>,
 }
 
-impl GlobalData {
+impl TlsSetting {
     pub async fn init(config: &Config) -> Result<Self> {
         let tls = if config.tls_enabled() {
             info!("Loading TLS certificate...");

@@ -5,9 +5,15 @@ use config::Config;
 
 use crate::{
     error,
-    generated::exports::plugin::system::bridge::{
-        Capabilities, ErrorMessage, Features, GuestPlugin, Information, Node as GenericNode,
-        ScopedErrors,
+    generated::{
+        exports::plugin::system::{
+            bridge::{
+                Capabilities, ErrorMessage, GuestPlugin, Information, Listener as GenericListener,
+                Node as GenericNode, ScopedErrors,
+            },
+            event::Events,
+        },
+        plugin::system::data_types::Features,
     },
     info,
     node::{backend::Backend, InnerNode, Node},
@@ -19,7 +25,7 @@ pub mod config;
 include!(concat!(env!("OUT_DIR"), "/build_info.rs"));
 
 pub const AUTHORS: [&str; 1] = ["HttpRafa"];
-pub const FEATURES: Features = Features::all();
+pub const FEATURES: Features = Features::NODE;
 
 // Rc is used here to allow resorces to be shared between the plugin and the nodes
 pub struct Pelican {
@@ -63,6 +69,10 @@ impl GuestPlugin for Pelican {
                 true
             },
         }
+    }
+
+    fn init_listener(&self) -> (Events, GenericListener) {
+        unimplemented!()
     }
 
     fn init_node(

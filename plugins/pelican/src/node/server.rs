@@ -11,10 +11,10 @@ use crate::{
     debug, error,
     generated::{
         exports::plugin::system::{
-            bridge::{self, DiskRetention, Guard},
+            bridge::{self, Guard},
             screen::{Screen as GenericScreen, ScreenType},
         },
-        plugin::system::tls::get_certificate,
+        plugin::system::{data_types::DiskRetention, tls::get_certificate},
     },
     info,
     plugin::config::Config,

@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
-use generated::exports::plugin::system::bridge;
+use generated::{exports::plugin::system::bridge, plugin::system::data_types};
+use listener::PluginListener;
 use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
@@ -12,15 +13,16 @@ use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::application::{
-    global::GlobalData,
     node::Capabilities,
     plugin::{BoxedNode, Features, GenericPlugin, Information},
+    Shared,
 };
 
 pub(crate) mod config;
 mod epoch;
 pub mod ext;
 pub mod init;
+mod listener;
 mod node;
 
 #[allow(clippy::all)]
@@ -42,7 +44,7 @@ pub mod generated {
 
 pub(crate) struct PluginState {
     /* Global */
-    global: Arc<GlobalData>,
+    shared: Arc<Shared>,
 
     /* Plugin */
     name: String,
@@ -54,7 +56,14 @@ pub(crate) struct PluginState {
 }
 
 pub(crate) struct Plugin {
+    // State
     dropped: bool,
+
+    // Features
+    features: Features,
+
+    // Listener
+    listener: Option<Arc<Mutex<PluginListener>>>,
 
     #[allow(unused)]
     engine: Engine,
@@ -66,7 +75,7 @@ pub(crate) struct Plugin {
 #[async_trait]
 impl GenericPlugin for Plugin {
     async fn init(&self) -> Result<Information> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         let mut store = store.lock().await;
         match bindings
             .plugin_system_bridge()
@@ -85,7 +94,7 @@ impl GenericPlugin for Plugin {
         capabilities: &Capabilities,
         controller: &Url,
     ) -> Result<BoxedNode> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         match bindings
             .plugin_system_bridge()
             .plugin()
@@ -104,7 +113,7 @@ impl GenericPlugin for Plugin {
     }
 
     fn shutdown(&self) -> JoinHandle<Result<()>> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, _) = self.get();
         spawn(async move {
             match bindings
                 .plugin_system_bridge()
@@ -125,12 +134,23 @@ impl GenericPlugin for Plugin {
     }
 
     fn tick(&self) -> JoinHandle<Result<()>> {
-        let (bindings, store, instance) = self.get();
+        let (bindings, store, instance, listener) = self.get();
         spawn(async move {
+            let mut store = store.lock().await;
+
+            // Execute events that need to be fired
+            if let Some(listener) = listener {
+                listener
+                    .lock()
+                    .await
+                    .fire_events(&bindings, &mut store)
+                    .await;
+            }
+
             match bindings
                 .plugin_system_bridge()
                 .plugin()
-                .call_tick(store.lock().await.as_context_mut(), instance)
+                .call_tick(store.as_context_mut(), instance)
                 .await
             {
                 Ok(result) => result.map_err(|errors| {
@@ -146,12 +166,39 @@ impl GenericPlugin for Plugin {
     }
 
     async fn cleanup(&mut self) -> Result<()> {
+        let mut store = self.store.lock().await;
+
+        // Drop the listener
+        if let Some(listener) = self.listener.take() {
+            listener
+                .lock()
+                .await
+                .cleanup(store.as_context_mut())
+                .await?;
+        }
+
         self.instance
-            .resource_drop_async(self.store.lock().await.as_context_mut())
+            .resource_drop_async(store.as_context_mut())
             .await?;
         self.dropped = true;
 
         Ok(())
+    }
+}
+
+impl Plugin {
+    async fn init_listener(&self) -> Result<PluginListener> {
+        let (bindings, store, instance, _) = self.get();
+        let mut store = store.lock().await;
+        match bindings
+            .plugin_system_bridge()
+            .plugin()
+            .call_init_listener(store.as_context_mut(), instance)
+            .await
+        {
+            Ok(instance) => Ok(PluginListener::new(instance)),
+            Err(error) => Err(error),
+        }
     }
 }
 
@@ -167,14 +214,21 @@ impl Drop for Plugin {
 }
 
 impl Plugin {
+    #[allow(clippy::complexity)]
     fn get(
         &self,
     ) -> (
         Arc<generated::Plugin>,
         Arc<Mutex<Store<PluginState>>>,
         ResourceAny,
+        Option<Arc<Mutex<PluginListener>>>,
     ) {
-        (self.bindings.clone(), self.store.clone(), self.instance)
+        (
+            self.bindings.clone(),
+            self.store.clone(),
+            self.instance,
+            self.listener.clone(),
+        )
     }
 }
 
@@ -207,11 +261,14 @@ impl From<bridge::Information> for Information {
     }
 }
 
-impl From<bridge::Features> for Features {
-    fn from(value: bridge::Features) -> Self {
+impl From<data_types::Features> for Features {
+    fn from(value: data_types::Features) -> Self {
         let mut features = Features::empty();
-        if value.contains(bridge::Features::NODE) {
+        if value.contains(data_types::Features::NODE) {
             features.insert(Features::NODE);
+        }
+        if value.contains(data_types::Features::LISTENER) {
+            features.insert(Features::LISTENER);
         }
         features
     }

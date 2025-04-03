@@ -4,10 +4,10 @@ use crate::{
     error,
     generated::{
         exports::plugin::system::{
-            bridge::{self, Guard, ScopedErrors, Uuid},
+            bridge::{self, Guard, ScopedErrors},
             screen::ScreenType,
         },
-        plugin::system::types::ScopedError,
+        plugin::system::{data_types::Uuid, types::ScopedError},
     },
     info,
     node::InnerNode,

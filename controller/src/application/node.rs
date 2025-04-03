@@ -113,7 +113,7 @@ impl Node {
     }
 }
 
-#[derive(Getters)]
+#[derive(Getters, Clone)]
 pub struct Allocation {
     #[getset(get = "pub")]
     pub ports: Vec<HostAndPort>,

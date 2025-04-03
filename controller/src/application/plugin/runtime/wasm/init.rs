@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
 use common::error::FancyError;
-use simplelog::{error, info, warn};
+use simplelog::{debug, error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
     component::{Component, Linker},
@@ -13,8 +13,8 @@ use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::{
     application::{
-        global::GlobalData,
-        plugin::{runtime::source::Source, BoxedPlugin, GenericPlugin},
+        plugin::{runtime::source::Source, BoxedPlugin, Features, GenericPlugin},
+        Shared,
     },
     config::Config,
     storage::Storage,
@@ -26,9 +26,10 @@ use super::{
     generated, Plugin, PluginState,
 };
 
+#[allow(clippy::too_many_lines)]
 pub async fn init_wasm_plugins(
     global_config: &Config,
-    global_data: &Arc<GlobalData>,
+    shared: &Arc<Shared>,
     plugins: &mut HashMap<String, BoxedPlugin>,
 ) -> Result<()> {
     // Verify and load required configuration files
@@ -89,7 +90,7 @@ pub async fn init_wasm_plugins(
             &name,
             &source,
             global_config,
-            global_data,
+            shared,
             &plugins_config,
             &data_directory,
             &config_directory,
@@ -106,6 +107,29 @@ pub async fn init_wasm_plugins(
                             information.version,
                             information.authors.join(", ")
                         );
+                        plugin.features = information.features;
+
+                        // Initialize the plugin listener
+                        if plugin.features.contains(Features::LISTENER) {
+                            match plugin.init_listener().await {
+                                Ok(mut listener) => {
+                                    listener.register(shared).await;
+                                    debug!(
+                                        "The plugin {} now listens to the specified events",
+                                        name
+                                    );
+                                    plugin.listener = Some(Arc::new(Mutex::new(listener)));
+                                }
+                                Err(error) => {
+                                    error!(
+                                        "Failed to initialize listener for plugin {}: {}",
+                                        name, error
+                                    );
+                                    FancyError::print_fancy(&error, false);
+                                }
+                            }
+                        }
+
                         plugins.insert(name, Box::new(plugin));
                     } else {
                         warn!("Plugin {} marked itself as not ready, skipping...", name);
@@ -145,7 +169,7 @@ impl Plugin {
         name: &str,
         source: &Source,
         global_config: &Config,
-        global_data: &Arc<GlobalData>,
+        shared: &Arc<Shared>,
         plugins_config: &PluginsConfig,
         data_directory: &Path,
         config_directory: &Path,
@@ -208,7 +232,7 @@ impl Plugin {
         let mut store = Store::new(
             &engine,
             PluginState {
-                global: global_data.clone(),
+                shared: shared.clone(),
                 name: name.to_string(),
                 wasi,
                 http: WasiHttpCtx::new(),
@@ -230,6 +254,8 @@ impl Plugin {
 
         Ok(Plugin {
             dropped: false,
+            features: Features::empty(),
+            listener: None,
             engine,
             bindings: Arc::new(bindings),
             store: Arc::new(Mutex::new(store)),

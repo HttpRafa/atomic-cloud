@@ -12,6 +12,7 @@ import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.grpc.client.*;
 import io.atomic.cloud.grpc.client.Channel;
 import io.atomic.cloud.grpc.client.Server;
+import io.atomic.cloud.grpc.common.Notify;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
@@ -178,6 +179,13 @@ public class CloudConnection {
     public CallHandle<?, Channel.Msg> subscribeToChannel(String channel, StreamObserver<Channel.Msg> observer) {
         var handle = new CallHandle<>(observer);
         this.client.subscribeToChannel(StringValue.of(channel), handle);
+        return handle;
+    }
+
+    /* Notify */
+    public CallHandle<?, Notify.PowerEvent> subscribeToPowerEvents(StreamObserver<Notify.PowerEvent> observer) {
+        var handle = new CallHandle<>(observer);
+        this.client.subscribeToPowerEvents(Empty.getDefaultInstance(), handle);
         return handle;
     }
 

@@ -33,7 +33,7 @@ impl ServerManager {
         request.stage = match stage {
             StopStage::Queued => {
                 info!("Stopping server {}", request.server);
-                match Self::stop(request, servers, nodes) {
+                match Self::stop(request, servers, nodes, shared).await {
                     Ok((handle, guard)) => StopStage::Running(handle, guard),
                     Err(error) => {
                         warn!("Failed to stop server {}: {}", request.server, error);

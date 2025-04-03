@@ -7,9 +7,9 @@ use anyhow::Result;
 use common::{file::SyncLoadFromTomlFile, name::TimedName};
 
 use crate::{
-    generated::{
-        exports::plugin::system::bridge::DiskRetention,
-        plugin::system::types::{Directory, Reference},
+    generated::plugin::system::{
+        data_types::DiskRetention,
+        types::{Directory, Reference},
     },
     warn,
 };

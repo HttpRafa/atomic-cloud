@@ -76,6 +76,21 @@ impl ServerManager {
                     flags: Flags::default(),
                     ready: false,
                 };
+
+                // Fire the server start event
+                shared
+                    .subscribers
+                    .plugin()
+                    .server_start()
+                    .publish((&server).into())
+                    .await;
+                shared
+                    .subscribers
+                    .network()
+                    .power()
+                    .publish((&server).into())
+                    .await;
+
                 let handle = node.start(&server);
                 if let Some(group) = &server.group {
                     if let Some(group) = groups.get_group_mut(group) {
@@ -125,13 +140,28 @@ impl ServerManager {
             ))
         }
     }
-    pub fn stop(
+    pub async fn stop(
         request: &StopRequest,
         servers: &mut HashMap<Uuid, Server>,
         nodes: &NodeManager,
+        shared: &Arc<Shared>,
     ) -> Result<(JoinHandle<Result<()>>, WeakGuard)> {
         if let Some(server) = servers.get_mut(request.server.uuid()) {
             if let Some(node) = nodes.get_node(&server.node) {
+                // Fire the server stop event
+                shared
+                    .subscribers
+                    .plugin()
+                    .server_stop()
+                    .publish((server as &Server).into())
+                    .await;
+                shared
+                    .subscribers
+                    .network()
+                    .power()
+                    .publish((server as &Server).into())
+                    .await;
+
                 let (guard, weak_guard) = Guard::new();
                 Ok((node.stop(server, guard), weak_guard))
             } else {

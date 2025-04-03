@@ -20,6 +20,7 @@ pub mod screen;
 mod tls;
 
 impl system::types::Host for PluginState {}
+impl system::data_types::Host for PluginState {}
 
 impl PluginState {
     pub fn get_directory(name: &str, directory: &Directory) -> PathBuf {

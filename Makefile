@@ -72,6 +72,7 @@ build-plugins:
 	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
 	cargo build -p pelican --target $(WASM_TARGET) --release
 	cargo build -p local --target $(WASM_TARGET) --release
+	cargo build -p cloudflare --target $(WASM_TARGET) --release
 
 # Create plugin directory if it doesn't exist
 $(PLUGIN_DIR):

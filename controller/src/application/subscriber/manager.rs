@@ -3,35 +3,53 @@ use event::ServerEvent;
 use getset::Getters;
 use uuid::Uuid;
 
-use crate::network::client::{ChannelMsg, TransferMsg};
+use crate::network::client::{ChannelMsg, PowerMsg, TransferMsg};
 
 use super::watcher::Watcher;
 
 pub mod event;
 
 #[derive(Getters)]
-pub struct SubscriberManager {
-    /* Client */
-    #[getset(get = "pub")]
-    transfer: Watcher<Uuid, TransferMsg>,
-    #[getset(get = "pub")]
-    channel: Watcher<String, ChannelMsg>,
-
-    /* Events */
+pub struct PluginEvents {
     #[getset(get = "pub")]
     server_start: Watcher<(), ServerEvent>,
     #[getset(get = "pub")]
     server_stop: Watcher<(), ServerEvent>,
 }
 
+#[derive(Getters)]
+pub struct NetworkEvents {
+    /* Client */
+    #[getset(get = "pub")]
+    transfer: Watcher<Uuid, TransferMsg>,
+    #[getset(get = "pub")]
+    channel: Watcher<String, ChannelMsg>,
+
+    #[getset(get = "pub")]
+    power: Watcher<(), PowerMsg>,
+}
+
+#[derive(Getters)]
+pub struct SubscriberManager {
+    /* Events */
+    #[getset(get = "pub")]
+    plugin: PluginEvents,
+    #[getset(get = "pub")]
+    network: NetworkEvents,
+}
+
 impl SubscriberManager {
     pub fn init() -> Self {
         Self {
-            transfer: Watcher::new(),
-            channel: Watcher::new(),
-
-            server_start: Watcher::new(),
-            server_stop: Watcher::new(),
+            plugin: PluginEvents {
+                server_start: Watcher::new(),
+                server_stop: Watcher::new(),
+            },
+            network: NetworkEvents {
+                transfer: Watcher::new(),
+                channel: Watcher::new(),
+                power: Watcher::new(),
+            },
         }
     }
 }
@@ -40,11 +58,12 @@ impl SubscriberManager {
 impl SubscriberManager {
     pub async fn tick(&self) -> Result<()> {
         // Cleanup dead subscribers
-        self.channel.cleanup().await;
-        self.transfer.cleanup().await;
+        self.network.channel.cleanup().await;
+        self.network.transfer.cleanup().await;
+        self.network.power.cleanup().await;
 
-        self.server_start.cleanup().await;
-        self.server_stop.cleanup().await;
+        self.plugin.server_start.cleanup().await;
+        self.plugin.server_stop.cleanup().await;
         Ok(())
     }
 }

@@ -80,7 +80,14 @@ impl ServerManager {
                 // Fire the server start event
                 shared
                     .subscribers
+                    .plugin()
                     .server_start()
+                    .publish((&server).into())
+                    .await;
+                shared
+                    .subscribers
+                    .network()
+                    .power()
                     .publish((&server).into())
                     .await;
 
@@ -144,7 +151,14 @@ impl ServerManager {
                 // Fire the server stop event
                 shared
                     .subscribers
+                    .plugin()
                     .server_stop()
+                    .publish((server as &Server).into())
+                    .await;
+                shared
+                    .subscribers
+                    .network()
+                    .power()
                     .publish((server as &Server).into())
                     .await;
 

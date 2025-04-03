@@ -37,12 +37,14 @@ use super::{
 mod beat;
 mod group;
 mod health;
+mod notify;
 mod ready;
 mod server;
 mod user;
 
 pub type TransferMsg = TransferRes;
 pub type ChannelMsg = Msg;
+pub type PowerMsg = PowerEvent;
 
 pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 
@@ -186,6 +188,7 @@ impl ClientService for ClientServiceImpl {
         let (sender, receiver) = Subscriber::create_network();
         self.1
             .subscribers
+            .network()
             .transfer()
             .subscribe_to_scope(*server.uuid(), sender)
             .await;
@@ -201,6 +204,7 @@ impl ClientService for ClientServiceImpl {
         Ok(Response::new(
             self.1
                 .subscribers
+                .network()
                 .channel()
                 .publish_to_scope(&channel, request)
                 .await,
@@ -215,6 +219,7 @@ impl ClientService for ClientServiceImpl {
         let (sender, receiver) = Subscriber::create_network();
         self.1
             .subscribers
+            .network()
             .channel()
             .subscribe_to_scope(request, sender)
             .await;
@@ -267,6 +272,9 @@ impl ClientService for ClientServiceImpl {
         &self,
         _request: Request<()>,
     ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
-        Err(Status::unimplemented("Not implemented yet"))
+        let (sender, receiver) = Subscriber::create_network();
+        self.1.subscribers.network().power().subscribe(sender).await;
+
+        Ok(Response::new(receiver))
     }
 }

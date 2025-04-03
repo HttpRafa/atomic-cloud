@@ -46,6 +46,7 @@ impl PluginListener {
             let (subscriber, receiver) = Subscriber::create_plugin();
             shared
                 .subscribers
+                .plugin()
                 .server_start()
                 .subscribe(subscriber)
                 .await;
@@ -53,7 +54,12 @@ impl PluginListener {
         }
         if self.events.contains(Events::SERVER_STOP) {
             let (subscriber, receiver) = Subscriber::create_plugin();
-            shared.subscribers.server_stop().subscribe(subscriber).await;
+            shared
+                .subscribers
+                .plugin()
+                .server_stop()
+                .subscribe(subscriber)
+                .await;
             self.server_stop = Some(receiver);
         }
     }

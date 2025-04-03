@@ -11,7 +11,8 @@ message Notify {
             START = 0;
             STOP = 1;
         }
-        string name = 1;
-        string node = 2;
+        State state = 1;
+        string name = 2;
+        string node = 3;
     }
 }

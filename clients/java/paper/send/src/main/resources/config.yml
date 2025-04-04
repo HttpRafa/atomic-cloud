@@ -1,0 +1,4 @@
+messages:
+  transferring-users: "<aqua>☁ <color:#50AAFF>Transferring <color:#23BFFF><count> users <color:#50AAFF>to <color:#23BFFF><target>..."
+  transfer-failed: "<gold>⚠ <red>Failed to transfer <color:#FA2E2E><count> users <red>to server! <gray>(<gold><target><gray>)"
+  transfer-successful: "<aqua>☁ <color:#50AAFF>Successfully submitted <color:#23BFFF><count> <color:#50AAFF>transfer requests to controller."

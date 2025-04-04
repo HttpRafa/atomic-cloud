@@ -17,8 +17,7 @@ public class CloudPluginLoader implements PluginLoader {
     public void classloader(@NotNull PluginClasspathBuilder builder) {
         MavenLibraryResolver resolver = new MavenLibraryResolver();
         resolver.addRepository(
-                new RemoteRepository.Builder("paper", "default", "https://repo.papermc.io/repository/maven-public/")
-                        .build());
+                new RemoteRepository.Builder("paper", "default", "https://repo1.maven.org/maven2/").build());
         dependency(resolver, "io.grpc", "grpc-protobuf", GRPC_VERSION);
         dependency(resolver, "io.grpc", "grpc-stub", GRPC_VERSION);
         dependency(resolver, "io.grpc", "grpc-netty", GRPC_VERSION);

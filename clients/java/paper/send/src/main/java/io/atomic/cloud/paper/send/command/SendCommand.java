@@ -3,12 +3,13 @@ package io.atomic.cloud.paper.send.command;
 import com.mojang.brigadier.Command;
 import io.atomic.cloud.grpc.client.Transfer;
 import io.atomic.cloud.paper.CloudPlugin;
-import io.atomic.cloud.paper.enums.MessageEnum;
-import io.atomic.cloud.paper.permission.Permissions;
+import io.atomic.cloud.paper.send.SendPlugin;
 import io.atomic.cloud.paper.send.command.argument.TransferTargetArgument;
+import io.atomic.cloud.paper.send.permission.Permissions;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +30,13 @@ public class SendCommand {
                                     var userCount = users.size();
                                     var target = context.getArgument("target", Transfer.Target.class);
 
-                                    sender.sendMessage(MessageEnum.TRANSFER_USER_AMOUNT.of(
-                                            MessageEnum.PREFIX, String.valueOf(userCount), formatTarget(target)));
+                                    SendPlugin.INSTANCE
+                                            .messages()
+                                            .transferringUsers()
+                                            .send(
+                                                    sender,
+                                                    Placeholder.unparsed("count", String.valueOf(userCount)),
+                                                    Placeholder.unparsed("target", formatTarget(target)));
                                     connection
                                             .transferUsers(Transfer.TransferReq.newBuilder()
                                                     .addAllIds(users.stream()
@@ -41,14 +47,25 @@ public class SendCommand {
                                                     .build())
                                             .whenComplete((result, throwable) -> {
                                                 if (throwable != null) {
-                                                    sender.sendMessage(MessageEnum.TRANSFER_USER_FAILED.of(
-                                                            MessageEnum.PREFIX,
-                                                            String.valueOf(userCount),
-                                                            formatTarget(target),
-                                                            throwable.getMessage()));
+                                                    SendPlugin.INSTANCE
+                                                            .messages()
+                                                            .transferFailed()
+                                                            .send(
+                                                                    sender,
+                                                                    Placeholder.unparsed(
+                                                                            "count", String.valueOf(userCount)),
+                                                                    Placeholder.unparsed(
+                                                                            "target", formatTarget(target)),
+                                                                    Placeholder.unparsed(
+                                                                            "error", throwable.getMessage()));
                                                 } else {
-                                                    sender.sendMessage(MessageEnum.TRANSFER_SUCCESS.of(
-                                                            MessageEnum.PREFIX, String.valueOf(userCount)));
+                                                    SendPlugin.INSTANCE
+                                                            .messages()
+                                                            .transferSuccessful()
+                                                            .send(
+                                                                    sender,
+                                                                    Placeholder.unparsed(
+                                                                            "count", String.valueOf(userCount)));
                                                 }
                                             });
                                     return Command.SINGLE_SUCCESS;

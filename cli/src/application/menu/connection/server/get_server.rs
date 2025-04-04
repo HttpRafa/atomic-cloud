@@ -67,7 +67,7 @@ impl GetServerMenu {
         } else {
             info!("      <green><b>Group</>: None");
         }
-        info!("      <green><b>Node</>: {}", server.name);
+        info!("      <green><b>Node</>: {}", server.node);
         if let Some(allocation) = &server.allocation {
             info!("      <green><b>Allocation</>: ");
             info!("         <green><b>Allocations</>: ");

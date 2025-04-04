@@ -1,0 +1,14 @@
+behavior:
+  auto-ready: true
+  suicide-on-disable: true
+messages:
+  infos:
+    - "<gray><st>--------------------"
+    - "<gray>» <b><gradient:#50AAFF:#23BFFF>Atomic Cloud</gradient></b>  <aqua>☁ "
+    - "<gray>» "
+    - "<gray>» <color:#50AAFF>Client Version <dark_gray>→ <b><color:#23BFFF><client>"
+    - "<gray>» <color:#50AAFF>Controller Version <dark_gray>→ <b><color:#23BFFF><controller>"
+    - "<gray>» <color:#50AAFF>Controller Protocol Version <dark_gray>→ <b><color:#23BFFF><protocol>"
+    - "<gray><st>--------------------"
+  not-ready: "<gold>⚠ <red>Marking server as not ready!"
+  transfer-all-users: "<aqua>☁ <color:#50AAFF>Requesting to transfer <color:#23BFFF>all users <color:#50AAFF>to new <color:#23BFFF>servers..."

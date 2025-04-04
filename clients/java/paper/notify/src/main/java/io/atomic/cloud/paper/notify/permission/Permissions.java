@@ -1,4 +1,4 @@
-package io.atomic.cloud.paper.permission;
+package io.atomic.cloud.paper.notify.permission;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import lombok.AllArgsConstructor;
@@ -10,8 +10,7 @@ import org.jetbrains.annotations.NotNull;
 @Getter
 @SuppressWarnings("UnstableApiUsage")
 public enum Permissions {
-    CLOUD_COMMAND("atomic.cloud.command.cloud"),
-    DISPOSE_COMMAND("atomic.cloud.command.dispose");
+    POWER_NOTIFY("atomic.cloud.power.notify");
 
     private final String permission;
 

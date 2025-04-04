@@ -35,6 +35,7 @@ tasks {
     shadowJar {
         include("io/atomic/cloud/paper/**")
         include("paper-plugin.yml")
+        include("config.yml")
     }
 
     assemble {

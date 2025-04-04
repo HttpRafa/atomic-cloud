@@ -9,11 +9,12 @@ import io.atomic.cloud.common.resource.object.SimpleLocalCloudServer;
 import io.atomic.cloud.common.transfer.TransferManager;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
+import io.atomic.cloud.paper.setting.Settings;
+import io.atomic.cloud.paper.setting.message.Messages;
 import io.atomic.cloud.paper.transfer.TransferHandler;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
@@ -28,7 +29,9 @@ public class CloudPlugin extends JavaPlugin {
     public static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(4);
     public static final Logger LOGGER = LoggerFactory.getLogger("ac-core");
 
-    private final Settings settings = new Settings();
+    private Settings settings;
+    private Messages messages;
+
     private ChannelManager channels;
     private TransferManager transfers;
     private ResourceManager resources;
@@ -42,6 +45,11 @@ public class CloudPlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         Cloud.setup(new CloudImpl());
+
+        // Load configuration
+        saveDefaultConfig();
+        this.settings = new Settings(this.getConfig());
+        this.messages = new Messages(this.getConfig());
 
         this.connection = CloudConnection.createFromEnv();
         this.self = new SimpleLocalCloudServer(this.connection);
@@ -90,13 +98,5 @@ public class CloudPlugin extends JavaPlugin {
     private void registerListeners() {
         var pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerEventsListener(), this);
-    }
-
-    @Getter
-    @Setter
-    public static class Settings {
-
-        public boolean autoReady = true;
-        public boolean suicideOnDisable = true;
     }
 }

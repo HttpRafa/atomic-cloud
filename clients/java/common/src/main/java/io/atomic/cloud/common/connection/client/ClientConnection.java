@@ -1,44 +1,27 @@
-package io.atomic.cloud.common.connection;
+package io.atomic.cloud.common.connection.client;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.google.protobuf.StringValue;
 import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.common.cache.CachedObject;
+import io.atomic.cloud.common.connection.Connection;
 import io.atomic.cloud.common.connection.call.CallHandle;
+import io.atomic.cloud.common.connection.credential.TokenCredential;
 import io.atomic.cloud.grpc.client.*;
-import io.atomic.cloud.grpc.client.Channel;
-import io.atomic.cloud.grpc.client.Server;
 import io.atomic.cloud.grpc.common.Notify;
-import io.grpc.*;
 import io.grpc.stub.StreamObserver;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("UnusedReturnValue")
-@RequiredArgsConstructor
-public class CloudConnection {
-
-    private static final Executor EXECUTOR = Executors.newCachedThreadPool();
-
-    private final URL address;
-    private final String token;
-    private final String certificate;
+public class ClientConnection extends Connection {
 
     private ClientServiceGrpc.ClientServiceStub client;
     private ClientServiceGrpc.ClientServiceFutureStub futureClient;
@@ -49,120 +32,104 @@ public class CloudConnection {
     private final CachedObject<Server.List> serversInfo = new CachedObject<>();
     private final CachedObject<Group.List> groupsInfo = new CachedObject<>();
 
-    public void connect() throws IOException {
-        ManagedChannelBuilder<?> channel;
-        if (this.certificate != null) {
-            channel = Grpc.newChannelBuilderForAddress(
-                    this.address.getHost(),
-                    this.address.getPort(),
-                    TlsChannelCredentials.newBuilder()
-                            .trustManager(new ByteArrayInputStream(this.certificate.getBytes(StandardCharsets.UTF_8)))
-                            .build());
-        } else {
-            channel = ManagedChannelBuilder.forAddress(this.address.getHost(), this.address.getPort());
-            channel.usePlaintext();
-        }
-        var callCredentials = new CallCredentials() {
-            @Override
-            public void applyRequestMetadata(
-                    RequestInfo requestInfo, Executor executor, @NotNull MetadataApplier applier) {
-                var metadata = new Metadata();
-                metadata.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), token);
-                applier.apply(metadata);
-            }
-        };
+    public ClientConnection(URL address, String token, String certificate) {
+        super(address, token, certificate);
+    }
 
-        var managedChannel = channel.build();
-        this.client = ClientServiceGrpc.newStub(managedChannel).withCallCredentials(callCredentials);
-        this.futureClient = ClientServiceGrpc.newFutureStub(managedChannel).withCallCredentials(callCredentials);
+    @Override
+    public void connect() throws IOException {
+        var credentials = new TokenCredential(super.token);
+        var managedChannel = super.createChannel();
+        this.client = ClientServiceGrpc.newStub(managedChannel).withCallCredentials(credentials);
+        this.futureClient = ClientServiceGrpc.newFutureStub(managedChannel).withCallCredentials(credentials);
     }
 
     public CompletableFuture<Empty> beat() {
-        return this.wrapInFuture(this.futureClient.beat(Empty.getDefaultInstance()));
+        return super.wrapInFuture(this.futureClient.beat(Empty.getDefaultInstance()));
     }
 
-    public CompletableFuture<Empty> setReady(boolean ready) {
-        return this.wrapInFuture(this.futureClient.setReady(BoolValue.of(ready)));
+    public CompletableFuture<Empty> ready(boolean ready) {
+        return super.wrapInFuture(this.futureClient.setReady(BoolValue.of(ready)));
     }
 
-    public CompletableFuture<Empty> setRunning() {
-        return this.wrapInFuture(this.futureClient.setRunning(Empty.getDefaultInstance()));
+    public CompletableFuture<Empty> running() {
+        return super.wrapInFuture(this.futureClient.setRunning(Empty.getDefaultInstance()));
     }
 
     public CompletableFuture<Empty> requestStop() {
-        return this.wrapInFuture(this.futureClient.requestStop(Empty.getDefaultInstance()));
+        return super.wrapInFuture(this.futureClient.requestStop(Empty.getDefaultInstance()));
     }
 
     public CompletableFuture<Empty> userConnected(User.ConnectedReq user) {
-        return this.wrapInFuture(this.futureClient.userConnected(user));
+        return super.wrapInFuture(this.futureClient.userConnected(user));
     }
 
     public CompletableFuture<Empty> userDisconnected(User.DisconnectedReq user) {
-        return this.wrapInFuture(this.futureClient.userDisconnected(user));
+        return super.wrapInFuture(this.futureClient.userDisconnected(user));
     }
 
     public CompletableFuture<UInt32Value> transferUsers(Transfer.TransferReq transfer) {
-        return this.wrapInFuture(this.futureClient.transferUsers(transfer));
+        return super.wrapInFuture(this.futureClient.transferUsers(transfer));
     }
 
     public CompletableFuture<UInt32Value> publishMessage(Channel.Msg message) {
-        return this.wrapInFuture(this.futureClient.publishMessage(message));
+        return super.wrapInFuture(this.futureClient.publishMessage(message));
     }
 
-    public synchronized Optional<Server.List> getServersNow() {
+    public synchronized Optional<Server.List> serversNow() {
         var cached = this.serversInfo.getValue();
         if (cached.isEmpty()) {
-            this.getServers(); // Request value from controller
+            this.servers(); // Request value from controller
         }
         return cached;
     }
 
-    public synchronized CompletableFuture<Server.List> getServers() {
+    public synchronized CompletableFuture<Server.List> servers() {
         return this.serversInfo
                 .getValue()
                 .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> this.wrapInFuture(this.futureClient.getServers(Empty.getDefaultInstance()))
+                .orElseGet(() -> super.wrapInFuture(this.futureClient.getServers(Empty.getDefaultInstance()))
                         .thenApply((value) -> {
                             this.serversInfo.setValue(value);
                             return value;
                         }));
     }
 
-    public synchronized Optional<Group.List> getGroupsNow() {
+    public synchronized Optional<Group.List> groupsNow() {
         var cached = this.groupsInfo.getValue();
         if (cached.isEmpty()) {
-            this.getGroups(); // Request value from controller
+            this.groups(); // Request value from controller
         }
         return cached;
     }
 
-    public synchronized CompletableFuture<Group.List> getGroups() {
+    public synchronized CompletableFuture<Group.List> groups() {
         return this.groupsInfo
                 .getValue()
                 .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> this.wrapInFuture(this.futureClient.getGroups(Empty.getDefaultInstance()))
+                .orElseGet(() -> super.wrapInFuture(this.futureClient.getGroups(Empty.getDefaultInstance()))
                         .thenApply((value) -> {
                             this.groupsInfo.setValue(value);
                             return value;
                         }));
     }
 
-    public synchronized CompletableFuture<UInt32Value> getProtoVer() {
+    public synchronized CompletableFuture<UInt32Value> protoVer() {
         return this.protocolVersion
                 .getValue()
                 .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> this.wrapInFuture(this.futureClient.getProtoVer(Empty.getDefaultInstance()))
+                .orElseGet(() -> super.wrapInFuture(this.futureClient.getProtoVer(Empty.getDefaultInstance()))
                         .thenApply((value) -> {
                             this.protocolVersion.setValue(value);
                             return value;
                         }));
     }
 
-    public synchronized CompletableFuture<StringValue> getCtrlVer() {
+    public synchronized CompletableFuture<StringValue> ctrlVer() {
         return this.controllerVersion
                 .getValue()
                 .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> this.wrapInFuture(this.futureClient.getCtrlVer(Empty.getDefaultInstance()))
+                .orElseGet(() -> super.wrapInFuture(this.futureClient.getCtrlVer(Empty.getDefaultInstance()))
                         .thenApply((value) -> {
                             this.controllerVersion.setValue(value);
                             return value;
@@ -190,7 +157,7 @@ public class CloudConnection {
     }
 
     @Contract(" -> new")
-    public static @NotNull CloudConnection createFromEnv() {
+    public static @NotNull ClientConnection createFromEnv() {
         var address = System.getenv("CONTROLLER_ADDRESS");
         var token = System.getenv("SERVER_TOKEN");
         if (address == null) {
@@ -207,25 +174,6 @@ public class CloudConnection {
         } catch (MalformedURLException | URISyntaxException exception) {
             throw new IllegalStateException("Failed to parse CONTROLLER_ADDRESS variable", exception);
         }
-        return new CloudConnection(url, token, certificate);
-    }
-
-    private <T> @NotNull CompletableFuture<T> wrapInFuture(@NotNull ListenableFuture<T> future) {
-        var newFuture = new CompletableFuture<T>();
-        Futures.addCallback(
-                future,
-                new FutureCallback<>() {
-                    @Override
-                    public void onSuccess(T result) {
-                        newFuture.complete(result);
-                    }
-
-                    @Override
-                    public void onFailure(@NotNull Throwable throwable) {
-                        newFuture.completeExceptionally(throwable);
-                    }
-                },
-                EXECUTOR);
-        return newFuture;
+        return new ClientConnection(url, token, certificate);
     }
 }

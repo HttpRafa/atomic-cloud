@@ -23,7 +23,7 @@ public class SendCommand {
                         .then(Commands.argument("target", TransferTargetArgument.INSTANCE)
                                 .executes(context -> {
                                     var sender = context.getSource().getSender();
-                                    var connection = CloudPlugin.INSTANCE.connection();
+                                    var connection = CloudPlugin.INSTANCE.clientConnection();
 
                                     var users = context.getArgument("user", PlayerSelectorArgumentResolver.class)
                                             .resolve(context.getSource());

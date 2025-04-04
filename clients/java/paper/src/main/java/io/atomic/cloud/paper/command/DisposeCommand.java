@@ -17,10 +17,10 @@ public class DisposeCommand {
                 .requires(Permissions.DISPOSE_COMMAND::check)
                 .executes(context -> {
                     var sender = context.getSource().getSender();
-                    var connection = CloudPlugin.INSTANCE.connection();
+                    var connection = CloudPlugin.INSTANCE.clientConnection();
 
                     CloudPlugin.INSTANCE.messages().notReady().send(sender);
-                    connection.setReady(false).thenRun(() -> {
+                    connection.ready(false).thenRun(() -> {
                         CloudPlugin.INSTANCE.messages().transferAllUsers().send(sender);
                         connection.transferUsers(Transfer.TransferReq.newBuilder()
                                 .addAllIds(Bukkit.getOnlinePlayers().stream()

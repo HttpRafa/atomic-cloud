@@ -1,7 +1,7 @@
 package io.atomic.cloud.paper.notify.notify;
 
-import io.atomic.cloud.common.connection.CloudConnection;
 import io.atomic.cloud.common.connection.call.CallHandle;
+import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.grpc.common.Notify;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.atomic.cloud.paper.notify.NotifyPlugin;
@@ -14,12 +14,12 @@ import org.bukkit.Bukkit;
 @RequiredArgsConstructor
 public class PowerHandler implements StreamObserver<Notify.PowerEvent> {
 
-    private final CloudConnection cloudConnection;
+    private final ClientConnection connection;
     private CallHandle<?, ?> handle;
 
     public void enable() {
         NotifyPlugin.LOGGER.info("Enabling power notifications...");
-        this.handle = this.cloudConnection.subscribeToPowerEvents(this);
+        this.handle = this.connection.subscribeToPowerEvents(this);
     }
 
     public void cleanup() {

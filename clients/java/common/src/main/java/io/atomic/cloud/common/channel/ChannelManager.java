@@ -5,7 +5,7 @@ import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.api.channel.Channels;
 import io.atomic.cloud.api.channel.subscription.Bytes;
 import io.atomic.cloud.common.channel.subscription.BytesImpl;
-import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.grpc.client.Channel;
 import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
@@ -13,7 +13,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ChannelManager implements Channels {
 
-    private final CloudConnection connection;
+    private final ClientConnection connection;
 
     @Override
     public CompletableFuture<Integer> publishBytes(String channel, byte[] data) {

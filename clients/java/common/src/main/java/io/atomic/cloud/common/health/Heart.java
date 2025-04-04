@@ -1,6 +1,6 @@
 package io.atomic.cloud.common.health;
 
-import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.client.ClientConnection;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 public class Heart {
 
     private final long interval;
-    private final CloudConnection connection;
+    private final ClientConnection connection;
     private final ScheduledExecutorService scheduler;
     private ScheduledFuture<?> future;
 

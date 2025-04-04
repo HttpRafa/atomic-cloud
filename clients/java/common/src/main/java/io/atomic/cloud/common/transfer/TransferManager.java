@@ -4,7 +4,7 @@ import com.google.protobuf.UInt32Value;
 import io.atomic.cloud.api.resource.object.CloudGroup;
 import io.atomic.cloud.api.resource.object.CloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
-import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.grpc.client.Transfer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 @AllArgsConstructor
 public class TransferManager implements Transfers {
 
-    private final CloudConnection connection;
+    private final ClientConnection connection;
 
     @Override
     public CompletableFuture<Integer> transferUsersToServer(@NotNull CloudServer server, UUID @NotNull ... userUUID) {

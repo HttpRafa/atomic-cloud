@@ -15,11 +15,11 @@ public class CloudCommand {
                 .requires(Permissions.CLOUD_COMMAND::check)
                 .executes(context -> {
                     var sender = context.getSource().getSender();
-                    var connection = CloudPlugin.INSTANCE.connection();
+                    var connection = CloudPlugin.INSTANCE.clientConnection();
 
                     connection
-                            .getCtrlVer()
-                            .thenAcceptBoth(connection.getProtoVer(), (version, protocol) -> CloudPlugin.INSTANCE
+                            .ctrlVer()
+                            .thenAcceptBoth(connection.protoVer(), (version, protocol) -> CloudPlugin.INSTANCE
                                     .messages()
                                     .infos()
                                     .send(

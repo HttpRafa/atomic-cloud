@@ -1,23 +1,23 @@
 package io.atomic.cloud.common.transfer;
 
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.api.resource.object.CloudGroup;
-import io.atomic.cloud.api.resource.object.CloudServer;
+import io.atomic.cloud.api.resource.simple.SimpleGroup;
+import io.atomic.cloud.api.resource.simple.SimpleServer;
 import io.atomic.cloud.api.transfer.Transfers;
-import io.atomic.cloud.common.connection.client.ClientConnection;
-import io.atomic.cloud.grpc.client.Transfer;
+import io.atomic.cloud.common.connection.client.ManageConnection;
+import io.atomic.cloud.grpc.manage.Transfer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 @AllArgsConstructor
-public class TransferManager implements Transfers {
+public class ManageTransfers implements Transfers {
 
-    private final ClientConnection connection;
+    private final ManageConnection connection;
 
     @Override
-    public CompletableFuture<Integer> transferUsersToServer(@NotNull CloudServer server, UUID @NotNull ... userUUID) {
+    public CompletableFuture<Integer> transferUsersToServer(@NotNull SimpleServer server, UUID @NotNull ... userUUID) {
         var builder = Transfer.TransferReq.newBuilder();
         builder.setTarget(Transfer.Target.newBuilder()
                 .setType(Transfer.Target.Type.SERVER)
@@ -30,7 +30,7 @@ public class TransferManager implements Transfers {
     }
 
     @Override
-    public CompletableFuture<Integer> transferUsersToGroup(@NotNull CloudGroup group, UUID @NotNull ... userUUID) {
+    public CompletableFuture<Integer> transferUsersToGroup(@NotNull SimpleGroup group, UUID @NotNull ... userUUID) {
         var builder = Transfer.TransferReq.newBuilder();
         builder.setTarget(Transfer.Target.newBuilder()
                 .setType(Transfer.Target.Type.GROUP)

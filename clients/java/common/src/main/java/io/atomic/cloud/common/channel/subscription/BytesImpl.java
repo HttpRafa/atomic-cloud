@@ -1,7 +1,7 @@
 package io.atomic.cloud.common.channel.subscription;
 
-import io.atomic.cloud.api.channel.message.ByteMessage;
-import io.atomic.cloud.api.channel.subscription.Bytes;
+import io.atomic.cloud.api.client.channel.message.ByteMessage;
+import io.atomic.cloud.api.client.channel.subscription.Bytes;
 import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.grpc.client.Channel;

@@ -29,6 +29,7 @@ impl From<&&Server> for Short {
             id: server.id().uuid().to_string(),
             name: server.id().name().clone(),
             group: server.group().clone(),
+            node: server.node().clone(),
         }
     }
 }

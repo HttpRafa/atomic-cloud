@@ -4,7 +4,7 @@ import java.util.Optional;
 
 public class CachedObject<T> {
 
-    public static final long DEFAULT_EXPIRATION = 1000 * 30;
+    private static final long DEFAULT_EXPIRATION = 1000 * 30;
 
     private T value;
     private long invalidateTime;

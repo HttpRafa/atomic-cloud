@@ -1,7 +1,7 @@
-package io.atomic.cloud.api.channel;
+package io.atomic.cloud.api.client.channel;
 
-import io.atomic.cloud.api.channel.subscription.Bytes;
-import io.atomic.cloud.api.channel.subscription.Strings;
+import io.atomic.cloud.api.client.channel.subscription.Bytes;
+import io.atomic.cloud.api.client.channel.subscription.Strings;
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 

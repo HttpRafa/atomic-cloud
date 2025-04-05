@@ -1,6 +1,6 @@
-package io.atomic.cloud.api.channel.subscription;
+package io.atomic.cloud.api.client.channel.subscription;
 
-import io.atomic.cloud.api.channel.message.ByteMessage;
+import io.atomic.cloud.api.client.channel.message.ByteMessage;
 import java.io.Closeable;
 import java.util.function.Consumer;
 

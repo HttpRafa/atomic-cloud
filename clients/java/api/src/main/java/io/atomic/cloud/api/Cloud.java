@@ -1,9 +1,11 @@
 package io.atomic.cloud.api;
 
-import io.atomic.cloud.api.channel.Channels;
+import io.atomic.cloud.api.client.channel.Channels;
+import io.atomic.cloud.api.client.self.LocalCloudServer;
+import io.atomic.cloud.api.manage.Privileged;
 import io.atomic.cloud.api.resource.Resources;
-import io.atomic.cloud.api.resource.object.LocalCloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
+import java.io.IOException;
 
 public class Cloud {
 
@@ -56,6 +58,14 @@ public class Cloud {
     }
 
     /**
+     * The privileged API
+     * For this to work you need to provide an API token that has the required permissions
+     */
+    public static Privileged privileged(String token) throws IOException {
+        return Cloud.INSTANCE.privileged(token);
+    }
+
+    /**
      * The server marks itself ready when it is started. This method disables this behavior. This is
      * useful if you want to control when the server is ready yourself.
      */
@@ -91,6 +101,12 @@ public class Cloud {
          * @return the transfer API
          */
         Transfers transfers();
+
+        /**
+         * The privileged API
+         * For this to work you need to provide an API token that has the required permissions
+         */
+        Privileged privileged(String token) throws IOException;
 
         /**
          * The server marks itself ready when it is started. This method disables this behavior.

@@ -1,6 +1,6 @@
-package io.atomic.cloud.api.channel.subscription;
+package io.atomic.cloud.api.client.channel.subscription;
 
-import io.atomic.cloud.api.channel.message.StringMessage;
+import io.atomic.cloud.api.client.channel.message.StringMessage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.function.Consumer;

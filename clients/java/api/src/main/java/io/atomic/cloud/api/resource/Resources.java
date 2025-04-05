@@ -1,23 +1,23 @@
 package io.atomic.cloud.api.resource;
 
-import io.atomic.cloud.api.resource.object.CloudGroup;
-import io.atomic.cloud.api.resource.object.CloudServer;
+import io.atomic.cloud.api.resource.simple.SimpleGroup;
+import io.atomic.cloud.api.resource.simple.SimpleServer;
 import java.util.concurrent.CompletableFuture;
 
 /** The Resources interface provides methods to access cloud groups and cloud servers. */
 public interface Resources {
 
     /**
-     * Retrieves an array of CloudGroup objects.
+     * Retrieves an array of SimpleGroup objects.
      *
-     * @return an array of CloudGroup instances
+     * @return an array of SimpleGroup instances
      */
-    CompletableFuture<CloudGroup[]> groups();
+    CompletableFuture<SimpleGroup[]> groups();
 
     /**
-     * Retrieves an array of CloudServer objects.
+     * Retrieves an array of SimpleServer objects.
      *
-     * @return an array of CloudServer instances
+     * @return an array of SimpleServer instances
      */
-    CompletableFuture<CloudServer[]> servers();
+    CompletableFuture<SimpleServer[]> servers();
 }

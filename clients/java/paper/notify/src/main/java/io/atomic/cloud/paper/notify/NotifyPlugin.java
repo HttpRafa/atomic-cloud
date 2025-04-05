@@ -24,7 +24,7 @@ public class NotifyPlugin extends JavaPlugin {
         saveDefaultConfig();
         this.messages = new Messages(this.getConfig());
 
-        this.powerHandler = new PowerHandler(CloudPlugin.INSTANCE.connection());
+        this.powerHandler = new PowerHandler(CloudPlugin.INSTANCE.clientConnection());
     }
 
     @Override

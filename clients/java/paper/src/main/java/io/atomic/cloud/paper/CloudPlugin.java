@@ -2,11 +2,11 @@ package io.atomic.cloud.paper;
 
 import io.atomic.cloud.api.Cloud;
 import io.atomic.cloud.common.channel.ChannelManager;
-import io.atomic.cloud.common.connection.CloudConnection;
+import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.common.health.Heart;
 import io.atomic.cloud.common.resource.ResourceManager;
-import io.atomic.cloud.common.resource.object.SimpleLocalCloudServer;
-import io.atomic.cloud.common.transfer.TransferManager;
+import io.atomic.cloud.common.resource.object.LocalCloudServerImpl;
+import io.atomic.cloud.common.transfer.ClientTransfers;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import io.atomic.cloud.paper.setting.Settings;
@@ -33,11 +33,11 @@ public class CloudPlugin extends JavaPlugin {
     private Messages messages;
 
     private ChannelManager channels;
-    private TransferManager transfers;
+    private ClientTransfers transfers;
     private ResourceManager resources;
     private Heart heart;
-    private CloudConnection connection;
-    private SimpleLocalCloudServer self;
+    private ClientConnection clientConnection;
+    private LocalCloudServerImpl self;
 
     private TransferHandler transferHandler;
 
@@ -51,16 +51,16 @@ public class CloudPlugin extends JavaPlugin {
         this.settings = new Settings(this.getConfig());
         this.messages = new Messages(this.getConfig());
 
-        this.connection = CloudConnection.createFromEnv();
-        this.self = new SimpleLocalCloudServer(this.connection);
-        this.heart = new Heart(HEART_BEAT_INTERVAL, connection, SCHEDULER);
-        this.channels = new ChannelManager(this.connection);
-        this.transfers = new TransferManager(this.connection);
-        this.resources = new ResourceManager(this.connection);
-        this.transferHandler = new TransferHandler(this.connection);
+        this.clientConnection = ClientConnection.createFromEnv();
+        this.self = new LocalCloudServerImpl(this.clientConnection);
+        this.heart = new Heart(HEART_BEAT_INTERVAL, clientConnection, SCHEDULER);
+        this.channels = new ChannelManager(this.clientConnection);
+        this.transfers = new ClientTransfers(this.clientConnection);
+        this.resources = new ResourceManager(this.clientConnection);
+        this.transferHandler = new TransferHandler(this.clientConnection);
 
         LOGGER.info("Connecting to controller...");
-        this.connection.connect();
+        this.clientConnection.connect();
         this.heart.start();
     }
 
@@ -70,9 +70,9 @@ public class CloudPlugin extends JavaPlugin {
         registerListeners();
 
         // Mark server as running
-        this.connection.setRunning();
+        this.clientConnection.running();
         if (this.settings.autoReady()) {
-            this.connection.setReady(true);
+            this.clientConnection.ready(true);
         }
 
         // Enable transfer system

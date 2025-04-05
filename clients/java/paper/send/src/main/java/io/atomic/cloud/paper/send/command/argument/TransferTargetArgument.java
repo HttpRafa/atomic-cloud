@@ -39,7 +39,7 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
         var type = valueSplit[0];
         var identifier = valueSplit[1];
         if (type.equalsIgnoreCase("server")) {
-            var cached = CloudPlugin.INSTANCE.connection().getServersNow();
+            var cached = CloudPlugin.INSTANCE.clientConnection().serversNow();
             if (cached.isEmpty()) throw createException("Fetching available servers...");
             var server = cached.get().getServersList().stream()
                     .filter(item -> item.getName().equalsIgnoreCase(identifier))
@@ -50,7 +50,7 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
                     .setTarget(server.get().getId())
                     .build();
         } else if (type.equalsIgnoreCase("group")) {
-            var cached = CloudPlugin.INSTANCE.connection().getGroupsNow();
+            var cached = CloudPlugin.INSTANCE.clientConnection().groupsNow();
             if (cached.isEmpty()) throw createException("Fetching available groups...");
             var group = cached.get().getGroupsList().stream()
                     .filter(item -> item.equalsIgnoreCase(identifier))
@@ -68,9 +68,9 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
     public <S> @NotNull CompletableFuture<Suggestions> listSuggestions(
             @NotNull CommandContext<S> context, @NotNull SuggestionsBuilder builder) {
         return CloudPlugin.INSTANCE
-                .connection()
-                .getServers()
-                .thenCombine(CloudPlugin.INSTANCE.connection().getGroups(), SuggestionsData::new)
+                .clientConnection()
+                .servers()
+                .thenCombine(CloudPlugin.INSTANCE.clientConnection().groups(), SuggestionsData::new)
                 .thenCompose(response -> {
                     response.servers
                             .getServersList()

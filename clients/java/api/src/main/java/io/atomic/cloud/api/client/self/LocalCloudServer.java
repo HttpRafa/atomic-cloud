@@ -1,4 +1,4 @@
-package io.atomic.cloud.api.resource.object;
+package io.atomic.cloud.api.client.self;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -19,5 +19,5 @@ public interface LocalCloudServer {
      *
      * @return a future to be completed once the server has been marked as ready/not ready
      */
-    CompletableFuture<Void> setReady(boolean ready);
+    CompletableFuture<Void> ready(boolean ready);
 }

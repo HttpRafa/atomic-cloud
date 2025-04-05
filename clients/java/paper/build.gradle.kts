@@ -5,6 +5,8 @@ plugins {
     id("cloud-format")
     id("cloud-rpc")
 
+    id("cloud-publish")
+
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
 
     // Shadow (Only for including the API files into the jar)

@@ -18,7 +18,7 @@ public class PlayerEventsListener implements Listener {
                 .setName(player.getName())
                 .setId(player.getUniqueId().toString())
                 .build();
-        CloudPlugin.INSTANCE.connection().userConnected(user);
+        CloudPlugin.INSTANCE.clientConnection().userConnected(user);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -27,6 +27,6 @@ public class PlayerEventsListener implements Listener {
         var user = User.DisconnectedReq.newBuilder()
                 .setId(player.getUniqueId().toString())
                 .build();
-        CloudPlugin.INSTANCE.connection().userDisconnected(user);
+        CloudPlugin.INSTANCE.clientConnection().userDisconnected(user);
     }
 }

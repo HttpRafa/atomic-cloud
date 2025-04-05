@@ -13,5 +13,6 @@ message Server {
     string name = 1;
     string id = 2;
     optional string group = 3;
+    string node = 4;
   }
 }

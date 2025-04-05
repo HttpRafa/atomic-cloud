@@ -8,16 +8,16 @@ import java.util.concurrent.CompletableFuture;
 public interface Resources {
 
     /**
-     * Retrieves an array of CloudGroup objects.
+     * Retrieves an array of SimpleGroup objects.
      *
-     * @return an array of CloudGroup instances
+     * @return an array of SimpleGroup instances
      */
     CompletableFuture<SimpleGroup[]> groups();
 
     /**
-     * Retrieves an array of CloudServer objects.
+     * Retrieves an array of SimpleServer objects.
      *
-     * @return an array of CloudServer instances
+     * @return an array of SimpleServer instances
      */
     CompletableFuture<SimpleServer[]> servers();
 }

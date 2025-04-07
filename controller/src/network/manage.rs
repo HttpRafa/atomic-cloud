@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
-use group::{CreateGroupTask, GetGroupTask, GetGroupsTask};
+use cloudGroup::{CreateGroupTask, GetGroupTask, GetGroupsTask};
 use node::{CreateNodeTask, GetNodeTask, GetNodesTask};
 use plugin::GetPluginsTask;
 use power::RequestStopTask;
@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::AuthType,
-        group::{ScalingPolicy, StartConstraints},
+        cloudGroup::{ScalingPolicy, StartConstraints},
         node::Capabilities,
         server::{DiskRetention, FallbackPolicy, Resources, Spec},
         user::transfer::TransferTarget,
@@ -37,7 +37,7 @@ use super::proto::{
     },
 };
 
-mod group;
+mod cloudGroup;
 mod node;
 mod plugin;
 mod power;
@@ -174,7 +174,7 @@ impl ManageService for ManageServiceImpl {
     // Group
     async fn create_group(
         &self,
-        request: Request<manage::group::Item>,
+        request: Request<manage::cloudGroup::Item>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
@@ -271,9 +271,9 @@ impl ManageService for ManageServiceImpl {
     async fn get_group(
         &self,
         request: Request<String>,
-    ) -> Result<Response<manage::group::Item>, Status> {
+    ) -> Result<Response<manage::cloudGroup::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Item, _, _>(
+            Task::execute::<manage::cloudGroup::Item, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -289,9 +289,9 @@ impl ManageService for ManageServiceImpl {
     async fn get_groups(
         &self,
         request: Request<()>,
-    ) -> Result<Response<manage::group::List>, Status> {
+    ) -> Result<Response<manage::cloudGroup::List>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+            Task::execute::<manage::cloudGroup::List, _, _>(AuthType::User, &self.0, request, |_, _| {
                 Ok(Box::new(GetGroupsTask()))
             })
             .await?,

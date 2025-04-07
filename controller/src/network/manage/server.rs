@@ -34,7 +34,7 @@ impl GenericTask for ScheduleServerTask {
         );
         let uuid = request.id().uuid().to_string();
         debug!(
-            "Scheduled server({}) without a group assignment",
+            "Scheduled server({}) without a cloudGroup assignment",
             request.id()
         );
         controller.servers.schedule_start(request);
@@ -73,7 +73,7 @@ impl From<&&Server> for Short {
         Self {
             id: server.id().uuid().to_string(),
             name: server.id().name().clone(),
-            group: server.group().clone(),
+            cloudGroup: server.cloudGroup().clone(),
             node: server.node().clone(),
         }
     }
@@ -84,7 +84,7 @@ impl From<&Server> for Detail {
         Self {
             name: server.id().name().clone(),
             id: server.id().uuid().to_string(),
-            group: server.group().clone(),
+            cloudGroup: server.cloudGroup().clone(),
             node: server.node().clone(),
             allocation: Some(server.allocation().into()),
             users: *server.connected_users(),

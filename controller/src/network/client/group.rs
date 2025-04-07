@@ -3,7 +3,7 @@ use tonic::async_trait;
 
 use crate::{
     application::Controller,
-    network::proto::client::group::List,
+    network::proto::client::cloudGroup::List,
     task::{BoxedAny, GenericTask, Task},
 };
 
@@ -17,7 +17,7 @@ impl GenericTask for GetGroupsTask {
                 .groups
                 .get_groups()
                 .iter()
-                .map(|group| group.name().clone())
+                .map(|cloudGroup| cloudGroup.name().clone())
                 .collect(),
         })
     }

@@ -6,7 +6,7 @@ use tokio::time::Instant;
 use uuid::Uuid;
 
 use crate::application::{
-    group::manager::GroupManager, node::manager::NodeManager, server::Server,
+    cloudGroup::manager::GroupManager, node::manager::NodeManager, server::Server,
     user::manager::UserManager, Shared,
 };
 

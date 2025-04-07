@@ -23,7 +23,7 @@ pub struct Server {
     #[getset(get = "pub")]
     id: NameAndUuid,
     #[getset(get = "pub")]
-    group: Option<String>,
+    cloudGroup: Option<String>,
     #[getset(get = "pub")]
     node: String,
     #[getset(get = "pub")]
@@ -130,7 +130,7 @@ impl Server {
 
 #[derive(Default)]
 pub struct Flags {
-    /* Required for the group system */
+    /* Required for the cloudGroup system */
     pub stop: Option<Instant>,
 }
 

@@ -28,7 +28,7 @@ impl From<&&Server> for Short {
         Self {
             id: server.id().uuid().to_string(),
             name: server.id().name().clone(),
-            group: server.group().clone(),
+            cloudGroup: server.cloudGroup().clone(),
             node: server.node().clone(),
         }
     }

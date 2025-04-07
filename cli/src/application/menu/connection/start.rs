@@ -8,7 +8,7 @@ use crate::application::{
 
 use super::{
     general::{get_versions::GetVersionsMenu, request_stop::RequestStopMenu},
-    group::{create_group::CreateGroupMenu, get_group::GetGroupMenu, get_groups::GetGroupsMenu},
+    cloudGroup::{create_group::CreateGroupMenu, get_group::GetGroupMenu, get_groups::GetGroupsMenu},
     node::{create_node::CreateNodeMenu, get_node::GetNodeMenu, get_nodes::GetNodesMenu},
     resource::{delete_resource::DeleteResourceMenu, set_resource::SetResourceMenu},
     screen::OpenScreenMenu,

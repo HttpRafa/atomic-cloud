@@ -1,8 +1,8 @@
 package io.atomic.cloud.common.transfer;
 
 import com.google.protobuf.UInt32Value;
-import io.atomic.cloud.api.resource.simple.SimpleGroup;
-import io.atomic.cloud.api.resource.simple.SimpleServer;
+import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
+import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
 import io.atomic.cloud.common.connection.client.ManageConnection;
 import io.atomic.cloud.grpc.manage.Transfer;
@@ -17,7 +17,8 @@ public class ManageTransfers implements Transfers {
     private final ManageConnection connection;
 
     @Override
-    public CompletableFuture<Integer> transferUsersToServer(@NotNull SimpleServer server, UUID @NotNull ... userUUID) {
+    public CompletableFuture<Integer> transferUsersToServer(
+            @NotNull SimpleCloudServer server, UUID @NotNull ... userUUID) {
         var builder = Transfer.TransferReq.newBuilder();
         builder.setTarget(Transfer.Target.newBuilder()
                 .setType(Transfer.Target.Type.SERVER)
@@ -30,7 +31,8 @@ public class ManageTransfers implements Transfers {
     }
 
     @Override
-    public CompletableFuture<Integer> transferUsersToGroup(@NotNull SimpleGroup group, UUID @NotNull ... userUUID) {
+    public CompletableFuture<Integer> transferUsersToGroup(
+            @NotNull SimpleCloudGroup group, UUID @NotNull ... userUUID) {
         var builder = Transfer.TransferReq.newBuilder();
         builder.setTarget(Transfer.Target.newBuilder()
                 .setType(Transfer.Target.Type.GROUP)

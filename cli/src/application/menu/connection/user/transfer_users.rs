@@ -116,13 +116,13 @@ impl TransferUsersMenu {
                 })
             }
             target::Type::Group => {
-                let group = MenuUtils::select_no_help(
-                    "Select the group to transfer the user to",
+                let cloudGroup = MenuUtils::select_no_help(
+                    "Select the cloudGroup to transfer the user to",
                     data.groups.clone(),
                 )?;
                 Ok(transfer::Target {
                     r#type: target::Type::Group as i32,
-                    target: Some(group),
+                    target: Some(cloudGroup),
                 })
             }
             target::Type::Fallback => Ok(transfer::Target {

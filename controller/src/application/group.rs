@@ -60,7 +60,7 @@ impl Group {
     )]
     pub fn tick(&mut self, config: &Config, servers: &mut ServerManager) -> Result<()> {
         if self.status == LifecycleStatus::Inactive {
-            // Do not tick this group because it is inactive
+            // Do not tick this cloudGroup because it is inactive
             return Ok(());
         }
 
@@ -135,7 +135,7 @@ impl Group {
             self.servers
                 .insert(request.id().clone(), GroupServer::new(id));
             debug!(
-                "Scheduled server({}) start for group {}",
+                "Scheduled server({}) start for cloudGroup {}",
                 request.id(),
                 self.name
             );
@@ -164,13 +164,13 @@ impl Group {
 
     pub async fn set_active(&mut self, active: bool, servers: &mut ServerManager) -> Result<()> {
         if active && self.status == LifecycleStatus::Inactive {
-            // Activate group
+            // Activate cloudGroup
 
             self.status = LifecycleStatus::Active;
             self.save().await?;
             info!("Group {} is now active", self.name);
         } else if !active && self.status == LifecycleStatus::Active {
-            // Retire group
+            // Retire cloudGroup
             // Stop all servers and cancel all starts
             self.servers.retain(|id, server| match &server.1 {
                 Stage::Active => {

@@ -2,52 +2,49 @@ package io.atomic.cloud.common.connection.impl;
 
 import com.google.protobuf.ByteString;
 import io.atomic.cloud.api.manage.Privileged;
-import io.atomic.cloud.api.resource.Resource;
-import io.atomic.cloud.api.resource.complex.Group;
-import io.atomic.cloud.api.resource.complex.Node;
-import io.atomic.cloud.api.resource.complex.Server;
-import io.atomic.cloud.api.resource.simple.SimpleGroup;
-import io.atomic.cloud.api.resource.simple.SimpleNode;
-import io.atomic.cloud.api.resource.simple.SimpleServer;
+import io.atomic.cloud.api.resource.CloudResource;
+import io.atomic.cloud.api.resource.complex.CloudGroup;
+import io.atomic.cloud.api.resource.complex.CloudNode;
+import io.atomic.cloud.api.resource.complex.CloudServer;
+import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
+import io.atomic.cloud.api.resource.simple.SimpleCloudNode;
+import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import io.atomic.cloud.api.transfer.Transfers;
 import io.atomic.cloud.common.connection.client.ManageConnection;
-import io.atomic.cloud.common.resource.object.complex.GroupImpl;
-import io.atomic.cloud.common.resource.object.complex.NodeImpl;
-import io.atomic.cloud.common.resource.object.complex.ServerImpl;
+import io.atomic.cloud.common.resource.object.complex.CloudGroupImpl;
+import io.atomic.cloud.common.resource.object.complex.CloudNodeImpl;
+import io.atomic.cloud.common.resource.object.complex.CloudServerImpl;
 import io.atomic.cloud.common.transfer.ManageTransfers;
-import io.atomic.cloud.grpc.manage.Screen;
+import io.atomic.cloud.grpc.manage.*;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-@RequiredArgsConstructor
-@Getter
-public class PrivilegedImpl implements Privileged {
+public record PrivilegedImpl(ManageConnection connection) implements Privileged {
 
-    private final ManageConnection connection;
-
+    @Contract(" -> new")
     @Override
-    public Transfers transfers() {
+    public @NotNull Transfers transfers() {
         return new ManageTransfers(this.connection);
     }
 
     @Override
-    public CompletableFuture<Void> stopController() {
+    public @NotNull CompletableFuture<Void> stopController() {
         return this.connection.requestStop().thenAccept(response -> {});
     }
 
     @Override
-    public CompletableFuture<Void> setResource(Resource resource, boolean active) {
-        var builder = io.atomic.cloud.grpc.manage.Resource.SetReq.newBuilder();
+    public CompletableFuture<Void> setResource(CloudResource resource, boolean active) {
+        var builder = Resource.SetReq.newBuilder();
         builder.setActive(active);
-        if (resource instanceof SimpleNode node) {
-            builder.setCategory(io.atomic.cloud.grpc.manage.Resource.Category.NODE);
+        if (resource instanceof SimpleCloudNode node) {
+            builder.setCategory(Resource.Category.NODE);
             builder.setId(node.name());
-        } else if (resource instanceof SimpleGroup group) {
-            builder.setCategory(io.atomic.cloud.grpc.manage.Resource.Category.GROUP);
+        } else if (resource instanceof SimpleCloudGroup group) {
+            builder.setCategory(Resource.Category.GROUP);
             builder.setId(group.name());
         } else {
             return CompletableFuture.failedFuture(new UnsupportedOperationException());
@@ -56,41 +53,70 @@ public class PrivilegedImpl implements Privileged {
     }
 
     @Override
-    public CompletableFuture<Void> deleteResource(Resource resource) {
-        var builder = io.atomic.cloud.grpc.manage.Resource.DelReq.newBuilder();
-        if (resource instanceof SimpleNode node) {
-            builder.setCategory(io.atomic.cloud.grpc.manage.Resource.Category.NODE);
+    public CompletableFuture<Void> deleteResource(CloudResource resource) {
+        var builder = Resource.DelReq.newBuilder();
+        if (resource instanceof SimpleCloudNode node) {
+            builder.setCategory(Resource.Category.NODE);
             builder.setId(node.name());
-        } else if (resource instanceof SimpleGroup group) {
-            builder.setCategory(io.atomic.cloud.grpc.manage.Resource.Category.GROUP);
+        } else if (resource instanceof SimpleCloudGroup group) {
+            builder.setCategory(Resource.Category.GROUP);
             builder.setId(group.name());
-        } else if (resource instanceof SimpleServer server) {
-            builder.setCategory(io.atomic.cloud.grpc.manage.Resource.Category.SERVER);
+        } else if (resource instanceof SimpleCloudServer server) {
+            builder.setCategory(Resource.Category.SERVER);
             builder.setId(server.uuid().toString());
         }
         return this.connection.deleteResource(builder.build()).thenAccept(response -> {});
     }
 
     @Override
-    public CompletableFuture<Void> createNode(Node node) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException());
+    public @NotNull CompletableFuture<Void> createNode(CloudNode node) {
+        var builder = Node.Item.newBuilder()
+                .setName(node.name())
+                .setPlugin(node.plugin())
+                .setCtrlAddr(node.controllerAddress());
+        node.memory().ifPresent(builder::setMemory);
+        node.maxServers().ifPresent(builder::setMax);
+        node.child().ifPresent(builder::setChild);
+        return this.connection.createNode(builder.build()).thenAccept(response -> {});
     }
 
     @Override
-    public CompletableFuture<Void> createGroup(Group group) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException());
+    public @NotNull CompletableFuture<Void> createGroup(CloudGroup group) {
+        return this.connection
+                .createGroup(Group.Item.newBuilder()
+                        .addAllNodes(Arrays.asList(group.nodes()))
+                        .setConstraints(group.constraints())
+                        .setScaling(group.scaling())
+                        .setResources(group.resources())
+                        .setSpec(group.spec())
+                        .build())
+                .thenAccept(empty -> {});
     }
 
     @Override
-    public CompletableFuture<Void> writeToScreen(@NotNull SimpleServer server, byte[] data) {
+    public @NotNull CompletableFuture<UUID> scheduleServer(
+            int priority, String name, @NotNull SimpleCloudNode node, Server.Resources resources, Server.Spec spec) {
+        return this.connection
+                .scheduleServer(Server.Proposal.newBuilder()
+                        .setPrio(priority)
+                        .setName(name)
+                        .setNode(node.name())
+                        .setResources(resources)
+                        .setSpec(spec)
+                        .build())
+                .thenApply(string -> UUID.fromString(string.getValue()));
+    }
+
+    @Override
+    public @NotNull CompletableFuture<Void> writeToScreen(@NotNull SimpleCloudServer server, byte[] data) {
         var builder = Screen.WriteReq.newBuilder();
         builder.setId(server.uuid().toString());
         builder.setData(ByteString.copyFrom(data));
-        return this.connection.writeToScreen(builder.build()).thenAccept(response -> {});
+        return this.connection.writeToScreen(builder.build()).thenAccept(empty -> {});
     }
 
     @Override
-    public CompletableFuture<Node> node(@NotNull SimpleNode node) {
+    public CompletableFuture<CloudNode> node(@NotNull SimpleCloudNode node) {
         return this.connection.node(node.name()).thenApply(item -> {
             Optional<Integer> memory = Optional.empty();
             Optional<Integer> maxServers = Optional.empty();
@@ -104,32 +130,39 @@ public class PrivilegedImpl implements Privileged {
             if (item.hasMax()) {
                 child = Optional.of(item.getChild());
             }
-            return new NodeImpl(item.getName(), item.getPlugin(), memory, maxServers, child, item.getCtrlAddr());
+            return new CloudNodeImpl(item.getName(), item.getPlugin(), memory, maxServers, child, item.getCtrlAddr());
         });
     }
 
     @Override
-    public CompletableFuture<Group> group(@NotNull SimpleGroup group) {
+    public @NotNull CompletableFuture<CloudGroup> group(@NotNull SimpleCloudGroup group) {
         return this.connection
                 .group(group.name())
-                .thenApply(item ->
-                        new GroupImpl(item.getName(), item.getNodesList().toArray(new String[0])));
+                .thenApply(item -> new CloudGroupImpl(
+                        item.getName(),
+                        item.getNodesList().toArray(new String[0]),
+                        item.getConstraints(),
+                        item.getScaling(),
+                        item.getResources(),
+                        item.getSpec()));
     }
 
     @Override
-    public CompletableFuture<Server> server(@NotNull SimpleServer server) {
+    public @NotNull CompletableFuture<CloudServer> server(@NotNull SimpleCloudServer server) {
         return this.connection.server(server.name()).thenApply(item -> {
             Optional<String> group = Optional.empty();
             if (item.hasGroup()) {
                 group = Optional.of(item.getGroup());
             }
-            return new ServerImpl(
+            return new CloudServerImpl(
                     item.getName(),
                     UUID.fromString(item.getId()),
                     group,
                     item.getNode(),
+                    item.getAllocation(),
                     item.getUsers(),
                     item.getToken(),
+                    item.getState(),
                     item.getReady());
         });
     }

@@ -62,8 +62,8 @@ impl GetServerMenu {
         info!("   <blue>🖥  <b>Server Info</>");
         info!("      <green><b>Name</>: {}", server.name);
         info!("      <green><b>UUID</>: {}", server.id);
-        if let Some(group) = &server.group {
-            info!("      <green><b>Group</>: {}", group);
+        if let Some(cloudGroup) = &server.cloudGroup {
+            info!("      <green><b>Group</>: {}", cloudGroup);
         } else {
             info!("      <green><b>Group</>: None");
         }

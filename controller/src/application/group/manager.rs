@@ -37,11 +37,11 @@ impl GroupManager {
 
         for (_, _, name, mut value) in Storage::for_each_content_toml::<StoredGroup>(
             &directory,
-            "Failed to read group from file",
+            "Failed to read cloudGroup from file",
         )
         .await?
         {
-            info!("Loading group {}", name);
+            info!("Loading cloudGroup {}", name);
 
             value.nodes_mut().retain(|node| {
                 if !nodes.has_node(node) {
@@ -53,7 +53,7 @@ impl GroupManager {
             groups.insert(name.clone(), Group::new(&name, &value));
         }
 
-        info!("Loaded {} group(s)", groups.len());
+        info!("Loaded {} cloudGroup(s)", groups.len());
         Ok(Self {
             voter: None,
             groups,
@@ -61,12 +61,12 @@ impl GroupManager {
     }
 
     pub async fn delete_group(&mut self, name: &str) -> Result<(), DeleteResourceError> {
-        let group = self
+        let cloudGroup = self
             .get_group_mut(name)
             .ok_or(DeleteResourceError::NotFound)?;
-        group.delete().await?;
+        cloudGroup.delete().await?;
         self.groups.remove(name);
-        info!("Deleted group {}", name);
+        info!("Deleted cloudGroup {}", name);
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl GroupManager {
         if nodes.verify_nodes(g_nodes) {
             return Err(CreateResourceError::RequiredNodeNotLoaded);
         }
-        let group = StoredGroup::new(
+        let cloudGroup = StoredGroup::new(
             g_nodes.to_vec(),
             constraints.clone(),
             scaling.clone(),
@@ -96,10 +96,10 @@ impl GroupManager {
             spec.clone(),
         );
 
-        let group = Group::new(name, &group);
-        group.save().await.map_err(CreateResourceError::Error)?;
-        self.groups.insert(name.to_string(), group);
-        info!("Created group {}", name);
+        let cloudGroup = Group::new(name, &cloudGroup);
+        cloudGroup.save().await.map_err(CreateResourceError::Error)?;
+        self.groups.insert(name.to_string(), cloudGroup);
+        info!("Created cloudGroup {}", name);
         Ok(())
     }
 
@@ -107,7 +107,7 @@ impl GroupManager {
         let name = name.to_string();
         self.groups
             .values()
-            .any(|group| group.nodes.contains(&name))
+            .any(|cloudGroup| cloudGroup.nodes.contains(&name))
     }
 
     pub fn get_groups(&self) -> Vec<&Group> {
@@ -123,15 +123,15 @@ impl GroupManager {
 }
 
 impl Group {
-    pub fn new(name: &str, group: &StoredGroup) -> Self {
+    pub fn new(name: &str, cloudGroup: &StoredGroup) -> Self {
         Self {
             name: name.to_string(),
-            status: group.status().clone(),
-            nodes: group.nodes().clone(),
-            constraints: group.constraints().clone(),
-            scaling: group.scaling().clone(),
-            resources: group.resources().clone(),
-            spec: group.spec().clone(),
+            status: cloudGroup.status().clone(),
+            nodes: cloudGroup.nodes().clone(),
+            constraints: cloudGroup.constraints().clone(),
+            scaling: cloudGroup.scaling().clone(),
+            resources: cloudGroup.resources().clone(),
+            spec: cloudGroup.spec().clone(),
             id_allocator: NumberAllocator::new(1..usize::MAX),
             servers: HashMap::new(),
         }
@@ -146,8 +146,8 @@ impl GroupManager {
             return Ok(());
         }
 
-        for group in self.groups.values_mut() {
-            group.tick(config, servers)?;
+        for cloudGroup in self.groups.values_mut() {
+            cloudGroup.tick(config, servers)?;
         }
         Ok(())
     }
@@ -171,7 +171,7 @@ pub(super) mod stored {
 
     use crate::{
         application::{
-            group::{Group, ScalingPolicy, StartConstraints},
+            cloudGroup::{Group, ScalingPolicy, StartConstraints},
             node::LifecycleStatus,
             server::{Resources, Spec},
         },
@@ -217,14 +217,14 @@ pub(super) mod stored {
             }
         }
 
-        pub fn from(group: &Group) -> Self {
+        pub fn from(cloudGroup: &Group) -> Self {
             Self {
-                status: group.status.clone(),
-                nodes: group.nodes.clone(),
-                constraints: group.constraints.clone(),
-                scaling: group.scaling.clone(),
-                resources: group.resources.clone(),
-                spec: group.spec.clone(),
+                status: cloudGroup.status.clone(),
+                nodes: cloudGroup.nodes.clone(),
+                constraints: cloudGroup.constraints.clone(),
+                scaling: cloudGroup.scaling.clone(),
+                resources: cloudGroup.resources.clone(),
+                spec: cloudGroup.spec.clone(),
             }
         }
     }

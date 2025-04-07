@@ -1,10 +1,10 @@
 package io.atomic.cloud.api.resource.simple;
 
-import io.atomic.cloud.api.resource.Resource;
+import io.atomic.cloud.api.resource.CloudResource;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface SimpleServer extends Resource {
+public interface SimpleCloudServer extends CloudResource {
 
     String name();
 

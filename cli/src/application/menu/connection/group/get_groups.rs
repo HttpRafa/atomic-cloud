@@ -17,7 +17,7 @@ impl GetGroupsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Requesting group list from controller \"{}\"...",
+            "Requesting cloudGroup list from controller \"{}\"...",
             profile.name
         ));
 
@@ -41,8 +41,8 @@ impl GetGroupsMenu {
         if groups.is_empty() {
             info!("      <green><b>No groups found.</>");
         } else {
-            for group in groups {
-                info!("    - <green>{}</>", group);
+            for cloudGroup in groups {
+                info!("    - <green>{}</>", cloudGroup);
             }
         }
     }

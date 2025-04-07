@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
+        cloudGroup::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
         OptVoter, Shared, Voter,
     },
     config::Config,
@@ -234,7 +234,7 @@ pub struct StartRequest {
     #[getset(get = "pub")]
     id: NameAndUuid,
     #[getset(get = "pub")]
-    group: Option<String>,
+    cloudGroup: Option<String>,
     #[getset(get = "pub")]
     nodes: Vec<String>,
     #[getset(get = "pub")]
@@ -294,7 +294,7 @@ impl StartRequest {
         when: Option<Instant>,
         priority: i32,
         name: String,
-        group: Option<String>,
+        cloudGroup: Option<String>,
         nodes: &[String],
         resources: &Resources,
         spec: &Spec,
@@ -303,7 +303,7 @@ impl StartRequest {
             id: NameAndUuid::generate(name),
             when,
             priority,
-            group,
+            cloudGroup,
             nodes: nodes.to_vec(),
             resources: resources.clone(),
             spec: spec.clone(),

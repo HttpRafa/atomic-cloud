@@ -91,11 +91,11 @@ impl SetResourceMenu {
                 })
             }
             Category::Group => {
-                let group =
-                    MenuUtils::select_no_help("Select the group to change", data.groups.clone())?;
+                let cloudGroup =
+                    MenuUtils::select_no_help("Select the cloudGroup to change", data.groups.clone())?;
                 Ok(SetReq {
                     category: category as i32,
-                    id: group,
+                    id: cloudGroup,
                     active,
                 })
             }

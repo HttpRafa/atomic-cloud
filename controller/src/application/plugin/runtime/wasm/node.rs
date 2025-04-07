@@ -251,7 +251,7 @@ impl From<&Server> for bridge::Server {
         bridge::Server {
             name: val.id().name().clone(),
             uuid: val.id().uuid().to_string(),
-            group: val.group().clone(),
+            cloudGroup: val.cloudGroup().clone(),
             allocation: val.allocation().into(),
             token: val.token().clone(),
         }
@@ -263,7 +263,7 @@ impl From<ServerEvent> for bridge::Server {
         bridge::Server {
             name: val.id().name().clone(),
             uuid: val.id().uuid().to_string(),
-            group: val.group().clone(),
+            cloudGroup: val.cloudGroup().clone(),
             allocation: val.allocation().into(),
             token: val.token().clone(),
         }
@@ -274,7 +274,7 @@ impl From<&StartRequest> for bridge::ServerProposal {
     fn from(val: &StartRequest) -> Self {
         bridge::ServerProposal {
             name: val.id().name().clone(),
-            group: val.group().clone(),
+            cloudGroup: val.cloudGroup().clone(),
             resources: val.resources().into(),
             spec: val.spec().into(),
         }

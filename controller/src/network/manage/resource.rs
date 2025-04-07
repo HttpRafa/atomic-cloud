@@ -27,11 +27,11 @@ impl GenericTask for SetResourceTask {
                 Task::new_empty()
             }
             Category::Group => {
-                let group = controller
+                let cloudGroup = controller
                     .groups
                     .get_group_mut(&self.1)
                     .ok_or(Status::not_found("Group not found"))?;
-                if let Err(error) = group.set_active(self.2, &mut controller.servers).await {
+                if let Err(error) = cloudGroup.set_active(self.2, &mut controller.servers).await {
                     return Task::new_err(Status::internal(error.to_string()));
                 }
                 Task::new_empty()

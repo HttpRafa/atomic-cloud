@@ -81,7 +81,7 @@ interface data-types {
 
     record server-proposal {
         name: string,
-        group: option<string>,
+        cloudGroup: option<string>,
         resources: resources,
         spec: spec,
     }
@@ -89,7 +89,7 @@ interface data-types {
     record server {
         name: string,
         uuid: uuid,
-        group: option<string>,
+        cloudGroup: option<string>,
         allocation: allocation,
         token: string,
     }

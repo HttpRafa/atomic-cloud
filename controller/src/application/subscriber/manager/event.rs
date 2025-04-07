@@ -10,7 +10,7 @@ pub struct ServerEvent {
     #[getset(get = "pub")]
     pub id: NameAndUuid,
     #[getset(get = "pub")]
-    pub group: Option<String>,
+    pub cloudGroup: Option<String>,
     #[getset(get = "pub")]
     pub allocation: Allocation,
     #[getset(get = "pub")]
@@ -21,7 +21,7 @@ impl From<&Server> for ServerEvent {
     fn from(value: &Server) -> Self {
         Self {
             id: value.id().clone(),
-            group: value.group().clone(),
+            cloudGroup: value.cloudGroup().clone(),
             allocation: value.allocation().clone(),
             token: value.token().clone(),
         }

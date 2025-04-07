@@ -1,11 +1,11 @@
 package io.atomic.cloud.common.resource;
 
 import io.atomic.cloud.api.resource.Resources;
-import io.atomic.cloud.api.resource.simple.SimpleGroup;
-import io.atomic.cloud.api.resource.simple.SimpleServer;
+import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
+import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import io.atomic.cloud.common.connection.client.ClientConnection;
-import io.atomic.cloud.common.resource.object.simple.SimpleGroupImpl;
-import io.atomic.cloud.common.resource.object.simple.SimpleServerImpl;
+import io.atomic.cloud.common.resource.object.simple.SimpleCloudGroupImpl;
+import io.atomic.cloud.common.resource.object.simple.SimpleCloudServerImpl;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -17,20 +17,20 @@ public class ResourceManager implements Resources {
     private final ClientConnection connection;
 
     @Override
-    public CompletableFuture<SimpleGroup[]> groups() {
+    public CompletableFuture<SimpleCloudGroup[]> groups() {
         return this.connection.groups().thenApply(list -> list.getGroupsList().stream()
-                .map(SimpleGroupImpl::new)
-                .toArray(SimpleGroupImpl[]::new));
+                .map(SimpleCloudGroupImpl::new)
+                .toArray(SimpleCloudGroupImpl[]::new));
     }
 
     @Override
-    public CompletableFuture<SimpleServer[]> servers() {
+    public CompletableFuture<SimpleCloudServer[]> servers() {
         return this.connection.servers().thenApply(list -> list.getServersList().stream()
-                .map(server -> new SimpleServerImpl(
+                .map(server -> new SimpleCloudServerImpl(
                         server.getName(),
                         UUID.fromString(server.getId()),
                         Optional.of(server.getGroup()),
                         server.getNode()))
-                .toArray(SimpleServerImpl[]::new));
+                .toArray(SimpleCloudServerImpl[]::new));
     }
 }

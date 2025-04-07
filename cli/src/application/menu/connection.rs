@@ -9,7 +9,7 @@ use crate::{
 use super::MenuResult;
 
 mod general;
-mod group;
+mod cloudGroup;
 mod node;
 mod resource;
 mod screen;

@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use auth::manager::AuthManager;
 use getset::{Getters, MutGetters};
-use group::manager::GroupManager;
+use cloudGroup::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
 use server::{manager::ServerManager, screen::manager::ScreenManager};
@@ -26,7 +26,7 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-pub mod group;
+pub mod cloudGroup;
 pub mod node;
 pub mod plugin;
 pub mod server;
@@ -137,7 +137,7 @@ impl Controller {
         // Tick node manager
         self.nodes.tick()?;
 
-        // Tick group manager
+        // Tick cloudGroup manager
         self.groups.tick(&self.config, &mut self.servers)?;
 
         // Tick server manager
@@ -173,7 +173,7 @@ impl Controller {
     fn shutdown(&mut self) -> Result<()> {
         info!("Starting shutdown sequence...");
 
-        // Shutdown group manager
+        // Shutdown cloudGroup manager
         self.groups.shutdown(self.state.vote())?;
 
         // Shutdown server manager
@@ -190,7 +190,7 @@ impl Controller {
         // Cleanup server manager
         self.servers.cleanup()?;
 
-        // Cleanup group manager
+        // Cleanup cloudGroup manager
         self.groups.cleanup()?;
 
         // Cleanup node manager

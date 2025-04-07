@@ -1,7 +1,7 @@
 package io.atomic.cloud.api.transfer;
 
-import io.atomic.cloud.api.resource.simple.SimpleGroup;
-import io.atomic.cloud.api.resource.simple.SimpleServer;
+import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
+import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -15,7 +15,7 @@ public interface Transfers {
      *     server; otherwise, the controller will return an error.
      * @return The number of users successfully transferred.
      */
-    CompletableFuture<Integer> transferUsersToServer(SimpleServer server, UUID... userUUID);
+    CompletableFuture<Integer> transferUsersToServer(SimpleCloudServer server, UUID... userUUID);
 
     /**
      * Sends a request to the controller to transfer the specified users to a new server on specific
@@ -26,7 +26,7 @@ public interface Transfers {
      *     server; otherwise, the controller will return an error.
      * @return The number of users successfully transferred.
      */
-    CompletableFuture<Integer> transferUsersToGroup(SimpleGroup group, UUID... userUUID);
+    CompletableFuture<Integer> transferUsersToGroup(SimpleCloudGroup group, UUID... userUUID);
 
     /**
      * Sends a request to the controller to transfer the specified users to a new server marked as

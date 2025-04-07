@@ -1,9 +1,9 @@
 package io.atomic.cloud.api.resource.complex;
 
-import io.atomic.cloud.api.resource.simple.SimpleNode;
+import io.atomic.cloud.api.resource.simple.SimpleCloudNode;
 import java.util.Optional;
 
-public interface Node extends SimpleNode {
+public interface CloudNode extends SimpleCloudNode {
 
     String plugin();
 

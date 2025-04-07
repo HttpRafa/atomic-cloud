@@ -63,6 +63,10 @@ public class ManageConnection extends Connection {
         return super.wrapInFuture(this.futureClient.createGroup(group));
     }
 
+    public CompletableFuture<StringValue> scheduleServer(Server.Proposal proposal) {
+        return super.wrapInFuture(this.futureClient.scheduleServer(proposal));
+    }
+
     public CompletableFuture<Empty> writeToScreen(Screen.WriteReq request) {
         return super.wrapInFuture(this.futureClient.writeToScreen(request));
     }

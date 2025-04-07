@@ -25,6 +25,14 @@ pub struct CreateGroupTask(
     pub Spec,
     pub Vec<String>,
 );
+pub struct UpdateGroupTask(
+    pub String,
+    pub Option<StartConstraints>,
+    pub Option<ScalingPolicy>,
+    pub Option<Resources>,
+    pub Option<Spec>,
+    pub Option<Vec<String>>,
+);
 pub struct GetGroupTask(pub String);
 pub struct GetGroupsTask();
 
@@ -47,6 +55,28 @@ impl GenericTask for CreateGroupTask {
             return Task::new_err(error.into());
         }
         Task::new_empty()
+    }
+}
+
+#[async_trait]
+impl GenericTask for UpdateGroupTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        match controller
+            .groups
+            .update_group(
+                &self.0,
+                self.1.as_ref(),
+                self.2.as_ref(),
+                self.3.as_ref(),
+                self.4.as_ref(),
+                self.5.as_deref(),
+                &controller.nodes,
+            )
+            .await
+        {
+            Ok(group) => return Task::new_ok(Item::from(group)),
+            Err(error) => Task::new_err(error.into()),
+        }
     }
 }
 

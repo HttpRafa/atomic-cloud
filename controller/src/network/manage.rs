@@ -1,8 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
-use group::{CreateGroupTask, GetGroupTask, GetGroupsTask};
-use node::{CreateNodeTask, GetNodeTask, GetNodesTask};
+use group::{CreateGroupTask, GetGroupTask, GetGroupsTask, UpdateGroupTask};
+use node::{CreateNodeTask, GetNodeTask, GetNodesTask, UpdateNodeTask};
 use plugin::GetPluginsTask;
 use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
@@ -141,6 +141,33 @@ impl ManageService for ManageServiceImpl {
             .await?,
         ))
     }
+    async fn update_node(
+        &self,
+        request: Request<manage::node::UpdateReq>,
+    ) -> Result<Response<manage::node::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<manage::node::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+                    let name = request.name;
+                    let Some(node) = request.node else {
+                        return Err(Status::invalid_argument("No changes provided"));
+                    };
+
+                    let capabilities = Capabilities::new(node.memory, node.max, node.child);
+                    let controller = node.ctrl_addr.parse().map_err(|_| {
+                        Status::invalid_argument("Invalid controller address provided")
+                    })?;
+
+                    Ok(Box::new(UpdateNodeTask(name, capabilities, controller)))
+                },
+            )
+            .await?,
+        ))
+    }
     async fn get_node(
         &self,
         request: Request<String>,
@@ -265,6 +292,107 @@ impl ManageService for ManageServiceImpl {
                     nodes,
                 )))
             })
+            .await?,
+        ))
+    }
+    async fn update_group(
+        &self,
+        request: Request<manage::group::UpdateReq>,
+    ) -> Result<Response<manage::group::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<manage::group::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+                    let name = request.name;
+                    let Some(group) = request.group else {
+                        return Err(Status::invalid_argument("No changes provided"));
+                    };
+
+                    let constraints = group.constraints.map(|constraints| {
+                        StartConstraints::new(constraints.min, constraints.max, constraints.prio)
+                    });
+
+                    let scaling = group.scaling.map(|scaling| {
+                        ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
+                    });
+
+                    let resources = group.resources.map(|resources| {
+                        Resources::new(
+                            resources.memory,
+                            resources.swap,
+                            resources.cpu,
+                            resources.io,
+                            resources.disk,
+                            resources.ports,
+                        )
+                    });
+
+                    let spec = match group.spec {
+                        Some(spec) => {
+                            let image = spec.img;
+                            let max_players = spec.max_players;
+                            let settings = spec
+                                .settings
+                                .iter()
+                                .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                                .collect();
+                            let environment = spec
+                                .env
+                                .iter()
+                                .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                                .collect();
+                            let disk_retention = if let Some(retention) = spec.retention {
+                                match manage::server::DiskRetention::try_from(retention) {
+                                    Ok(manage::server::DiskRetention::Permanent) => {
+                                        DiskRetention::Permanent
+                                    }
+                                    Ok(manage::server::DiskRetention::Temporary) => {
+                                        DiskRetention::Temporary
+                                    }
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid disk retention provided",
+                                        ))
+                                    }
+                                }
+                            } else {
+                                DiskRetention::Temporary
+                            };
+                            let fallback = if let Some(fallback) = spec.fallback {
+                                FallbackPolicy::new(true, fallback.prio)
+                            } else {
+                                FallbackPolicy::default()
+                            };
+                            Some(Spec::new(
+                                settings,
+                                environment,
+                                disk_retention,
+                                image,
+                                max_players,
+                                fallback,
+                            ))
+                        }
+                        None => None,
+                    };
+
+                    let nodes = match group.nodes.len() {
+                        0 => None,
+                        _ => Some(group.nodes),
+                    };
+
+                    Ok(Box::new(UpdateGroupTask(
+                        name,
+                        constraints,
+                        scaling,
+                        resources,
+                        spec,
+                        nodes,
+                    )))
+                },
+            )
             .await?,
         ))
     }

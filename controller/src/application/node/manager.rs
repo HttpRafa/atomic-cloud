@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use simplelog::{error, info, warn};
+use simplelog::{debug, error, info, warn};
 use stored::StoredNode;
 use tokio::fs;
 use url::Url;
@@ -12,7 +12,7 @@ use crate::{
         plugin::{manager::PluginManager, BoxedNode},
         server::manager::ServerManager,
     },
-    resource::{CreateResourceError, DeleteResourceError},
+    resource::{CreateResourceError, DeleteResourceError, UpdateResourceError},
     storage::Storage,
 };
 
@@ -119,6 +119,24 @@ impl NodeManager {
         self.nodes.insert(name.to_string(), node);
         info!("Created node {}", name);
         Ok(())
+    }
+
+    pub async fn update_node(
+        &mut self,
+        name: &str,
+        capabilities: &Capabilities,
+        controller: &Url,
+    ) -> Result<&Node, UpdateResourceError> {
+        let Some(node) = self.get_node_mut(name) else {
+            return Err(UpdateResourceError::NotFound);
+        };
+
+        node.set_capabilities(capabilities.clone());
+        node.set_controller(controller.clone());
+        node.save().await.map_err(UpdateResourceError::Error)?;
+        debug!("Updated node {}", name);
+
+        Ok(node)
     }
 
     pub fn verify_nodes(&self, names: &[String]) -> bool {

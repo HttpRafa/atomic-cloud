@@ -12,6 +12,7 @@ use crate::{
 };
 
 pub struct CreateNodeTask(pub String, pub String, pub Capabilities, pub Url);
+pub struct UpdateNodeTask(pub String, pub Capabilities, pub Url);
 pub struct GetNodeTask(pub String);
 pub struct GetNodesTask();
 
@@ -26,6 +27,20 @@ impl GenericTask for CreateNodeTask {
             return Task::new_err(error.into());
         }
         Task::new_empty()
+    }
+}
+
+#[async_trait]
+impl GenericTask for UpdateNodeTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        match controller
+            .nodes
+            .update_node(&self.0, &self.1, &self.2)
+            .await
+        {
+            Ok(node) => return Task::new_ok(Item::from(node)),
+            Err(error) => Task::new_err(error.into()),
+        }
     }
 }
 

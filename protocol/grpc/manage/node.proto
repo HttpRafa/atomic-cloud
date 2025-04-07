@@ -5,6 +5,8 @@ option java_package = "io.atomic.cloud.grpc.manage";
 
 package manage;
 
+import "google/protobuf/field_mask.proto";
+
 message Node {
   message Item {
     string name = 1;
@@ -17,5 +19,9 @@ message Node {
   }
   message List {
     repeated string nodes = 1;
+  }
+  message UpdateReq {
+    string name = 1;
+    Node.Item node = 2;
   }
 }

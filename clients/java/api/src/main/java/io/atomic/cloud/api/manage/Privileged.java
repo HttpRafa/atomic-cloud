@@ -51,10 +51,10 @@ public interface Privileged {
 
     /**
      * Creates a group on the controller
-     * @param cloudGroup Group to create
+     * @param group Group to create
      * @return A future that completes when the controller handled the request
      */
-    CompletableFuture<Void> createGroup(CloudGroup cloudGroup);
+    CompletableFuture<Void> createGroup(CloudGroup group);
 
     /**
      * Tells the controller to start a server

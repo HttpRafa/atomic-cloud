@@ -28,6 +28,13 @@ message Server {
     State state = 8;
     bool ready = 9;
   }
+  message Proposal {
+    int32 prio = 1;
+    string name = 2;
+    string node = 3;
+    Server.Resources resources = 4;
+    Server.Spec spec = 5;
+  }
   message Allocation {
     repeated common.Address ports = 1;
     Resources resources = 2;

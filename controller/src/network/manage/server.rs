@@ -1,9 +1,14 @@
 use anyhow::Result;
+use simplelog::debug;
 use tonic::{async_trait, Status};
 use uuid::Uuid;
 
 use crate::{
-    application::{node::Allocation, server::Server, Controller},
+    application::{
+        node::Allocation,
+        server::{manager::StartRequest, Resources, Server, Spec},
+        Controller,
+    },
     network::proto::{
         common::Address,
         manage::server::{self, Detail, List, Short},
@@ -11,8 +16,32 @@ use crate::{
     task::{BoxedAny, GenericTask, Task},
 };
 
+pub struct ScheduleServerTask(pub i32, pub String, pub String, pub Resources, pub Spec);
 pub struct GetServerTask(pub Uuid);
 pub struct GetServersTask();
+
+#[async_trait]
+impl GenericTask for ScheduleServerTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let request = StartRequest::new(
+            None,
+            self.0,
+            self.1.clone(),
+            None,
+            &[self.2.clone()],
+            &self.3,
+            &self.4,
+        );
+        let uuid = request.id().uuid().to_string();
+        debug!(
+            "Scheduled server({}) without a group assignment",
+            request.id()
+        );
+        controller.servers.schedule_start(request);
+
+        Task::new_ok(uuid)
+    }
+}
 
 #[async_trait]
 impl GenericTask for GetServerTask {

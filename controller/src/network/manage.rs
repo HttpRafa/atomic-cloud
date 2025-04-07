@@ -6,7 +6,7 @@ use node::{CreateNodeTask, GetNodeTask, GetNodesTask};
 use plugin::GetPluginsTask;
 use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
-use server::{GetServerTask, GetServersTask};
+use server::{GetServerTask, GetServersTask, ScheduleServerTask};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
@@ -299,6 +299,85 @@ impl ManageService for ManageServiceImpl {
     }
 
     // Server
+    async fn schedule_server(
+        &self,
+        request: Request<manage::server::Proposal>,
+    ) -> Result<Response<String>, Status> {
+        Ok(Response::new(
+            Task::execute::<String, _, _>(AuthType::User, &self.0, request, |request, _| {
+                let request = request.into_inner();
+
+                let resources = match request.resources {
+                    Some(resources) => Resources::new(
+                        resources.memory,
+                        resources.swap,
+                        resources.cpu,
+                        resources.io,
+                        resources.disk,
+                        resources.ports,
+                    ),
+                    None => return Err(Status::invalid_argument("No resources provided")),
+                };
+
+                let spec = match request.spec {
+                    Some(spec) => {
+                        let image = spec.img;
+                        let max_players = spec.max_players;
+                        let settings = spec
+                            .settings
+                            .iter()
+                            .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                            .collect();
+                        let environment = spec
+                            .env
+                            .iter()
+                            .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                            .collect();
+                        let disk_retention = if let Some(retention) = spec.retention {
+                            match manage::server::DiskRetention::try_from(retention) {
+                                Ok(manage::server::DiskRetention::Permanent) => {
+                                    DiskRetention::Permanent
+                                }
+                                Ok(manage::server::DiskRetention::Temporary) => {
+                                    DiskRetention::Temporary
+                                }
+                                Err(_) => {
+                                    return Err(Status::invalid_argument(
+                                        "Invalid disk retention provided",
+                                    ))
+                                }
+                            }
+                        } else {
+                            DiskRetention::Temporary
+                        };
+                        let fallback = if let Some(fallback) = spec.fallback {
+                            FallbackPolicy::new(true, fallback.prio)
+                        } else {
+                            FallbackPolicy::default()
+                        };
+                        Spec::new(
+                            settings,
+                            environment,
+                            disk_retention,
+                            image,
+                            max_players,
+                            fallback,
+                        )
+                    }
+                    None => return Err(Status::invalid_argument("No spec provided")),
+                };
+
+                Ok(Box::new(ScheduleServerTask(
+                    request.prio,
+                    request.name.clone(),
+                    request.node,
+                    resources,
+                    spec,
+                )))
+            })
+            .await?,
+        ))
+    }
     async fn get_server(
         &self,
         request: Request<String>,

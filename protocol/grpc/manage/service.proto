@@ -40,6 +40,7 @@ service ManageService {
   rpc GetGroups(google.protobuf.Empty) returns (Group.List);
 
   // Server operations
+  rpc ScheduleServer(Server.Proposal) returns (google.protobuf.StringValue);
   rpc GetServer(google.protobuf.StringValue) returns (Server.Detail);
   rpc GetServers(google.protobuf.Empty) returns (Server.List);
 

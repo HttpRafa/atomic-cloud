@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::application::{
     auth::Authorization,
-    cloudGroup::manager::GroupManager,
+    group::manager::GroupManager,
     server::{manager::ServerManager, NameAndUuid, Server},
     Shared,
 };
@@ -41,9 +41,9 @@ impl<'a> Transfer<'a> {
             TransferTarget::Server(to) => {
                 servers.get_server(to).ok_or(ResolveError::ServerNotFound)?
             }
-            TransferTarget::Group(cloudGroup) => {
-                let cloudGroup = groups.get_group(cloudGroup).ok_or(ResolveError::GroupNotFound)?;
-                cloudGroup
+            TransferTarget::Group(group) => {
+                let group = groups.get_group(group).ok_or(ResolveError::GroupNotFound)?;
+                group
                     .find_free_server(servers)
                     .ok_or(ResolveError::NotServerAvailable)?
             }

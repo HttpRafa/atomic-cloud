@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::{
     application::{
-        cloudGroup::manager::GroupManager,
+        group::manager::GroupManager,
         plugin::{manager::PluginManager, BoxedNode},
         server::manager::ServerManager,
     },

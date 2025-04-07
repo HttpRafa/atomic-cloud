@@ -95,11 +95,11 @@ impl DeleteResourceMenu {
                 })
             }
             Category::Group => {
-                let cloudGroup =
-                    MenuUtils::select_no_help("Select the cloudGroup to delete", data.groups.clone())?;
+                let group =
+                    MenuUtils::select_no_help("Select the group to delete", data.groups.clone())?;
                 Ok(DelReq {
                     category: category as i32,
-                    id: cloudGroup,
+                    id: group,
                 })
             }
             Category::Server => {

@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::Result;
 use proto::manage::{
-    cloudGroup,
+    group,
     manage_service_client::ManageServiceClient,
     node,
     resource::{self, DelReq, SetReq},
@@ -169,13 +169,13 @@ impl CloudConnection {
             .nodes)
     }
 
-    pub async fn create_group(&mut self, cloudGroup: cloudGroup::Item) -> Result<()> {
-        let request = self.create_request(cloudGroup);
+    pub async fn create_group(&mut self, group: group::Item) -> Result<()> {
+        let request = self.create_request(group);
         self.client.as_mut().unwrap().create_group(request).await?;
         Ok(())
     }
 
-    pub async fn get_group(&mut self, name: &str) -> Result<cloudGroup::Item> {
+    pub async fn get_group(&mut self, name: &str) -> Result<group::Item> {
         let request = self.create_request(name.to_string());
         Ok(self
             .client

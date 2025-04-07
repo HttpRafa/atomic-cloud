@@ -41,8 +41,8 @@ impl GetGroupsMenu {
         if groups.is_empty() {
             info!("      <green><b>No groups found.</>");
         } else {
-            for cloudGroup in groups {
-                info!("    - <green>{}</>", cloudGroup);
+            for group in groups {
+                info!("    - <green>{}</>", group);
             }
         }
     }

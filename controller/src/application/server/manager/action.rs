@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        cloudGroup::manager::GroupManager,
+        group::manager::GroupManager,
         node::{manager::NodeManager, Allocation},
         server::{
             guard::{Guard, WeakGuard},
@@ -62,7 +62,7 @@ impl ServerManager {
             if let Some(node) = node {
                 let mut server = Server {
                     id: request.id.clone(),
-                    cloudGroup: request.cloudGroup.clone(),
+                    group: request.group.clone(),
                     node: name.clone(),
                     allocation: Allocation {
                         ports,
@@ -92,12 +92,12 @@ impl ServerManager {
                     .await;
 
                 let handle = node.start(&server);
-                if let Some(cloudGroup) = &server.cloudGroup {
-                    if let Some(cloudGroup) = groups.get_group_mut(cloudGroup) {
-                        cloudGroup.set_server_active(&server.id);
+                if let Some(group) = &server.group {
+                    if let Some(group) = groups.get_group_mut(group) {
+                        group.set_server_active(&server.id);
                     } else {
-                        warn!("Group {} not found while trying to start server {}. Removing cloudGroup from server", cloudGroup, request.id);
-                        server.cloudGroup = None;
+                        warn!("Group {} not found while trying to start server {}. Removing group from server", group, request.id);
+                        server.group = None;
                     }
                 }
                 servers.insert(server.id.uuid, server);
@@ -209,13 +209,13 @@ impl ServerManager {
         shared: &Arc<Shared>,
     ) -> Result<()> {
         if let Some(server) = servers.remove(request.server.uuid()) {
-            if let Some(cloudGroup) = &server.cloudGroup {
-                if let Some(cloudGroup) = groups.get_group_mut(cloudGroup) {
-                    cloudGroup.remove_server(&server.id);
+            if let Some(group) = &server.group {
+                if let Some(group) = groups.get_group_mut(group) {
+                    group.remove_server(&server.id);
                 } else {
                     error!(
                         "Group {} not found while trying to remove server {}.",
-                        cloudGroup, server.id
+                        group, server.id
                     );
                 }
             }

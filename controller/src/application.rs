@@ -9,7 +9,7 @@ use std::{
 use anyhow::Result;
 use auth::manager::AuthManager;
 use getset::{Getters, MutGetters};
-use cloudGroup::manager::GroupManager;
+use group::manager::GroupManager;
 use node::manager::NodeManager;
 use plugin::manager::PluginManager;
 use server::{manager::ServerManager, screen::manager::ScreenManager};
@@ -26,7 +26,7 @@ use user::manager::UserManager;
 use crate::{config::Config, network::NetworkStack, task::Task};
 
 pub mod auth;
-pub mod cloudGroup;
+pub mod group;
 pub mod node;
 pub mod plugin;
 pub mod server;

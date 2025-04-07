@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use beat::BeatTask;
-use cloudGroup::GetGroupsTask;
+use group::GetGroupsTask;
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use server::GetServersTask;
@@ -35,7 +35,7 @@ use super::{
 };
 
 mod beat;
-mod cloudGroup;
+mod group;
 mod health;
 mod notify;
 mod ready;
@@ -247,9 +247,9 @@ impl ClientService for ClientServiceImpl {
     async fn get_groups(
         &self,
         request: Request<()>,
-    ) -> Result<Response<client::cloudGroup::List>, Status> {
+    ) -> Result<Response<client::group::List>, Status> {
         Ok(Response::new(
-            Task::execute::<client::cloudGroup::List, _, _>(
+            Task::execute::<client::group::List, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,

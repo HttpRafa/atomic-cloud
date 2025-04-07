@@ -73,7 +73,7 @@ impl From<&&Server> for Short {
         Self {
             id: server.id().uuid().to_string(),
             name: server.id().name().clone(),
-            cloudGroup: server.cloudGroup().clone(),
+            group: server.group().clone(),
             node: server.node().clone(),
         }
     }
@@ -84,7 +84,7 @@ impl From<&Server> for Detail {
         Self {
             name: server.id().name().clone(),
             id: server.id().uuid().to_string(),
-            cloudGroup: server.cloudGroup().clone(),
+            group: server.group().clone(),
             node: server.node().clone(),
             allocation: Some(server.allocation().into()),
             users: *server.connected_users(),

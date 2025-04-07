@@ -23,7 +23,7 @@ pub struct Server {
     #[getset(get = "pub")]
     id: NameAndUuid,
     #[getset(get = "pub")]
-    cloudGroup: Option<String>,
+    group: Option<String>,
     #[getset(get = "pub")]
     node: String,
     #[getset(get = "pub")]

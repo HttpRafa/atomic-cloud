@@ -3,14 +3,14 @@ use tonic::{async_trait, Status};
 
 use crate::{
     application::{
-        cloudGroup::{Group, ScalingPolicy, StartConstraints},
+        group::{Group, ScalingPolicy, StartConstraints},
         server::{FallbackPolicy, Resources, Spec},
         Controller,
     },
     network::proto::{
         common::KeyValue,
         manage::{
-            cloudGroup::{Constraints, Item, List, Scaling},
+            group::{Constraints, Item, List, Scaling},
             server::{self, Fallback},
         },
     },
@@ -53,11 +53,11 @@ impl GenericTask for CreateGroupTask {
 #[async_trait]
 impl GenericTask for GetGroupTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        let Some(cloudGroup) = controller.groups.get_group(&self.0) else {
+        let Some(group) = controller.groups.get_group(&self.0) else {
             return Task::new_err(Status::not_found("Group not found"));
         };
 
-        Task::new_ok(Item::from(cloudGroup))
+        Task::new_ok(Item::from(group))
     }
 }
 
@@ -69,7 +69,7 @@ impl GenericTask for GetGroupsTask {
                 .groups
                 .get_groups()
                 .iter()
-                .map(|cloudGroup| cloudGroup.name().clone())
+                .map(|group| group.name().clone())
                 .collect(),
         })
     }

@@ -3,7 +3,7 @@ use simplelog::{info, warn};
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
-    network::{proto::manage::cloudGroup, EstablishedConnection},
+    network::{proto::manage::group, EstablishedConnection},
     profile::{Profile, Profiles},
 };
 
@@ -26,15 +26,15 @@ impl GetGroupMenu {
                 progress.success("Data retrieved successfully 👍");
                 progress.end();
 
-                match MenuUtils::select_no_help("Select a cloudGroup to view more details:", groups) {
-                    Ok(cloudGroup) => {
+                match MenuUtils::select_no_help("Select a group to view more details:", groups) {
+                    Ok(group) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Fetching details for cloudGroup \"{}\" from controller \"{}\"...",
-                            cloudGroup, profile.name
+                            "Fetching details for group \"{}\" from controller \"{}\"...",
+                            group, profile.name
                         ));
 
-                        match connection.client.get_group(&cloudGroup).await {
+                        match connection.client.get_group(&group).await {
                             Ok(group_details) => {
                                 progress.success("Group details retrieved successfully 👍");
                                 progress.end();
@@ -60,20 +60,20 @@ impl GetGroupMenu {
         }
     }
 
-    fn display_details(cloudGroup: &cloudGroup::Item) {
+    fn display_details(group: &group::Item) {
         info!("   <blue>🖥  <b>Group Details</>");
-        info!("      <green><b>Name</>: {}", cloudGroup.name);
+        info!("      <green><b>Name</>: {}", group.name);
 
-        if cloudGroup.nodes.is_empty() {
+        if group.nodes.is_empty() {
             warn!("      <yellow><b>Nodes</>: None");
         } else {
             info!("      <green><b>Nodes</>:");
-            for node in &cloudGroup.nodes {
+            for node in &group.nodes {
                 info!("         - <green>{}</>", node);
             }
         }
 
-        if let Some(constraints) = &cloudGroup.constraints {
+        if let Some(constraints) = &group.constraints {
             info!("      <green><b>Constraints</>:");
             info!("         <green><b>Minimum</>: {}", constraints.min);
             info!("         <green><b>Maximum</>: {}", constraints.max);
@@ -82,7 +82,7 @@ impl GetGroupMenu {
             warn!("      <yellow><b>Constraints</>: None");
         }
 
-        if let Some(scaling) = &cloudGroup.scaling {
+        if let Some(scaling) = &group.scaling {
             info!("      <green><b>Scaling</>:");
             info!(
                 "         <green><b>Start Threshold</>: {}%",
@@ -93,7 +93,7 @@ impl GetGroupMenu {
             warn!("      <yellow><b>Scaling</>: None");
         }
 
-        if let Some(resources) = &cloudGroup.resources {
+        if let Some(resources) = &group.resources {
             info!("      <green><b>Resources per Unit</>:");
             info!("         <green><b>Memory</>: {} MiB", resources.memory);
             info!("         <green><b>Swap</>: {} MiB", resources.swap);
@@ -105,7 +105,7 @@ impl GetGroupMenu {
             warn!("      <yellow><b>Resources per Unit</>: None");
         }
 
-        if let Some(spec) = &cloudGroup.spec {
+        if let Some(spec) = &group.spec {
             info!("      <green><b>Specification</>:");
             info!("         <green><b>Image</>: {}", spec.img);
             info!(

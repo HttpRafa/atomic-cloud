@@ -13,7 +13,7 @@ use crate::application::{
         proto::{
             common::KeyValue,
             manage::{
-                cloudGroup::{self, Constraints, Scaling},
+                group::{self, Constraints, Scaling},
                 server::{DiskRetention, Fallback, Resources, Spec},
             },
         },
@@ -49,16 +49,16 @@ impl CreateGroupMenu {
                 progress.end();
 
                 match Self::collect_group(&data) {
-                    Ok(cloudGroup) => {
+                    Ok(group) => {
                         let progress = Loading::default();
                         progress.text(format!(
-                            "Creating cloudGroup \"{}\" on the controller \"{}\"...",
-                            cloudGroup.name, profile.name
+                            "Creating group \"{}\" on the controller \"{}\"...",
+                            group.name, profile.name
                         ));
 
-                        match connection.client.create_group(cloudGroup).await {
+                        match connection.client.create_group(group).await {
                             Ok(()) => {
-                                progress.success("Group created successfully 👍. Remember to set the cloudGroup to active, or the controller won't start servers.");
+                                progress.success("Group created successfully 👍. Remember to set the group to active, or the controller won't start servers.");
                                 progress.end();
                                 MenuResult::Success
                             }
@@ -86,7 +86,7 @@ impl CreateGroupMenu {
         Ok(Data { groups, nodes })
     }
 
-    fn collect_group(data: &Data) -> Result<cloudGroup::Item, InquireError> {
+    fn collect_group(data: &Data) -> Result<group::Item, InquireError> {
         let name = Self::get_group_name(data.groups.clone())?;
         let nodes = Self::get_nodes(data.nodes.clone())?;
         let constraints = Self::collect_constraints()?;
@@ -94,7 +94,7 @@ impl CreateGroupMenu {
         let resources = Self::collect_resources()?;
         let spec = Self::collect_specification()?;
 
-        Ok(cloudGroup::Item {
+        Ok(group::Item {
             name,
             nodes,
             constraints: Some(constraints),

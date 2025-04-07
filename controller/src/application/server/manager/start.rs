@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        cloudGroup::manager::GroupManager, node::manager::NodeManager, server::Server, Shared,
+        group::manager::GroupManager, node::manager::NodeManager, server::Server, Shared,
     },
     config::Config,
 };

@@ -168,7 +168,7 @@ impl From<SetActiveError> for Status {
     fn from(val: SetActiveError) -> Self {
         match val {
             SetActiveError::NodeInUseByGroup => {
-                Status::unavailable("Node in use by some cloudGroup")
+                Status::unavailable("Node in use by some group")
             }
             SetActiveError::NodeInUseByServer => Status::unavailable("Node in use by some server"),
             SetActiveError::Error(error) => Status::internal(format!("Error: {error}")),

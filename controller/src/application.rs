@@ -137,7 +137,7 @@ impl Controller {
         // Tick node manager
         self.nodes.tick()?;
 
-        // Tick cloudGroup manager
+        // Tick group manager
         self.groups.tick(&self.config, &mut self.servers)?;
 
         // Tick server manager
@@ -173,7 +173,7 @@ impl Controller {
     fn shutdown(&mut self) -> Result<()> {
         info!("Starting shutdown sequence...");
 
-        // Shutdown cloudGroup manager
+        // Shutdown group manager
         self.groups.shutdown(self.state.vote())?;
 
         // Shutdown server manager
@@ -190,7 +190,7 @@ impl Controller {
         // Cleanup server manager
         self.servers.cleanup()?;
 
-        // Cleanup cloudGroup manager
+        // Cleanup group manager
         self.groups.cleanup()?;
 
         // Cleanup node manager

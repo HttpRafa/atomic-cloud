@@ -37,11 +37,11 @@ impl GroupManager {
 
         for (_, _, name, mut value) in Storage::for_each_content_toml::<StoredGroup>(
             &directory,
-            "Failed to read cloudGroup from file",
+            "Failed to read group from file",
         )
         .await?
         {
-            info!("Loading cloudGroup {}", name);
+            info!("Loading group {}", name);
 
             value.nodes_mut().retain(|node| {
                 if !nodes.has_node(node) {
@@ -53,7 +53,7 @@ impl GroupManager {
             groups.insert(name.clone(), Group::new(&name, &value));
         }
 
-        info!("Loaded {} cloudGroup(s)", groups.len());
+        info!("Loaded {} group(s)", groups.len());
         Ok(Self {
             voter: None,
             groups,

@@ -130,7 +130,7 @@ impl Server {
 
 #[derive(Default)]
 pub struct Flags {
-    /* Required for the cloudGroup system */
+    /* Required for the group system */
     pub stop: Option<Instant>,
 }
 

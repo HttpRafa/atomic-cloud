@@ -17,7 +17,7 @@ impl GetGroupsMenu {
     ) -> MenuResult {
         let progress = Loading::default();
         progress.text(format!(
-            "Requesting cloudGroup list from controller \"{}\"...",
+            "Requesting group list from controller \"{}\"...",
             profile.name
         ));
 

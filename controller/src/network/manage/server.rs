@@ -34,7 +34,7 @@ impl GenericTask for ScheduleServerTask {
         );
         let uuid = request.id().uuid().to_string();
         debug!(
-            "Scheduled server({}) without a cloudGroup assignment",
+            "Scheduled server({}) without a group assignment",
             request.id()
         );
         controller.servers.schedule_start(request);

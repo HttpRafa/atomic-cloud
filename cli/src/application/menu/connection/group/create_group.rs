@@ -105,13 +105,13 @@ impl CreateGroupMenu {
     }
 
     fn get_group_name(used_names: Vec<String>) -> Result<String, InquireError> {
-        Text::new("What would you like to name this cloudGroup?")
+        Text::new("What would you like to name this group?")
             .with_help_message("Examples: lobby, mode-xyz")
             .with_validator(ValueRequiredValidator::default())
             .with_validator(move |name: &str| {
                 if used_names.contains(&name.to_string()) {
                     Ok(Validation::Invalid(
-                        "A cloudGroup with this name already exists".into(),
+                        "A group with this name already exists".into(),
                     ))
                 } else {
                     Ok(Validation::Valid)
@@ -121,7 +121,7 @@ impl CreateGroupMenu {
     }
 
     fn get_nodes(nodes: Vec<String>) -> Result<Vec<String>, InquireError> {
-        MultiSelect::new("What nodes should this cloudGroup use?", nodes).prompt()
+        MultiSelect::new("What nodes should this group use?", nodes).prompt()
     }
 
     fn collect_constraints() -> Result<Constraints, InquireError> {
@@ -135,7 +135,7 @@ impl CreateGroupMenu {
             "Example: 10",
             "Please enter a valid number",
         )?;
-        let prio = MenuUtils::parsed_value("How important is this cloudGroup compared to others? (This refers to one tick of the controller)", "Example: 0", "Please enter a valid number")?;
+        let prio = MenuUtils::parsed_value("How important is this group compared to others? (This refers to one tick of the controller)", "Example: 0", "Please enter a valid number")?;
 
         Ok(Constraints { min, max, prio })
     }
@@ -235,7 +235,7 @@ impl CreateGroupMenu {
         let enabled =
             MenuUtils::confirm("Should the controller treat these servers as fallback servers?")?;
         let prio = MenuUtils::parsed_value(
-            "What is the priority of this fallback cloudGroup?",
+            "What is the priority of this fallback group?",
             "Example: 0",
             "Please enter a valid number",
         )?;

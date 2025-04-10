@@ -5,8 +5,6 @@ option java_package = "io.atomic.cloud.grpc.manage";
 
 package manage;
 
-import "google/protobuf/field_mask.proto";
-
 import "manage/server.proto";
 
 message Group {

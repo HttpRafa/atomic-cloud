@@ -18,7 +18,7 @@ pub const STD_BUFFER_SIZE: usize = 1024;
 pub mod stdin;
 mod stdout;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum State {
     Starting,
     Running,
@@ -99,7 +99,7 @@ impl ManagedProcess {
         match line {
             Some(Ok(line)) => {
                 let line = line.trim();
-                println!("# {}", line);
+                println!("# {line}");
                 match self.detector.detect(line) {
                     Detection::Started => {
                         self.handle_state_change(State::Running).await;
@@ -172,7 +172,7 @@ impl ManagedProcess {
                     error!("Failed to request hard from controller: {}", error);
                 }
             }
-            _ => { /* Do nothing */ }
+            State::Starting => { /* Do nothing */ }
         }
         self.state = state;
     }

@@ -31,11 +31,13 @@ service ManageService {
 
   // Node operations
   rpc CreateNode(Node.Item) returns (google.protobuf.Empty);
+  rpc UpdateNode(Node.UpdateReq) returns (Node.Item);
   rpc GetNode(google.protobuf.StringValue) returns (Node.Item);
   rpc GetNodes(google.protobuf.Empty) returns (Node.List);
 
   // Group operations
   rpc CreateGroup(Group.Item) returns (google.protobuf.Empty);
+  rpc UpdateGroup(Group.UpdateReq) returns (Group.Item);
   rpc GetGroup(google.protobuf.StringValue) returns (Group.Item);
   rpc GetGroups(google.protobuf.Empty) returns (Group.List);
 

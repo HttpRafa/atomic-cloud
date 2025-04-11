@@ -69,14 +69,12 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
     }
 
     @Override
-    public @NotNull CompletableFuture<Void> createNode(CloudNode node) {
+    public @NotNull CompletableFuture<Void> createNode(@NotNull CloudNode node) {
         var builder = Node.Item.newBuilder()
                 .setName(node.name())
                 .setPlugin(node.plugin())
+                .setCapabilities(node.capabilities())
                 .setCtrlAddr(node.controllerAddress());
-        node.memory().ifPresent(builder::setMemory);
-        node.maxServers().ifPresent(builder::setMax);
-        node.child().ifPresent(builder::setChild);
         return this.connection.createNode(builder.build()).thenAccept(response -> {});
     }
 
@@ -116,22 +114,11 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
     }
 
     @Override
-    public CompletableFuture<CloudNode> node(@NotNull SimpleCloudNode node) {
-        return this.connection.node(node.name()).thenApply(item -> {
-            Optional<Integer> memory = Optional.empty();
-            Optional<Integer> maxServers = Optional.empty();
-            Optional<String> child = Optional.empty();
-            if (item.hasMemory()) {
-                memory = Optional.of(item.getMemory());
-            }
-            if (item.hasMax()) {
-                maxServers = Optional.of(item.getMax());
-            }
-            if (item.hasMax()) {
-                child = Optional.of(item.getChild());
-            }
-            return new CloudNodeImpl(item.getName(), item.getPlugin(), memory, maxServers, child, item.getCtrlAddr());
-        });
+    public @NotNull CompletableFuture<CloudNode> node(@NotNull SimpleCloudNode node) {
+        return this.connection
+                .node(node.name())
+                .thenApply(item -> new CloudNodeImpl(
+                        item.getName(), item.getPlugin(), item.getCapabilities(), item.getCtrlAddr()));
     }
 
     @Override

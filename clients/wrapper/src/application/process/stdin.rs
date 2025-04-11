@@ -25,12 +25,13 @@ impl ManagedStdin {
 
     pub async fn write_line(&self, line: &str) {
         let mut writer = self.0.lock().await;
-        if let Err(error) = writer.write_all(format!("{}\n", line).as_bytes()).await {
+        if let Err(error) = writer.write_all(format!("{line}\n").as_bytes()).await {
             warn!("Failed to write to stdin of child process: {}", error);
         }
         if let Err(error) = writer.flush().await {
             warn!("Failed to flush stdin of child process: {}", error);
         }
+        drop(writer);
         info!("-> {}", line);
     }
 

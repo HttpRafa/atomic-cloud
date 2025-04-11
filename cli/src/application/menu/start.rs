@@ -20,10 +20,10 @@ enum Selection {
 impl Display for Selection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Selection::LoadProfile => write!(f, "Connect to existing controller"),
-            Selection::CreateProfile => write!(f, "Add new controller"),
-            Selection::DeleteProfile => write!(f, "Remove existing controller"),
-            Selection::Exit => write!(f, "Close application"),
+            Self::LoadProfile => write!(f, "Connect to existing controller"),
+            Self::CreateProfile => write!(f, "Add new controller"),
+            Self::DeleteProfile => write!(f, "Remove existing controller"),
+            Self::Exit => write!(f, "Close application"),
         }
     }
 }

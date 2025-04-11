@@ -1,8 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
-use group::{CreateGroupTask, GetGroupTask, GetGroupsTask};
-use node::{CreateNodeTask, GetNodeTask, GetNodesTask};
+use group::{CreateGroupTask, GetGroupTask, GetGroupsTask, UpdateGroupTask};
+use node::{CreateNodeTask, GetNodeTask, GetNodesTask, UpdateNodeTask};
 use plugin::GetPluginsTask;
 use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
@@ -124,7 +124,12 @@ impl ManageService for ManageServiceImpl {
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
-                let capabilities = Capabilities::new(request.memory, request.max, request.child);
+                let capabilities = match request.capabilities {
+                    Some(capabilities) => {
+                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
+                    }
+                    None => return Err(Status::invalid_argument("No capabilities provided")),
+                };
                 let controller = request
                     .ctrl_addr
                     .parse()
@@ -138,6 +143,49 @@ impl ManageService for ManageServiceImpl {
                     controller,
                 )))
             })
+            .await?,
+        ))
+    }
+    async fn update_node(
+        &self,
+        request: Request<manage::node::UpdateReq>,
+    ) -> Result<Response<manage::node::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<manage::node::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let capabilities = request.capabilities.map(|capabilities| {
+                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
+                    });
+                    let controller = {
+                        match request.ctrl_addr {
+                            Some(addr) => {
+                                let url = addr.parse();
+
+                                match url {
+                                    Ok(url) => Some(url),
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid controller address provided",
+                                        ))
+                                    }
+                                }
+                            }
+                            None => None,
+                        }
+                    };
+
+                    Ok(Box::new(UpdateNodeTask(
+                        request.name,
+                        capabilities,
+                        controller,
+                    )))
+                },
+            )
             .await?,
         ))
     }
@@ -188,10 +236,12 @@ impl ManageService for ManageServiceImpl {
                 };
 
                 let scaling = match request.scaling {
-                    Some(scaling) => {
-                        ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
-                    }
-                    None => ScalingPolicy::default(),
+                    Some(scaling) => ScalingPolicy::new(
+                        scaling.enabled,
+                        scaling.start_threshold,
+                        scaling.stop_empty,
+                    ),
+                    None => return Err(Status::invalid_argument("No scaling policy provided")),
                 };
 
                 let resources = match request.resources {
@@ -265,6 +315,100 @@ impl ManageService for ManageServiceImpl {
                     nodes,
                 )))
             })
+            .await?,
+        ))
+    }
+    async fn update_group(
+        &self,
+        request: Request<manage::group::UpdateReq>,
+    ) -> Result<Response<manage::group::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<manage::group::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let nodes = request.nodes.map(|list| list.nodes);
+
+                    let constraints = request.constraints.map(|constraints| {
+                        StartConstraints::new(constraints.min, constraints.max, constraints.prio)
+                    });
+
+                    let scaling = request.scaling.map(|scaling| {
+                        ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
+                    });
+
+                    let resources = request.resources.map(|resources| {
+                        Resources::new(
+                            resources.memory,
+                            resources.swap,
+                            resources.cpu,
+                            resources.io,
+                            resources.disk,
+                            resources.ports,
+                        )
+                    });
+
+                    let spec = match request.spec {
+                        Some(spec) => {
+                            let image = spec.img;
+                            let max_players = spec.max_players;
+                            let settings = spec
+                                .settings
+                                .iter()
+                                .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                                .collect();
+                            let environment = spec
+                                .env
+                                .iter()
+                                .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
+                                .collect();
+                            let disk_retention = if let Some(retention) = spec.retention {
+                                match manage::server::DiskRetention::try_from(retention) {
+                                    Ok(manage::server::DiskRetention::Permanent) => {
+                                        DiskRetention::Permanent
+                                    }
+                                    Ok(manage::server::DiskRetention::Temporary) => {
+                                        DiskRetention::Temporary
+                                    }
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid disk retention provided",
+                                        ))
+                                    }
+                                }
+                            } else {
+                                DiskRetention::Temporary
+                            };
+                            let fallback = if let Some(fallback) = spec.fallback {
+                                FallbackPolicy::new(true, fallback.prio)
+                            } else {
+                                FallbackPolicy::default()
+                            };
+                            Some(Spec::new(
+                                settings,
+                                environment,
+                                disk_retention,
+                                image,
+                                max_players,
+                                fallback,
+                            ))
+                        }
+                        None => None,
+                    };
+
+                    Ok(Box::new(UpdateGroupTask(
+                        request.name,
+                        constraints,
+                        scaling,
+                        resources,
+                        spec,
+                        nodes,
+                    )))
+                },
+            )
             .await?,
         ))
     }

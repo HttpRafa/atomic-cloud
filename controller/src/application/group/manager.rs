@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use common::allocator::NumberAllocator;
-use simplelog::{info, warn};
+use simplelog::{debug, info, warn};
 use stored::StoredGroup;
 use tokio::fs;
 
@@ -13,7 +13,7 @@ use crate::{
         OptVoter, Voter,
     },
     config::Config,
-    resource::{CreateResourceError, DeleteResourceError},
+    resource::{CreateResourceError, DeleteResourceError, UpdateResourceError},
     storage::Storage,
 };
 
@@ -101,6 +101,45 @@ impl GroupManager {
         self.groups.insert(name.to_string(), group);
         info!("Created group {}", name);
         Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_group(
+        &mut self,
+        name: &str,
+        constraints: Option<&StartConstraints>,
+        scaling: Option<&ScalingPolicy>,
+        resources: Option<&Resources>,
+        spec: Option<&Spec>,
+        g_nodes: Option<&[String]>,
+        nodes: &NodeManager,
+    ) -> Result<&Group, UpdateResourceError> {
+        let Some(group) = self.get_group_mut(name) else {
+            return Err(UpdateResourceError::NotFound);
+        };
+
+        if let Some(g_nodes) = g_nodes {
+            if nodes.verify_nodes(g_nodes) {
+                return Err(UpdateResourceError::RequiredNodeNotLoaded);
+            }
+            group.set_nodes(g_nodes.to_vec());
+        }
+        if let Some(constraints) = constraints {
+            group.set_constraints(constraints.clone());
+        }
+        if let Some(scaling) = scaling {
+            group.set_scaling(scaling.clone());
+        }
+        if let Some(resources) = resources {
+            group.set_resources(resources.clone());
+        }
+        if let Some(spec) = spec {
+            group.set_spec(spec.clone());
+        }
+        group.save().await.map_err(UpdateResourceError::Error)?;
+        debug!("Updated group {}", name);
+
+        Ok(group)
     }
 
     pub fn is_node_used(&self, name: &str) -> bool {

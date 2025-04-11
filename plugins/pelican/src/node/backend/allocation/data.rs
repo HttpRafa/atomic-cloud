@@ -43,7 +43,7 @@ impl From<BCAllocation> for Address {
 
 impl From<&BCAllocation> for BAllocation {
     fn from(val: &BCAllocation) -> Self {
-        BAllocation {
+        Self {
             id: val.id,
             ip: val.ip.clone(),
             alias: val.ip_alias.clone(),

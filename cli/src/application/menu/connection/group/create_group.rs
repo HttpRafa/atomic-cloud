@@ -146,6 +146,7 @@ impl CreateGroupMenu {
             MenuUtils::confirm("Should the controller stop servers that are empty for too long?")?;
 
         Ok(Scaling {
+            enabled: true,
             start_threshold,
             stop_empty,
         })
@@ -259,7 +260,7 @@ impl FromStr for KeyValueList {
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         let mut result = Vec::new();
         if string.is_empty() {
-            return Ok(KeyValueList { key_values: result });
+            return Ok(Self { key_values: result });
         }
         for pair in string.split(',') {
             let mut parts = pair.split('=');
@@ -274,7 +275,7 @@ impl FromStr for KeyValueList {
                 value: value.to_string(),
             });
         }
-        Ok(KeyValueList { key_values: result })
+        Ok(Self { key_values: result })
     }
 }
 

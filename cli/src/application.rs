@@ -13,8 +13,8 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub async fn new() -> Result<Cli> {
-        Ok(Cli {
+    pub async fn new() -> Result<Self> {
+        Ok(Self {
             profiles: Profiles::init().await?,
         })
     }

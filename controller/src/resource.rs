@@ -14,6 +14,13 @@ pub enum CreateResourceError {
     Error(anyhow::Error),
 }
 
+pub enum UpdateResourceError {
+    RequiredNodeNotLoaded,
+    RequiredPluginNotLoaded,
+    NotFound,
+    Error(anyhow::Error),
+}
+
 impl From<DeleteResourceError> for Status {
     fn from(val: DeleteResourceError) -> Self {
         match val {
@@ -38,6 +45,21 @@ impl From<CreateResourceError> for Status {
             }
             CreateResourceError::AlreadyExists => Status::already_exists("Resource already exists"),
             CreateResourceError::Error(error) => Status::internal(format!("Error: {error}")),
+        }
+    }
+}
+
+impl From<UpdateResourceError> for Status {
+    fn from(val: UpdateResourceError) -> Self {
+        match val {
+            UpdateResourceError::RequiredNodeNotLoaded => {
+                Status::failed_precondition("Required node is not loaded")
+            }
+            UpdateResourceError::RequiredPluginNotLoaded => {
+                Status::failed_precondition("Required plugin is not loaded")
+            }
+            UpdateResourceError::NotFound => Status::not_found("Resource not found"),
+            UpdateResourceError::Error(error) => Status::internal(format!("Error: {error}")),
         }
     }
 }

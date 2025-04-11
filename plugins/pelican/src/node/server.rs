@@ -117,9 +117,9 @@ impl Server {
         }
 
         if let Some(server) = node.backend.get_server_by_name(&name) {
-            Self::update(node, request, server, name, allocations, egg, &environment)
+            Self::update(node, request, server, name, &allocations, egg, &environment)
         } else {
-            Self::create(node, request, name, allocations, egg, &environment)
+            Self::create(node, request, name, &allocations, egg, &environment)
         }
     }
 
@@ -128,7 +128,7 @@ impl Server {
         request: bridge::Server,
         server: BServer,
         name: TimedName,
-        allocations: Vec<BAllocation>,
+        allocations: &[BAllocation],
         egg: BServerEgg,
         environment: &[(String, String)],
     ) -> Result<Self> {
@@ -157,14 +157,14 @@ impl Server {
         node: &InnerNode,
         request: bridge::Server,
         name: TimedName,
-        allocations: Vec<BAllocation>,
+        allocations: &[BAllocation],
         egg: BServerEgg,
         environment: &[(String, String)],
     ) -> Result<Self> {
         if let Some(server) = node.backend.create_server(
             &name,
             &request,
-            &allocations,
+            allocations,
             environment,
             &egg,
             &BServerFeatureLimits {
@@ -187,7 +187,7 @@ impl Server {
     }
 
     // Currently unused
-    pub fn cleanup(&mut self, node: &InnerNode) -> Result<()> {
+    pub fn cleanup(&mut self, node: &InnerNode) {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
             self.request.allocation.spec.disk_retention,
@@ -196,10 +196,9 @@ impl Server {
             node.backend.delete_server(self.backend.0);
         }
         debug!("Cleaned up server {}", self.name.get_name());
-        Ok(())
     }
 
-    pub fn tick(&mut self, node: &InnerNode, config: &Config) -> Result<&State> {
+    pub fn tick(&mut self, node: &InnerNode, config: &Config) -> &State {
         self.state = match self.state {
             State::Restarting(instant) => 'update: {
                 if &instant.elapsed() > config.restart_timeout() {
@@ -216,9 +215,8 @@ impl Server {
                     if matches!(state, PanelState::Running) {
                         info!("Server {} is now running again.", self.name.get_name(),);
                         break 'update State::Running;
-                    } else {
-                        self.last_update = Instant::now();
                     }
+                    self.last_update = Instant::now();
                 }
                 State::Restarting(instant)
             }
@@ -237,28 +235,25 @@ impl Server {
                     if matches!(state, PanelState::Offline) {
                         info!("Server {} stopped successfully.", self.name.get_name(),);
                         break 'update State::Dead;
-                    } else {
-                        self.last_update = Instant::now();
                     }
+                    self.last_update = Instant::now();
                 }
                 State::Stopping(instant)
             }
             _ => State::Running,
         };
-        Ok(&self.state)
+        &self.state
     }
 
-    pub fn restart(&mut self, node: &InnerNode) -> Result<()> {
+    pub fn restart(&mut self, node: &InnerNode) {
         self.state = State::Restarting(Instant::now());
         node.backend.restart_server(&self.backend.1);
-        Ok(())
     }
 
-    pub fn stop(&mut self, node: &InnerNode, guard: Guard) -> Result<()> {
+    pub fn stop(&mut self, node: &InnerNode, guard: Guard) {
         self.state = State::Stopping(Instant::now());
         self.guard = Some(guard);
         node.backend.stop_server(&self.backend.1);
-        Ok(())
     }
 
     pub fn screen(&self, url: &Url) -> ScreenType {

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use common::network::HostAndPort;
-use getset::Getters;
+use getset::{Getters, Setters};
 use manager::stored::StoredNode;
 use serde::{Deserialize, Serialize};
 use simplelog::info;
@@ -20,7 +20,7 @@ use super::{
 
 pub mod manager;
 
-#[derive(Getters)]
+#[derive(Getters, Setters)]
 pub struct Node {
     /* Plugin */
     #[getset(get = "pub")]
@@ -30,13 +30,13 @@ pub struct Node {
     /* Settings */
     #[getset(get = "pub")]
     name: String,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     capabilities: Capabilities,
     #[getset(get = "pub")]
     status: LifecycleStatus,
 
     /* Controller */
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     controller: Url,
 }
 
@@ -167,9 +167,7 @@ impl Capabilities {
 impl From<SetActiveError> for Status {
     fn from(val: SetActiveError) -> Self {
         match val {
-            SetActiveError::NodeInUseByGroup => {
-                Status::unavailable("Node in use by some group")
-            }
+            SetActiveError::NodeInUseByGroup => Status::unavailable("Node in use by some group"),
             SetActiveError::NodeInUseByServer => Status::unavailable("Node in use by some server"),
             SetActiveError::Error(error) => Status::internal(format!("Error: {error}")),
         }

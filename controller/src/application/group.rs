@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use common::allocator::NumberAllocator;
-use getset::Getters;
+use getset::{Getters, Setters};
 use manager::stored::StoredGroup;
 use serde::{Deserialize, Serialize};
 use simplelog::{debug, info};
@@ -25,7 +25,7 @@ use super::{
 
 pub mod manager;
 
-#[derive(Getters)]
+#[derive(Getters, Setters)]
 pub struct Group {
     /* Settings */
     #[getset(get = "pub")]
@@ -34,17 +34,17 @@ pub struct Group {
     status: LifecycleStatus,
 
     /* Where? */
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     nodes: Vec<String>,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     constraints: StartConstraints,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     scaling: ScalingPolicy,
 
     /* How? */
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     resources: Resources,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     spec: Spec,
 
     /* What do i need to know? */

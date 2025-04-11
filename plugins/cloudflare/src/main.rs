@@ -1,4 +1,5 @@
 #![no_main]
+#![warn(clippy::all, clippy::pedantic)]
 
 use dummy::{node::Node, screen::Screen};
 use generated::{

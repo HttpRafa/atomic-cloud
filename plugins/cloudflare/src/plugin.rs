@@ -29,7 +29,7 @@ impl GuestPlugin for Cloudflare {
 
     fn init(&self) -> Information {
         Information {
-            authors: AUTHORS.iter().map(|author| author.to_string()).collect(),
+            authors: AUTHORS.iter().map(|author| (*author).to_string()).collect(),
             version: VERSION.to_string(),
             features: FEATURES,
             ready: true,

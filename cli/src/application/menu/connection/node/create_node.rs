@@ -7,7 +7,10 @@ use loading::Loading;
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
-    network::{proto::manage::node, EstablishedConnection},
+    network::{
+        proto::manage::node::{self, Capabilities},
+        EstablishedConnection,
+    },
     profile::{Profile, Profiles},
 };
 
@@ -76,9 +79,7 @@ impl CreateNodeMenu {
     fn collect_node(data: &Data) -> Result<node::Item, InquireError> {
         let name = Self::get_node_name(data.nodes.clone())?;
         let plugin = MenuUtils::select("Which plugin should the controller use to communicate with the backend of this node?", "This is essential for the controller to know how to communicate with the backend of this node. For example, is it a Pterodactyl node or a simple Docker host?", data.plugins.clone())?;
-        let child = Self::get_child_node()?;
-        let memory = Self::get_memory_limit()?;
-        let max = Self::get_servers_limit()?;
+        let capabilities = Self::collect_capabilities()?;
         let ctrl_addr = MenuUtils::parsed_value(
             "What is the hostname or address where the server can reach the controller once started?",
             "Example: https://cloud.your-network.net",
@@ -88,11 +89,17 @@ impl CreateNodeMenu {
         Ok(node::Item {
             name,
             plugin,
-            memory,
-            max,
-            child,
             ctrl_addr,
+            capabilities: Some(capabilities),
         })
+    }
+
+    fn collect_capabilities() -> Result<Capabilities, InquireError> {
+        let child = Self::get_child_node()?;
+        let memory = Self::get_memory_limit()?;
+        let max = Self::get_servers_limit()?;
+
+        Ok(Capabilities { memory, max, child })
     }
 
     fn get_node_name(used_names: Vec<String>) -> Result<String, InquireError> {

@@ -24,7 +24,7 @@ impl Backend {
         }
         self.update_build_configuration(
             backend_server.id,
-            BUpdateBuild {
+            &BUpdateBuild {
                 allocation: primary_allocation,
                 memory: server.allocation.resources.memory,
                 swap: server.allocation.resources.swap,
@@ -56,7 +56,7 @@ impl Backend {
         )
     }
 
-    pub fn update_build_configuration(&self, id: u32, update_build: BUpdateBuild) -> bool {
+    pub fn update_build_configuration(&self, id: u32, update_build: &BUpdateBuild) -> bool {
         let value = serde_json::to_vec(&update_build).ok();
         self.send_to_api(
             Method::Patch,
@@ -71,7 +71,6 @@ impl Backend {
     pub fn get_server_state(&self, identifier: &str) -> Option<PanelState> {
         self.get_server_resources(identifier).map(|resources| {
             match resources.current_state.as_str() {
-                "starting" => PanelState::Starting,
                 "running" => PanelState::Running,
                 "stopping" => PanelState::Stopping,
                 "offline" => PanelState::Offline,
@@ -121,7 +120,7 @@ impl Backend {
     }
 
     pub fn delete_server(&self, server: u32) -> bool {
-        self.delete_in_api(&Endpoint::Application, &format!("servers/{}", server))
+        self.delete_in_api(&Endpoint::Application, &format!("servers/{server}"))
     }
 
     pub fn create_server(
@@ -139,7 +138,7 @@ impl Backend {
             user: self.user_id,
             egg: egg.id,
             docker_image: server.allocation.spec.image.clone(),
-            startup: egg.startup.to_owned(),
+            startup: egg.startup.clone(),
             environment: environment.iter().cloned().collect(),
             limits: server.allocation.resources.into(),
             feature_limits: features.clone(),

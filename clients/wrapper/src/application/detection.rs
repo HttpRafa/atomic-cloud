@@ -6,12 +6,12 @@ use uuid::Uuid;
 
 pub struct RegexDetector {
     /* Powerstates Regex */
-    started_regex: Regex,
-    stopping_regex: Option<Regex>,
+    started: Regex,
+    stopping: Option<Regex>,
 
     /* User Regex */
-    user_connected_regex: Option<Regex>,
-    user_disconnected_regex: Option<Regex>,
+    user_connected: Option<Regex>,
+    user_disconnected: Option<Regex>,
 }
 
 pub struct DetectedUser {
@@ -90,33 +90,33 @@ impl RegexDetector {
         )
     }
 
-    pub fn new(
-        started_regex: Regex,
-        stopping_regex: Option<Regex>,
-        user_connected_regex: Option<Regex>,
-        user_disconnected_regex: Option<Regex>,
+    pub const fn new(
+        started: Regex,
+        stopping: Option<Regex>,
+        user_connected: Option<Regex>,
+        user_disconnected: Option<Regex>,
     ) -> Self {
         Self {
-            started_regex,
-            stopping_regex,
-            user_connected_regex,
-            user_disconnected_regex,
+            started,
+            stopping,
+            user_connected,
+            user_disconnected,
         }
     }
 
     pub fn detect(&self, line: &str) -> Detection {
-        if self.started_regex.is_match(line) {
+        if self.started.is_match(line) {
             return Detection::Started;
         }
 
-        if let Some(stopping_regex) = &self.stopping_regex {
-            if stopping_regex.is_match(line) {
+        if let Some(stopping) = &self.stopping {
+            if stopping.is_match(line) {
                 return Detection::Stopping;
             }
         }
 
-        if let Some(user_connected_regex) = &self.user_connected_regex {
-            if let Some(captures) = user_connected_regex.captures(line) {
+        if let Some(user_connected) = &self.user_connected {
+            if let Some(captures) = user_connected.captures(line) {
                 if let (Some(name), Some(uuid)) = (captures.get(1), captures.get(2)) {
                     if let Ok(parsed_uuid) = Uuid::parse_str(uuid.as_str()) {
                         return Detection::UserConnected(DetectedUser {
@@ -128,8 +128,8 @@ impl RegexDetector {
             }
         }
 
-        if let Some(user_disconnected_regex) = &self.user_disconnected_regex {
-            if let Some(captures) = user_disconnected_regex.captures(line) {
+        if let Some(user_disconnected) = &self.user_disconnected {
+            if let Some(captures) = user_disconnected.captures(line) {
                 if let Some(name) = captures.get(1) {
                     return Detection::UserDisconnected(DetectedUser {
                         name: Some(name.as_str().to_string()),

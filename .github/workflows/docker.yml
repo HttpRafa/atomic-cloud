@@ -21,6 +21,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Extract short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Docker Metadata
         id: docker-meta
         uses: docker/metadata-action@v5
@@ -54,7 +58,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           build-args: |
-            CURRENT_COMMIT=${{ github.sha }}
+            CURRENT_COMMIT=${{ steps.vars.outputs.sha_short }}
             CURRENT_BUILD=${{ github.run_number }}
           labels: ${{ steps.docker-meta.outputs.labels }}
           tags: ${{ steps.docker-meta.outputs.tags }}

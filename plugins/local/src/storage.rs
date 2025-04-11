@@ -38,7 +38,7 @@ impl Storage {
         PathBuf::from(CONFIG_DIRECTORY)
     }
     pub fn primary_config_file() -> PathBuf {
-        Storage::configs_directory().join(PRIMARY_CONFIG_FILE)
+        Self::configs_directory().join(PRIMARY_CONFIG_FILE)
     }
 
     /* Data */
@@ -99,7 +99,7 @@ impl Storage {
         host: bool,
         node: &str,
         name: &TimedName,
-        retention: &DiskRetention,
+        retention: DiskRetention,
     ) -> PathBuf {
         match retention {
             DiskRetention::Temporary => {
@@ -113,7 +113,7 @@ impl Storage {
     pub fn create_server_directory(
         node: &str,
         name: &TimedName,
-        retention: &DiskRetention,
+        retention: DiskRetention,
     ) -> Directory {
         Directory {
             reference: Reference::Data,

@@ -35,7 +35,7 @@ impl Transfers {
         Self::new(connection, transfer_command)
     }
 
-    pub fn new(connection: CloudConnectionHandle, command: String) -> Self {
+    pub const fn new(connection: CloudConnectionHandle, command: String) -> Self {
         Self {
             connection,
             stream: None,
@@ -71,7 +71,7 @@ impl Transfers {
     ) {
         if let Some(transfer) = message {
             if let Ok(uuid) = Uuid::from_str(&transfer.id) {
-                if let Some(user) = users.get_user_from_uuid(uuid).await {
+                if let Some(user) = users.get_user_from_uuid(uuid) {
                     info!(
                         "Transferred user {} to {}:{}",
                         user.name, transfer.host, transfer.port

@@ -46,7 +46,7 @@ pub struct Wrapper {
 }
 
 impl Wrapper {
-    pub async fn new(args: Args) -> Wrapper {
+    pub async fn new(args: Args) -> Self {
         let mut args = args.command.into_iter();
         if args.len() == 0 {
             error!("No program specified. Use --help for more information.");
@@ -111,7 +111,7 @@ impl Wrapper {
         if let Some(process) = &mut self.process {
             select! {
                 message = self.transfers.next_message() => self.transfers.handle_message(message, &mut process.stdin, &self.users).await,
-                _ = self.heart.wait_for_beat() => self.heart.beat().await,
+                () = self.heart.wait_for_beat() => self.heart.beat().await,
                 result = process.process.wait() => if process.handle_process_exit(result).await { self.request_stop() },
                 line = process.stdout.next_line() => process.handle_stdout_line(line, &mut self.users).await,
             }

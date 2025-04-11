@@ -79,15 +79,11 @@ impl GuestNode for Node {
     }
 
     fn allocate(&self, server: ServerProposal) -> Result<Vec<Address>, ErrorMessage> {
-        self.0
-            .allocations
-            .borrow_mut()
-            .allocate(&self.0, server)
-            .map_err(|error| error.to_string())
+        Ok(self.0.allocations.borrow_mut().allocate(&self.0, &server))
     }
 
     fn free(&self, addresses: Vec<Address>) {
-        self.0.allocations.borrow_mut().free(addresses)
+        self.0.allocations.borrow_mut().free(addresses);
     }
 
     fn start(&self, server: Server) -> ScreenType {
@@ -95,10 +91,10 @@ impl GuestNode for Node {
     }
 
     fn restart(&self, server: Server) {
-        self.0.servers.borrow_mut().restart(&self.0, server)
+        self.0.servers.borrow_mut().restart(&self.0, &server);
     }
 
     fn stop(&self, server: Server, guard: Guard) {
-        self.0.servers.borrow_mut().stop(&self.0, server, guard)
+        self.0.servers.borrow_mut().stop(&self.0, &server, guard);
     }
 }

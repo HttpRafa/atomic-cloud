@@ -74,13 +74,13 @@ impl GuestPlugin for Local {
             {
                 let mut templates = own.templates.borrow_mut();
                 templates.init()?;
-                templates.run_prepare()?
+                templates.run_prepare()?;
             }
             Ok(())
         }
 
         Information {
-            authors: AUTHORS.iter().map(|author| author.to_string()).collect(),
+            authors: AUTHORS.iter().map(ToString::to_string).collect(),
             version: VERSION.to_string(),
             features: FEATURES,
             ready: if let Err(error) = inner(self) {

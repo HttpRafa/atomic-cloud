@@ -6,6 +6,7 @@ pub struct FixedSizeCache<T> {
 }
 
 impl<T: Clone> FixedSizeCache<T> {
+    #[must_use]
     pub fn new(size: usize) -> Self {
         Self {
             items: VecDeque::with_capacity(size),
@@ -26,10 +27,12 @@ impl<T: Clone> FixedSizeCache<T> {
         }
     }
 
+    #[must_use]
     pub fn clone_items(&self) -> Vec<T> {
         self.items.iter().cloned().collect()
     }
 
+    #[must_use]
     pub fn has_data(&self) -> bool {
         !self.items.is_empty()
     }

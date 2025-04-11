@@ -34,7 +34,7 @@ pub struct BCServerAllocation {
 }
 
 impl BCServerAllocation {
-    pub fn from(allocations: &[BAllocation]) -> BCServerAllocation {
+    pub fn from(allocations: &[BAllocation]) -> Self {
         let mut additional = Vec::with_capacity(allocations.len() - 1);
         for item in allocations.iter().skip(1) {
             additional.push(item.id);

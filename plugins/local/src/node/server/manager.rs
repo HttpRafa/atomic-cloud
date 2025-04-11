@@ -89,13 +89,10 @@ impl ServerManager {
         screen
     }
 
-    pub fn restart(&mut self, node: &InnerNode, server: bridge::Server) {
-        let server = match self.servers.get_mut(&server.name) {
-            Some(server) => server,
-            None => {
-                error!("Server not found while restarting server {}", server.name);
-                return;
-            }
+    pub fn restart(&mut self, node: &InnerNode, server: &bridge::Server) {
+        let Some(server) = self.servers.get_mut(&server.name) else {
+            error!("Server not found while restarting server {}", server.name);
+            return;
         };
 
         if let Err(error) = server.restart(node) {
@@ -107,13 +104,10 @@ impl ServerManager {
         }
     }
 
-    pub fn stop(&mut self, node: &InnerNode, server: bridge::Server, guard: Guard) {
-        let server = match self.servers.get_mut(&server.name) {
-            Some(server) => server,
-            None => {
-                error!("Server not found while stopping server {}", server.name);
-                return;
-            }
+    pub fn stop(&mut self, node: &InnerNode, server: &bridge::Server, guard: Guard) {
+        let Some(server) = self.servers.get_mut(&server.name) else {
+            error!("Server not found while stopping server {}", server.name);
+            return;
         };
 
         if let Err(error) = server.stop(node, guard) {

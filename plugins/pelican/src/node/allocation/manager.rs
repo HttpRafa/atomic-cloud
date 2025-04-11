@@ -1,6 +1,5 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use anyhow::Result;
 use common::name::TimedName;
 
 use crate::{
@@ -23,7 +22,7 @@ impl AllocationManager {
         })
     }
 
-    pub fn allocate(&mut self, node: &InnerNode, server: ServerProposal) -> Result<Vec<Address>> {
+    pub fn allocate(&mut self, node: &InnerNode, server: &ServerProposal) -> Vec<Address> {
         let required = server.resources.ports as usize;
 
         if matches!(server.spec.disk_retention, DiskRetention::Permanent) {
@@ -45,7 +44,7 @@ impl AllocationManager {
                 allocations.1.iter().for_each(|address| {
                     self.allocations.insert(address.port, address.into());
                 });
-                return Ok(allocations.1.into_iter().map(|x| x.into()).collect());
+                return allocations.1.into_iter().map(Into::into).collect();
             }
         }
 
@@ -61,7 +60,7 @@ impl AllocationManager {
                 }
             })
             .collect();
-        Ok(allocations)
+        allocations
     }
 
     pub fn free(&mut self, addresses: Vec<Address>) {

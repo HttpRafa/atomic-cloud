@@ -52,28 +52,28 @@ enum Action {
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Action::SetResource => write!(f, "Set status of a certain Resource"),
-            Action::DeleteResource => write!(f, "Delete Resource"),
+            Self::SetResource => write!(f, "Set status of a certain Resource"),
+            Self::DeleteResource => write!(f, "Delete Resource"),
 
-            Action::CreateNode => write!(f, "Create Node"),
-            Action::GetNode => write!(f, "Get information about a certain Node"),
-            Action::GetNodes => write!(f, "Get all Nodes"),
+            Self::CreateNode => write!(f, "Create Node"),
+            Self::GetNode => write!(f, "Get information about a certain Node"),
+            Self::GetNodes => write!(f, "Get all Nodes"),
 
-            Action::CreateGroup => write!(f, "Create Group"),
-            Action::GetGroup => write!(f, "Get information about a certain Group"),
-            Action::GetGroups => write!(f, "Get all Groups"),
+            Self::CreateGroup => write!(f, "Create Group"),
+            Self::GetGroup => write!(f, "Get information about a certain Group"),
+            Self::GetGroups => write!(f, "Get all Groups"),
 
-            Action::GetServer => write!(f, "Get information about a certain Server"),
-            Action::GetServers => write!(f, "Get all Servers"),
+            Self::GetServer => write!(f, "Get information about a certain Server"),
+            Self::GetServers => write!(f, "Get all Servers"),
 
-            Action::OpenScreen => write!(f, "Open the screen of a server"),
+            Self::OpenScreen => write!(f, "Open the screen of a server"),
 
-            Action::TransferUsers => write!(f, "Transfer a users to a different Server"),
+            Self::TransferUsers => write!(f, "Transfer a users to a different Server"),
 
-            Action::RequestStop => write!(f, "Request stop of Controller"),
-            Action::GetVersions => write!(f, "Get versions"),
+            Self::RequestStop => write!(f, "Request stop of Controller"),
+            Self::GetVersions => write!(f, "Get versions"),
 
-            Action::DisconnectFromController => write!(f, "Disconnect from Controller"),
+            Self::DisconnectFromController => write!(f, "Disconnect from Controller"),
         }
     }
 }

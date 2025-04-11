@@ -65,7 +65,7 @@ impl ScreenMenu {
                             }
                         }
                         Err(error) => {
-                            if let ReadlineError::Interrupted = error {
+                            if matches!(error, ReadlineError::Interrupted) {
                                 break;
                             }
                             FancyError::print_fancy(&error.into(), false);

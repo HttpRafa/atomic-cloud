@@ -65,7 +65,7 @@ impl CloudConnection {
         )
     }
 
-    pub fn new(address: Url, token: String, cert: Option<String>) -> Self {
+    pub const fn new(address: Url, token: String, cert: Option<String>) -> Self {
         Self {
             address,
             token,
@@ -301,8 +301,8 @@ impl CloudConnection {
 impl Display for DiskRetention {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DiskRetention::Temporary => write!(f, "Temporary"),
-            DiskRetention::Permanent => write!(f, "Permanent"),
+            Self::Temporary => write!(f, "Temporary"),
+            Self::Permanent => write!(f, "Permanent"),
         }
     }
 }
@@ -322,9 +322,9 @@ impl Display for server::Short {
 impl Display for target::Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            target::Type::Server => write!(f, "Server"),
-            target::Type::Group => write!(f, "Group"),
-            target::Type::Fallback => write!(f, "Fallback"),
+            Self::Server => write!(f, "Server"),
+            Self::Group => write!(f, "Group"),
+            Self::Fallback => write!(f, "Fallback"),
         }
     }
 }
@@ -352,9 +352,9 @@ impl Display for transfer::Target {
 impl Display for resource::Category {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            resource::Category::Node => write!(f, "Node"),
-            resource::Category::Group => write!(f, "Group"),
-            resource::Category::Server => write!(f, "Server"),
+            Self::Node => write!(f, "Node"),
+            Self::Group => write!(f, "Group"),
+            Self::Server => write!(f, "Server"),
         }
     }
 }

@@ -7,12 +7,12 @@ use crate::{
         node::{Capabilities, Node},
         Controller,
     },
-    network::proto::manage::node::{Item, List},
+    network::proto::manage::node::{self, Item, List},
     task::{BoxedAny, GenericTask, Task},
 };
 
 pub struct CreateNodeTask(pub String, pub String, pub Capabilities, pub Url);
-pub struct UpdateNodeTask(pub String, pub Capabilities, pub Url);
+pub struct UpdateNodeTask(pub String, pub Option<Capabilities>, pub Option<Url>);
 pub struct GetNodeTask(pub String);
 pub struct GetNodesTask();
 
@@ -35,7 +35,7 @@ impl GenericTask for UpdateNodeTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         match controller
             .nodes
-            .update_node(&self.0, &self.1, &self.2)
+            .update_node(&self.0, self.1.as_ref(), self.2.as_ref())
             .await
         {
             Ok(node) => return Task::new_ok(Item::from(node)),
@@ -74,10 +74,18 @@ impl From<&Node> for Item {
         Self {
             name: value.name().clone(),
             plugin: value.plugin().to_string(),
-            memory: *value.capabilities().memory(),
-            max: *value.capabilities().max_servers(),
-            child: value.capabilities().child().clone(),
+            capabilities: Some(value.capabilities().into()),
             ctrl_addr: value.controller().to_string(),
+        }
+    }
+}
+
+impl From<&Capabilities> for node::Capabilities {
+    fn from(value: &Capabilities) -> Self {
+        Self {
+            memory: *value.memory(),
+            max: *value.max_servers(),
+            child: value.child().clone(),
         }
     }
 }

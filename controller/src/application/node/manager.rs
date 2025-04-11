@@ -124,15 +124,19 @@ impl NodeManager {
     pub async fn update_node(
         &mut self,
         name: &str,
-        capabilities: &Capabilities,
-        controller: &Url,
+        capabilities: Option<&Capabilities>,
+        controller: Option<&Url>,
     ) -> Result<&Node, UpdateResourceError> {
         let Some(node) = self.get_node_mut(name) else {
             return Err(UpdateResourceError::NotFound);
         };
 
-        node.set_capabilities(capabilities.clone());
-        node.set_controller(controller.clone());
+        if let Some(capabilities) = capabilities {
+            node.set_capabilities(capabilities.clone());
+        }
+        if let Some(controller) = controller {
+            node.set_controller(controller.clone());
+        }
         node.save().await.map_err(UpdateResourceError::Error)?;
         debug!("Updated node {}", name);
 

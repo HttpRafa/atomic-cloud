@@ -12,7 +12,7 @@ message Group {
     string name = 1;
     repeated string nodes = 2;
     Constraints constraints = 3;
-    optional Scaling scaling = 4;
+    Scaling scaling = 4;
     Server.Resources resources = 5;
     Server.Spec spec = 6;
   }
@@ -22,14 +22,22 @@ message Group {
     int32 prio = 3;
   }
   message Scaling {
-    float startThreshold = 1;
-    bool stopEmpty = 2;
+    bool enabled = 1;
+    float startThreshold = 2;
+    bool stopEmpty = 3;
   }
   message List {
     repeated string groups = 1;
   }
+  message NodeList {
+    repeated string nodes = 1;
+  }
   message UpdateReq {
     string name = 1;
-    Group.Item group = 2;
+    optional NodeList nodes = 2;
+    optional Constraints constraints = 3;
+    optional Scaling scaling = 4;
+    optional Server.Resources resources = 5;
+    optional Server.Spec spec = 6;
   }
 }

@@ -1,5 +1,5 @@
 use loading::Loading;
-use simplelog::info;
+use simplelog::{info, warn};
 
 use crate::application::{
     menu::{MenuResult, MenuUtils},
@@ -62,15 +62,21 @@ impl GetNodeMenu {
         info!("   <blue>🖥  <b>Node Information</>");
         info!("      <green><b>Name</>: {}", node.name);
         info!("      <green><b>Plugin</>: {}", node.plugin);
-        if let Some(memory) = &node.memory {
-            info!("      <green><b>Memory</>: {} MiB", memory);
+        if let Some(capabilities) = &node.capabilities {
+            info!("      <green><b>Constraints</>:");
+            if let Some(memory) = &capabilities.memory {
+                info!("      <green><b>Memory</>: {} MiB", memory);
+            }
+            if let Some(max) = &capabilities.max {
+                info!("      <green><b>Max Servers</>: {} Units", max);
+            }
+            if let Some(child) = &capabilities.child {
+                info!("      <green><b>Child Node</>: {}", child);
+            }
+        } else {
+            warn!("      <yellow><b>Capabilities</>: None");
         }
-        if let Some(max) = &node.max {
-            info!("      <green><b>Max Servers</>: {} Units", max);
-        }
-        if let Some(child) = &node.child {
-            info!("      <green><b>Child Node</>: {}", child);
-        }
+
         info!("      <green><b>Controller Address</>: {}", node.ctrl_addr);
     }
 }

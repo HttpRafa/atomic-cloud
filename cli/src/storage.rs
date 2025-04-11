@@ -32,17 +32,17 @@ impl Storage {
 
     /* Logs */
     pub fn latest_log_file() -> PathBuf {
-        Storage::cli_folder()
+        Self::cli_folder()
             .join(LOGS_DIRECTORY)
             .join(LATEST_LOG_FILE)
     }
 
     /* Profiles */
     pub fn profiles_folder() -> PathBuf {
-        Storage::cli_folder().join(PROFILES_DIRECTORY)
+        Self::cli_folder().join(PROFILES_DIRECTORY)
     }
     pub fn profile_file(name: &str) -> PathBuf {
-        Storage::profiles_folder().join(format!("{name}.toml"))
+        Self::profiles_folder().join(format!("{name}.toml"))
     }
 
     pub async fn for_each_content_toml<T: LoadFromTomlFile>(

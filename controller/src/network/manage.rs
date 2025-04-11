@@ -124,7 +124,12 @@ impl ManageService for ManageServiceImpl {
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
-                let capabilities = Capabilities::new(request.memory, request.max, request.child);
+                let capabilities = match request.capabilities {
+                    Some(capabilities) => {
+                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
+                    }
+                    None => return Err(Status::invalid_argument("No capabilities provided")),
+                };
                 let controller = request
                     .ctrl_addr
                     .parse()
@@ -152,17 +157,33 @@ impl ManageService for ManageServiceImpl {
                 request,
                 |request, _| {
                     let request = request.into_inner();
-                    let name = request.name;
-                    let Some(node) = request.node else {
-                        return Err(Status::invalid_argument("No changes provided"));
+
+                    let capabilities = request.capabilities.map(|capabilities| {
+                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
+                    });
+                    let controller = {
+                        match request.ctrl_addr {
+                            Some(addr) => {
+                                let url = addr.parse();
+
+                                match url {
+                                    Ok(url) => Some(url),
+                                    Err(_) => {
+                                        return Err(Status::invalid_argument(
+                                            "Invalid controller address provided",
+                                        ))
+                                    }
+                                }
+                            }
+                            None => None,
+                        }
                     };
 
-                    let capabilities = Capabilities::new(node.memory, node.max, node.child);
-                    let controller = node.ctrl_addr.parse().map_err(|_| {
-                        Status::invalid_argument("Invalid controller address provided")
-                    })?;
-
-                    Ok(Box::new(UpdateNodeTask(name, capabilities, controller)))
+                    Ok(Box::new(UpdateNodeTask(
+                        request.name,
+                        capabilities,
+                        controller,
+                    )))
                 },
             )
             .await?,
@@ -215,10 +236,12 @@ impl ManageService for ManageServiceImpl {
                 };
 
                 let scaling = match request.scaling {
-                    Some(scaling) => {
-                        ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
-                    }
-                    None => ScalingPolicy::default(),
+                    Some(scaling) => ScalingPolicy::new(
+                        scaling.enabled,
+                        scaling.start_threshold,
+                        scaling.stop_empty,
+                    ),
+                    None => return Err(Status::invalid_argument("No scaling policy provided")),
                 };
 
                 let resources = match request.resources {
@@ -306,20 +329,18 @@ impl ManageService for ManageServiceImpl {
                 request,
                 |request, _| {
                     let request = request.into_inner();
-                    let name = request.name;
-                    let Some(group) = request.group else {
-                        return Err(Status::invalid_argument("No changes provided"));
-                    };
 
-                    let constraints = group.constraints.map(|constraints| {
+                    let nodes = request.nodes.map(|list| list.nodes);
+
+                    let constraints = request.constraints.map(|constraints| {
                         StartConstraints::new(constraints.min, constraints.max, constraints.prio)
                     });
 
-                    let scaling = group.scaling.map(|scaling| {
+                    let scaling = request.scaling.map(|scaling| {
                         ScalingPolicy::new(true, scaling.start_threshold, scaling.stop_empty)
                     });
 
-                    let resources = group.resources.map(|resources| {
+                    let resources = request.resources.map(|resources| {
                         Resources::new(
                             resources.memory,
                             resources.swap,
@@ -330,7 +351,7 @@ impl ManageService for ManageServiceImpl {
                         )
                     });
 
-                    let spec = match group.spec {
+                    let spec = match request.spec {
                         Some(spec) => {
                             let image = spec.img;
                             let max_players = spec.max_players;
@@ -378,13 +399,8 @@ impl ManageService for ManageServiceImpl {
                         None => None,
                     };
 
-                    let nodes = match group.nodes.len() {
-                        0 => None,
-                        _ => Some(group.nodes),
-                    };
-
                     Ok(Box::new(UpdateGroupTask(
-                        name,
+                        request.name,
                         constraints,
                         scaling,
                         resources,

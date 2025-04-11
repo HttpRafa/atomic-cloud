@@ -110,7 +110,7 @@ impl From<&Group> for Item {
         Self {
             name: value.name().clone(),
             nodes: value.nodes().clone(),
-            scaling: value.scaling().to_grpc(),
+            scaling: Some(value.scaling().to_grpc()),
             constraints: Some(value.constraints().into()),
             resources: Some(value.resources().into()),
             spec: Some(value.spec().into()),
@@ -129,14 +129,11 @@ impl From<&StartConstraints> for Constraints {
 }
 
 impl ScalingPolicy {
-    pub fn to_grpc(&self) -> Option<Scaling> {
-        if *self.enabled() {
-            Some(Scaling {
-                start_threshold: *self.start_threshold(),
-                stop_empty: *self.stop_empty_servers(),
-            })
-        } else {
-            None
+    pub fn to_grpc(&self) -> Scaling {
+        Scaling {
+            enabled: *self.enabled(),
+            start_threshold: *self.start_threshold(),
+            stop_empty: *self.stop_empty_servers(),
         }
     }
 }

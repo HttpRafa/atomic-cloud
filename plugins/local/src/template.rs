@@ -45,12 +45,11 @@ pub struct Template {
 
 impl Template {
     pub fn spawn_prepare(&self) -> Result<Process> {
-        let prepare = match match get_os() {
+        let Some(prepare) = (match get_os() {
             Os::Unix => &self.prepare.unix,
             Os::Windows => &self.prepare.windows,
-        } {
-            Some(prepare) => prepare,
-            None => return Err(anyhow!("No prepare script found for current platform. This indicates that the template is not compatible with the current platform.")),
+        }) else {
+            return Err(anyhow!("No prepare script found for current platform. This indicates that the template is not compatible with the current platform."));
         };
 
         let builder = ProcessBuilder::new(&prepare.command);
@@ -65,12 +64,11 @@ impl Template {
         data: Vec<(String, String)>,
         directory: &Directory,
     ) -> Result<(Process, ProcessBuilder)> {
-        let startup = match match get_os() {
+        let Some(startup) = (match get_os() {
             Os::Unix => &self.startup.unix,
             Os::Windows => &self.startup.windows,
-        } {
-            Some(startup) => startup,
-            None => return Err(anyhow!("No startup script found for current platform. This indicates that the template is not compatible with the current platform.")),
+        }) else {
+            return Err(anyhow!("No startup script found for current platform. This indicates that the template is not compatible with the current platform."));
         };
 
         let mut environment = self.environment.clone();
@@ -86,12 +84,12 @@ impl Template {
     pub fn write_shutdown(&self, process: &Process) -> Result<()> {
         match &self.shutdown {
             Some(command) => process
-                .write_all(format!("{}\n", command).as_bytes())
+                .write_all(format!("{command}\n").as_bytes())
                 .map_err(|error| {
                     anyhow!("Failed to send shutdown command to process: {}", error)
                 })?,
             None => process
-                .write_all("^C\n".as_bytes())
+                .write_all(b"^C\n")
                 .map_err(|error| anyhow!("Failed to send Ctl+C command to process: {}", error))?,
         }
 

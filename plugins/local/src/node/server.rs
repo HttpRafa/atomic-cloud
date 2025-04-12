@@ -62,7 +62,7 @@ impl Server {
                 false,
                 &node.name,
                 &name,
-                &request.allocation.spec.disk_retention,
+                request.allocation.spec.disk_retention,
             );
             if !directory.exists() {
                 template.copy_self(&directory)?;
@@ -100,7 +100,7 @@ impl Server {
             &Storage::create_server_directory(
                 &node.name,
                 &name,
-                &request.allocation.spec.disk_retention,
+                request.allocation.spec.disk_retention,
             ),
         )?;
 
@@ -115,7 +115,7 @@ impl Server {
         })
     }
 
-    pub fn cleanup(&mut self, node: &str) -> Result<()> {
+    pub fn cleanup(&self, node: &str) -> Result<()> {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
             self.request.allocation.spec.disk_retention,
@@ -124,7 +124,7 @@ impl Server {
             remove_dir_all(&Storage::create_server_directory(
                 node,
                 &self.name,
-                &DiskRetention::Temporary,
+                DiskRetention::Temporary,
             ))
             .map_err(|error| anyhow!(error))?;
         }
@@ -209,7 +209,7 @@ impl Server {
         Ok(())
     }
 
-    fn kill(&mut self) -> Result<()> {
+    fn kill(&self) -> Result<()> {
         self.process.kill().map_err(|error| anyhow!(error))?;
         Ok(())
     }
@@ -237,9 +237,9 @@ pub enum State {
 impl Display for ExitStatus {
     fn fmt(&self, format: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExitStatus::Code(code) => write!(format, "code {}", code),
-            ExitStatus::Signal(signal) => write!(format, "signal {}", signal),
-            ExitStatus::Unknown => write!(format, "unknown"),
+            Self::Code(code) => write!(format, "code {code}"),
+            Self::Signal(signal) => write!(format, "signal {signal}"),
+            Self::Unknown => write!(format, "unknown"),
         }
     }
 }

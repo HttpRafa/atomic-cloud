@@ -111,10 +111,10 @@ impl GuestNode for Node {
     }
 
     fn restart(&self, server: Server) {
-        self.0.servers.borrow_mut().restart(&self.0, server)
+        self.0.servers.borrow_mut().restart(&self.0, &server);
     }
 
     fn stop(&self, server: Server, guard: Guard) {
-        self.0.servers.borrow_mut().stop(&self.0, server, guard)
+        self.0.servers.borrow_mut().stop(&self.0, &server, guard);
     }
 }

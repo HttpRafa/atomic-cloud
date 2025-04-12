@@ -36,15 +36,13 @@ pub struct Config {
 impl Config {
     pub fn parse() -> Result<Self> {
         let path = Storage::primary_config_file();
-        if path.exists() {
-            Self::from_file(&path)
-        } else {
+        if !path.exists() {
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent)?;
             }
             fs::write(&path, DEFAULT_CONFIG)?;
-            Self::from_file(&path)
         }
+        Self::from_file(&path)
     }
 
     pub fn host(&self) -> &str {

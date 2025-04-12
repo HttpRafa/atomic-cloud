@@ -1,17 +1,13 @@
 package io.atomic.cloud.api.resource.complex;
 
 import io.atomic.cloud.api.resource.simple.SimpleCloudNode;
-import java.util.Optional;
+import io.atomic.cloud.grpc.manage.Node;
 
 public interface CloudNode extends SimpleCloudNode {
 
     String plugin();
 
-    Optional<Integer> memory();
-
-    Optional<Integer> maxServers();
-
-    Optional<String> child();
+    Node.Capabilities capabilities();
 
     String controllerAddress();
 }

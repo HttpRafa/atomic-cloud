@@ -16,6 +16,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Extract short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -65,7 +69,7 @@ jobs:
       - name: Build Projects
         run: cargo build --all --all-features --verbose
         env:
-          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_COMMIT: ${{ steps.vars.outputs.sha_short }}
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Run Tests
@@ -77,5 +81,5 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon
         env:
-          CURRENT_COMMIT: ${{ github.sha }}
+          CURRENT_COMMIT: ${{ steps.vars.outputs.sha_short }}
           CURRENT_BUILD: ${{ github.run_number }}

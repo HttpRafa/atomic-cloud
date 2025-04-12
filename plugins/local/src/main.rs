@@ -1,4 +1,6 @@
 #![no_main]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::ref_option)]
 
 use generated::{
     export,

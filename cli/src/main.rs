@@ -1,7 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 use application::Cli;
-use eyre::Result;
+use color_eyre::eyre::Result;
 
 mod application;
 
@@ -12,7 +12,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    eyre::install()?;
+    color_eyre::install()?;
     let terminal = ratatui::init();
     let result = Cli::new().run(terminal).await;
     ratatui::restore();

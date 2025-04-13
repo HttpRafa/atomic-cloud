@@ -7,29 +7,21 @@ edition = "2021"
 # Common
 common = { path = "../common" }
 
-# Logging
-simplelog = { version = "0.12.2", features = ["paris"] }
-loading = "0.4.0"
+# Terminal
+ratatui = "0.29.0"
 
 # File management
 dirs = "6.0.0"
 
-# Input parsing
-inquire = { version = "0.7.5", features = ["editor"] }
-rustyline = "15.0.0"
-
 # Error handling
-anyhow = "1.0.97"
-
-# Command line arguments
-clap = { version = "4.5.32", features = ["derive"] }
+color-eyre = "0.6.3"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.20"
 
 # Async runtime
-tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 futures = "0.3.31"
 
 # Network

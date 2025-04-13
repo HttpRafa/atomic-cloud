@@ -1,34 +1,21 @@
-use anyhow::Result;
-use common::error::FancyError;
-use menu::{start::StartMenu, MenuResult};
-use profile::Profiles;
-use simplelog::info;
-
-mod menu;
-mod network;
-mod profile;
+use color_eyre::eyre::Result;
+use ratatui::{DefaultTerminal, Frame};
 
 pub struct Cli {
-    profiles: Profiles,
+    running: bool,
 }
 
 impl Cli {
-    pub async fn new() -> Result<Self> {
-        Ok(Self {
-            profiles: Profiles::init().await?,
-        })
+    pub fn new() -> Self {
+        Self { running: true }
     }
 
-    pub async fn start(&mut self) -> Result<()> {
-        loop {
-            match StartMenu::show(&mut self.profiles).await {
-                MenuResult::Exit => break,
-                MenuResult::Failed(error) => FancyError::print_fancy(&error, false),
-                _ => {}
-            }
+    pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+        while self.running {
+            terminal.draw(|frame| self.render(frame))?;
         }
-        info!("<blue>ℹ</> Goodbye!");
-
         Ok(())
     }
+
+    fn render(&mut self, _frame: &mut Frame) {}
 }

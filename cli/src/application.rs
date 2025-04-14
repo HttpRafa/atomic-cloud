@@ -7,6 +7,7 @@ use tokio::{select, time::interval};
 use tokio_stream::StreamExt;
 use window::{start::StartWindow, StackAction, WindowStack};
 
+mod util;
 mod window;
 
 pub const TICK_RATE: u64 = 4;
@@ -33,7 +34,9 @@ impl Cli {
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         // Push the home window to the stack
-        self.stack.push(&self.shared, Box::new(StartWindow));
+        self.stack
+            .push(&self.shared, Box::new(StartWindow::new()))
+            .await?;
 
         // Events
         let mut events = EventStream::new();
@@ -57,12 +60,12 @@ impl Cli {
         if let Some(window) = self.stack.current() {
             match window.tick(&self.shared).await? {
                 StackAction::Push(window) => {
-                    self.stack.push(&self.shared, window);
+                    self.stack.push(&self.shared, window).await?;
                 }
                 StackAction::Pop => {
                     self.stack.pop();
                 }
-                _ => {}
+                StackAction::Nothing => {}
             }
         }
         Ok(())
@@ -72,12 +75,12 @@ impl Cli {
         if let Some(window) = self.stack.current() {
             match window.handle_event(event).await? {
                 StackAction::Push(window) => {
-                    self.stack.push(&self.shared, window);
+                    self.stack.push(&self.shared, window).await?;
                 }
                 StackAction::Pop => {
                     self.stack.pop();
                 }
-                _ => {}
+                StackAction::Nothing => {}
             }
         }
         Ok(())

@@ -13,7 +13,7 @@ use tonic::async_trait;
 use crate::{
     application::{
         util::{list::ActionList, TEXT_FG_COLOR},
-        Shared,
+        State,
     },
     VERSION,
 };
@@ -32,7 +32,7 @@ enum Action {
 
 #[async_trait]
 impl Window for StartWindow {
-    async fn init(&mut self, _shared: &Shared) -> Result<()> {
+    async fn init(&mut self, _state: &mut State) -> Result<()> {
         self.list = Some(ActionList::new(vec![
             Action::Load,
             Action::Create,
@@ -41,7 +41,7 @@ impl Window for StartWindow {
         Ok(())
     }
 
-    async fn tick(&mut self, _shared: &Shared) -> Result<StackAction> {
+    async fn tick(&mut self, _state: &mut State) -> Result<StackAction> {
         Ok(StackAction::Nothing)
     }
 

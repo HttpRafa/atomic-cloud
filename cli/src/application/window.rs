@@ -3,7 +3,7 @@ use crossterm::event::Event;
 use ratatui::Frame;
 use tonic::async_trait;
 
-use super::Shared;
+use super::State;
 
 pub mod start;
 
@@ -18,8 +18,8 @@ impl WindowStack {
         self.0.last_mut()
     }
 
-    pub async fn push(&mut self, shared: &Shared, mut window: Box<dyn Window>) -> Result<()> {
-        window.init(shared).await?;
+    pub async fn push(&mut self, state: &mut State, mut window: Box<dyn Window>) -> Result<()> {
+        window.init(state).await?;
         self.0.push(window);
         Ok(())
     }
@@ -37,8 +37,8 @@ pub enum StackAction {
 
 #[async_trait]
 pub trait Window {
-    async fn init(&mut self, shared: &Shared) -> Result<()>;
-    async fn tick(&mut self, shared: &Shared) -> Result<StackAction>;
+    async fn init(&mut self, state: &mut State) -> Result<()>;
+    async fn tick(&mut self, state: &mut State) -> Result<StackAction>;
     async fn handle_event(&mut self, event: Event) -> Result<StackAction>;
 
     fn render(&mut self, frame: &mut Frame);

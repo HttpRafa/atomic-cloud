@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{time::Duration};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, EventStream};
@@ -9,25 +9,26 @@ use window::{start::StartWindow, StackAction, WindowStack};
 
 mod util;
 mod window;
+mod profile;
 
 pub const TICK_RATE: u64 = 4;
 pub const FRAME_RATE: u64 = 20;
 
 pub struct Cli {
     running: bool,
-    shared: Arc<Shared>,
+    state: State,
 
     stack: WindowStack,
 }
 
-pub struct Shared {}
+pub struct State {}
 
 impl Cli {
     pub fn new() -> Self {
-        let shared = Shared {};
+        let state = State {};
         Self {
             running: true,
-            shared: Arc::new(shared),
+            state,
             stack: WindowStack::new(),
         }
     }
@@ -35,7 +36,7 @@ impl Cli {
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         // Push the home window to the stack
         self.stack
-            .push(&self.shared, Box::new(StartWindow::new()))
+            .push(&mut self.state, Box::new(StartWindow::new()))
             .await?;
 
         // Events
@@ -58,9 +59,9 @@ impl Cli {
 
     async fn tick(&mut self) -> Result<()> {
         if let Some(window) = self.stack.current() {
-            match window.tick(&self.shared).await? {
+            match window.tick(&mut self.state).await? {
                 StackAction::Push(window) => {
-                    self.stack.push(&self.shared, window).await?;
+                    self.stack.push(&mut self.state, window).await?;
                 }
                 StackAction::Pop => {
                     self.stack.pop();
@@ -75,7 +76,7 @@ impl Cli {
         if let Some(window) = self.stack.current() {
             match window.handle_event(event).await? {
                 StackAction::Push(window) => {
-                    self.stack.push(&self.shared, window).await?;
+                    self.stack.push(&mut self.state, window).await?;
                 }
                 StackAction::Pop => {
                     self.stack.pop();

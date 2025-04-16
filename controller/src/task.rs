@@ -20,6 +20,7 @@ pub struct Task {
 }
 
 impl Task {
+    #[allow(clippy::result_large_err)]
     pub fn get_auth<T>(auth: AuthType, request: &Request<T>) -> Result<Authorization, Status> {
         match request.extensions().get::<Authorization>() {
             Some(data) if data.is_type(auth) => Ok(data.clone()),

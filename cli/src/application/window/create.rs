@@ -32,12 +32,12 @@ impl Window for CreateWindow {
 
     async fn handle_event(&mut self, stack: &mut StackBatcher, event: Event) -> Result<()> {
         if let Event::Key(event) = event {
-            if event.code == KeyCode::Esc {
-                stack.pop();
-            } else if event.code == KeyCode::Up {
-            } else if event.code == KeyCode::Down {
-            } else {
-                self.name.input(Input::from(event));
+            match event.code {
+                KeyCode::Esc => stack.pop(),
+                KeyCode::Up | KeyCode::Down => {}
+                _ => {
+                    self.name.input(Input::from(event));
+                }
             }
         }
         Ok(())

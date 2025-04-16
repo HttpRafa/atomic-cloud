@@ -1,7 +1,4 @@
-use ratatui::style::{
-    palette::tailwind::SLATE,
-    Color, Modifier, Style,
-};
+use ratatui::style::{palette::tailwind::SLATE, Color, Modifier, Style};
 
 pub mod list;
 

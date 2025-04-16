@@ -1,5 +1,5 @@
 use ratatui::style::{
-    palette::{material::BLUE, tailwind::SLATE},
+    palette::tailwind::SLATE,
     Color, Modifier, Style,
 };
 

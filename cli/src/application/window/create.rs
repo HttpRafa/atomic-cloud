@@ -1,12 +1,15 @@
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode};
 use ratatui::{
-    buffer::Buffer, layout::{Constraint, Layout, Rect}, widgets::{Paragraph, Widget}, Frame
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
+    widgets::{Paragraph, Widget},
+    Frame,
 };
 use tonic::async_trait;
-use tui_textarea::{Input, Key, TextArea};
+use tui_textarea::{Input, TextArea};
 
-use crate::{application::State, main};
+use crate::application::State;
 
 use super::{StackBatcher, Window, WindowUtils};
 
@@ -30,11 +33,9 @@ impl Window for CreateWindow {
     async fn handle_event(&mut self, stack: &mut StackBatcher, event: Event) -> Result<()> {
         if let Event::Key(event) = event {
             if event.code == KeyCode::Esc {
-                stack.pop();   
+                stack.pop();
             } else if event.code == KeyCode::Up {
-            
             } else if event.code == KeyCode::Down {
-            
             } else {
                 self.name.input(Input::from(event));
             }

@@ -2,7 +2,11 @@ use color_eyre::eyre::Result;
 use crossterm::event::Event;
 use futures::FutureExt;
 use ratatui::{
-    buffer::Buffer, layout::{Constraint, Layout, Rect}, style::Stylize, text::Line, widgets::{Paragraph, Widget}, Frame
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
+    style::Stylize,
+    widgets::{Paragraph, Widget},
+    Frame,
 };
 use tonic::async_trait;
 
@@ -106,18 +110,15 @@ pub struct WindowUtils;
 
 impl WindowUtils {
     pub fn render_header(title: &str, area: Rect, buffer: &mut Buffer) {
-        let [version_area, title_area] = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(1),
-        ])
-        .areas(area);
+        let [version_area, title_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).areas(area);
         Paragraph::new(format!("{} - {}", "Atomic Cloud CLI", VERSION))
             .blue()
             .bold()
             .centered()
             .render(version_area, buffer);
         Paragraph::new(title)
-        .light_blue()
+            .light_blue()
             .bold()
             .centered()
             .render(title_area, buffer);

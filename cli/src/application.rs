@@ -1,15 +1,16 @@
-use std::{time::Duration};
+use std::time::Duration;
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, EventStream};
+use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
 use tokio::{select, time::interval};
 use tokio_stream::StreamExt;
-use window::{start::StartWindow, StackAction, WindowStack};
+use window::{start::StartWindow, WindowStack};
 
+mod profile;
 mod util;
 mod window;
-mod profile;
 
 pub const TICK_RATE: u64 = 4;
 pub const FRAME_RATE: u64 = 20;
@@ -21,22 +22,25 @@ pub struct Cli {
     stack: WindowStack,
 }
 
-pub struct State {}
+pub struct State {
+    profiles: Profiles,
+}
 
 impl Cli {
-    pub fn new() -> Self {
-        let state = State {};
-        Self {
+    pub async fn new() -> Result<Self> {
+        Ok(Self {
             running: true,
-            state,
+            state: State {
+                profiles: Profiles::load().await?,
+            },
             stack: WindowStack::new(),
-        }
+        })
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         // Push the home window to the stack
         self.stack
-            .push(&mut self.state, Box::new(StartWindow::new()))
+            .push(&mut self.state, Box::new(StartWindow::default()))
             .await?;
 
         // Events
@@ -58,32 +62,12 @@ impl Cli {
     }
 
     async fn tick(&mut self) -> Result<()> {
-        if let Some(window) = self.stack.current() {
-            match window.tick(&mut self.state).await? {
-                StackAction::Push(window) => {
-                    self.stack.push(&mut self.state, window).await?;
-                }
-                StackAction::Pop => {
-                    self.stack.pop();
-                }
-                StackAction::Nothing => {}
-            }
-        }
+        self.stack.tick(&mut self.state).await?;
         Ok(())
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<()> {
-        if let Some(window) = self.stack.current() {
-            match window.handle_event(event).await? {
-                StackAction::Push(window) => {
-                    self.stack.push(&mut self.state, window).await?;
-                }
-                StackAction::Pop => {
-                    self.stack.pop();
-                }
-                StackAction::Nothing => {}
-            }
-        }
+        self.stack.handle_event(&mut self.state, event).await?;
         Ok(())
     }
 

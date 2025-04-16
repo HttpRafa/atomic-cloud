@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![feature(let_chains)]
 
 use application::Cli;
 use color_eyre::eyre::Result;
@@ -15,7 +16,7 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 async fn main() -> Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
-    let result = Cli::new().run(terminal).await;
+    let result = Cli::new().await?.run(terminal).await;
     ratatui::restore();
     result
 }

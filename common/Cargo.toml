@@ -9,10 +9,10 @@ simplelog = { version = "0.12.2", features = ["paris"] }
 colored = "3.0.0"
 
 # Error handling
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 
 # Command line arguments
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.36", features = ["derive"] }
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }

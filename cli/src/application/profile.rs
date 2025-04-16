@@ -53,7 +53,9 @@ impl Profile {
             url: self.url.clone(),
             certificate: self.certificate.clone(),
         };
-        profile.save(&Storage::profile_file(&self.id)?, true).await?;
+        profile
+            .save(&Storage::profile_file(&self.id)?, true)
+            .await?;
         Ok(())
     }
 

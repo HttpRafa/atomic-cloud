@@ -3,23 +3,20 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::Stylize,
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
 
-use crate::{
-    application::{
-        util::{list::ActionList, TEXT_FG_COLOR},
-        State,
-    },
-    VERSION,
+use crate::application::{
+    util::{list::ActionList, TEXT_FG_COLOR},
+    State,
 };
 
-use super::{StackAction, Window};
+use super::{create::CreateWindow, StackBatcher, Window, WindowUtils};
 
+#[derive(Default)]
 pub struct StartWindow {
     list: Option<ActionList<Action>>,
 }
@@ -32,7 +29,10 @@ enum Action {
 
 #[async_trait]
 impl Window for StartWindow {
-    async fn init(&mut self, _state: &mut State) -> Result<()> {
+    async fn init(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()> {
+        if state.profiles.is_empty() {
+            stack.push(Box::new(CreateWindow::default()));
+        }
         self.list = Some(ActionList::new(vec![
             Action::Load,
             Action::Create,
@@ -41,27 +41,34 @@ impl Window for StartWindow {
         Ok(())
     }
 
-    async fn tick(&mut self, _state: &mut State) -> Result<StackAction> {
-        Ok(StackAction::Nothing)
+    async fn tick(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        Ok(())
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<StackAction> {
+    async fn handle_event(&mut self, stack: &mut StackBatcher, event: Event) -> Result<()> {
         let Some(list) = self.list.as_mut() else {
-            return Ok(StackAction::Nothing);
+            return Ok(());
         };
 
         if let Event::Key(event) = event {
             if event.kind != KeyEventKind::Press {
-                return Ok(StackAction::Nothing);
+                return Ok(());
             }
             match event.code {
-                KeyCode::Esc => return Ok(StackAction::Pop),
+                KeyCode::Esc => stack.pop(),
+                KeyCode::Enter => {
+                    if let Some(action) = list.selected() {
+                        if matches!(action, Action::Create) {
+                            stack.push(Box::new(CreateWindow::default()));
+                        }
+                    }
+                }
                 KeyCode::Down => list.next(),
                 KeyCode::Up => list.previous(),
                 _ => {}
             }
         }
-        Ok(StackAction::Nothing)
+        Ok(())
     }
 
     fn render(&mut self, frame: &mut Frame) {
@@ -78,7 +85,7 @@ impl Widget for &mut StartWindow {
         ])
         .areas(area);
 
-        StartWindow::render_header(header_area, buffer);
+        WindowUtils::render_header("Start", header_area, buffer);
         StartWindow::render_footer(footer_area, buffer);
 
         if let Some(list) = self.list.as_mut() {
@@ -87,25 +94,7 @@ impl Widget for &mut StartWindow {
     }
 }
 
-impl Default for StartWindow {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl StartWindow {
-    pub fn new() -> Self {
-        Self { list: None }
-    }
-
-    fn render_header(area: Rect, buffer: &mut Buffer) {
-        Paragraph::new(format!("{} - {}", "Atomic Cloud CLI", VERSION))
-            .blue()
-            .bold()
-            .centered()
-            .render(area, buffer);
-    }
-
     fn render_footer(area: Rect, buffer: &mut Buffer) {
         Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to exit.")
             .centered()

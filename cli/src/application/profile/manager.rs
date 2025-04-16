@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use color_eyre::eyre::{eyre, Result};
 use tokio::fs;
 
-use crate::{application::profile::{stored::StoredProfile, Profile}, storage::Storage};
+use crate::{
+    application::profile::{stored::StoredProfile, Profile},
+    storage::Storage,
+};
 
 pub struct Profiles {
     pub profiles: HashMap<String, Profile>,
@@ -18,10 +21,8 @@ impl Profiles {
             fs::create_dir_all(&directory).await?;
         }
 
-        for (_, _, name, value) in Storage::for_each_content_toml::<StoredProfile>(
-            &directory
-        )
-        .await?
+        for (_, _, name, value) in
+            Storage::for_each_content_toml::<StoredProfile>(&directory).await?
         {
             profiles.insert(name.clone(), Profile::from(&name, &value));
         }
@@ -46,5 +47,9 @@ impl Profiles {
             profile.remove_file().await?;
         }
         Ok(())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.profiles.is_empty()
     }
 }

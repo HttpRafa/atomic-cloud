@@ -12,7 +12,8 @@ pub struct Storage;
 
 impl Storage {
     fn directories() -> Result<ProjectDirs> {
-        ProjectDirs::from("io", "atomic-cloud", "atomic-cli").ok_or(eyre!("Failed to get data directory"))
+        ProjectDirs::from("io", "atomic-cloud", "atomic-cli")
+            .ok_or(eyre!("Failed to get data directory"))
     }
 
     /* Profiles */
@@ -25,7 +26,7 @@ impl Storage {
     }
 
     pub async fn for_each_content_toml<T: LoadFromTomlFile>(
-        path: &Path
+        path: &Path,
     ) -> Result<Vec<(PathBuf, String, String, T)>> {
         let mut result = Vec::new();
         let mut directory = fs::read_dir(path).await?;
@@ -35,15 +36,14 @@ impl Storage {
             }
             let value = T::from_file(&entry.path()).await?;
             let path = entry.path();
-                    match (path.file_name(), path.file_stem()) {
-                        (Some(name), Some(stem)) => result.push((
-                            path.clone(),
-                            name.to_string_lossy().to_string(),
-                            stem.to_string_lossy().to_string(),
-                            value,
-                        )),
-                        _ => {}
-                    }
+            if let (Some(name), Some(stem)) = (path.file_name(), path.file_stem()) {
+                result.push((
+                    path.clone(),
+                    name.to_string_lossy().to_string(),
+                    stem.to_string_lossy().to_string(),
+                    value,
+                ));
+            }
         }
         Ok(result)
     }

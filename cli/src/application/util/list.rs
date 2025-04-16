@@ -29,6 +29,10 @@ impl<T> ActionList<T> {
     pub fn previous(&mut self) {
         self.state.select_previous();
     }
+
+    pub fn selected(&self) -> Option<&T> {
+        self.items.get(self.state.selected()?)
+    }
 }
 
 impl<T> ActionList<T>
@@ -37,9 +41,7 @@ where
 {
     pub fn render(&mut self, area: Rect, buffer: &mut Buffer) {
         let block = Block::new()
-            .title(Line::raw("What should we do?").centered())
-            .borders(Borders::TOP)
-            .border_set(symbols::border::EMPTY)
+            .borders(Borders::TOP | Borders::BOTTOM)
             .border_style(HEADER_STYLE)
             .bg(NORMAL_ROW_BG);
 

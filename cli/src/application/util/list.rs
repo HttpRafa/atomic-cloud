@@ -14,10 +14,10 @@ pub struct ActionList<T> {
 
 impl<T> ActionList<T> {
     pub fn new(items: Vec<T>) -> Self {
-        Self {
-            items,
-            state: ListState::default(),
-        }
+        let mut state = ListState::default();
+        state.select(Some(0));
+
+        Self { items, state }
     }
 
     pub fn next(&mut self) {

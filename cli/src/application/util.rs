@@ -1,5 +1,6 @@
 use ratatui::style::{palette::tailwind::SLATE, Color, Modifier, Style};
 
+pub mod input;
 pub mod list;
 
 pub const HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(SLATE.c900);

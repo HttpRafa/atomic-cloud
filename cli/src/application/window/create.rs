@@ -13,7 +13,7 @@ use url::Url;
 use crate::application::{
     profile::Profile,
     util::{
-        input::SimpleTextArea,
+        area::SimpleTextArea,
         status::{Status, StatusDisplay},
         HEADER_STYLE, NORMAL_ROW_BG,
     },

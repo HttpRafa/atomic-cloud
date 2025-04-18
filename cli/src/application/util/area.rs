@@ -115,23 +115,23 @@ impl<'a, D> SimpleTextArea<'a, D> {
     }
 
     fn apply_style(&mut self, is_valid: bool, title: String) {
-        let (foreground, border) = if is_valid {
+        let color = if is_valid {
             if self.selected {
-                (OK_SELECTED_COLOR, OK_SELECTED_COLOR)
+                OK_SELECTED_COLOR
             } else {
-                (OK_COLOR, OK_COLOR)
+                OK_COLOR
             }
         } else if self.selected {
-            (ERROR_SELECTED_COLOR, ERROR_SELECTED_COLOR)
+            ERROR_SELECTED_COLOR
         } else {
-            (ERROR_COLOR, ERROR_COLOR)
+            ERROR_COLOR
         };
 
-        self.inner.set_style(Style::default().fg(foreground));
+        self.inner.set_style(Style::default().fg(color));
         self.inner.set_block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(border)
+                .border_style(color)
                 .title(title),
         );
         self.valid = is_valid;

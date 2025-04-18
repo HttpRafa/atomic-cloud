@@ -3,9 +3,10 @@ use ratatui::style::{
     Color, Modifier, Style,
 };
 
-pub mod input;
+pub mod area;
 pub mod list;
 pub mod status;
+pub mod button;
 
 pub const HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(SLATE.c900);
 pub const NORMAL_ROW_BG: Color = SLATE.c950;

@@ -5,7 +5,7 @@ use crossterm::event::{Event, EventStream};
 use network::known_host::manager::KnownHosts;
 use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
-use tokio::{select, spawn, time::interval};
+use tokio::{select, time::interval};
 use tokio_stream::StreamExt;
 use window::{start::StartWindow, tls::TrustTlsWindow, WindowStack};
 
@@ -25,8 +25,6 @@ pub struct Cli {
 }
 
 pub struct State {
-    ticks: u64,
-
     profiles: Profiles,
     known_hosts: Arc<KnownHosts>,
 }
@@ -36,8 +34,6 @@ impl Cli {
         Ok(Self {
             running: true,
             state: State {
-                ticks: 0,
-
                 profiles: Profiles::load().await?,
                 known_hosts: Arc::new(KnownHosts::load().await?),
             },
@@ -74,14 +70,6 @@ impl Cli {
             self.stack
                 .push(&mut self.state, Box::new(TrustTlsWindow::new(request)))
                 .await?;
-        }
-
-        self.state.ticks += 1;
-        if self.state.ticks == 5 * TICK_RATE {
-            let known = self.state.known_hosts.clone();
-            spawn(async move {
-                known.is_trusted("test", "test123".as_bytes()).await.expect("Failed to check known hosts");
-            });
         }
 
         self.stack.tick(&mut self.state).await?;

@@ -19,7 +19,14 @@ pub struct KnownHosts {
 }
 
 #[derive(Debug)]
-pub struct TrustRequest(pub Option<Sender<bool>>, pub KnownHost);
+pub struct TrustRequest(pub Option<Sender<TrustResult>>, pub KnownHost);
+
+#[derive(Debug)]
+pub enum TrustResult {
+    Trusted,
+    HostDuplicate,
+    Declined,
+}
 
 impl KnownHosts {
     pub async fn load() -> Result<Self> {
@@ -34,15 +41,14 @@ impl KnownHosts {
         })
     }
 
-    pub async fn is_trusted(&self, host: &str, sha256: &[u8]) -> Result<bool> {
-        if self
-            .hosts
-            .read()
-            .await
-            .iter()
-            .any(|known| known.sha256 == sha256 && known.host == host)
-        {
-            return Ok(true);
+    pub async fn is_trusted(&self, host: &str, sha256: &[u8]) -> Result<TrustResult> {
+        for known in self.hosts.read().await.iter() {
+            if known.host == host {
+                if known.sha256 == sha256 {
+                    return Ok(TrustResult::Trusted);
+                }
+                return Ok(TrustResult::HostDuplicate);
+            }
         }
 
         let (sender, receiver) = channel();
@@ -53,9 +59,13 @@ impl KnownHosts {
         Ok(receiver.await?)
     }
 
-    pub async fn trust(&self, request: TrustRequest) -> Result<()> {
+    pub async fn trust(&self, request: &mut TrustRequest) -> Result<()> {
         let mut hosts = self.hosts.write().await;
 
+        request
+            .0
+            .take()
+            .map(|sender| sender.send(TrustResult::Trusted));
         hosts.push(request.1.clone());
         StoredKnownHosts {
             hosts: hosts.clone(),
@@ -72,7 +82,9 @@ impl KnownHosts {
 
 impl Drop for TrustRequest {
     fn drop(&mut self) {
-        self.0.take().map(|sender| sender.send(false));
+        self.0
+            .take()
+            .map(|sender| sender.send(TrustResult::Declined));
     }
 }
 

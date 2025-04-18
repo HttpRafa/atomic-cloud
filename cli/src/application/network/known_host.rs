@@ -1,3 +1,6 @@
+use std::fmt::{Display, Formatter};
+
+use ::base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 
 pub mod manager;
@@ -12,6 +15,12 @@ pub struct KnownHost {
 impl KnownHost {
     pub fn new(host: String, sha256: Vec<u8>) -> Self {
         Self { host, sha256 }
+    }
+}
+
+impl Display for KnownHost {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", general_purpose::STANDARD.encode(&self.sha256))
     }
 }
 

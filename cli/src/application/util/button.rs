@@ -1,6 +1,9 @@
-use ratatui::{buffer::{self, Buffer}, layout::Rect, style::{Color, Style}, widgets::{Block, Borders, Paragraph, Widget}};
-
-use super::{ERROR_COLOR, ERROR_SELECTED_COLOR};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::{Color, Style},
+    widgets::{Block, Borders, Paragraph, Widget},
+};
 
 pub struct SimpleButton<'a> {
     title: &'a str,
@@ -40,6 +43,13 @@ impl<'a> SimpleButton<'a> {
         };
 
         Paragraph::new(self.text)
-            .block(Block::default().style(Style::default().fg(color)).borders(Borders::ALL).border_style(color).title(self.title)).render(area, buffer);
+            .block(
+                Block::default()
+                    .style(Style::default().fg(color))
+                    .borders(Borders::ALL)
+                    .border_style(color)
+                    .title(self.title),
+            )
+            .render(area, buffer);
     }
 }

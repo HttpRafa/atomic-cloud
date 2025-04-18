@@ -4,9 +4,9 @@ use ratatui::style::{
 };
 
 pub mod area;
+pub mod button;
 pub mod list;
 pub mod status;
-pub mod button;
 
 pub const HEADER_STYLE: Style = Style::new().fg(SLATE.c100).bg(SLATE.c900);
 pub const NORMAL_ROW_BG: Color = SLATE.c950;

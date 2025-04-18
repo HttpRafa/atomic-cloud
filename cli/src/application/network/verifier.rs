@@ -10,7 +10,7 @@ use rustls::{
 use sha2::{Digest, Sha256};
 use tonic::transport::CertificateDer;
 
-use super::known_host::manager::KnownHosts;
+use super::known_host::manager::{KnownHosts, TrustResult};
 
 #[derive(Debug)]
 pub struct FirstUseVerifier(CryptoProvider, Arc<KnownHosts>);
@@ -34,12 +34,16 @@ impl ServerCertVerifier for FirstUseVerifier {
         hasher.update(end_entity);
         let fingerprint = hasher.finalize().to_vec();
 
-        if block_on(self.1.is_trusted(&server_name.to_str(), &fingerprint))
+        match block_on(self.1.is_trusted(&server_name.to_str(), &fingerprint))
             .map_err(|error| Error::General(format!("Failed to check known hosts: {error}")))?
         {
-            Ok(ServerCertVerified::assertion())
-        } else {
-            Err(Error::General("Server certificate not trusted".to_string()))
+            TrustResult::Trusted => Ok(ServerCertVerified::assertion()),
+            TrustResult::HostDuplicate => Err(Error::General(
+                "Cannot trust 2 certs for the same host".to_string(),
+            )),
+            TrustResult::Declined => {
+                Err(Error::General("Server certificate not trusted".to_string()))
+            }
         }
     }
 

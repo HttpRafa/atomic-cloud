@@ -50,7 +50,7 @@ impl WindowStack {
     pub async fn handle_event(&mut self, state: &mut State, event: Event) -> Result<()> {
         if let Some(window) = self.current() {
             let mut batcher = StackBatcher::default();
-            window.handle_event(&mut batcher, event).await?;
+            window.handle_event(&mut batcher, state, event).await?;
             self.apply(state, batcher).await?;
         }
         Ok(())
@@ -101,7 +101,12 @@ pub enum StackAction {
 pub trait Window {
     async fn init(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()>;
     async fn tick(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()>;
-    async fn handle_event(&mut self, stack: &mut StackBatcher, event: Event) -> Result<()>;
+    async fn handle_event(
+        &mut self,
+        stack: &mut StackBatcher,
+        state: &mut State,
+        event: Event,
+    ) -> Result<()>;
 
     fn render(&mut self, frame: &mut Frame);
 }

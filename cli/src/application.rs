@@ -12,7 +12,7 @@ mod profile;
 mod util;
 mod window;
 
-pub const TICK_RATE: u64 = 4;
+pub const TICK_RATE: u64 = 5;
 pub const FRAME_RATE: u64 = 20;
 
 pub struct Cli {

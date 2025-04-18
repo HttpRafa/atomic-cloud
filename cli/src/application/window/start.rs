@@ -31,7 +31,7 @@ enum Action {
 impl Window for StartWindow {
     async fn init(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         if state.profiles.is_empty() {
-            stack.push(Box::new(CreateWindow::default()));
+            stack.push(Box::new(CreateWindow::new(state)));
         }
         self.list = Some(ActionList::new(vec![
             Action::Load,
@@ -45,7 +45,12 @@ impl Window for StartWindow {
         Ok(())
     }
 
-    async fn handle_event(&mut self, stack: &mut StackBatcher, event: Event) -> Result<()> {
+    async fn handle_event(
+        &mut self,
+        stack: &mut StackBatcher,
+        state: &mut State,
+        event: Event,
+    ) -> Result<()> {
         let Some(list) = self.list.as_mut() else {
             return Ok(());
         };
@@ -59,7 +64,7 @@ impl Window for StartWindow {
                 KeyCode::Enter => {
                     if let Some(action) = list.selected() {
                         if matches!(action, Action::Create) {
-                            stack.push(Box::new(CreateWindow::default()));
+                            stack.push(Box::new(CreateWindow::new(state)));
                         }
                     }
                 }

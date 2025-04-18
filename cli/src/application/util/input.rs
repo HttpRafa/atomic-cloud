@@ -4,29 +4,34 @@ use color_eyre::eyre::{eyre, Result};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, Borders, Widget},
 };
 use tui_textarea::{Input, TextArea};
 
-type Validator = dyn Fn(&str) -> Result<()> + Send + Sync + 'static;
+use super::{ERROR_COLOR, ERROR_SELECTED_COLOR, OK_COLOR, OK_SELECTED_COLOR};
 
-pub struct SimpleTextArea<'a> {
+#[allow(clippy::type_complexity)]
+pub struct SimpleTextArea<'a, D> {
+    data: D,
+    title: &'a str,
     inner: TextArea<'a>,
-    validate: Box<Validator>,
+    validate: Box<dyn Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static>,
     valid: bool,
     selected: bool,
 }
 
-impl SimpleTextArea<'_> {
+impl<'a, D> SimpleTextArea<'a, D> {
     fn new_internal<F>(
+        data: D,
+        title: &'a str,
         placeholder: &str,
         mask_char: Option<char>,
         validate: F,
         selected: bool,
     ) -> Self
     where
-        F: Fn(&str) -> Result<()> + Send + Sync + 'static,
+        F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {
         let mut textarea = TextArea::default();
         textarea.set_cursor_line_style(Style::default());
@@ -36,6 +41,8 @@ impl SimpleTextArea<'_> {
         }
 
         let mut instance = Self {
+            data,
+            title,
             inner: textarea,
             validate: Box::new(validate),
             valid: false,
@@ -45,37 +52,53 @@ impl SimpleTextArea<'_> {
         instance
     }
 
-    pub fn new<F>(placeholder: &str, validate: F) -> Self
+    pub fn new<F>(data: D, title: &'a str, placeholder: &str, validate: F) -> Self
     where
-        F: Fn(&str) -> Result<()> + Send + Sync + 'static,
+        F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {
-        Self::new_internal(placeholder, None, validate, false)
+        Self::new_internal(data, title, placeholder, None, validate, false)
     }
 
-    pub fn new_selected<F>(placeholder: &str, validate: F) -> Self
+    pub fn new_selected<F>(data: D, title: &'a str, placeholder: &str, validate: F) -> Self
     where
-        F: Fn(&str) -> Result<()> + Send + Sync + 'static,
+        F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {
-        Self::new_internal(placeholder, None, validate, true)
+        Self::new_internal(data, title, placeholder, None, validate, true)
     }
 
-    pub fn new_password<F>(placeholder: &str, validate: F) -> Self
+    pub fn new_password<F>(data: D, title: &'a str, placeholder: &str, validate: F) -> Self
     where
-        F: Fn(&str) -> Result<()> + Send + Sync + 'static,
+        F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {
-        Self::new_internal(placeholder, Some('•'), validate, false)
+        Self::new_internal(data, title, placeholder, Some('•'), validate, false)
     }
 
-    pub fn new_password_selected<F>(placeholder: &str, validate: F) -> Self
+    pub fn new_password_selected<F>(data: D, title: &'a str, placeholder: &str, validate: F) -> Self
     where
-        F: Fn(&str) -> Result<()> + Send + Sync + 'static,
+        F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {
-        Self::new_internal(placeholder, Some('•'), validate, true)
+        Self::new_internal(data, title, placeholder, Some('•'), validate, true)
     }
 
     pub fn set_selected(&mut self, selected: bool) {
         self.selected = selected;
         self.update();
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.valid
+    }
+
+    pub fn is_invalid(&self) -> bool {
+        !self.valid
+    }
+
+    pub fn get_first_line(&self) -> String {
+        self.inner
+            .lines()
+            .first()
+            .expect("TextArea should always have at least one line")
+            .to_string()
     }
 
     pub fn update(&mut self) {
@@ -85,23 +108,23 @@ impl SimpleTextArea<'_> {
             .first()
             .expect("TextArea should always have at least one line");
 
-        match (self.validate)(line) {
-            Ok(()) => self.apply_style(true, "OK".to_string()),
-            Err(err) => self.apply_style(false, format!("ERROR: {err}")),
+        match (self.validate)(line, &mut self.data) {
+            Ok(()) => self.apply_style(true, self.title.to_string()),
+            Err(error) => self.apply_style(false, format!("{} - {error}", self.title)),
         }
     }
 
     fn apply_style(&mut self, is_valid: bool, title: String) {
         let (foreground, border) = if is_valid {
             if self.selected {
-                (Color::Green, Color::Green)
+                (OK_SELECTED_COLOR, OK_SELECTED_COLOR)
             } else {
-                (Color::LightGreen, Color::LightGreen)
+                (OK_COLOR, OK_COLOR)
             }
         } else if self.selected {
-            (Color::Red, Color::Red)
+            (ERROR_SELECTED_COLOR, ERROR_SELECTED_COLOR)
         } else {
-            (Color::LightRed, Color::LightRed)
+            (ERROR_COLOR, ERROR_COLOR)
         };
 
         self.inner.set_style(Style::default().fg(foreground));
@@ -124,7 +147,7 @@ impl SimpleTextArea<'_> {
         self.inner.render(area, buffer);
     }
 
-    pub fn type_validation<T>(line: &str) -> Result<()>
+    pub fn type_validation<T>(line: &str, _: &mut D) -> Result<()>
     where
         T: FromStr,
         T::Err: Error + Send + Sync + 'static,
@@ -132,9 +155,22 @@ impl SimpleTextArea<'_> {
         line.parse::<T>().map(|_| ()).map_err(|error| eyre!(error))
     }
 
-    pub fn not_empty_validation(line: &str) -> Result<()> {
+    pub fn not_empty_validation(line: &str, _: &mut D) -> Result<()> {
         if line.trim().is_empty() {
             Err(eyre!("The field cannot be empty"))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn already_exists_validation(line: &str, data: &mut D) -> Result<()>
+    where
+        D: AsRef<[String]>,
+    {
+        if line.trim().is_empty() {
+            Err(eyre!("The field cannot be empty"))
+        } else if data.as_ref().iter().any(|entry| entry == line) {
+            Err(eyre!("The field value already exists"))
         } else {
             Ok(())
         }

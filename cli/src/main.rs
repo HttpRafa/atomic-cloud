@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![feature(let_chains)]
 
 use application::Cli;
 use color_eyre::eyre::Result;

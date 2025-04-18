@@ -52,4 +52,8 @@ impl Profiles {
     pub fn is_empty(&self) -> bool {
         self.profiles.is_empty()
     }
+
+    pub fn get_names(&self) -> Vec<String> {
+        self.profiles.keys().cloned().collect()
+    }
 }

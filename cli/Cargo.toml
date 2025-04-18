@@ -21,6 +21,7 @@ color-eyre = "0.6.3"
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.20"
+base64 = "0.22.1"
 
 # Async runtime
 tokio-stream = "0.1.17"
@@ -29,8 +30,10 @@ futures = "0.3.31"
 
 # Network
 url = { version = "2.5.4", features = ["serde"] }
+rustls = { version = "0.23.26", default-features = false, features = ["ring"] }
+sha2 = "0.10.8"
 prost = "0.13.5"
-tonic = { version = "0.13.0", features = ["tls-ring", "tls-native-roots"] }
+tonic = { version = "0.13.0", features = ["tls-ring"] }
 
 [build-dependencies]
 toml = "0.8.20"

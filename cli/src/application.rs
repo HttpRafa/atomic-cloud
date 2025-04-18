@@ -1,13 +1,15 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, EventStream};
+use network::known_host::manager::KnownHosts;
 use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
 use tokio::{select, time::interval};
 use tokio_stream::StreamExt;
-use window::{start::StartWindow, WindowStack};
+use window::{start::StartWindow, tls::TrustTlsWindow, WindowStack};
 
+mod network;
 mod profile;
 mod util;
 mod window;
@@ -24,6 +26,7 @@ pub struct Cli {
 
 pub struct State {
     profiles: Profiles,
+    known_hosts: Arc<KnownHosts>,
 }
 
 impl Cli {
@@ -32,6 +35,7 @@ impl Cli {
             running: true,
             state: State {
                 profiles: Profiles::load().await?,
+                known_hosts: Arc::new(KnownHosts::load().await?),
             },
             stack: WindowStack::new(),
         })
@@ -62,6 +66,12 @@ impl Cli {
     }
 
     async fn tick(&mut self) -> Result<()> {
+        if let Some(request) = self.state.known_hosts.next().await {
+            self.stack
+                .push(&mut self.state, Box::new(TrustTlsWindow::new(request)))
+                .await?;
+        }
+
         self.stack.tick(&mut self.state).await?;
         Ok(())
     }

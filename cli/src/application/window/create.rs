@@ -112,7 +112,6 @@ impl Window for CreateWindow {
                                     .get_first_line()
                                     .parse::<Url>()
                                     .expect("Should be validated by the validation process"),
-                                None,
                             ))
                             .await
                         {

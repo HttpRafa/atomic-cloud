@@ -8,6 +8,9 @@ use tokio::fs;
 /* Profiles */
 const PROFILES_DIRECTORY: &str = "profiles";
 
+/* Known hosts */
+const KNOWN_HOSTS_FILE: &str = "known_hosts.toml";
+
 pub struct Storage;
 
 impl Storage {
@@ -23,6 +26,12 @@ impl Storage {
     }
     pub fn profile_file(name: &str) -> Result<PathBuf> {
         Ok(Self::profiles_directory()?.join(format!("{name}.toml")))
+    }
+
+    /* Known hosts */
+    pub fn known_hosts_file() -> Result<PathBuf> {
+        let dirs = Self::directories()?;
+        Ok(dirs.data_local_dir().join(KNOWN_HOSTS_FILE))
     }
 
     pub async fn for_each_content_toml<T: LoadFromTomlFile>(

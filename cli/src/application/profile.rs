@@ -13,18 +13,15 @@ pub struct Profile {
     pub name: String,
     pub token: String,
     pub url: Url,
-
-    pub certificate: Option<String>,
 }
 
 impl Profile {
-    pub fn new(name: &str, token: &str, url: Url, certificate: Option<String>) -> Self {
+    pub fn new(name: &str, token: &str, url: Url) -> Self {
         Self {
             id: Self::create_id(name),
             name: name.to_string(),
             token: token.to_string(),
             url,
-            certificate,
         }
     }
 
@@ -34,7 +31,6 @@ impl Profile {
             name: profile.name.clone(),
             token: profile.token.clone(),
             url: profile.url.clone(),
-            certificate: profile.certificate.clone(),
         }
     }
 
@@ -51,7 +47,6 @@ impl Profile {
             name: self.name.clone(),
             token: self.token.clone(),
             url: self.url.clone(),
-            certificate: self.certificate.clone(),
         };
         profile
             .save(&Storage::profile_file(&self.id)?, true)
@@ -82,9 +77,7 @@ mod stored {
     pub struct StoredProfile {
         pub name: String,
         pub token: String,
-
         pub url: Url,
-        pub certificate: Option<String>,
     }
 
     impl LoadFromTomlFile for StoredProfile {}

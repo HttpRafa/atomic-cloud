@@ -1,3 +1,4 @@
+pub mod connection;
 pub mod known_host;
 mod verifier;
 

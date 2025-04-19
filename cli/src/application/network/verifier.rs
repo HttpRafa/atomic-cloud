@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
 use futures::executor::block_on;
-use rustls::{
+use sha2::{Digest, Sha256};
+use tokio_rustls::rustls::{
     client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
     crypto::{verify_tls12_signature, verify_tls13_signature, CryptoProvider},
     pki_types::{ServerName, UnixTime},
     DigitallySignedStruct, Error, SignatureScheme,
 };
-use sha2::{Digest, Sha256};
 use tonic::transport::CertificateDer;
 
 use super::known_host::manager::{KnownHosts, TrustResult};
 
 #[derive(Debug)]
-pub struct FirstUseVerifier(CryptoProvider, Arc<KnownHosts>);
+pub struct FirstUseVerifier(Arc<CryptoProvider>, Arc<KnownHosts>);
 
 impl FirstUseVerifier {
-    pub fn new(provider: CryptoProvider, known_hosts: Arc<KnownHosts>) -> Self {
+    pub fn new(provider: Arc<CryptoProvider>, known_hosts: Arc<KnownHosts>) -> Self {
         Self(provider, known_hosts)
     }
 }

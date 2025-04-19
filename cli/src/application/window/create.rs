@@ -103,7 +103,19 @@ impl Window for CreateWindow {
                         && self.token.is_valid()
                         && self.url.is_valid()
                     {
-                        if let Err(error) = state
+                        self.status.change(
+                            Status::Loading,
+                            "Checking if we can reach the controller...",
+                        );
+                        let profile = Profile::new(
+                            &self.name.get_first_line(),
+                            &self.token.get_first_line(),
+                            self.url
+                                .get_first_line()
+                                .parse::<Url>()
+                                .expect("Should be validated by the validation process"),
+                        );
+                        /*if let Err(error) = state
                             .profiles
                             .create_profile(&Profile::new(
                                 &self.name.get_first_line(),
@@ -122,7 +134,7 @@ impl Window for CreateWindow {
                                 Status::Finished,
                                 "Controller created. Press Esc to go back.",
                             );
-                        }
+                        }*/
                     }
                 }
                 _ => {

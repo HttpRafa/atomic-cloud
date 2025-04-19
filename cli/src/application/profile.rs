@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use color_eyre::eyre::Result;
 use stored::StoredProfile;
 use tokio::fs;
 use url::Url;
 
 use crate::storage::{SaveToTomlFile, Storage};
+
+use super::network::{connection::EstablishedConnection, known_host::manager::KnownHosts};
 
 pub mod manager;
 
@@ -32,6 +36,13 @@ impl Profile {
             token: profile.token.clone(),
             url: profile.url.clone(),
         }
+    }
+
+    pub async fn establish_connection(
+        &self,
+        known_hosts: Arc<KnownHosts>,
+    ) -> Result<EstablishedConnection> {
+        EstablishedConnection::establish(self, known_hosts).await
     }
 
     async fn remove_file(&self) -> Result<()> {

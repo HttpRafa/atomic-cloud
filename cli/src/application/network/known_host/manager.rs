@@ -36,7 +36,7 @@ impl KnownHosts {
         if let Some(host) = self
             .hosts
             .read()
-            .unwrap()
+            .expect("Failed to lock hosts")
             .iter()
             .find(|known| known.host == host && known.sha256 == sha256)
         {
@@ -55,7 +55,7 @@ impl KnownHosts {
 
     pub async fn set_trust(&self, trusted: bool, request: &mut TrustRequest) -> Result<()> {
         {
-            let mut hosts = self.hosts.write().unwrap();
+            let mut hosts = self.hosts.write().expect("Failed to lock hosts");
 
             request.complete();
             {

@@ -7,7 +7,10 @@ use url::Url;
 
 use crate::storage::{SaveToTomlFile, Storage};
 
-use super::network::{connection::EstablishedConnection, known_host::manager::KnownHosts};
+use super::network::{
+    connection::{task::ConnectTask, EstablishedConnection},
+    known_host::manager::KnownHosts,
+};
 
 pub mod manager;
 
@@ -38,11 +41,8 @@ impl Profile {
         }
     }
 
-    pub async fn establish_connection(
-        &self,
-        known_hosts: Arc<KnownHosts>,
-    ) -> Result<EstablishedConnection> {
-        EstablishedConnection::establish(self, known_hosts).await
+    pub fn establish_connection(&self, known_hosts: Arc<KnownHosts>) -> ConnectTask {
+        EstablishedConnection::establish_new(self.url.clone(), self.token.clone(), known_hosts)
     }
 
     async fn remove_file(&self) -> Result<()> {

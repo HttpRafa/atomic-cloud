@@ -10,19 +10,27 @@ use ratatui::{
 use tonic::async_trait;
 use url::Url;
 
-use crate::application::{
-    profile::Profile,
-    util::{
-        area::SimpleTextArea,
-        status::{Status, StatusDisplay},
-        HEADER_STYLE, NORMAL_ROW_BG,
+use crate::{
+    application::{
+        network::connection::task::ConnectTask,
+        profile::Profile,
+        util::{
+            area::SimpleTextArea,
+            status::{Status, StatusDisplay},
+            HEADER_STYLE, NORMAL_ROW_BG,
+        },
+        State,
     },
-    State,
+    VERSION,
 };
 
 use super::{StackBatcher, Window, WindowUtils};
 
 pub struct CreateWindow {
+    /* Handles */
+    connect: Option<ConnectTask>,
+
+    /* Window */
     status: StatusDisplay,
 
     current: Field,
@@ -41,6 +49,7 @@ enum Field {
 impl CreateWindow {
     pub fn new(state: &mut State) -> Self {
         Self {
+            connect: None,
             status: StatusDisplay::new(Status::Error, ""),
             current: Field::Name,
             name: SimpleTextArea::new_selected(
@@ -71,7 +80,50 @@ impl Window for CreateWindow {
         Ok(())
     }
 
-    async fn tick(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+    async fn tick(&mut self, _stack: &mut StackBatcher, state: &mut State) -> Result<()> {
+        // Network connection
+        if let Some(task) = &mut self.connect {
+            match task.get().await {
+                Ok(Some(Ok(connection))) => {
+                    if let Err(error) = state
+                        .profiles
+                        .create_profile(&Profile::new(
+                            &self.name.get_first_line(),
+                            &self.token.get_first_line(),
+                            self.url
+                                .get_first_line()
+                                .parse::<Url>()
+                                .expect("Should be validated by the validation process"),
+                        ))
+                        .await
+                    {
+                        self.status
+                            .change(Status::Fatal, &format!("{}", error.root_cause()));
+                    } else if connection.is_incompatible() {
+                        self.status.change(
+                        Status::NotPerfect,
+                        &format!(
+                            "Controller created. Press Esc to go back. Warning: your CLI protocol version ({}) doesn't match the server's ({}); some features may not work correctly.",
+                            VERSION.protocol,
+                            connection.get_protocol(),
+                        ),
+                    );
+                    } else {
+                        self.status.change(
+                            Status::Successful,
+                            "Controller created successfully. Press Esc to go back.",
+                        );
+                    }
+                }
+                Err(error) | Ok(Some(Err(error))) => {
+                    self.status
+                        .change(Status::Fatal, &format!("{}", error.root_cause()));
+                }
+                _ => {}
+            }
+        }
+
+        // UI
         self.status.next();
         Ok(())
     }
@@ -103,7 +155,7 @@ impl Window for CreateWindow {
                         && self.token.is_valid()
                         && self.url.is_valid()
                     {
-                        self.status.change(
+                        self.status.change_with_startpoint(
                             Status::Loading,
                             "Checking if we can reach the controller...",
                         );
@@ -115,29 +167,14 @@ impl Window for CreateWindow {
                                 .parse::<Url>()
                                 .expect("Should be validated by the validation process"),
                         );
-                        /*if let Err(error) = state
-                            .profiles
-                            .create_profile(&Profile::new(
-                                &self.name.get_first_line(),
-                                &self.token.get_first_line(),
-                                self.url
-                                    .get_first_line()
-                                    .parse::<Url>()
-                                    .expect("Should be validated by the validation process"),
-                            ))
-                            .await
-                        {
-                            self.status
-                                .change(Status::Error, &format!("Error: {error}"));
-                        } else {
-                            self.status.change(
-                                Status::Finished,
-                                "Controller created. Press Esc to go back.",
-                            );
-                        }*/
+                        self.connect =
+                            Some(profile.establish_connection(state.known_hosts.clone()));
                     }
                 }
                 _ => {
+                    if self.status.is_finished() && self.status.is_fatal() {
+                        self.status.change(Status::Error, "Please fix your fields");
+                    }
                     if !self.status.is_finished() {
                         match self.current {
                             Field::Name => self.name.handle_event(event),
@@ -203,13 +240,14 @@ impl CreateWindow {
             .bg(NORMAL_ROW_BG);
         block.render(area, buffer);
 
-        let [_, name_area, token_area, url_area, _, status_area] = Layout::vertical([
+        let [_, name_area, token_area, url_area, _, status_area, _] = Layout::vertical([
             Constraint::Length(1), // Empty space
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(1), // Empty space
-            Constraint::Length(1),
+            Constraint::Fill(1),
+            Constraint::Length(1), // Empty space
         ])
         .areas(area);
 

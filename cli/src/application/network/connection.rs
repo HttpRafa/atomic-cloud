@@ -7,20 +7,20 @@ use hyper_util::{
     client::legacy::{connect::HttpConnector, Client},
     rt::TokioExecutor,
 };
+use task::{spawn, ConnectTask};
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
-use tonic::{
-    body::Body,
-    Request,
-};
+use tonic::{body::Body, Request};
 use tower::ServiceBuilder;
+use url::Url;
 
-use crate::{application::profile::Profile, VERSION};
+use crate::VERSION;
 
 use super::{
     known_host::manager::KnownHosts, proto::manage::manage_service_client::ManageServiceClient,
     verifier::FirstUseVerifier,
 };
 
+pub mod task;
 pub mod wrapper;
 
 pub struct EstablishedConnection {
@@ -34,7 +34,28 @@ pub struct EstablishedConnection {
 }
 
 impl EstablishedConnection {
-    pub async fn establish(profile: &Profile, known_hosts: Arc<KnownHosts>) -> Result<Self> {
+    pub fn establish_new(url: Url, token: String, known_hosts: Arc<KnownHosts>) -> ConnectTask {
+        spawn(async move {
+            match EstablishedConnection::establish(url.clone(), token.clone(), known_hosts.clone())
+                .await
+            {
+                Err(_) => {
+                    // Wait for all TLS prompt to be resolved
+                    known_hosts.get_requests().wait_for_empty().await;
+
+                    EstablishedConnection::establish(
+                        url.clone(),
+                        token.clone(),
+                        known_hosts.clone(),
+                    )
+                    .await
+                }
+                Ok(connection) => Ok(connection),
+            }
+        })
+    }
+
+    async fn establish(url: Url, token: String, known_hosts: Arc<KnownHosts>) -> Result<Self> {
         let mut tls = ClientConfig::builder()
             .with_root_certificates(RootCertStore::empty())
             .with_no_client_auth();
@@ -56,11 +77,8 @@ impl EstablishedConnection {
         let client = Client::builder(TokioExecutor::new()).build(connector);
 
         let mut connection = EstablishedConnection {
-            connection: ManageServiceClient::with_origin(
-                client,
-                Uri::from_str(profile.url.as_str())?,
-            ),
-            token: profile.token.clone(),
+            connection: ManageServiceClient::with_origin(client, Uri::from_str(url.as_str())?),
+            token: token.clone(),
             incompatible: false,
             protocol: 1,
         };
@@ -69,6 +87,14 @@ impl EstablishedConnection {
         connection.incompatible = protocol != VERSION.protocol;
 
         Ok(connection)
+    }
+
+    pub fn is_incompatible(&self) -> bool {
+        self.incompatible
+    }
+
+    pub fn get_protocol(&self) -> u32 {
+        self.protocol
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {

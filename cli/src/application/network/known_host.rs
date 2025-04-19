@@ -4,6 +4,7 @@ use ::base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 
 pub mod manager;
+pub mod requests;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KnownHost {

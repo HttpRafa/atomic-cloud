@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use futures::executor::block_on;
 use sha2::{Digest, Sha256};
 use tokio_rustls::rustls::{
     client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
@@ -10,7 +9,7 @@ use tokio_rustls::rustls::{
 };
 use tonic::transport::CertificateDer;
 
-use super::known_host::manager::{KnownHosts, TrustResult};
+use super::known_host::{manager::KnownHosts, requests::TrustResult};
 
 #[derive(Debug)]
 pub struct FirstUseVerifier(Arc<CryptoProvider>, Arc<KnownHosts>);
@@ -34,9 +33,7 @@ impl ServerCertVerifier for FirstUseVerifier {
         hasher.update(end_entity);
         let fingerprint = hasher.finalize().to_vec();
 
-        match block_on(self.1.is_trusted(&server_name.to_str(), &fingerprint))
-            .map_err(|error| Error::General(format!("Failed to check known hosts: {error}")))?
-        {
+        match self.1.is_trusted(&server_name.to_str(), &fingerprint) {
             TrustResult::Trusted => Ok(ServerCertVerified::assertion()),
             TrustResult::HostDuplicate => Err(Error::General(
                 "Cannot trust 2 certs for the same host".to_string(),

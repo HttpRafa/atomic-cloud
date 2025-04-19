@@ -10,7 +10,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::known_host::manager::TrustRequest,
+    network::known_host::requests::TrustRequest,
     util::{
         button::SimpleButton, ERROR_COLOR, ERROR_SELECTED_COLOR, HEADER_STYLE, NORMAL_ROW_BG,
         OK_COLOR, OK_SELECTED_COLOR,
@@ -87,7 +87,10 @@ impl Window for TrustTlsWindow {
                         state.known_hosts.trust(&mut self.request).await?;
                         stack.pop();
                     }
-                    Button::No => stack.pop(),
+                    Button::No => {
+                        self.request.complete();
+                        stack.pop();
+                    }
                 },
                 _ => {}
             }
@@ -151,12 +154,12 @@ impl TrustTlsWindow {
             .areas(area);
 
         Paragraph::new("A new certificate has been detected. This certificate is currently untrusted. Would you like to trust it?").blue().bold().centered().render(title_area, buffer);
-        Paragraph::new(self.request.1.host.to_string())
+        Paragraph::new(self.request.get_host().host.to_string())
             .cyan()
             .bold()
             .centered()
             .render(host_area, buffer);
-        Paragraph::new(format!("{}", self.request.1))
+        Paragraph::new(format!("{}", self.request.get_host()))
             .gray()
             .centered()
             .render(fingerprint_area, buffer);

@@ -1,31 +1,22 @@
-use std::collections::VecDeque;
+use std::sync::RwLock;
 
 use color_eyre::eyre::Result;
 use stored::StoredKnownHosts;
-use tokio::sync::{
-    oneshot::{channel, Sender},
-    RwLock,
-};
 
 use crate::storage::{LoadFromTomlFile, SaveToTomlFile, Storage};
 
-use super::KnownHost;
+use super::{
+    requests::{RequestTracker, TrustRequest, TrustResult},
+    KnownHost,
+};
 
 #[derive(Default, Debug)]
 pub struct KnownHosts {
+    // We cannot use the RwLock from tokio because is_trusted needs to be sync
+    // Will be fixed with: https://github.com/rustls/rustls/issues/850
     pub hosts: RwLock<Vec<KnownHost>>,
 
-    pub pending: RwLock<VecDeque<TrustRequest>>,
-}
-
-#[derive(Debug)]
-pub struct TrustRequest(pub Option<Sender<TrustResult>>, pub KnownHost);
-
-#[derive(Debug)]
-pub enum TrustResult {
-    Trusted,
-    HostDuplicate,
-    Declined,
+    pub requests: RequestTracker,
 }
 
 impl KnownHosts {
@@ -37,54 +28,45 @@ impl KnownHosts {
 
         Ok(Self {
             hosts: RwLock::new(StoredKnownHosts::from_file(&file).await?.hosts),
-            pending: RwLock::new(VecDeque::new()),
+            requests: RequestTracker::default(),
         })
     }
 
-    pub async fn is_trusted(&self, host: &str, sha256: &[u8]) -> Result<TrustResult> {
-        for known in self.hosts.read().await.iter() {
+    pub fn is_trusted(&self, host: &str, sha256: &[u8]) -> TrustResult {
+        for known in self.hosts.read().unwrap().iter() {
             if known.host == host {
                 if known.sha256 == sha256 {
-                    return Ok(TrustResult::Trusted);
+                    return TrustResult::Trusted;
                 }
-                return Ok(TrustResult::HostDuplicate);
+                return TrustResult::HostDuplicate;
             }
         }
 
-        let (sender, receiver) = channel();
-        self.pending.write().await.push_back(TrustRequest(
-            Some(sender),
-            KnownHost::new(host.to_string(), sha256.to_vec()),
-        ));
-        Ok(receiver.await?)
+        self.requests.enqueue(TrustRequest::new(KnownHost::new(
+            host.to_string(),
+            sha256.to_vec(),
+        )));
+        TrustResult::Declined
     }
 
     pub async fn trust(&self, request: &mut TrustRequest) -> Result<()> {
-        let mut hosts = self.hosts.write().await;
+        {
+            let mut hosts = self.hosts.write().unwrap();
 
-        request
-            .0
-            .take()
-            .map(|sender| sender.send(TrustResult::Trusted));
-        hosts.push(request.1.clone());
-        StoredKnownHosts {
-            hosts: hosts.clone(),
+            request.complete();
+            hosts.push(request.get_host().clone());
+
+            StoredKnownHosts {
+                hosts: hosts.clone(),
+            }
         }
         .save(&Storage::known_hosts_file()?, true)
         .await?;
         Ok(())
     }
 
-    pub async fn next(&self) -> Option<TrustRequest> {
-        self.pending.write().await.pop_front()
-    }
-}
-
-impl Drop for TrustRequest {
-    fn drop(&mut self) {
-        self.0
-            .take()
-            .map(|sender| sender.send(TrustResult::Declined));
+    pub fn get_requests(&self) -> &RequestTracker {
+        &self.requests
     }
 }
 

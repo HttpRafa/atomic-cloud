@@ -1,5 +1,5 @@
 use ratatui::style::{
-    palette::tailwind::{GREEN, RED, SLATE},
+    palette::tailwind::{GREEN, RED, SLATE, YELLOW},
     Color, Modifier, Style,
 };
 
@@ -16,5 +16,7 @@ pub const TEXT_FG_COLOR: Color = SLATE.c200;
 
 pub const OK_COLOR: Color = GREEN.c700;
 pub const OK_SELECTED_COLOR: Color = GREEN.c500;
+pub const WARN_COLOR: Color = YELLOW.c700;
+pub const WARN_SELECTED_COLOR: Color = YELLOW.c500;
 pub const ERROR_COLOR: Color = RED.c700;
 pub const ERROR_SELECTED_COLOR: Color = RED.c500;

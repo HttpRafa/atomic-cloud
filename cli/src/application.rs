@@ -66,11 +66,12 @@ impl Cli {
     }
 
     async fn tick(&mut self) -> Result<()> {
-        if let Some(request) = self.state.known_hosts.next().await {
+        if let Some(request) = self.state.known_hosts.get_requests().dequeue() {
             self.stack
                 .push(&mut self.state, Box::new(TrustTlsWindow::new(request)))
                 .await?;
         }
+        self.state.known_hosts.get_requests().cleanup();
 
         self.stack.tick(&mut self.state).await?;
         Ok(())

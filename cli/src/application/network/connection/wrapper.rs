@@ -1,12 +1,15 @@
 use color_eyre::eyre::Result;
 use tonic::Streaming;
 
-use crate::application::network::proto::manage::{
-    group, node,
-    resource::{DelReq, SetReq},
-    screen, server,
-    transfer::TransferReq,
-    user,
+use crate::application::network::proto::{
+    common::notify,
+    manage::{
+        group, node,
+        resource::{DelReq, SetReq},
+        screen, server,
+        transfer::TransferReq,
+        user,
+    },
 };
 
 use super::EstablishedConnection;
@@ -46,6 +49,11 @@ impl EstablishedConnection {
         Ok(())
     }
 
+    pub async fn update_node(&mut self, request: node::UpdateReq) -> Result<node::Item> {
+        let request = self.create_request(request);
+        Ok(self.connection.update_node(request).await?.into_inner())
+    }
+
     pub async fn get_node(&mut self, name: &str) -> Result<node::Item> {
         let request = self.create_request(name.to_string());
         Ok(self.connection.get_node(request).await?.into_inner())
@@ -60,6 +68,11 @@ impl EstablishedConnection {
         let request = self.create_request(group);
         self.connection.create_group(request).await?;
         Ok(())
+    }
+
+    pub async fn update_group(&mut self, request: group::UpdateReq) -> Result<group::Item> {
+        let request = self.create_request(request);
+        Ok(self.connection.update_group(request).await?.into_inner())
     }
 
     pub async fn get_group(&mut self, name: &str) -> Result<group::Item> {
@@ -126,5 +139,14 @@ impl EstablishedConnection {
     pub async fn get_ctrl_ver(&mut self) -> Result<String> {
         let request = self.create_request(());
         Ok(self.connection.get_ctrl_ver(request).await?.into_inner())
+    }
+
+    pub async fn subscribe_to_power_events(&mut self) -> Result<Streaming<notify::PowerEvent>> {
+        let request = self.create_request(());
+        Ok(self
+            .connection
+            .subscribe_to_power_events(request)
+            .await?
+            .into_inner())
     }
 }

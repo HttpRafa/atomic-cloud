@@ -14,7 +14,7 @@ mod profile;
 mod util;
 mod window;
 
-pub const TICK_RATE: u64 = 5;
+pub const TICK_RATE: u64 = 10;
 pub const FRAME_RATE: u64 = 20;
 
 pub struct Cli {
@@ -66,12 +66,12 @@ impl Cli {
     }
 
     async fn tick(&mut self) -> Result<()> {
-        if let Some(request) = self.state.known_hosts.get_requests().dequeue() {
+        if let Some(request) = self.state.known_hosts.requests.dequeue() {
             self.stack
                 .push(&mut self.state, Box::new(TrustTlsWindow::new(request)))
                 .await?;
         }
-        self.state.known_hosts.get_requests().cleanup();
+        self.state.known_hosts.requests.cleanup();
 
         self.stack.tick(&mut self.state).await?;
         Ok(())

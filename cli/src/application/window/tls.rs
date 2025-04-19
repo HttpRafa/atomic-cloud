@@ -84,11 +84,14 @@ impl Window for TrustTlsWindow {
                 },
                 KeyCode::Enter => match self.current {
                     Button::Yes => {
-                        state.known_hosts.trust(&mut self.request).await?;
+                        state.known_hosts.set_trust(true, &mut self.request).await?;
                         stack.pop();
                     }
                     Button::No => {
-                        self.request.complete();
+                        state
+                            .known_hosts
+                            .set_trust(false, &mut self.request)
+                            .await?;
                         stack.pop();
                     }
                 },

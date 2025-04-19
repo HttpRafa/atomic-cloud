@@ -94,6 +94,5 @@ impl TrustRequest {
 #[derive(Debug)]
 pub enum TrustResult {
     Trusted,
-    HostDuplicate,
     Declined,
 }

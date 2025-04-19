@@ -33,13 +33,17 @@ impl KnownHosts {
     }
 
     pub fn is_trusted(&self, host: &str, sha256: &[u8]) -> TrustResult {
-        for known in self.hosts.read().unwrap().iter() {
-            if known.host == host {
-                if known.sha256 == sha256 {
-                    return TrustResult::Trusted;
-                }
-                return TrustResult::HostDuplicate;
+        if let Some(host) = self
+            .hosts
+            .read()
+            .unwrap()
+            .iter()
+            .find(|known| known.host == host && known.sha256 == sha256)
+        {
+            if host.trusted {
+                return TrustResult::Trusted;
             }
+            return TrustResult::Declined;
         }
 
         self.requests.enqueue(TrustRequest::new(KnownHost::new(
@@ -49,12 +53,16 @@ impl KnownHosts {
         TrustResult::Declined
     }
 
-    pub async fn trust(&self, request: &mut TrustRequest) -> Result<()> {
+    pub async fn set_trust(&self, trusted: bool, request: &mut TrustRequest) -> Result<()> {
         {
             let mut hosts = self.hosts.write().unwrap();
 
             request.complete();
-            hosts.push(request.get_host().clone());
+            {
+                let mut host = request.get_host().clone();
+                host.trusted = trusted;
+                hosts.push(host);
+            }
 
             StoredKnownHosts {
                 hosts: hosts.clone(),
@@ -63,10 +71,6 @@ impl KnownHosts {
         .save(&Storage::known_hosts_file()?, true)
         .await?;
         Ok(())
-    }
-
-    pub fn get_requests(&self) -> &RequestTracker {
-        &self.requests
     }
 }
 

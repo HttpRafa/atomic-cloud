@@ -8,6 +8,7 @@ pub mod requests;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KnownHost {
+    pub trusted: bool,
     pub host: String,
     #[serde(with = "base64")]
     pub sha256: Vec<u8>,
@@ -15,7 +16,11 @@ pub struct KnownHost {
 
 impl KnownHost {
     pub fn new(host: String, sha256: Vec<u8>) -> Self {
-        Self { host, sha256 }
+        Self {
+            trusted: false,
+            host,
+            sha256,
+        }
     }
 }
 

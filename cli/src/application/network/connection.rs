@@ -41,7 +41,7 @@ impl EstablishedConnection {
             {
                 Err(_) => {
                     // Wait for all TLS prompt to be resolved
-                    known_hosts.get_requests().wait_for_empty().await;
+                    known_hosts.requests.wait_for_empty().await;
 
                     EstablishedConnection::establish(
                         url.clone(),

@@ -35,9 +35,6 @@ impl ServerCertVerifier for FirstUseVerifier {
 
         match self.1.is_trusted(&server_name.to_str(), &fingerprint) {
             TrustResult::Trusted => Ok(ServerCertVerified::assertion()),
-            TrustResult::HostDuplicate => Err(Error::General(
-                "Cannot trust 2 certs for the same host".to_string(),
-            )),
             TrustResult::Declined => {
                 Err(Error::General("Server certificate not trusted".to_string()))
             }

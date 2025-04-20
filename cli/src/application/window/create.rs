@@ -171,6 +171,7 @@ impl Window for CreateWindow {
                             Some(profile.establish_connection(state.known_hosts.clone()));
                     }
                 }
+
                 _ => {
                     if self.status.is_finished() && self.status.is_fatal() {
                         self.status.change(Status::Error, "Please fix your fields");

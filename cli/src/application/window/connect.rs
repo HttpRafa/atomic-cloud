@@ -2,8 +2,7 @@ use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Flex, Layout, Rect},
-    style::Stylize,
+    layout::{Constraint, Layout, Rect},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
     Frame,
@@ -11,16 +10,37 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    network::connection::task::ConnectTask,
     profile::Profile,
-    util::{list::ActionList, TEXT_FG_COLOR, WARN_SELECTED_COLOR},
+    util::{
+        center::CenterWarning,
+        list::ActionList,
+        status::{Status, StatusDisplay},
+        TEXT_FG_COLOR,
+    },
     State,
 };
 
 use super::{StackBatcher, Window, WindowUtils};
 
-#[derive(Default)]
 pub struct ConnectWindow {
+    /* Handles */
+    connect: Option<ConnectTask>,
+
+    /* Window */
+    status: StatusDisplay,
+
     list: Option<ActionList<Profile>>,
+}
+
+impl Default for ConnectWindow {
+    fn default() -> Self {
+        Self {
+            connect: None,
+            status: StatusDisplay::new(Status::Ok, "null"),
+            list: None,
+        }
+    }
 }
 
 #[async_trait]
@@ -33,26 +53,39 @@ impl Window for ConnectWindow {
     }
 
     async fn tick(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        // UI
+        self.status.next();
         Ok(())
     }
 
     async fn handle_event(
         &mut self,
         stack: &mut StackBatcher,
-        _state: &mut State,
+        state: &mut State,
         event: Event,
     ) -> Result<()> {
         let Some(list) = self.list.as_mut() else {
             return Ok(());
         };
 
-        if let Event::Key(event) = event {
+        if !self.status.is_loading()
+            && let Event::Key(event) = event
+        {
             if event.kind != KeyEventKind::Press {
                 return Ok(());
             }
             match event.code {
                 KeyCode::Esc => stack.pop(),
-                KeyCode::Enter => {}
+                KeyCode::Enter => {
+                    if !self.status.is_finished()
+                        && let Some(profile) = list.selected()
+                    {
+                        self.status
+                            .change_with_startpoint(Status::Loading, "Connecting to controller...");
+                        self.connect =
+                            Some(profile.establish_connection(state.known_hosts.clone()));
+                    }
+                }
                 KeyCode::Down => list.next(),
                 KeyCode::Up => list.previous(),
                 _ => {}
@@ -81,14 +114,13 @@ impl Widget for &mut ConnectWindow {
         if let Some(list) = self.list.as_mut() {
             list.render(main_area, buffer);
             if list.is_empty() {
-                let [main_area] = Layout::vertical([Constraint::Length(1)])
-                    .flex(Flex::Center)
-                    .areas(main_area);
-                Paragraph::new("You dont have any existing controllers. Use Esc to exit.")
-                    .fg(WARN_SELECTED_COLOR)
-                    .bold()
-                    .centered()
-                    .render(main_area, buffer);
+                CenterWarning::render(
+                    "You dont have any existing controllers. Use Esc to exit.",
+                    main_area,
+                    buffer,
+                );
+            } else if !self.status.is_ok() {
+                self.status.render_in_center(area, buffer);
             }
         }
     }

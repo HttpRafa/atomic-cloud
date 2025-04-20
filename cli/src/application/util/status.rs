@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Constraint, Flex, Layout, Rect},
     style::Stylize,
     widgets::{Paragraph, Widget},
 };
@@ -63,6 +63,10 @@ impl StatusDisplay {
         message.clone_into(&mut self.message);
     }
 
+    pub fn is_ok(&self) -> bool {
+        matches!(self.status, Status::Ok)
+    }
+
     pub fn is_loading(&self) -> bool {
         matches!(self.status, Status::Loading)
     }
@@ -75,6 +79,13 @@ impl StatusDisplay {
 
     pub fn is_fatal(&self) -> bool {
         matches!(self.status, Status::Fatal)
+    }
+
+    pub fn render_in_center(&self, area: Rect, buffer: &mut Buffer) {
+        let [area] = Layout::vertical([Constraint::Length(1)])
+            .flex(Flex::Center)
+            .areas(area);
+        self.render(area, buffer);
     }
 
     pub fn render(&self, area: Rect, buffer: &mut Buffer) {

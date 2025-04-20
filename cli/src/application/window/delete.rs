@@ -2,8 +2,7 @@ use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Flex, Layout, Rect},
-    style::Stylize,
+    layout::{Constraint, Layout, Rect},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
     Frame,
@@ -12,7 +11,7 @@ use tonic::async_trait;
 
 use crate::application::{
     profile::Profile,
-    util::{list::ActionList, ERROR_SELECTED_COLOR, TEXT_FG_COLOR, WARN_SELECTED_COLOR},
+    util::{center::CenterWarning, list::ActionList, ERROR_SELECTED_COLOR, TEXT_FG_COLOR},
     State,
 };
 
@@ -106,14 +105,11 @@ impl Widget for &mut DeleteWindow {
         if let Some(list) = self.list.as_mut() {
             list.render(main_area, buffer);
             if list.is_empty() {
-                let [main_area] = Layout::vertical([Constraint::Length(1)])
-                    .flex(Flex::Center)
-                    .areas(main_area);
-                Paragraph::new("You dont have any existing controllers. Use Esc to exit.")
-                    .fg(WARN_SELECTED_COLOR)
-                    .bold()
-                    .centered()
-                    .render(main_area, buffer);
+                CenterWarning::render(
+                    "You dont have any existing controllers. Use Esc to exit.",
+                    main_area,
+                    buffer,
+                );
             }
         }
     }

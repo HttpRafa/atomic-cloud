@@ -14,7 +14,10 @@ use crate::application::{
     State,
 };
 
-use super::{create::CreateWindow, StackBatcher, Window, WindowUtils};
+use super::{
+    connect::ConnectWindow, create::CreateWindow, delete::DeleteWindow, StackBatcher, Window,
+    WindowUtils,
+};
 
 #[derive(Default)]
 pub struct StartWindow {
@@ -22,7 +25,7 @@ pub struct StartWindow {
 }
 
 enum Action {
-    Load,
+    Connect,
     Create,
     Delete,
 }
@@ -34,7 +37,7 @@ impl Window for StartWindow {
             stack.push(Box::new(CreateWindow::new(state)));
         }
         self.list = Some(ActionList::new(vec![
-            Action::Load,
+            Action::Connect,
             Action::Create,
             Action::Delete,
         ]));
@@ -63,8 +66,16 @@ impl Window for StartWindow {
                 KeyCode::Esc => stack.pop(),
                 KeyCode::Enter => {
                     if let Some(action) = list.selected() {
-                        if matches!(action, Action::Create) {
-                            stack.push(Box::new(CreateWindow::new(state)));
+                        match *action {
+                            Action::Connect => {
+                                stack.push(Box::new(ConnectWindow::default()));
+                            }
+                            Action::Create => {
+                                stack.push(Box::new(CreateWindow::new(state)));
+                            }
+                            Action::Delete => {
+                                stack.push(Box::new(DeleteWindow::default()));
+                            }
                         }
                     }
                 }
@@ -110,7 +121,7 @@ impl StartWindow {
 impl From<&Action> for ListItem<'_> {
     fn from(action: &Action) -> Self {
         let line = match action {
-            Action::Load => Line::styled(" Connect to existing controller", TEXT_FG_COLOR),
+            Action::Connect => Line::styled(" Connect to existing controller", TEXT_FG_COLOR),
             Action::Create => Line::styled(" Add new controller", TEXT_FG_COLOR),
             Action::Delete => Line::styled(" Remove existing controller", TEXT_FG_COLOR),
         };

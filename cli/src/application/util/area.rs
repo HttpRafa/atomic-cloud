@@ -3,9 +3,9 @@ use std::{error::Error, str::FromStr};
 use color_eyre::eyre::{eyre, Result};
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
-    style::Style,
-    widgets::{Block, Borders, Widget},
+    layout::{Constraint, Flex, Layout, Rect},
+    style::{Style, Stylize},
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 use tui_textarea::{Input, TextArea};
 
@@ -144,7 +144,25 @@ impl<'a, D> SimpleTextArea<'a, D> {
     }
 
     pub fn render(&self, area: Rect, buffer: &mut Buffer) {
-        self.inner.render(area, buffer);
+        let [indicator_area, main_area, _] = Layout::horizontal([
+            Constraint::Length(2),
+            Constraint::Fill(1),
+            Constraint::Length(2),
+        ])
+        .areas(area);
+
+        if self.selected {
+            let [indicator_area] = Layout::vertical([Constraint::Length(1)])
+                .flex(Flex::Center)
+                .areas(indicator_area);
+            Paragraph::new(">")
+                .left_aligned()
+                .light_blue()
+                .bold()
+                .render(indicator_area, buffer);
+        }
+
+        self.inner.render(main_area, buffer);
     }
 
     pub fn type_validation<T>(line: &str, _: &mut D) -> Result<()>

@@ -31,6 +31,14 @@ impl<T> ActionList<T> {
     pub fn selected(&self) -> Option<&T> {
         self.items.get(self.state.selected()?)
     }
+
+    pub fn selected_mut(&mut self) -> Option<&mut T> {
+        self.items.get_mut(self.state.selected()?)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
 }
 
 impl<T> ActionList<T>

@@ -2,15 +2,17 @@ use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    widgets::{Paragraph, Widget},
+    layout::{Constraint, Flex, Layout, Rect},
+    style::Stylize,
+    text::Line,
+    widgets::{ListItem, Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
 
 use crate::application::{
     profile::Profile,
-    util::list::ActionList,
+    util::{list::ActionList, TEXT_FG_COLOR, WARN_SELECTED_COLOR},
     State,
 };
 
@@ -78,6 +80,16 @@ impl Widget for &mut ConnectWindow {
 
         if let Some(list) = self.list.as_mut() {
             list.render(main_area, buffer);
+            if list.is_empty() {
+                let [main_area] = Layout::vertical([Constraint::Length(1)])
+                    .flex(Flex::Center)
+                    .areas(main_area);
+                Paragraph::new("You dont have any existing controllers. Use Esc to exit.")
+                    .fg(WARN_SELECTED_COLOR)
+                    .bold()
+                    .centered()
+                    .render(main_area, buffer);
+            }
         }
     }
 }
@@ -87,5 +99,11 @@ impl ConnectWindow {
         Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to exit.")
             .centered()
             .render(area, buffer);
+    }
+}
+
+impl From<&Profile> for ListItem<'_> {
+    fn from(profile: &Profile) -> Self {
+        ListItem::new(Line::styled(format!(" {}", profile.name), TEXT_FG_COLOR))
     }
 }

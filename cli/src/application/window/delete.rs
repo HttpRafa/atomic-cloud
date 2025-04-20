@@ -2,7 +2,8 @@ use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Flex, Layout, Rect},
+    style::Stylize,
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
     Frame,
@@ -11,22 +12,36 @@ use tonic::async_trait;
 
 use crate::application::{
     profile::Profile,
-    util::{list::ActionList, TEXT_FG_COLOR},
+    util::{list::ActionList, ERROR_SELECTED_COLOR, TEXT_FG_COLOR, WARN_SELECTED_COLOR},
     State,
 };
 
 use super::{StackBatcher, Window, WindowUtils};
 
+struct ListProfile {
+    inner: Profile,
+    delete: bool,
+}
+
 #[derive(Default)]
 pub struct DeleteWindow {
-    list: Option<ActionList<Profile>>,
+    list: Option<ActionList<ListProfile>>,
 }
 
 #[async_trait]
 impl Window for DeleteWindow {
     async fn init(&mut self, _stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         self.list = Some(ActionList::new(
-            state.profiles.profiles.values().cloned().collect(),
+            state
+                .profiles
+                .profiles
+                .values()
+                .cloned()
+                .map(|profile| ListProfile {
+                    inner: profile,
+                    delete: false,
+                })
+                .collect(),
         ));
         Ok(())
     }
@@ -38,7 +53,7 @@ impl Window for DeleteWindow {
     async fn handle_event(
         &mut self,
         stack: &mut StackBatcher,
-        _state: &mut State,
+        state: &mut State,
         event: Event,
     ) -> Result<()> {
         let Some(list) = self.list.as_mut() else {
@@ -51,7 +66,18 @@ impl Window for DeleteWindow {
             }
             match event.code {
                 KeyCode::Esc => stack.pop(),
-                KeyCode::Enter => {}
+                KeyCode::Enter => {
+                    if let Some(profile) = list.selected_mut() {
+                        if profile.delete {
+                            // Delete profile
+                            state.profiles.delete_profile(&profile.inner).await?;
+                            stack.pop();
+                        } else {
+                            // Request confirmation from user
+                            profile.delete = true;
+                        }
+                    }
+                }
                 KeyCode::Down => list.next(),
                 KeyCode::Up => list.previous(),
                 _ => {}
@@ -79,6 +105,16 @@ impl Widget for &mut DeleteWindow {
 
         if let Some(list) = self.list.as_mut() {
             list.render(main_area, buffer);
+            if list.is_empty() {
+                let [main_area] = Layout::vertical([Constraint::Length(1)])
+                    .flex(Flex::Center)
+                    .areas(main_area);
+                Paragraph::new("You dont have any existing controllers. Use Esc to exit.")
+                    .fg(WARN_SELECTED_COLOR)
+                    .bold()
+                    .centered()
+                    .render(main_area, buffer);
+            }
         }
     }
 }
@@ -91,8 +127,16 @@ impl DeleteWindow {
     }
 }
 
-impl From<&Profile> for ListItem<'_> {
-    fn from(profile: &Profile) -> Self {
-        ListItem::new(Line::styled(format!(" {}", profile.name), TEXT_FG_COLOR))
+impl From<&ListProfile> for ListItem<'_> {
+    fn from(profile: &ListProfile) -> Self {
+        let (text, color) = if profile.delete {
+            (
+                format!(" {} (Confirm)", profile.inner.name),
+                ERROR_SELECTED_COLOR,
+            )
+        } else {
+            (format!(" {}", profile.inner.name), TEXT_FG_COLOR)
+        };
+        ListItem::new(Line::styled(text, color))
     }
 }

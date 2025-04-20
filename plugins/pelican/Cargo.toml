@@ -14,7 +14,7 @@ common = { path = "../../common" }
 wit-bindgen = "0.41.0"
 
 # Error handling
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }

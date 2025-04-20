@@ -11,22 +11,22 @@ common = { path = "../../common" }
 simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 
 # Signal handling
-ctrlc = "3.4.5"
+ctrlc = "3.4.6"
 
 # User system
 uuid = { version = "1.16.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.36", features = ["derive"] }
 
 # Regex parsing
 regex = "1.11.1"
 
 # Async runtime
-tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 tonic = { version = "0.13.0", features = ["tls-ring"] }

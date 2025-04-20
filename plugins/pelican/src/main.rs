@@ -1,6 +1,6 @@
 #![no_main]
-#![feature(let_chains)]
 #![warn(clippy::all, clippy::pedantic)]
+#![feature(let_chains)]
 
 use generated::{
     export,

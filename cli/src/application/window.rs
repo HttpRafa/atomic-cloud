@@ -15,6 +15,7 @@ use crate::VERSION;
 use super::State;
 
 pub mod connect;
+pub mod controller;
 pub mod create;
 pub mod delete;
 pub mod start;
@@ -34,6 +35,12 @@ impl StackBatcher {
 
     pub fn pop(&mut self) {
         self.0.push(StackAction::Pop);
+    }
+
+    pub fn pops(&mut self, amount: usize) {
+        for _ in 0..amount {
+            self.pop();
+        }
     }
 
     pub fn is_empty(&self) -> bool {

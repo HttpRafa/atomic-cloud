@@ -21,7 +21,7 @@ use crate::application::{
     State,
 };
 
-use super::{StackBatcher, Window, WindowUtils};
+use super::{controller::start::StartWindow, StackBatcher, Window, WindowUtils};
 
 pub struct ConnectWindow {
     /* Handles */
@@ -52,7 +52,23 @@ impl Window for ConnectWindow {
         Ok(())
     }
 
-    async fn tick(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+    async fn tick(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        // Network connection
+        if let Some(task) = &mut self.connect {
+            match task.get().await {
+                Ok(Some(Ok(connection))) => {
+                    self.status
+                        .change(Status::Successful, "Connected sucessfully!");
+                    stack.push(Box::new(StartWindow::new(connection)));
+                }
+                Err(error) | Ok(Some(Err(error))) => {
+                    self.status
+                        .change(Status::Fatal, &format!("{}", error.root_cause()));
+                }
+                _ => {}
+            }
+        }
+
         // UI
         self.status.next();
         Ok(())

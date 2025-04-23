@@ -15,7 +15,7 @@ mod util;
 mod window;
 
 pub const TICK_RATE: u64 = 10;
-pub const FRAME_RATE: u64 = 20;
+pub const FRAME_RATE: u64 = 25;
 
 pub struct Cli {
     running: bool,

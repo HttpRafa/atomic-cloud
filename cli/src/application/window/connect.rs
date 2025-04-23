@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
@@ -30,7 +32,7 @@ pub struct ConnectWindow {
     /* Window */
     status: StatusDisplay,
 
-    list: Option<ActionList<Profile>>,
+    list: Option<ActionList<'static, Profile>>,
 }
 
 impl Default for ConnectWindow {
@@ -102,9 +104,7 @@ impl Window for ConnectWindow {
                             Some(profile.establish_connection(state.known_hosts.clone()));
                     }
                 }
-                KeyCode::Down => list.next(),
-                KeyCode::Up => list.previous(),
-                _ => {}
+                _ => list.handle_event(event),
             }
         }
         Ok(())
@@ -127,18 +127,7 @@ impl Widget for &mut ConnectWindow {
         WindowUtils::render_header("Connect to existing controller", header_area, buffer);
         ConnectWindow::render_footer(footer_area, buffer);
 
-        if let Some(list) = self.list.as_mut() {
-            list.render(main_area, buffer);
-            if list.is_empty() {
-                CenterWarning::render(
-                    "You dont have any existing controllers. Use Esc to exit.",
-                    main_area,
-                    buffer,
-                );
-            } else if !self.status.is_ok() {
-                self.status.render_in_center(area, buffer);
-            }
-        }
+        self.render_body(main_area, buffer);
     }
 }
 
@@ -148,10 +137,33 @@ impl ConnectWindow {
             .centered()
             .render(area, buffer);
     }
+
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        let area = WindowUtils::render_background(area, buffer);
+
+        if let Some(list) = self.list.as_mut() {
+            list.render(area, buffer);
+            if list.is_empty() {
+                CenterWarning::render(
+                    "You dont have any existing controllers. Use Esc to exit.",
+                    area,
+                    buffer,
+                );
+            } else if !self.status.is_ok() {
+                self.status.render_in_center(area, buffer);
+            }
+        }
+    }
 }
 
 impl From<&Profile> for ListItem<'_> {
     fn from(profile: &Profile) -> Self {
         ListItem::new(Line::styled(format!(" {}", profile.name), TEXT_FG_COLOR))
+    }
+}
+
+impl Display for Profile {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.name)
     }
 }

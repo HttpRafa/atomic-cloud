@@ -3,8 +3,7 @@ use crossterm::event::{Event, KeyCode};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::Stylize,
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
@@ -17,7 +16,6 @@ use crate::{
         util::{
             area::SimpleTextArea,
             status::{Status, StatusDisplay},
-            HEADER_STYLE, NORMAL_ROW_BG,
         },
         State,
     },
@@ -234,20 +232,14 @@ impl CreateWindow {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let block = Block::new()
-            .borders(Borders::TOP | Borders::BOTTOM)
-            .border_style(HEADER_STYLE)
-            .bg(NORMAL_ROW_BG);
-        block.render(area, buffer);
+        let area = WindowUtils::render_background(area, buffer);
 
-        let [_, name_area, token_area, url_area, _, status_area, _] = Layout::vertical([
-            Constraint::Length(1), // Empty space
+        let [name_area, token_area, url_area, _, status_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(1), // Empty space
             Constraint::Fill(1),
-            Constraint::Length(1), // Empty space
         ])
         .areas(area);
 

@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
@@ -24,7 +26,7 @@ struct ListProfile {
 
 #[derive(Default)]
 pub struct DeleteWindow {
-    list: Option<ActionList<ListProfile>>,
+    list: Option<ActionList<'static, ListProfile>>,
 }
 
 #[async_trait]
@@ -77,9 +79,7 @@ impl Window for DeleteWindow {
                         }
                     }
                 }
-                KeyCode::Down => list.next(),
-                KeyCode::Up => list.previous(),
-                _ => {}
+                _ => list.handle_event(event),
             }
         }
         Ok(())
@@ -102,16 +102,7 @@ impl Widget for &mut DeleteWindow {
         WindowUtils::render_header("Remove existing controller", header_area, buffer);
         DeleteWindow::render_footer(footer_area, buffer);
 
-        if let Some(list) = self.list.as_mut() {
-            list.render(main_area, buffer);
-            if list.is_empty() {
-                CenterWarning::render(
-                    "You dont have any existing controllers. Use Esc to exit.",
-                    main_area,
-                    buffer,
-                );
-            }
-        }
+        self.render_body(main_area, buffer);
     }
 }
 
@@ -120,6 +111,21 @@ impl DeleteWindow {
         Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to exit.")
             .centered()
             .render(area, buffer);
+    }
+
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        let area = WindowUtils::render_background(area, buffer);
+
+        if let Some(list) = self.list.as_mut() {
+            list.render(area, buffer);
+            if list.is_empty() {
+                CenterWarning::render(
+                    "You dont have any existing controllers. Use Esc to exit.",
+                    area,
+                    buffer,
+                );
+            }
+        }
     }
 }
 
@@ -134,5 +140,11 @@ impl From<&ListProfile> for ListItem<'_> {
             (format!(" {}", profile.inner.name), TEXT_FG_COLOR)
         };
         ListItem::new(Line::styled(text, color))
+    }
+}
+
+impl Display for ListProfile {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.inner)
     }
 }

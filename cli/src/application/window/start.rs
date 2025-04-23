@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
@@ -21,7 +23,7 @@ use super::{
 
 #[derive(Default)]
 pub struct StartWindow {
-    list: Option<ActionList<Action>>,
+    list: Option<ActionList<'static, Action>>,
 }
 
 enum Action {
@@ -79,9 +81,7 @@ impl Window for StartWindow {
                         }
                     }
                 }
-                KeyCode::Down => list.next(),
-                KeyCode::Up => list.previous(),
-                _ => {}
+                _ => list.handle_event(event),
             }
         }
         Ok(())
@@ -104,9 +104,7 @@ impl Widget for &mut StartWindow {
         WindowUtils::render_header("Start", header_area, buffer);
         StartWindow::render_footer(footer_area, buffer);
 
-        if let Some(list) = self.list.as_mut() {
-            list.render(main_area, buffer);
-        }
+        self.render_body(main_area, buffer);
     }
 }
 
@@ -116,15 +114,28 @@ impl StartWindow {
             .centered()
             .render(area, buffer);
     }
+
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        let area = WindowUtils::render_background(area, buffer);
+
+        if let Some(list) = self.list.as_mut() {
+            list.render(area, buffer);
+        }
+    }
 }
 
 impl From<&Action> for ListItem<'_> {
     fn from(action: &Action) -> Self {
-        let line = match action {
-            Action::Connect => Line::styled(" Connect to existing controller", TEXT_FG_COLOR),
-            Action::Create => Line::styled(" Add new controller", TEXT_FG_COLOR),
-            Action::Delete => Line::styled(" Remove existing controller", TEXT_FG_COLOR),
-        };
-        ListItem::new(line)
+        ListItem::new(Line::styled(format!(" {action}"), TEXT_FG_COLOR))
+    }
+}
+
+impl Display for Action {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::Connect => write!(formatter, "Connect to existing controller"),
+            Action::Create => write!(formatter, "Add new controller"),
+            Action::Delete => write!(formatter, "Remove existing controller"),
+        }
     }
 }

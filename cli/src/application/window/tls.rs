@@ -4,17 +4,14 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     style::Stylize,
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
 
 use crate::application::{
     network::known_host::requests::TrustRequest,
-    util::{
-        button::SimpleButton, ERROR_COLOR, ERROR_SELECTED_COLOR, HEADER_STYLE, NORMAL_ROW_BG,
-        OK_COLOR, OK_SELECTED_COLOR,
-    },
+    util::{button::SimpleButton, ERROR_COLOR, ERROR_SELECTED_COLOR, OK_COLOR, OK_SELECTED_COLOR},
     State,
 };
 
@@ -137,24 +134,17 @@ impl TrustTlsWindow {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let block = Block::new()
-            .borders(Borders::TOP | Borders::BOTTOM)
-            .border_style(HEADER_STYLE)
-            .bg(NORMAL_ROW_BG);
-        block.render(area, buffer);
+        let area = WindowUtils::render_background(area, buffer);
 
-        let [_, title_area, _, host_area, _, fingerprint_area, button_area, _] =
-            Layout::vertical([
-                Constraint::Length(2), // Empty space
-                Constraint::Length(1), // Title
-                Constraint::Length(1),
-                Constraint::Length(1), // Host
-                Constraint::Length(1),
-                Constraint::Fill(2), // Fingerprint
-                Constraint::Length(3),
-                Constraint::Fill(1), // Empty space
-            ])
-            .areas(area);
+        let [title_area, _, host_area, _, fingerprint_area, button_area] = Layout::vertical([
+            Constraint::Length(1), // Title
+            Constraint::Length(1),
+            Constraint::Length(1), // Host
+            Constraint::Length(1),
+            Constraint::Fill(2), // Fingerprint
+            Constraint::Length(3),
+        ])
+        .areas(area);
 
         Paragraph::new("A new certificate has been detected. This certificate is currently untrusted. Would you like to trust it?").blue().bold().centered().render(title_area, buffer);
         Paragraph::new(self.request.get_host().host.to_string())

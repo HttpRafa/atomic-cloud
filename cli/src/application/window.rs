@@ -5,14 +5,17 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     style::Stylize,
-    widgets::{Paragraph, Widget},
+    widgets::{Block, Borders, Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
 
 use crate::VERSION;
 
-use super::State;
+use super::{
+    util::{HEADER_STYLE, NORMAL_ROW_BG},
+    State,
+};
 
 pub mod connect;
 pub mod controller;
@@ -137,5 +140,15 @@ impl WindowUtils {
             .bold()
             .centered()
             .render(title_area, buffer);
+    }
+
+    pub fn render_background(area: Rect, buffer: &mut Buffer) -> Rect {
+        let block = Block::new()
+            .borders(Borders::TOP | Borders::BOTTOM)
+            .border_style(HEADER_STYLE)
+            .bg(NORMAL_ROW_BG);
+        let inner_area = block.inner(area);
+        block.render(area, buffer);
+        inner_area
     }
 }

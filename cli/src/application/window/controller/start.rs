@@ -3,13 +3,15 @@ use crossterm::event::{Event, KeyCode};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{Paragraph, Widget},
+    style::Stylize,
+    widgets::{Block, Borders, Paragraph, Widget},
     Frame,
 };
 use tonic::async_trait;
 
 use crate::application::{
     network::connection::EstablishedConnection,
+    util::{HEADER_STYLE, NORMAL_ROW_BG},
     window::{StackBatcher, Window, WindowUtils},
     State,
 };
@@ -66,6 +68,8 @@ impl Widget for &mut StartWindow {
 
         WindowUtils::render_header("Controller", header_area, buffer);
         StartWindow::render_footer(footer_area, buffer);
+
+        self.render_body(main_area, buffer);
     }
 }
 
@@ -76,5 +80,11 @@ impl StartWindow {
             .render(area, buffer);
     }
 
-    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {}
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        let block = Block::new()
+            .borders(Borders::TOP | Borders::BOTTOM)
+            .border_style(HEADER_STYLE)
+            .bg(NORMAL_ROW_BG);
+        block.render(area, buffer);
+    }
 }

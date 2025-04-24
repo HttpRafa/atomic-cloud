@@ -68,12 +68,8 @@ impl WindowStack {
         Self(vec![])
     }
 
-    fn current(&mut self) -> Option<&mut BoxedWindow> {
-        self.0.last_mut()
-    }
-
     pub fn render(&mut self, area: Rect, buffer: &mut Buffer) -> bool {
-        if let Some(window) = self.current() {
+        if let Some(window) = self.0.last_mut() {
             window.render(area, buffer);
             true
         } else {
@@ -87,7 +83,7 @@ impl WindowStack {
         upper: &mut StackBatcher,
         event: Event,
     ) -> Result<()> {
-        if let Some(window) = self.current() {
+        if let Some(window) = self.0.last_mut() {
             let mut batcher = StackBatcher::default();
             window.handle_event(&mut batcher, state, event).await?;
             self.apply(state, upper, batcher).await?;
@@ -96,7 +92,7 @@ impl WindowStack {
     }
 
     pub async fn tick(&mut self, state: &mut State, upper: &mut StackBatcher) -> Result<()> {
-        if let Some(window) = self.current() {
+        if let Some(window) = self.0.last_mut() {
             let mut batcher = StackBatcher::default();
             window.tick(&mut batcher, state).await?;
             self.apply(state, upper, batcher).await?;

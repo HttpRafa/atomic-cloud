@@ -7,7 +7,6 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
-    Frame,
 };
 use tonic::async_trait;
 
@@ -21,9 +20,8 @@ use super::{
     WindowUtils,
 };
 
-#[derive(Default)]
 pub struct StartWindow {
-    list: Option<ActionList<'static, Action>>,
+    list: ActionList<'static, Action>,
 }
 
 enum Action {
@@ -32,17 +30,20 @@ enum Action {
     Delete,
 }
 
+impl Default for StartWindow {
+    fn default() -> Self {
+        Self {
+            list: ActionList::new(vec![Action::Connect, Action::Create, Action::Delete]),
+        }
+    }
+}
+
 #[async_trait]
 impl Window for StartWindow {
     async fn init(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         if state.profiles.is_empty() {
             stack.push(Box::new(CreateWindow::new(state)));
         }
-        self.list = Some(ActionList::new(vec![
-            Action::Connect,
-            Action::Create,
-            Action::Delete,
-        ]));
         Ok(())
     }
 
@@ -56,10 +57,6 @@ impl Window for StartWindow {
         state: &mut State,
         event: Event,
     ) -> Result<()> {
-        let Some(list) = self.list.as_mut() else {
-            return Ok(());
-        };
-
         if let Event::Key(event) = event {
             if event.kind != KeyEventKind::Press {
                 return Ok(());
@@ -67,7 +64,7 @@ impl Window for StartWindow {
             match event.code {
                 KeyCode::Esc => stack.pop(),
                 KeyCode::Enter => {
-                    if let Some(action) = list.selected() {
+                    if let Some(action) = self.list.selected() {
                         match *action {
                             Action::Connect => {
                                 stack.push(Box::new(ConnectWindow::default()));
@@ -81,14 +78,14 @@ impl Window for StartWindow {
                         }
                     }
                 }
-                _ => list.handle_event(event),
+                _ => self.list.handle_event(event),
             }
         }
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+    fn render(&mut self, area: Rect, buffer: &mut Buffer) {
+        Widget::render(self, area, buffer);
     }
 }
 
@@ -118,9 +115,7 @@ impl StartWindow {
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         let area = WindowUtils::render_background(area, buffer);
 
-        if let Some(list) = self.list.as_mut() {
-            list.render(area, buffer);
-        }
+        self.list.render(area, buffer);
     }
 }
 

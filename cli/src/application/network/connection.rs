@@ -8,6 +8,7 @@ use hyper_util::{
     rt::TokioExecutor,
 };
 use task::{spawn, ConnectTask};
+use tokio::sync::RwLock;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 use tonic::{body::Body, Request};
 use tower::ServiceBuilder;
@@ -24,8 +25,11 @@ pub mod task;
 pub mod wrapper;
 
 pub struct EstablishedConnection {
+    /* Host */
+    name: String,
+
     /* Connection */
-    connection: ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>,
+    connection: RwLock<ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>>,
     incompatible: bool,
     protocol: u32,
 
@@ -34,16 +38,27 @@ pub struct EstablishedConnection {
 }
 
 impl EstablishedConnection {
-    pub fn establish_new(url: Url, token: String, known_hosts: Arc<KnownHosts>) -> ConnectTask {
+    pub fn establish_new(
+        name: String,
+        url: Url,
+        token: String,
+        known_hosts: Arc<KnownHosts>,
+    ) -> ConnectTask {
         spawn(async move {
-            match EstablishedConnection::establish(url.clone(), token.clone(), known_hosts.clone())
-                .await
+            match EstablishedConnection::establish(
+                name.clone(),
+                url.clone(),
+                token.clone(),
+                known_hosts.clone(),
+            )
+            .await
             {
                 Err(_) => {
                     // Wait for all TLS prompt to be resolved
                     known_hosts.requests.wait_for_empty().await;
 
                     EstablishedConnection::establish(
+                        name,
                         url.clone(),
                         token.clone(),
                         known_hosts.clone(),
@@ -55,7 +70,12 @@ impl EstablishedConnection {
         })
     }
 
-    async fn establish(url: Url, token: String, known_hosts: Arc<KnownHosts>) -> Result<Self> {
+    async fn establish(
+        name: String,
+        url: Url,
+        token: String,
+        known_hosts: Arc<KnownHosts>,
+    ) -> Result<Self> {
         let mut tls = ClientConfig::builder()
             .with_root_certificates(RootCertStore::empty())
             .with_no_client_auth();
@@ -77,7 +97,11 @@ impl EstablishedConnection {
         let client = Client::builder(TokioExecutor::new()).build(connector);
 
         let mut connection = EstablishedConnection {
-            connection: ManageServiceClient::with_origin(client, Uri::from_str(url.as_str())?),
+            name,
+            connection: RwLock::new(ManageServiceClient::with_origin(
+                client,
+                Uri::from_str(url.as_str())?,
+            )),
             token: token.clone(),
             incompatible: false,
             protocol: 1,
@@ -95,6 +119,10 @@ impl EstablishedConnection {
 
     pub fn get_protocol(&self) -> u32 {
         self.protocol
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     fn create_request<T>(&self, data: T) -> Request<T> {

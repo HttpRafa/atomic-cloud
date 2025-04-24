@@ -7,7 +7,6 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
-    Frame,
 };
 use tonic::async_trait;
 
@@ -85,8 +84,8 @@ impl Window for DeleteWindow {
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+    fn render(&mut self, area: Rect, buffer: &mut Buffer) {
+        Widget::render(self, area, buffer);
     }
 }
 

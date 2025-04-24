@@ -42,7 +42,12 @@ impl Profile {
     }
 
     pub fn establish_connection(&self, known_hosts: Arc<KnownHosts>) -> ConnectTask {
-        EstablishedConnection::establish_new(self.url.clone(), self.token.clone(), known_hosts)
+        EstablishedConnection::establish_new(
+            self.name.clone(),
+            self.url.clone(),
+            self.token.clone(),
+            known_hosts,
+        )
     }
 
     async fn remove_file(&self) -> Result<()> {

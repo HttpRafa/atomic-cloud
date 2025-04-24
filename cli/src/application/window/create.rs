@@ -1,10 +1,9 @@
 use color_eyre::eyre::Result;
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     widgets::{Paragraph, Widget},
-    Frame,
 };
 use tonic::async_trait;
 use url::Url;
@@ -135,6 +134,9 @@ impl Window for CreateWindow {
         if !self.status.is_loading()
             && let Event::Key(event) = event
         {
+            if event.kind != KeyEventKind::Press {
+                return Ok(());
+            }
             match event.code {
                 KeyCode::Esc => stack.pop(),
                 KeyCode::Up => match self.current {
@@ -186,8 +188,8 @@ impl Window for CreateWindow {
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+    fn render(&mut self, area: Rect, buffer: &mut Buffer) {
+        Widget::render(self, area, buffer);
     }
 }
 

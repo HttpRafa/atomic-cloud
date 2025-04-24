@@ -7,7 +7,6 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
-    Frame,
 };
 use tonic::async_trait;
 
@@ -23,7 +22,7 @@ use crate::application::{
     State,
 };
 
-use super::{controller::start::StartWindow, StackBatcher, Window, WindowUtils};
+use super::{controller::ControllerWindow, StackBatcher, Window, WindowUtils};
 
 pub struct ConnectWindow {
     /* Handles */
@@ -61,7 +60,7 @@ impl Window for ConnectWindow {
                 Ok(Some(Ok(connection))) => {
                     self.status
                         .change(Status::Successful, "Connected sucessfully!");
-                    stack.push(Box::new(StartWindow::new(connection)));
+                    stack.push(Box::new(ControllerWindow::new(connection)));
                 }
                 Err(error) | Ok(Some(Err(error))) => {
                     self.status
@@ -104,14 +103,20 @@ impl Window for ConnectWindow {
                             Some(profile.establish_connection(state.known_hosts.clone()));
                     }
                 }
-                _ => list.handle_event(event),
+                _ => {
+                    if self.status.is_finished() && self.status.is_fatal() {
+                        self.status.change(Status::Ok, "null");
+                    }
+
+                    list.handle_event(event);
+                }
             }
         }
         Ok(())
     }
 
-    fn render(&mut self, frame: &mut Frame) {
-        frame.render_widget(self, frame.area());
+    fn render(&mut self, area: Rect, buffer: &mut Buffer) {
+        Widget::render(self, area, buffer);
     }
 }
 

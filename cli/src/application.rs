@@ -7,10 +7,11 @@ use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
 use tokio::{select, time::interval};
 use tokio_stream::StreamExt;
-use window::{start::StartWindow, tls::TrustTlsWindow, WindowStack};
+use window::{start::StartWindow, tls::TrustTlsWindow, StackBatcher, WindowStack};
 
 mod network;
 mod profile;
+mod tabs;
 mod util;
 mod window;
 
@@ -44,7 +45,11 @@ impl Cli {
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         // Push the home window to the stack
         self.stack
-            .push(&mut self.state, Box::new(StartWindow::default()))
+            .push(
+                &mut self.state,
+                &mut StackBatcher::default(),
+                Box::new(StartWindow::default()),
+            )
             .await?;
 
         // Events
@@ -68,24 +73,30 @@ impl Cli {
     async fn tick(&mut self) -> Result<()> {
         if let Some(request) = self.state.known_hosts.requests.dequeue() {
             self.stack
-                .push(&mut self.state, Box::new(TrustTlsWindow::new(request)))
+                .push(
+                    &mut self.state,
+                    &mut StackBatcher::default(),
+                    Box::new(TrustTlsWindow::new(request)),
+                )
                 .await?;
         }
         self.state.known_hosts.requests.cleanup();
 
-        self.stack.tick(&mut self.state).await?;
+        self.stack
+            .tick(&mut self.state, &mut StackBatcher::default())
+            .await?;
         Ok(())
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<()> {
-        self.stack.handle_event(&mut self.state, event).await?;
+        self.stack
+            .handle_event(&mut self.state, &mut StackBatcher::default(), event)
+            .await?;
         Ok(())
     }
 
     fn render(&mut self, frame: &mut Frame) {
-        if let Some(window) = self.stack.current() {
-            window.render(frame);
-        } else {
+        if !self.stack.render(frame.area(), frame.buffer_mut()) {
             self.running = false;
         }
     }

@@ -14,7 +14,12 @@ use crate::application::{network::connection::EstablishedConnection, tabs::Tabs,
 
 use super::{StackBatcher, Window};
 
+pub mod global;
+pub mod group;
+pub mod node;
+pub mod server;
 pub mod start;
+pub mod user;
 
 pub struct ControllerWindow {
     /* Connection */

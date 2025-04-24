@@ -7,9 +7,10 @@ use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
+    style::palette::tailwind::{BLUE, GREEN, RED},
     text::Line,
-    widgets::{ListItem, Widget},
+    widgets::{ListItem, Paragraph, Widget},
 };
 use tonic::async_trait;
 
@@ -21,6 +22,14 @@ use crate::application::{
     },
     window::{StackBatcher, Window},
     State,
+};
+
+use super::{
+    global::{delete::DeleteTab, set_active::SetActiveTab, stop::StopTab, version::VersionTab},
+    group::{create::CreateGroupTab, get::GetGroupTab},
+    node::{create::CreateNodeTab, get::GetNodeTab},
+    server::{get::GetServerTab, screen::ScreenTab},
+    user::transfer::TransferUserTab,
 };
 
 pub struct StartTab {
@@ -107,7 +116,88 @@ impl Window for StartTab {
             }
             match event.code {
                 KeyCode::Esc => stack.close_tab(),
-                KeyCode::Enter => if let Some(_action) = self.list.selected() {},
+                KeyCode::Enter => {
+                    if let Some(action) = self.list.selected() {
+                        match action {
+                            Action::SetResource => stack.add_tab(
+                                "Active",
+                                GREEN,
+                                Box::new(SetActiveTab::new(self.connection.clone())),
+                            ),
+                            Action::DeleteResource => stack.add_tab(
+                                "Delete",
+                                RED,
+                                Box::new(DeleteTab::new(self.connection.clone())),
+                            ),
+
+                            Action::CreateNode => stack.add_tab(
+                                "Create",
+                                GREEN,
+                                Box::new(CreateNodeTab::new(self.connection.clone())),
+                            ),
+                            Action::GetNode => stack.add_tab(
+                                "Node",
+                                GREEN,
+                                Box::new(GetNodeTab::new(self.connection.clone())),
+                            ),
+                            Action::GetNodes => stack.add_tab(
+                                "Nodes",
+                                GREEN,
+                                Box::new(GetNodeTab::new(self.connection.clone())),
+                            ),
+
+                            Action::CreateGroup => stack.add_tab(
+                                "Create",
+                                GREEN,
+                                Box::new(CreateGroupTab::new(self.connection.clone())),
+                            ),
+                            Action::GetGroup => stack.add_tab(
+                                "Group",
+                                GREEN,
+                                Box::new(GetGroupTab::new(self.connection.clone())),
+                            ),
+                            Action::GetGroups => stack.add_tab(
+                                "Groups",
+                                GREEN,
+                                Box::new(GetGroupTab::new(self.connection.clone())),
+                            ),
+
+                            Action::GetServer => stack.add_tab(
+                                "Server",
+                                GREEN,
+                                Box::new(GetServerTab::new(self.connection.clone())),
+                            ),
+                            Action::GetServers => stack.add_tab(
+                                "Servers",
+                                GREEN,
+                                Box::new(GetServerTab::new(self.connection.clone())),
+                            ),
+
+                            Action::OpenScreen => stack.add_tab(
+                                "Screen",
+                                BLUE,
+                                Box::new(ScreenTab::new(self.connection.clone())),
+                            ),
+
+                            Action::TransferUsers => stack.add_tab(
+                                "Transfer",
+                                BLUE,
+                                Box::new(TransferUserTab::new(self.connection.clone())),
+                            ),
+
+                            Action::RequestStop => stack.add_tab(
+                                "Stop",
+                                RED,
+                                Box::new(StopTab::new(self.connection.clone())),
+                            ),
+                            Action::GetVersions => stack.add_tab(
+                                "Versions",
+                                RED,
+                                Box::new(VersionTab::new(self.connection.clone())),
+                            ),
+                        }
+                    }
+                }
                 _ => self.list.handle_event(event),
             }
         }
@@ -121,11 +211,22 @@ impl Window for StartTab {
 
 impl Widget for &mut StartTab {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        self.render_body(area, buffer);
+        let [main_area, footer_area] =
+            Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+
+        StartTab::render_footer(footer_area, buffer);
+
+        self.render_body(main_area, buffer);
     }
 }
 
 impl StartTab {
+    fn render_footer(area: Rect, buffer: &mut Buffer) {
+        Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to close tab.")
+            .centered()
+            .render(area, buffer);
+    }
+
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         self.list.render(area, buffer);
     }

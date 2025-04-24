@@ -10,14 +10,14 @@ use tui_textarea::{Input, Key, TextArea};
 
 use super::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG, SELECTED_STYLE};
 
-pub struct ActionList<'a, T> {
+pub struct ActionList<'a, T: Display> {
     search: TextArea<'a>,
 
     items: Vec<T>,
     state: ListState,
 }
 
-impl<T> ActionList<'_, T> {
+impl<T: Display> ActionList<'_, T> {
     pub fn new(items: Vec<T>) -> Self {
         let mut search = TextArea::default();
         search.set_cursor_line_style(Style::default());
@@ -42,11 +42,37 @@ impl<T> ActionList<'_, T> {
     }
 
     pub fn selected(&self) -> Option<&T> {
-        self.items.get(self.state.selected()?)
+        // Reproduce search and order from displayed list
+        self.items
+            .iter()
+            .filter(|item| {
+                item.to_string().to_lowercase().trim().contains(
+                    self.search
+                        .lines()
+                        .first()
+                        .expect("Should always return min one line")
+                        .to_lowercase()
+                        .trim(),
+                )
+            })
+            .nth(self.state.selected()?)
     }
 
     pub fn selected_mut(&mut self) -> Option<&mut T> {
-        self.items.get_mut(self.state.selected()?)
+        // Reproduce search and order from displayed list
+        self.items
+            .iter_mut()
+            .filter(|item| {
+                item.to_string().to_lowercase().trim().contains(
+                    self.search
+                        .lines()
+                        .first()
+                        .expect("Should always return min one line")
+                        .to_lowercase()
+                        .trim(),
+                )
+            })
+            .nth(self.state.selected()?)
     }
 
     pub fn is_empty(&self) -> bool {

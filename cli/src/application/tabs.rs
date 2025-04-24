@@ -150,7 +150,7 @@ impl Widget for &mut Tabs {
 
 impl Tabs {
     fn render_footer(area: Rect, buffer: &mut Buffer) {
-        Paragraph::new("Use F keys to switch tabs, Esc to go back.")
+        Paragraph::new("Use F keys to switch tabs")
             .centered()
             .render(area, buffer);
     }

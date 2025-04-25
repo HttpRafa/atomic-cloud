@@ -22,7 +22,7 @@ pub mod start;
 pub mod user;
 pub mod util;
 
-pub struct ControllerWindow {
+pub struct TabsWindow {
     /* Connection */
     connection: Arc<EstablishedConnection>,
 
@@ -30,7 +30,7 @@ pub struct ControllerWindow {
     tabs: Tabs,
 }
 
-impl ControllerWindow {
+impl TabsWindow {
     pub fn new(connection: EstablishedConnection) -> Self {
         Self {
             tabs: Tabs::new(connection.get_name()),
@@ -40,7 +40,7 @@ impl ControllerWindow {
 }
 
 #[async_trait]
-impl Window for ControllerWindow {
+impl Window for TabsWindow {
     async fn init(&mut self, _stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         self.tabs
             .add_tab(

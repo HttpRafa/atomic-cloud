@@ -17,7 +17,6 @@ use super::{
 };
 
 pub mod connect;
-pub mod controller;
 pub mod create;
 pub mod delete;
 pub mod start;

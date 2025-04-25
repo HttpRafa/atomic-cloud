@@ -8,6 +8,7 @@ use ratatui::{
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
 };
+use tab::TabsWindow;
 use tonic::async_trait;
 
 use crate::application::{
@@ -22,7 +23,9 @@ use crate::application::{
     State,
 };
 
-use super::{controller::ControllerWindow, StackBatcher, Window, WindowUtils};
+use super::{StackBatcher, Window, WindowUtils};
+
+pub mod tab;
 
 pub struct ConnectWindow {
     /* Handles */
@@ -65,7 +68,7 @@ impl Window for ConnectWindow {
                 Ok(Some(Ok(connection))) => {
                     self.status
                         .change(Status::Successful, "Connected sucessfully!");
-                    stack.push(ControllerWindow::new(connection));
+                    stack.push(TabsWindow::new(connection));
                 }
                 Err(error) | Ok(Some(Err(error))) => {
                     self.status

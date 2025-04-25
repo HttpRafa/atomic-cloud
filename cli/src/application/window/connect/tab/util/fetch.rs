@@ -68,7 +68,7 @@ impl<T: Send> Window for FetchWindow<T> {
             Ok(Some(Ok(connection))) => {
                 self.status.change(
                     Status::Successful,
-                    "Sucessfully retrived to required information!",
+                    "Sucessfully retrieved the required information", // Not really visible
                 );
                 (self.callback)(connection, self.connection.clone(), stack, state)?;
             }

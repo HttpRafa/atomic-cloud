@@ -20,7 +20,7 @@ use crate::application::{
     },
     util::TEXT_FG_COLOR,
     window::{
-        controller::util::{fetch::FetchWindow, select::SelectWindow},
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
     },
     State,

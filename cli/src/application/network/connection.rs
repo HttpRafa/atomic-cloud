@@ -29,7 +29,7 @@ pub struct EstablishedConnection {
     name: String,
 
     /* Connection */
-    connection: RwLock<ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>>,
+    connection: Arc<RwLock<ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>>>,
     incompatible: bool,
     protocol: u32,
 
@@ -98,15 +98,15 @@ impl EstablishedConnection {
 
         let mut connection = EstablishedConnection {
             name,
-            connection: RwLock::new(ManageServiceClient::with_origin(
+            connection: Arc::new(RwLock::new(ManageServiceClient::with_origin(
                 client,
                 Uri::from_str(url.as_str())?,
-            )),
+            ))),
             token: token.clone(),
             incompatible: false,
             protocol: 1,
         };
-        let protocol = connection.get_proto_ver().await?;
+        let protocol = connection.get_proto_ver().get().await??;
         connection.protocol = protocol;
         connection.incompatible = protocol != VERSION.protocol;
 

@@ -48,7 +48,7 @@ impl Cli {
             .push(
                 &mut self.state,
                 &mut StackBatcher::default(),
-                Box::new(StartWindow::default()),
+                Box::new(StartWindow::new()),
             )
             .await?;
 

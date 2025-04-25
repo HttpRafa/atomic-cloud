@@ -80,7 +80,7 @@ impl Window for CreateWindow {
     async fn tick(&mut self, _stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         // Network connection
         if let Some(task) = &mut self.connect {
-            match task.get().await {
+            match task.get_now().await {
                 Ok(Some(Ok(connection))) => {
                     if let Err(error) = state
                         .profiles

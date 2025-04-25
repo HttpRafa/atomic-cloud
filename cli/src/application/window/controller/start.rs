@@ -87,8 +87,8 @@ impl StartTab {
                 Action::GetServer,
                 Action::GetServers,
                 Action::GetVersions,
-                Action::RequestStop,
                 Action::DeleteResource,
+                Action::RequestStop,
             ]),
         }
     }
@@ -122,78 +122,76 @@ impl Window for StartTab {
                             Action::SetResource => stack.add_tab(
                                 "Active",
                                 GREEN,
-                                Box::new(SetActiveTab::new(self.connection.clone())),
+                                SetActiveTab::new(self.connection.clone()),
                             ),
                             Action::DeleteResource => stack.add_tab(
                                 "Delete",
                                 RED,
-                                Box::new(DeleteTab::new(self.connection.clone())),
+                                DeleteTab::new(self.connection.clone()),
                             ),
 
                             Action::CreateNode => stack.add_tab(
                                 "Create",
                                 GREEN,
-                                Box::new(CreateNodeTab::new(self.connection.clone())),
+                                CreateNodeTab::new(self.connection.clone()),
                             ),
                             Action::GetNode => stack.add_tab(
                                 "Node",
                                 GREEN,
-                                Box::new(GetNodeTab::new(self.connection.clone())),
+                                GetNodeTab::new(self.connection.clone()),
                             ),
                             Action::GetNodes => stack.add_tab(
                                 "Nodes",
                                 GREEN,
-                                Box::new(GetNodeTab::new(self.connection.clone())),
+                                GetNodeTab::new(self.connection.clone()),
                             ),
 
                             Action::CreateGroup => stack.add_tab(
                                 "Create",
                                 GREEN,
-                                Box::new(CreateGroupTab::new(self.connection.clone())),
+                                CreateGroupTab::new(self.connection.clone()),
                             ),
                             Action::GetGroup => stack.add_tab(
                                 "Group",
                                 GREEN,
-                                Box::new(GetGroupTab::new(self.connection.clone())),
+                                GetGroupTab::new(self.connection.clone()),
                             ),
                             Action::GetGroups => stack.add_tab(
                                 "Groups",
                                 GREEN,
-                                Box::new(GetGroupTab::new(self.connection.clone())),
+                                GetGroupTab::new(self.connection.clone()),
                             ),
 
                             Action::GetServer => stack.add_tab(
                                 "Server",
                                 GREEN,
-                                Box::new(GetServerTab::new(self.connection.clone())),
+                                GetServerTab::new(self.connection.clone()),
                             ),
                             Action::GetServers => stack.add_tab(
                                 "Servers",
                                 GREEN,
-                                Box::new(GetServerTab::new(self.connection.clone())),
+                                GetServerTab::new(self.connection.clone()),
                             ),
 
                             Action::OpenScreen => stack.add_tab(
                                 "Screen",
                                 BLUE,
-                                Box::new(ScreenTab::new(self.connection.clone())),
+                                ScreenTab::collected(self.connection.clone()),
                             ),
 
                             Action::TransferUsers => stack.add_tab(
                                 "Transfer",
                                 BLUE,
-                                Box::new(TransferUserTab::new(self.connection.clone())),
+                                TransferUserTab::new(self.connection.clone()),
                             ),
 
-                            Action::RequestStop => stack.add_tab(
-                                "Stop",
-                                RED,
-                                Box::new(StopTab::new(self.connection.clone())),
-                            ),
+                            Action::RequestStop => {
+                                stack.add_tab("Stop", RED, StopTab::new(self.connection.clone()));
+                            }
                             Action::GetVersions => stack.add_tab(
                                 "Versions",
                                 RED,
-                                Box::new(VersionTab::new(self.connection.clone())),
+                                VersionTab::new(self.connection.clone()),
                             ),
                         }
                     }

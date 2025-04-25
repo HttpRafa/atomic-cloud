@@ -32,6 +32,12 @@ enum Action {
 
 impl Default for StartWindow {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StartWindow {
+    pub fn new() -> Self {
         Self {
             list: ActionList::new(vec![Action::Connect, Action::Create, Action::Delete]),
         }
@@ -42,7 +48,7 @@ impl Default for StartWindow {
 impl Window for StartWindow {
     async fn init(&mut self, stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         if state.profiles.is_empty() {
-            stack.push(Box::new(CreateWindow::new(state)));
+            stack.push(CreateWindow::new(state));
         }
         Ok(())
     }
@@ -67,13 +73,13 @@ impl Window for StartWindow {
                     if let Some(action) = self.list.selected() {
                         match *action {
                             Action::Connect => {
-                                stack.push(Box::new(ConnectWindow::default()));
+                                stack.push(ConnectWindow::new());
                             }
                             Action::Create => {
-                                stack.push(Box::new(CreateWindow::new(state)));
+                                stack.push(CreateWindow::new(state));
                             }
                             Action::Delete => {
-                                stack.push(Box::new(DeleteWindow::default()));
+                                stack.push(DeleteWindow::new());
                             }
                         }
                     }

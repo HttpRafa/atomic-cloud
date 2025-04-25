@@ -23,9 +23,20 @@ struct ListProfile {
     delete: bool,
 }
 
-#[derive(Default)]
 pub struct DeleteWindow {
     list: Option<ActionList<'static, ListProfile>>,
+}
+
+impl Default for DeleteWindow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DeleteWindow {
+    pub fn new() -> Self {
+        Self { list: None }
+    }
 }
 
 #[async_trait]

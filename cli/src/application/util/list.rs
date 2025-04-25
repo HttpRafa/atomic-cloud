@@ -14,6 +14,8 @@ pub struct ActionList<'a, T: Display> {
     search: TextArea<'a>,
 
     items: Vec<T>,
+    view: Vec<usize>,
+
     state: ListState,
 }
 
@@ -26,11 +28,14 @@ impl<T: Display> ActionList<'_, T> {
         let mut state = ListState::default();
         state.select_first();
 
-        Self {
+        let mut list = Self {
             search,
             items,
+            view: vec![],
             state,
-        }
+        };
+        list.update();
+        list
     }
 
     pub fn next(&mut self) {
@@ -41,38 +46,45 @@ impl<T: Display> ActionList<'_, T> {
         self.state.select_previous();
     }
 
+    pub fn take_selected(&mut self) -> Option<T> {
+        let value =
+            self.items
+                .remove(*self.view.get(self.state.selected()?).expect(
+                    "This should not fail because we update the view every time the user types",
+                ));
+        self.update();
+        Some(value)
+    }
+
     pub fn selected(&self) -> Option<&T> {
-        // Reproduce search and order from displayed list
-        self.items
-            .iter()
-            .filter(|item| {
-                item.to_string().to_lowercase().trim().contains(
-                    self.search
-                        .lines()
-                        .first()
-                        .expect("Should always return min one line")
-                        .to_lowercase()
-                        .trim(),
-                )
-            })
-            .nth(self.state.selected()?)
+        self.view
+            .get(self.state.selected()?)
+            .and_then(|index| self.items.get(*index))
     }
 
     pub fn selected_mut(&mut self) -> Option<&mut T> {
-        // Reproduce search and order from displayed list
-        self.items
-            .iter_mut()
-            .filter(|item| {
-                item.to_string().to_lowercase().trim().contains(
+        self.view
+            .get(self.state.selected()?)
+            .and_then(|index| self.items.get_mut(*index))
+    }
+
+    fn update(&mut self) {
+        self.view.clear();
+        self.view
+            .extend(self.items.iter().enumerate().filter_map(|(index, item)| {
+                if item.to_string().to_lowercase().trim().contains(
                     self.search
                         .lines()
                         .first()
                         .expect("Should always return min one line")
                         .to_lowercase()
                         .trim(),
-                )
-            })
-            .nth(self.state.selected()?)
+                ) {
+                    Some(index)
+                } else {
+                    None
+                }
+            }));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -90,6 +102,7 @@ impl<T: Display> ActionList<'_, T> {
             input => {
                 if self.search.input(input) {
                     self.state.select_first();
+                    self.update();
                 }
             }
         }
@@ -105,27 +118,18 @@ where
             Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
 
         let items: Vec<ListItem> = self
-            .items
+            .view
             .iter()
-            .enumerate()
-            .filter_map(|(i, item)| {
-                if item.to_string().to_lowercase().trim().contains(
-                    self.search
-                        .lines()
-                        .first()
-                        .expect("Should always return min one line")
-                        .to_lowercase()
-                        .trim(),
-                ) {
-                    let color = if i % 2 == 0 {
-                        NORMAL_ROW_BG
-                    } else {
-                        ALT_ROW_BG_COLOR
-                    };
-                    Some(ListItem::from(item).bg(color))
+            .map(|index| {
+                let color = if index % 2 == 0 {
+                    NORMAL_ROW_BG
                 } else {
-                    None
-                }
+                    ALT_ROW_BG_COLOR
+                };
+                let item = self.items.get(*index).expect(
+                    "This should not fail because we update the view every time the user types",
+                );
+                ListItem::from(item).bg(color)
             })
             .collect();
 

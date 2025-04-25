@@ -20,6 +20,7 @@ pub mod node;
 pub mod server;
 pub mod start;
 pub mod user;
+pub mod util;
 
 pub struct ControllerWindow {
     /* Connection */

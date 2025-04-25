@@ -1,28 +1,63 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Display, Formatter},
+    sync::Arc,
+};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{Paragraph, Widget},
+    text::Line,
+    widgets::{ListItem, Paragraph, Widget},
 };
-use tonic::async_trait;
+use tonic::{async_trait, Streaming};
 
 use crate::application::{
-    network::connection::EstablishedConnection,
-    window::{StackBatcher, Window},
+    network::{
+        connection::EstablishedConnection,
+        proto::manage::{screen, server},
+    },
+    util::TEXT_FG_COLOR,
+    window::{
+        controller::util::{fetch::FetchWindow, select::SelectWindow},
+        StackBatcher, Window,
+    },
     State,
 };
 
 pub struct ScreenTab {
     /* Connection */
     connection: Arc<EstablishedConnection>,
+    stream: Streaming<screen::Lines>,
 }
 
 impl ScreenTab {
-    pub fn new(connection: Arc<EstablishedConnection>) -> Self {
-        Self { connection }
+    /// Creates a new screen tab.
+    /// This function will create a window stack to get the required information to display the screen.
+    pub fn collected(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<server::Short>> {
+        FetchWindow::new(
+            connection.get_servers(),
+            connection,
+            move |servers, connection: Arc<EstablishedConnection>, stack, _| {
+                stack.push(SelectWindow::new(servers, move |server, stack, _| {
+                    stack.push(FetchWindow::new(
+                        connection.subscribe_to_screen(&server.id),
+                        connection.clone(),
+                        move |screen, connection, stack, _| {
+                            stack.push(ScreenTab::new(connection, screen));
+                            Ok(())
+                        },
+                    ));
+                    Ok(())
+                }));
+                Ok(())
+            },
+        )
+    }
+
+    pub fn new(connection: Arc<EstablishedConnection>, stream: Streaming<screen::Lines>) -> Self {
+        Self { connection, stream }
     }
 }
 
@@ -71,10 +106,22 @@ impl Widget for &mut ScreenTab {
 
 impl ScreenTab {
     fn render_footer(area: Rect, buffer: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to close tab.")
+        Paragraph::new("Use Esc to close screen.")
             .centered()
             .render(area, buffer);
     }
 
     fn render_body(&mut self, _area: Rect, _buffer: &mut Buffer) {}
+}
+
+impl From<&server::Short> for ListItem<'_> {
+    fn from(server: &server::Short) -> Self {
+        ListItem::new(Line::styled(format!(" {server}"), TEXT_FG_COLOR))
+    }
+}
+
+impl Display for server::Short {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.name)
+    }
 }

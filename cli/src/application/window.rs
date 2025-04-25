@@ -23,7 +23,7 @@ pub mod delete;
 pub mod start;
 pub mod tls;
 
-pub type BoxedWindow = Box<dyn Window + Send + Sync>;
+pub type BoxedWindow = Box<dyn Window + Send>;
 
 pub struct WindowStack(Vec<BoxedWindow>);
 
@@ -35,13 +35,22 @@ impl StackBatcher {
         self.0.push(action);
     }
 
-    pub fn push(&mut self, window: BoxedWindow) {
-        self.0.push(StackAction::Push(window));
+    pub fn push<T>(&mut self, window: T)
+    where
+        T: Window + Send + 'static,
+    {
+        self.0.push(StackAction::Push(Box::new(window)));
     }
 
-    pub fn add_tab(&mut self, name: &str, palette: Palette, init: BoxedWindow) {
-        self.0
-            .push(StackAction::AddTab((name.to_owned(), palette, init)));
+    pub fn add_tab<T>(&mut self, name: &str, palette: Palette, init: T)
+    where
+        T: Window + Send + 'static,
+    {
+        self.0.push(StackAction::AddTab((
+            name.to_owned(),
+            palette,
+            Box::new(init),
+        )));
     }
 
     pub fn pop(&mut self) {

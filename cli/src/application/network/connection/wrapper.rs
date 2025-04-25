@@ -12,219 +12,280 @@ use crate::application::network::proto::{
     },
 };
 
-use super::EstablishedConnection;
+use super::{
+    task::{spawn, EmptyTask, NetworkTask},
+    EstablishedConnection,
+};
 
 impl EstablishedConnection {
-    pub async fn request_stop(&mut self) -> Result<()> {
+    pub fn request_stop(&self) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        self.connection.write().await.request_stop(request).await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.request_stop(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn set_resource(&mut self, request: SetReq) -> Result<()> {
+    pub fn set_resource(&self, request: SetReq) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(request);
-        self.connection.write().await.set_resource(request).await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.set_resource(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn delete_resource(&mut self, request: DelReq) -> Result<()> {
+    pub fn delete_resource(&self, request: DelReq) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(request);
-        self.connection
-            .write()
-            .await
-            .delete_resource(request)
-            .await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.delete_resource(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn get_plugins(&mut self) -> Result<Vec<String>> {
+    pub fn get_plugins(&self) -> NetworkTask<Result<Vec<String>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_plugins(request)
-            .await?
-            .into_inner()
-            .plugins)
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_plugins(request)
+                .await?
+                .into_inner()
+                .plugins)
+        })
     }
 
-    pub async fn create_node(&mut self, node: node::Item) -> Result<()> {
+    pub fn create_node(&self, node: node::Item) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(node);
-        self.connection.write().await.create_node(request).await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.create_node(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn update_node(&mut self, request: node::UpdateReq) -> Result<node::Item> {
+    pub fn update_node(&self, request: node::UpdateReq) -> NetworkTask<Result<node::Item>> {
+        let connection = self.connection.clone();
         let request = self.create_request(request);
-        Ok(self
-            .connection
-            .write()
-            .await
-            .update_node(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .update_node(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_node(&mut self, name: &str) -> Result<node::Item> {
+    pub fn get_node(&self, name: &str) -> NetworkTask<Result<node::Item>> {
+        let connection = self.connection.clone();
         let request = self.create_request(name.to_string());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_node(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_node(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_nodes(&mut self) -> Result<Vec<String>> {
+    pub fn get_nodes(&self) -> NetworkTask<Result<Vec<String>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_nodes(request)
-            .await?
-            .into_inner()
-            .nodes)
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_nodes(request)
+                .await?
+                .into_inner()
+                .nodes)
+        })
     }
 
-    pub async fn create_group(&mut self, group: group::Item) -> Result<()> {
+    pub fn create_group(&self, group: group::Item) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(group);
-        self.connection.write().await.create_group(request).await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.create_group(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn update_group(&mut self, request: group::UpdateReq) -> Result<group::Item> {
+    pub fn update_group(&self, request: group::UpdateReq) -> NetworkTask<Result<group::Item>> {
+        let connection = self.connection.clone();
         let request = self.create_request(request);
-        Ok(self
-            .connection
-            .write()
-            .await
-            .update_group(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .update_group(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_group(&mut self, name: &str) -> Result<group::Item> {
+    pub fn get_group(&self, name: &str) -> NetworkTask<Result<group::Item>> {
+        let connection = self.connection.clone();
         let request = self.create_request(name.to_string());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_group(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_group(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_groups(&mut self) -> Result<Vec<String>> {
+    pub fn get_groups(&self) -> NetworkTask<Result<Vec<String>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_groups(request)
-            .await?
-            .into_inner()
-            .groups)
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_groups(request)
+                .await?
+                .into_inner()
+                .groups)
+        })
     }
 
-    pub async fn get_server(&mut self, uuid: &str) -> Result<server::Detail> {
+    pub fn get_server(&self, uuid: &str) -> NetworkTask<Result<server::Detail>> {
+        let connection = self.connection.clone();
         let request = self.create_request(uuid.to_string());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_server(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_server(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_servers(&mut self) -> Result<Vec<server::Short>> {
+    pub fn get_servers(&self) -> NetworkTask<Result<Vec<server::Short>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_servers(request)
-            .await?
-            .into_inner()
-            .servers)
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_servers(request)
+                .await?
+                .into_inner()
+                .servers)
+        })
     }
 
-    pub async fn write_to_screen(&mut self, write: screen::WriteReq) -> Result<()> {
+    pub fn write_to_screen(&self, write: screen::WriteReq) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(write);
-        self.connection
-            .write()
-            .await
-            .write_to_screen(request)
-            .await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.write_to_screen(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn subscribe_to_screen(&mut self, id: &str) -> Result<Streaming<screen::Lines>> {
+    pub fn subscribe_to_screen(&self, id: &str) -> NetworkTask<Result<Streaming<screen::Lines>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(id.to_owned());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .subscribe_to_screen(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .subscribe_to_screen(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_users(&mut self) -> Result<Vec<user::Item>> {
+    pub fn get_users(&self) -> NetworkTask<Result<Vec<user::Item>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_users(request)
-            .await?
-            .into_inner()
-            .users)
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_users(request)
+                .await?
+                .into_inner()
+                .users)
+        })
     }
 
-    pub async fn transfer_users(&mut self, request: TransferReq) -> Result<()> {
+    pub fn transfer_users(&self, request: TransferReq) -> EmptyTask {
+        let connection = self.connection.clone();
         let request = self.create_request(request);
-        self.connection
-            .write()
-            .await
-            .transfer_users(request)
-            .await?;
-        Ok(())
+
+        spawn(async move {
+            connection.write().await.transfer_users(request).await?;
+            Ok(())
+        })
     }
 
-    pub async fn get_proto_ver(&mut self) -> Result<u32> {
+    pub fn get_proto_ver(&self) -> NetworkTask<Result<u32>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_proto_ver(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_proto_ver(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn get_ctrl_ver(&mut self) -> Result<String> {
+    pub fn get_ctrl_ver(&self) -> NetworkTask<Result<String>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .get_ctrl_ver(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .get_ctrl_ver(request)
+                .await?
+                .into_inner())
+        })
     }
 
-    pub async fn subscribe_to_power_events(&mut self) -> Result<Streaming<notify::PowerEvent>> {
+    pub fn subscribe_to_power_events(&self) -> NetworkTask<Result<Streaming<notify::PowerEvent>>> {
+        let connection = self.connection.clone();
         let request = self.create_request(());
-        Ok(self
-            .connection
-            .write()
-            .await
-            .subscribe_to_power_events(request)
-            .await?
-            .into_inner())
+
+        spawn(async move {
+            Ok(connection
+                .write()
+                .await
+                .subscribe_to_power_events(request)
+                .await?
+                .into_inner())
+        })
     }
 }

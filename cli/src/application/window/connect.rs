@@ -30,12 +30,17 @@ pub struct ConnectWindow {
 
     /* Window */
     status: StatusDisplay,
-
     list: Option<ActionList<'static, Profile>>,
 }
 
 impl Default for ConnectWindow {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ConnectWindow {
+    pub fn new() -> Self {
         Self {
             connect: None,
             status: StatusDisplay::new(Status::Ok, "null"),
@@ -56,11 +61,11 @@ impl Window for ConnectWindow {
     async fn tick(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
         // Network connection
         if let Some(task) = &mut self.connect {
-            match task.get().await {
+            match task.get_now().await {
                 Ok(Some(Ok(connection))) => {
                     self.status
                         .change(Status::Successful, "Connected sucessfully!");
-                    stack.push(Box::new(ControllerWindow::new(connection)));
+                    stack.push(ControllerWindow::new(connection));
                 }
                 Err(error) | Ok(Some(Err(error))) => {
                     self.status

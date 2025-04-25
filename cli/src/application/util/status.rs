@@ -8,8 +8,9 @@ use tokio::time::Instant;
 
 use super::{ERROR_COLOR, OK_COLOR, TEXT_FG_COLOR, WARN_COLOR};
 
-const FRAMES: [&str; 4] = ["-", "\\", "|", "/"];
+const FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+#[allow(dead_code)]
 pub enum Status {
     Loading,
     Error,
@@ -38,7 +39,7 @@ impl StatusDisplay {
         }
     }
 
-    pub fn new_with_startpoint(status: Status, message: &str) -> Self {
+    pub fn _new_with_startpoint(status: Status, message: &str) -> Self {
         Self {
             status,
             index: 0,

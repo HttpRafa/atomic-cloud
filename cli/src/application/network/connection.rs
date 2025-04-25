@@ -24,12 +24,14 @@ use super::{
 pub mod task;
 pub mod wrapper;
 
+type Connection = Arc<RwLock<ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>>>;
+
 pub struct EstablishedConnection {
     /* Host */
     name: String,
 
     /* Connection */
-    connection: Arc<RwLock<ManageServiceClient<Client<HttpsConnector<HttpConnector>, Body>>>>,
+    connection: Connection,
     incompatible: bool,
     protocol: u32,
 

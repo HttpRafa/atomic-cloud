@@ -27,7 +27,7 @@ impl<'a> SimpleButton<'a> {
         Self::new_internal(title, text, color, false)
     }
 
-    pub fn new_selected(title: &'a str, text: &'a str, color: (Color, Color)) -> Self {
+    pub fn _new_selected(title: &'a str, text: &'a str, color: (Color, Color)) -> Self {
         Self::new_internal(title, text, color, true)
     }
 

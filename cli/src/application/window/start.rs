@@ -11,7 +11,10 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    util::{list::ActionList, TEXT_FG_COLOR},
+    util::{
+        list::ActionList, ERROR_SELECTED_COLOR, OK_SELECTED_COLOR,
+        TEXT_FG_COLOR,
+    },
     State,
 };
 
@@ -127,7 +130,13 @@ impl StartWindow {
 
 impl From<&Action> for ListItem<'_> {
     fn from(action: &Action) -> Self {
-        ListItem::new(Line::styled(format!(" {action}"), TEXT_FG_COLOR))
+        match action {
+            Action::Connect => ListItem::new(Line::styled(format!(" {action}"), TEXT_FG_COLOR)),
+            Action::Create => ListItem::new(Line::styled(format!(" {action}"), OK_SELECTED_COLOR)),
+            Action::Delete => {
+                ListItem::new(Line::styled(format!(" {action}"), ERROR_SELECTED_COLOR))
+            }
+        }
     }
 }
 

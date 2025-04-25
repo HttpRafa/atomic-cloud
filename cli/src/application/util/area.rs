@@ -11,12 +11,13 @@ use tui_textarea::{Input, TextArea};
 
 use super::{ERROR_COLOR, ERROR_SELECTED_COLOR, OK_COLOR, OK_SELECTED_COLOR};
 
-#[allow(clippy::type_complexity)]
+type Validator<T> = Box<dyn Fn(&str, &mut T) -> Result<()> + Send + Sync + 'static>;
+
 pub struct SimpleTextArea<'a, D> {
     data: D,
     title: &'a str,
     inner: TextArea<'a>,
-    validate: Box<dyn Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static>,
+    validate: Validator<D>,
     valid: bool,
     selected: bool,
 }
@@ -73,7 +74,12 @@ impl<'a, D> SimpleTextArea<'a, D> {
         Self::new_internal(data, title, placeholder, Some('•'), validate, false)
     }
 
-    pub fn new_password_selected<F>(data: D, title: &'a str, placeholder: &str, validate: F) -> Self
+    pub fn _new_password_selected<F>(
+        data: D,
+        title: &'a str,
+        placeholder: &str,
+        validate: F,
+    ) -> Self
     where
         F: Fn(&str, &mut D) -> Result<()> + Send + Sync + 'static,
     {

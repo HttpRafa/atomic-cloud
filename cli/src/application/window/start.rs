@@ -11,10 +11,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    util::{
-        list::ActionList, ERROR_SELECTED_COLOR, OK_SELECTED_COLOR,
-        TEXT_FG_COLOR,
-    },
+    util::{list::ActionList, ERROR_SELECTED_COLOR, OK_SELECTED_COLOR, TEXT_FG_COLOR},
     State,
 };
 

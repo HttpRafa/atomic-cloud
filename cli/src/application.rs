@@ -5,7 +5,10 @@ use crossterm::event::{Event, EventStream};
 use network::known_host::manager::KnownHosts;
 use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
-use tokio::{select, time::interval};
+use tokio::{
+    select,
+    time::{interval, MissedTickBehavior},
+};
 use tokio_stream::StreamExt;
 use window::{start::StartWindow, tls::TrustTlsWindow, StackBatcher, WindowStack};
 
@@ -15,8 +18,8 @@ mod tabs;
 mod util;
 mod window;
 
-pub const TICK_RATE: u64 = 10;
-pub const FRAME_RATE: u64 = 25;
+pub const TICK_RATE: u64 = 5;
+pub const FRAME_RATE: u64 = 15;
 
 pub struct Cli {
     running: bool,
@@ -57,6 +60,7 @@ impl Cli {
 
         // Intervals
         let mut frame_interval = interval(Duration::from_millis(1000 / FRAME_RATE));
+        frame_interval.set_missed_tick_behavior(MissedTickBehavior::Burst);
         let mut tick_interval = interval(Duration::from_millis(1000 / TICK_RATE));
 
         // Main loop

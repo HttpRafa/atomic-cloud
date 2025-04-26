@@ -11,6 +11,7 @@ common = { path = "../common" }
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 ratatui = "0.29.0"
 tui-textarea = "0.7.0"
+ansi-to-tui = "7.0.0"
 
 # File management
 directories = "6.0.0"

@@ -106,6 +106,12 @@ impl Tabs {
         tab
     }
 
+    pub fn rename_current(&mut self, name: String) {
+        if let Some(tab) = self.inner.get_mut(self.current) {
+            tab.name = name;
+        }
+    }
+
     pub fn apply<'a>(
         &'a mut self,
         state: &'a mut State,
@@ -122,6 +128,9 @@ impl Tabs {
                     }
                     StackAction::CloseTab => {
                         self.close_current();
+                    }
+                    StackAction::RenameTab(name) => {
+                        self.rename_current(name);
                     }
                     _ => {}
                 }

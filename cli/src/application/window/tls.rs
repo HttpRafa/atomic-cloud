@@ -135,6 +135,7 @@ impl TrustTlsWindow {
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         let area = WindowUtils::render_background(area, buffer);
 
+        // TODO: Maybe this can be done with one Paragraph instead of three?
         let [title_area, _, host_area, _, fingerprint_area, button_area] = Layout::vertical([
             Constraint::Length(1), // Title
             Constraint::Length(1),

@@ -117,7 +117,7 @@ impl ActiveScreen {
             screen,
             handle: None,
             subscribers: vec![],
-            cache: FixedSizeCache::new(91),
+            cache: FixedSizeCache::new(120),
         }
     }
 

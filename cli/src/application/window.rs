@@ -1,10 +1,13 @@
+use std::borrow::Cow;
+
 use color_eyre::eyre::Result;
 use crossterm::event::Event;
 use futures::{future::BoxFuture, FutureExt};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    style::{palette::tailwind::Palette, Stylize},
+    layout::Rect,
+    style::{palette::tailwind::Palette, Style, Stylize},
+    text::Line,
     widgets::{Block, Borders, Paragraph, Widget},
 };
 use tonic::async_trait;
@@ -64,6 +67,10 @@ impl StackBatcher {
 
     pub fn close_tab(&mut self) {
         self.0.push(StackAction::CloseTab);
+    }
+
+    pub fn rename_tab(&mut self, name: Cow<'static, str>) {
+        self.0.push(StackAction::RenameTab(name.into_owned()));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -157,6 +164,7 @@ pub enum StackAction {
     Pop,
     AddTab((String, Palette, BoxedWindow)),
     CloseTab,
+    RenameTab(String),
 }
 
 #[async_trait]
@@ -177,18 +185,15 @@ pub struct WindowUtils;
 
 impl WindowUtils {
     pub fn render_header(title: &str, area: Rect, buffer: &mut Buffer) {
-        let [version_area, title_area] =
-            Layout::vertical([Constraint::Min(1), Constraint::Fill(1)]).areas(area);
-        Paragraph::new(format!("{} - {}", "Atomic Cloud CLI", VERSION))
-            .blue()
-            .bold()
-            .centered()
-            .render(version_area, buffer);
-        Paragraph::new(title)
-            .light_blue()
-            .bold()
-            .centered()
-            .render(title_area, buffer);
+        Paragraph::new(vec![
+            Line::styled(
+                format!("{} - {}", "Atomic Cloud CLI", VERSION),
+                Style::default().blue().bold(),
+            ),
+            Line::styled(title, Style::default().light_blue().bold()),
+        ])
+        .centered()
+        .render(area, buffer);
     }
 
     pub fn render_background(area: Rect, buffer: &mut Buffer) -> Rect {

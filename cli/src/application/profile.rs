@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use color_eyre::eyre::Result;
 use stored::StoredProfile;
@@ -70,8 +70,8 @@ impl Profile {
         Ok(())
     }
 
-    pub fn create_id(name: &str) -> String {
-        name.chars()
+    pub fn create_id<'a, T>(name: T) -> String where T: Into<Cow<'a, str>> {
+        name.into().chars()
             .map(|c| match c {
                 '/' | ':' | '|' => '-',
                 '<' | '>' | '"' | '\\' | '?' | '*' => '.',

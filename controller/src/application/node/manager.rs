@@ -160,7 +160,7 @@ impl NodeManager {
         self.nodes.contains_key(name)
     }
 
-    pub fn get_node(&self, name: &str) -> Option<&Node> {
+    pub fn get_node(&self, name: &str)-> Option<&Node> {
         self.nodes.get(name)
     }
     pub fn get_node_mut(&mut self, name: &str) -> Option<&mut Node> {

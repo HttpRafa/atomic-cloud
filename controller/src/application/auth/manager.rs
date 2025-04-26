@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use simplelog::info;
@@ -82,7 +82,7 @@ impl AuthManager {
         token
     }
 
-    async fn create_user(username: &str) -> Result<String> {
+    async fn create_user<'a, T>(username: T) -> Result<String> where T: Into<Cow<'a, str>> {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),
@@ -97,6 +97,8 @@ impl AuthManager {
 }
 
 mod stored {
+    use std::borrow::Cow;
+
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
@@ -109,9 +111,9 @@ mod stored {
     }
 
     impl StoredUser {
-        pub fn new(token: &str) -> Self {
+        pub fn new<'a, T>(token: T) -> Self where T: Into<Cow<'a, str>> {
             Self {
-                token: token.to_string(),
+                token: token.into().into_owned(),
             }
         }
     }

@@ -145,7 +145,7 @@ impl Window for ScreenTab {
                     Status::NotPerfect,
                     "The network stream was closed by the other party. Use Esc to close the screen",
                 );
-                stack.rename_tab(&format!("{} (disconnected)", self.server.name));
+                stack.rename_tab(format!("{} (disconnected)", self.server.name));
             }
             Some(Err(error)) => {
                 // Handle error

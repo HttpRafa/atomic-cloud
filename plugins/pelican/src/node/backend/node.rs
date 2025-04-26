@@ -7,7 +7,7 @@ use super::{Backend, Endpoint};
 pub mod data;
 
 impl Backend {
-    pub fn get_node_by_name(&self, name: &str) -> Option<BNode> {
+    pub fn get_node_by_name(&self, name: T) where T: Into<Cow<'a, str>> -> Option<BNode> {
         self.api_find_on_pages::<BNode>(Method::Get, &Endpoint::Application, "nodes", |object| {
             object
                 .data

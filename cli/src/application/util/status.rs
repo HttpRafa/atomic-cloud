@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
@@ -30,21 +32,21 @@ pub struct StatusDisplay {
 }
 
 impl StatusDisplay {
-    pub fn new(status: Status, message: &str) -> Self {
+    pub fn new<'a, T>(status: Status, message: T) -> Self where T: Into<Cow<'a, str>> {
         Self {
             status,
             index: 0,
             instant: None,
-            message: message.to_owned(),
+            message: message.into().into_owned(),
         }
     }
 
-    pub fn _new_with_startpoint(status: Status, message: &str) -> Self {
+    pub fn _new_with_startpoint<'a, T>(status: Status, message: T) -> Self where T: Into<Cow<'a, str>> {
         Self {
             status,
             index: 0,
             instant: Some(Instant::now()),
-            message: message.to_owned(),
+            message: message.into().into_owned(),
         }
     }
 
@@ -52,16 +54,16 @@ impl StatusDisplay {
         self.index = (self.index + 1) % FRAMES.len();
     }
 
-    pub fn change(&mut self, status: Status, message: &str) {
+    pub fn change<'a, T>(&mut self, status: Status, message: T) where T: Into<Cow<'a, str>> {
         self.status = status;
         self.instant = None;
-        message.clone_into(&mut self.message);
+        self.message = message.into().into_owned();
     }
 
-    pub fn change_with_startpoint(&mut self, status: Status, message: &str) {
+    pub fn change_with_startpoint<'a, T>(&mut self, status: Status, message: T) where T: Into<Cow<'a, str>> {
         self.status = status;
         self.instant = Some(Instant::now());
-        message.clone_into(&mut self.message);
+        self.message = message.into().into_owned();
     }
 
     pub fn is_ok(&self) -> bool {

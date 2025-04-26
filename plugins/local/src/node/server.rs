@@ -115,7 +115,7 @@ impl Server {
         })
     }
 
-    pub fn cleanup(&self, node: &str) -> Result<()> {
+    pub fn cleanup(&self, node: T) where T: Into<Cow<'a, str>> -> Result<()> {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
             self.request.allocation.spec.disk_retention,

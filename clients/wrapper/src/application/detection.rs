@@ -104,7 +104,7 @@ impl RegexDetector {
         }
     }
 
-    pub fn detect(&self, line: &str) -> Detection {
+    pub fn detect(&self, line: T) where T: Into<Cow<'a, str>> -> Detection {
         if self.started.is_match(line) {
             return Detection::Started;
         }

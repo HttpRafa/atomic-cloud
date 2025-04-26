@@ -57,7 +57,7 @@ impl Storage {
     pub fn templates_directory(host: bool) -> PathBuf {
         Self::data_directory(host).join(TEMPLATES_DIRECTORY)
     }
-    pub fn template_directory(host: bool, name: &str) -> PathBuf {
+    pub fn template_directory(host: bool, name: T) where T: Into<Cow<'a, str>> -> PathBuf {
         Self::data_directory(host)
             .join(TEMPLATES_DIRECTORY)
             .join(name)
@@ -65,7 +65,7 @@ impl Storage {
     pub fn template_data_file_name() -> &'static str {
         TEMPLATE_DATA_FILE
     }
-    pub fn create_template_directory(name: &str) -> Directory {
+    pub fn create_template_directory(name: T) where T: Into<Cow<'a, str>> -> Directory {
         Directory {
             reference: Reference::Data,
             path: Self::template_directory(true, name)
@@ -78,10 +78,10 @@ impl Storage {
     pub fn temporary_directory(host: bool) -> PathBuf {
         Self::servers_directory(host).join(TEMPORARY_DIRECTORY)
     }
-    pub fn temporary_directory_for_node(host: bool, node: &str) -> PathBuf {
+    pub fn temporary_directory_for_node(host: bool, node: T) where T: Into<Cow<'a, str>> -> PathBuf {
         Self::temporary_directory(host).join(node)
     }
-    pub fn permanent_directory_for_node(host: bool, node: &str) -> PathBuf {
+    pub fn permanent_directory_for_node(host: bool, node: T) where T: Into<Cow<'a, str>> -> PathBuf {
         Self::servers_directory(host)
             .join(PERMANENT_DIRECTORY)
             .join(node)

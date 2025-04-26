@@ -1,4 +1,4 @@
-use std::any::{type_name, Any};
+use std::{any::{type_name, Any}, borrow::Cow};
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
@@ -90,8 +90,8 @@ impl Task {
         Ok(Box::new(value))
     }
 
-    pub fn new_permission_error(message: &str) -> Result<BoxedAny> {
-        Self::new_err(Status::permission_denied(message))
+    pub fn new_permission_error<'a, T>(message: T) -> Result<BoxedAny> where T: Into<Cow<'a, str>> {
+        Self::new_err(Status::permission_denied(message.into()))
     }
 
     pub fn new_link_error() -> Result<BoxedAny> {

@@ -65,7 +65,7 @@ impl Backend {
         self.send_to_api_parse(method, endpoint, target, 200, None, page)
     }
 
-    pub fn delete_in_api(&self, endpoint: &Endpoint, target: &str) -> bool {
+    pub fn delete_in_api(&self, endpoint: &Endpoint, target: T) where T: Into<Cow<'a, str>> -> bool {
         self.send_to_api(Method::Delete, endpoint, target, 204, None, None)
     }
 

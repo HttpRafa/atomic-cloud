@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use color_eyre::eyre::Result;
 use tonic::Streaming;
 
@@ -87,9 +89,9 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_node(&self, name: &str) -> NetworkTask<Result<node::Item>> {
+    pub fn get_node<'a, T>(&self, name: T) -> NetworkTask<Result<node::Item>> where T: Into<Cow<'a, str>> {
         let connection = self.connection.clone();
-        let request = self.create_request(name.to_string());
+        let request = self.create_request(name.into().into_owned());
 
         spawn(async move {
             Ok(connection
@@ -140,9 +142,9 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_group(&self, name: &str) -> NetworkTask<Result<group::Item>> {
+    pub fn get_group<'a, T>(&self, name: T) -> NetworkTask<Result<group::Item>> where T: Into<Cow<'a, str>> {
         let connection = self.connection.clone();
-        let request = self.create_request(name.to_string());
+        let request = self.create_request(name.into().into_owned());
 
         spawn(async move {
             Ok(connection
@@ -169,9 +171,9 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_server(&self, uuid: &str) -> NetworkTask<Result<server::Detail>> {
+    pub fn get_server<'a, T>(&self, uuid: T) -> NetworkTask<Result<server::Detail>> where T: Into<Cow<'a, str>> {
         let connection = self.connection.clone();
-        let request = self.create_request(uuid.to_string());
+        let request = self.create_request(uuid.into().into_owned());
 
         spawn(async move {
             Ok(connection
@@ -208,9 +210,9 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn subscribe_to_screen(&self, id: &str) -> NetworkTask<Result<Streaming<screen::Lines>>> {
+    pub fn subscribe_to_screen<'a, T>(&self, id: T) -> NetworkTask<Result<Streaming<screen::Lines>>> where T: Into<Cow<'a, str>> {
         let connection = self.connection.clone();
-        let request = self.create_request(id.to_owned());
+        let request = self.create_request(id.into().into_owned());
 
         spawn(async move {
             Ok(connection

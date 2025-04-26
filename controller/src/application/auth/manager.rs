@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use simplelog::info;
@@ -82,10 +82,7 @@ impl AuthManager {
         token
     }
 
-    async fn create_user<'a, T>(username: T) -> Result<String>
-    where
-        T: Into<Cow<'a, str>>,
-    {
+    async fn create_user(username: &str) -> Result<String> {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),

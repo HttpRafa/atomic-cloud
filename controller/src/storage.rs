@@ -55,11 +55,7 @@ impl Storage {
     pub fn nodes_directory() -> PathBuf {
         PathBuf::from(NODES_DIRECTORY)
     }
-    pub fn node_file<'a, T>(name: T) -> PathBuf
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        let name = name.into();
+    pub fn node_file(name: &str) -> PathBuf {
         Storage::nodes_directory().join(format!("{name}.toml"))
     }
 
@@ -67,11 +63,7 @@ impl Storage {
     pub fn groups_directory() -> PathBuf {
         PathBuf::from(GROUPS_DIRECTORY)
     }
-    pub fn group_file<'a, T>(name: T) -> PathBuf
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        let name = name.into();
+    pub fn group_file(name: &str) -> PathBuf {
         Storage::groups_directory().join(format!("{name}.toml"))
     }
 
@@ -79,11 +71,7 @@ impl Storage {
     pub fn users_directory() -> PathBuf {
         PathBuf::from(USERS_DIRECTORY)
     }
-    pub fn user_file<'a, T>(name: T) -> PathBuf
-    where
-        T: Into<Cow<'a, str>>,
-    {
-        let name = name.into();
+    pub fn user_file(name: &str) -> PathBuf {
         Storage::users_directory().join(format!("{name}.toml"))
     }
 

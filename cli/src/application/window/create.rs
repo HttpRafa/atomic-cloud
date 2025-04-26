@@ -95,11 +95,11 @@ impl Window for CreateWindow {
                         .await
                     {
                         self.status
-                            .change(Status::Fatal, &format!("{}", error.root_cause()));
+                            .change(Status::Fatal, format!("{}", error.root_cause()));
                     } else if connection.is_incompatible() {
                         self.status.change(
                         Status::NotPerfect,
-                        &format!(
+                        format!(
                             "Controller created. Press Esc to go back. Warning: your CLI protocol version ({}) doesn't match the server's ({}); some features may not work correctly.",
                             VERSION.protocol,
                             connection.get_protocol(),
@@ -114,7 +114,7 @@ impl Window for CreateWindow {
                 }
                 Err(error) | Ok(Some(Err(error))) => {
                     self.status
-                        .change(Status::Fatal, &format!("{}", error.root_cause()));
+                        .change(Status::Fatal, format!("{}", error.root_cause()));
                 }
                 _ => {}
             }

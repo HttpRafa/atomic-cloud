@@ -32,7 +32,10 @@ pub struct StatusDisplay {
 }
 
 impl StatusDisplay {
-    pub fn new<'a, T>(status: Status, message: T) -> Self where T: Into<Cow<'a, str>> {
+    pub fn new<'a, T>(status: Status, message: T) -> Self
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Self {
             status,
             index: 0,
@@ -41,7 +44,10 @@ impl StatusDisplay {
         }
     }
 
-    pub fn _new_with_startpoint<'a, T>(status: Status, message: T) -> Self where T: Into<Cow<'a, str>> {
+    pub fn _new_with_startpoint<'a, T>(status: Status, message: T) -> Self
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Self {
             status,
             index: 0,
@@ -54,13 +60,19 @@ impl StatusDisplay {
         self.index = (self.index + 1) % FRAMES.len();
     }
 
-    pub fn change<'a, T>(&mut self, status: Status, message: T) where T: Into<Cow<'a, str>> {
+    pub fn change<'a, T>(&mut self, status: Status, message: T)
+    where
+        T: Into<Cow<'a, str>>,
+    {
         self.status = status;
         self.instant = None;
         self.message = message.into().into_owned();
     }
 
-    pub fn change_with_startpoint<'a, T>(&mut self, status: Status, message: T) where T: Into<Cow<'a, str>> {
+    pub fn change_with_startpoint<'a, T>(&mut self, status: Status, message: T)
+    where
+        T: Into<Cow<'a, str>>,
+    {
         self.status = status;
         self.instant = Some(Instant::now());
         self.message = message.into().into_owned();

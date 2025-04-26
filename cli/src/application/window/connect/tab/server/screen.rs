@@ -149,7 +149,7 @@ impl Window for ScreenTab {
             }
             Some(Err(error)) => {
                 // Handle error
-                self.status.change(Status::Error, &format!("{error}"));
+                self.status.change(Status::Error, format!("{error}"));
             }
             None => {} // No new message yet
         }

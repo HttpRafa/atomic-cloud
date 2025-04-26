@@ -82,7 +82,10 @@ impl AuthManager {
         token
     }
 
-    async fn create_user<'a, T>(username: T) -> Result<String> where T: Into<Cow<'a, str>> {
+    async fn create_user<'a, T>(username: T) -> Result<String>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),
@@ -111,7 +114,10 @@ mod stored {
     }
 
     impl StoredUser {
-        pub fn new<'a, T>(token: T) -> Self where T: Into<Cow<'a, str>> {
+        pub fn new<'a, T>(token: T) -> Self
+        where
+            T: Into<Cow<'a, str>>,
+        {
             Self {
                 token: token.into().into_owned(),
             }

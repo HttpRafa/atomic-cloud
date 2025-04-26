@@ -89,7 +89,10 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_node<'a, T>(&self, name: T) -> NetworkTask<Result<node::Item>> where T: Into<Cow<'a, str>> {
+    pub fn get_node<'a, T>(&self, name: T) -> NetworkTask<Result<node::Item>>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let connection = self.connection.clone();
         let request = self.create_request(name.into().into_owned());
 
@@ -142,7 +145,10 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_group<'a, T>(&self, name: T) -> NetworkTask<Result<group::Item>> where T: Into<Cow<'a, str>> {
+    pub fn get_group<'a, T>(&self, name: T) -> NetworkTask<Result<group::Item>>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let connection = self.connection.clone();
         let request = self.create_request(name.into().into_owned());
 
@@ -171,7 +177,10 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_server<'a, T>(&self, uuid: T) -> NetworkTask<Result<server::Detail>> where T: Into<Cow<'a, str>> {
+    pub fn get_server<'a, T>(&self, uuid: T) -> NetworkTask<Result<server::Detail>>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let connection = self.connection.clone();
         let request = self.create_request(uuid.into().into_owned());
 
@@ -210,7 +219,10 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn subscribe_to_screen<'a, T>(&self, id: T) -> NetworkTask<Result<Streaming<screen::Lines>>> where T: Into<Cow<'a, str>> {
+    pub fn subscribe_to_screen<'a, T>(&self, id: T) -> NetworkTask<Result<Streaming<screen::Lines>>>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let connection = self.connection.clone();
         let request = self.create_request(id.into().into_owned());
 

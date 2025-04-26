@@ -74,7 +74,7 @@ impl<T: Send> Window for FetchWindow<T> {
             }
             Err(error) | Ok(Some(Err(error))) => {
                 self.status
-                    .change(Status::Fatal, &format!("{}", error.root_cause()));
+                    .change(Status::Fatal, format!("{}", error.root_cause()));
             }
             _ => {}
         }

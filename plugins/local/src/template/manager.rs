@@ -78,7 +78,7 @@ impl TemplateManager {
         Ok(())
     }
 
-    pub fn get_template(&self, name: T) where T: Into<Cow<'a, str>> -> Option<&Template> {
+    pub fn get_template(&self, name: &str) -> Option<&Template> {
         self.templates.get(name)
     }
 }

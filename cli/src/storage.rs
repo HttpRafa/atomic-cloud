@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::{Path, PathBuf}};
+use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{eyre, Result};
 use directories::ProjectDirs;
@@ -24,8 +24,7 @@ impl Storage {
         let dirs = Self::directories()?;
         Ok(dirs.data_local_dir().join(PROFILES_DIRECTORY))
     }
-    pub fn profile_file<'a, T>(name: T) -> Result<PathBuf> where T: Into<Cow<'a, str>> {
-        let name = name.into();
+    pub fn profile_file(name: &str) -> Result<PathBuf> {
         Ok(Self::profiles_directory()?.join(format!("{name}.toml")))
     }
 

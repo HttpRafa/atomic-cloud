@@ -23,7 +23,7 @@ impl ManagedStdin {
         Self(writer)
     }
 
-    pub async fn write_line(&self, line: T) where T: Into<Cow<'a, str>> {
+    pub async fn write_line(&self, line: &str) {
         let mut writer = self.0.lock().await;
         if let Err(error) = writer.write_all(format!("{line}\n").as_bytes()).await {
             warn!("Failed to write to stdin of child process: {}", error);

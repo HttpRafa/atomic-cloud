@@ -3,7 +3,10 @@ All the storage related functions are implemented here.
 This makes it easier to change them in the future
 */
 
-use std::{borrow::Cow, path::{Path, PathBuf}};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
@@ -52,7 +55,10 @@ impl Storage {
     pub fn nodes_directory() -> PathBuf {
         PathBuf::from(NODES_DIRECTORY)
     }
-    pub fn node_file<'a, T>(name: T) -> PathBuf where T: Into<Cow<'a, str>> {
+    pub fn node_file<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let name = name.into();
         Storage::nodes_directory().join(format!("{name}.toml"))
     }
@@ -61,7 +67,10 @@ impl Storage {
     pub fn groups_directory() -> PathBuf {
         PathBuf::from(GROUPS_DIRECTORY)
     }
-    pub fn group_file<'a, T>(name: T) -> PathBuf where T: Into<Cow<'a, str>> {
+    pub fn group_file<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let name = name.into();
         Storage::groups_directory().join(format!("{name}.toml"))
     }
@@ -70,7 +79,10 @@ impl Storage {
     pub fn users_directory() -> PathBuf {
         PathBuf::from(USERS_DIRECTORY)
     }
-    pub fn user_file<'a, T>(name: T) -> PathBuf where T: Into<Cow<'a, str>> {
+    pub fn user_file<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         let name = name.into();
         Storage::users_directory().join(format!("{name}.toml"))
     }
@@ -106,10 +118,16 @@ impl Storage {
     pub fn plugins_directory() -> PathBuf {
         PathBuf::from(PLUGINS_DIRECTORY)
     }
-    pub fn data_directory_for_plugin<'a, T>(name: T) -> PathBuf where T: Into<Cow<'a, str>> {
+    pub fn data_directory_for_plugin<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         PathBuf::from(DATA_DIRECTORY).join(name.into().into_owned())
     }
-    pub fn config_directory_for_plugin<'a, T>(name: T) -> PathBuf where T: Into<Cow<'a, str>> {
+    pub fn config_directory_for_plugin<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Storage::configs_directory().join(name.into().into_owned())
     }
 

@@ -1,3 +1,4 @@
+
 use anyhow::{anyhow, Result};
 use url::Url;
 
@@ -25,7 +26,7 @@ pub enum Endpoint {
 }
 
 impl Backend {
-    pub fn new(config: &Config, node: T) where T: Into<Cow<'a, str>> -> Result<Self> {
+    pub fn new(config: &Config, node: &str) -> Result<Self> {
         let mut backend = Self {
             url: config.url().clone(),
             token: config.token().to_string(),

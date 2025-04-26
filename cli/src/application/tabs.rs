@@ -1,4 +1,7 @@
-use std::{borrow::Cow, fmt::{Display, Formatter}};
+use std::{
+    borrow::Cow,
+    fmt::{Display, Formatter},
+};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -32,7 +35,10 @@ pub struct Tabs {
 }
 
 impl Tabs {
-    pub fn new<'a, T>(title: T) -> Self where T: Into<Cow<'a, str>> {
+    pub fn new<'a, T>(title: T) -> Self
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Self {
             title: title.into().into_owned(),
             current: 0,

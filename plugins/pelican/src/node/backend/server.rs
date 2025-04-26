@@ -40,7 +40,7 @@ impl Backend {
         );
     }
 
-    pub fn update_variable(&self, identifier: &str, key: &str, value: T) where T: Into<Cow<'a, str>> -> bool {
+    pub fn update_variable(&self, identifier: &str, key: &str, value: &str) -> bool {
         let value = serde_json::to_vec(&BKeyValue {
             key: key.to_string(),
             value: value.to_string(),
@@ -68,7 +68,7 @@ impl Backend {
         )
     }
 
-    pub fn get_server_state(&self, identifier: T) where T: Into<Cow<'a, str>> -> Option<PanelState> {
+    pub fn get_server_state(&self, identifier: &str) -> Option<PanelState> {
         self.get_server_resources(identifier).map(|resources| {
             match resources.current_state.as_str() {
                 "running" => PanelState::Running,
@@ -79,7 +79,7 @@ impl Backend {
         })
     }
 
-    fn get_server_resources(&self, identifier: T) where T: Into<Cow<'a, str>> -> Option<BResources> {
+    fn get_server_resources(&self, identifier: &str) -> Option<BResources> {
         self.get_object_from_api::<(), BResources>(
             &Endpoint::Client,
             &format!("servers/{}/resources", &identifier),
@@ -88,23 +88,23 @@ impl Backend {
         .map(|data| data.attributes)
     }
 
-    pub fn start_server(&self, identifier: T) where T: Into<Cow<'a, str>> -> bool {
+    pub fn start_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "start")
     }
 
-    pub fn restart_server(&self, identifier: T) where T: Into<Cow<'a, str>> -> bool {
+    pub fn restart_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "restart")
     }
 
-    pub fn stop_server(&self, identifier: T) where T: Into<Cow<'a, str>> -> bool {
+    pub fn stop_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "stop")
     }
 
-    pub fn kill_server(&self, identifier: T) where T: Into<Cow<'a, str>> -> bool {
+    pub fn kill_server(&self, identifier: &str) -> bool {
         self.change_power_state(identifier, "kill")
     }
 
-    fn change_power_state(&self, identifier: &str, state: T) where T: Into<Cow<'a, str>> -> bool {
+    fn change_power_state(&self, identifier: &str, state: &str) -> bool {
         let state = serde_json::to_vec(&BSignal {
             signal: state.to_string(),
         })

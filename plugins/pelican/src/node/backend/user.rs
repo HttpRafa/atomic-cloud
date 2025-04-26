@@ -7,7 +7,7 @@ use super::{Backend, Endpoint};
 pub mod data;
 
 impl Backend {
-    pub fn get_user_by_name(&self, username: T) where T: Into<Cow<'a, str>> -> Option<BUser> {
+    pub fn get_user_by_name(&self, username: &str) -> Option<BUser> {
         self.api_find_on_pages::<BUser>(Method::Get, &Endpoint::Application, "users", |object| {
             object
                 .data

@@ -1,4 +1,4 @@
-use std::{fmt::Display, rc::Rc, time::Instant};
+use std::{borrow::Cow, fmt::Display, rc::Rc, time::Instant};
 
 use anyhow::{anyhow, Result};
 use common::name::TimedName;
@@ -115,7 +115,10 @@ impl Server {
         })
     }
 
-    pub fn cleanup(&self, node: T) where T: Into<Cow<'a, str>> -> Result<()> {
+    pub fn cleanup<'a, T>(&self, node: T) -> Result<()>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
             self.request.allocation.spec.disk_retention,

@@ -69,8 +69,12 @@ impl StackBatcher {
         self.0.push(StackAction::CloseTab);
     }
 
-    pub fn rename_tab<'a, T>(&mut self, name: T) where T: Into<Cow<'a, str>> {
-        self.0.push(StackAction::RenameTab(name.into().into_owned()));
+    pub fn rename_tab<'a, T>(&mut self, name: T)
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        self.0
+            .push(StackAction::RenameTab(name.into().into_owned()));
     }
 
     pub fn is_empty(&self) -> bool {

@@ -70,8 +70,12 @@ impl Profile {
         Ok(())
     }
 
-    pub fn create_id<'a, T>(name: T) -> String where T: Into<Cow<'a, str>> {
-        name.into().chars()
+    pub fn create_id<'a, T>(name: T) -> String
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        name.into()
+            .chars()
             .map(|c| match c {
                 '/' | ':' | '|' => '-',
                 '<' | '>' | '"' | '\\' | '?' | '*' => '.',

@@ -9,7 +9,7 @@ use super::{Backend, Endpoint};
 pub mod data;
 
 impl Backend {
-    pub fn get_allocations_by_server(&self, identifier: T) where T: Into<Cow<'a, str>> -> (BCAllocation, Vec<BCAllocation>) {
+    pub fn get_allocations_by_server(&self, identifier: &str) -> (BCAllocation, Vec<BCAllocation>) {
         let mut default_allocation = None;
         let mut allocations = Vec::new();
         self.for_each_on_pages::<BCAllocation>(

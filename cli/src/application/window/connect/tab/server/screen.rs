@@ -6,6 +6,7 @@ use std::{
 use ansi_to_tui::IntoText;
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
+use futures::FutureExt;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -15,10 +16,6 @@ use ratatui::{
         ListItem, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
         Widget,
     },
-};
-use tokio::{
-    spawn,
-    sync::mpsc::{channel, error::TryRecvError, Receiver},
 };
 use tonic::{async_trait, Streaming};
 use tui_textarea::TextArea;
@@ -42,13 +39,11 @@ use crate::application::{
     State,
 };
 
-const CACHE_SIZE: usize = 100;
-
 pub struct ScreenTab {
     /* Connection */
     connection: Arc<EstablishedConnection>,
     server: server::Short,
-    receiver: Receiver<Result<Option<screen::Lines>, tonic::Status>>,
+    stream: Streaming<screen::Lines>,
 
     /* State */
     status: StatusDisplay,
@@ -93,26 +88,16 @@ impl ScreenTab {
     pub fn new(
         connection: Arc<EstablishedConnection>,
         server: server::Short,
-        mut stream: Streaming<screen::Lines>,
+        stream: Streaming<screen::Lines>,
     ) -> Self {
         let mut command = TextArea::default();
         command.set_cursor_line_style(Style::default());
         command.set_placeholder_text("Type the command you want to send");
 
-        // Spawn task to receive the messages
-        let (sender, receiver) = channel(CACHE_SIZE);
-        spawn(async move {
-            loop {
-                if sender.send(stream.message().await).await.is_err() {
-                    break;
-                }
-            }
-        });
-
         Self {
             connection,
             server,
-            receiver,
+            stream,
             status: StatusDisplay::new(Status::Ok, "All good"),
             lines: vec![],
             scrollable_lines: 0,
@@ -133,8 +118,8 @@ impl Window for ScreenTab {
 
     async fn tick(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
         // Network stream
-        match self.receiver.try_recv() {
-            Ok(Ok(Some(message))) => {
+        match self.stream.message().now_or_never() {
+            Some(Ok(Some(message))) => {
                 // Handle new message
                 for line in message.lines {
                     if line.is_empty() {
@@ -154,12 +139,12 @@ impl Window for ScreenTab {
                     self.update_scroll(self.scrollable_lines);
                 }
             }
-            Ok(Err(error)) => {
+            Some(Err(error)) => {
                 // Handle error
                 self.status.change(Status::Error, format!("{error}"));
                 stack.rename_tab(format!("{} (error)", self.server.name));
             }
-            Err(TryRecvError::Disconnected) | Ok(Ok(None)) => {
+            Some(Ok(None)) => {
                 // Handle end of stream
                 self.status.change(
                     Status::NotPerfect,
@@ -167,7 +152,7 @@ impl Window for ScreenTab {
                 );
                 stack.rename_tab(format!("{} (closed)", self.server.name));
             }
-            Err(TryRecvError::Empty) => {} // No new message yet
+            None => {} // No new message yet
         }
 
         // UI

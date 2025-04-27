@@ -23,6 +23,7 @@ struct ListProfile {
     delete: bool,
 }
 
+// TODO: Rewrite this to use the new SelectWindow implementation instead of ActionList directly
 pub struct DeleteWindow {
     list: Option<ActionList<'static, ListProfile>>,
 }

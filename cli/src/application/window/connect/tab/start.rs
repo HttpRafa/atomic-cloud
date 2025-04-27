@@ -121,7 +121,7 @@ impl Window for StartTab {
                             Action::DeleteResource => stack.add_tab(
                                 "Delete",
                                 RED,
-                                DeleteTab::new(self.connection.clone()),
+                                DeleteTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::CreateNode => stack.add_tab(

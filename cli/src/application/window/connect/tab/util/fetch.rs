@@ -26,7 +26,7 @@ pub struct FetchWindow<T> {
     /* Callback */
     callback: Callback<T>,
 
-    /* Handles */
+    /* Network */
     request: NetworkTask<Result<T>>,
 
     /* Connection */

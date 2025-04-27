@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, time::Duration};
 
 use ratatui::{
     buffer::Buffer,
@@ -82,6 +82,10 @@ impl StatusDisplay {
         matches!(self.status, Status::Ok)
     }
 
+    pub fn is_successful(&self) -> bool {
+        matches!(self.status, Status::Successful)
+    }
+
     pub fn is_loading(&self) -> bool {
         matches!(self.status, Status::Loading)
     }
@@ -94,6 +98,14 @@ impl StatusDisplay {
 
     pub fn is_fatal(&self) -> bool {
         matches!(self.status, Status::Fatal)
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        if let Some(instant) = &self.instant {
+            instant.elapsed()
+        } else {
+            Duration::ZERO
+        }
     }
 
     pub fn render_in_center(&self, area: Rect, buffer: &mut Buffer) {

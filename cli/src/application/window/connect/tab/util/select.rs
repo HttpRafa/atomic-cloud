@@ -37,8 +37,9 @@ pub struct SelectWindow<'a, T: Display> {
 }
 
 impl<T: Display> SelectWindow<'_, T> {
-    pub fn new<F>(items: Vec<T>, callback: F) -> Self
+    pub fn new<V, F>(items: V, callback: F) -> Self
     where
+        V: IntoIterator<Item = T>,
         F: Fn(T, &mut StackBatcher, &mut State) -> Result<()> + Send + Sync + 'static,
     {
         Self {
@@ -55,8 +56,9 @@ impl<T: Display> SelectWindow<'_, T> {
             ),
         }
     }
-    pub fn new_with_confirmation<F>(items: Vec<T>, callback: F) -> Self
+    pub fn new_with_confirmation<V, F>(items: V, callback: F) -> Self
     where
+        V: IntoIterator<Item = T>,
         F: Fn(T, &mut StackBatcher, &mut State) -> Result<()> + Send + Sync + 'static,
     {
         Self {

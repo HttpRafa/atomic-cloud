@@ -70,6 +70,7 @@ impl<T: Send> Window for FetchWindow<T> {
                     Status::Successful,
                     "Sucessfully retrieved the required information", // Not really visible
                 );
+                stack.pop();
                 (self.callback)(connection, self.connection.clone(), stack, state)?;
             }
             Err(error) | Ok(Some(Err(error))) => {

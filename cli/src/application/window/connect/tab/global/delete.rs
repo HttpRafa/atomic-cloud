@@ -30,7 +30,7 @@ use crate::application::{
     State,
 };
 
-const AUTO_CLOSE_AFTER: Duration = Duration::from_secs(15);
+pub const AUTO_CLOSE_AFTER: Duration = Duration::from_secs(15);
 
 pub struct DeleteTab {
     /* Network */

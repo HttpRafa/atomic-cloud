@@ -136,13 +136,14 @@ impl TrustTlsWindow {
         let area = WindowUtils::render_background(area, buffer);
 
         // TODO: Maybe this can be done with one Paragraph instead of three?
-        let [title_area, _, host_area, _, fingerprint_area, button_area] = Layout::vertical([
+        let [title_area, _, host_area, _, fingerprint_area, button_area, _] = Layout::vertical([
             Constraint::Length(1), // Title
             Constraint::Length(1),
             Constraint::Length(1), // Host
             Constraint::Length(1),
-            Constraint::Fill(2), // Fingerprint
+            Constraint::Fill(4), // Fingerprint
             Constraint::Length(3),
+            Constraint::Fill(1),
         ])
         .areas(area);
 

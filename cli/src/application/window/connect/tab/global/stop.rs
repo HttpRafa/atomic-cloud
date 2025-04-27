@@ -10,19 +10,47 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::EstablishedConnection,
-    window::{StackBatcher, Window},
+    network::connection::{task::EmptyTask, EstablishedConnection},
+    util::status::{Status, StatusDisplay},
+    window::{connect::tab::util::confirm::ConfirmWindow, StackBatcher, Window},
     State,
 };
 
+use super::delete::AUTO_CLOSE_AFTER;
+
 pub struct StopTab {
-    /* Connection */
-    connection: Arc<EstablishedConnection>,
+    /* Network */
+    request: EmptyTask,
+
+    /* Window */
+    status: StatusDisplay,
 }
 
 impl StopTab {
+    /// Creates a new stop tab.
+    /// This function will create a window stack to ask the user if he wants to stop the controller.
+    pub fn new_stack(connection: Arc<EstablishedConnection>) -> ConfirmWindow<'static> {
+        ConfirmWindow::new(
+            "Stop controller",
+            "Are you sure you want to stop the controller?\nThis will stop all running servers.",
+            ("Yes", "Stop"),
+            ("No", "Cancel"),
+            move |result, stack, _| {
+                if result {
+                    stack.push(StopTab::new(connection.clone()));
+                } else {
+                    stack.close_tab();
+                }
+                Ok(())
+            },
+        )
+    }
+
     pub fn new(connection: Arc<EstablishedConnection>) -> Self {
-        Self { connection }
+        Self {
+            request: connection.request_stop(),
+            status: StatusDisplay::new(Status::Loading, "Stopping controller..."),
+        }
     }
 }
 
@@ -32,7 +60,27 @@ impl Window for StopTab {
         Ok(())
     }
 
-    async fn tick(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+    async fn tick(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        // Network connection
+        match self.request.get_now().await {
+            Ok(Some(Ok(()))) => {
+                self.status.change_with_startpoint(
+                    Status::Successful,
+                    "Sucessfully stopped the controller.",
+                );
+            }
+            Err(error) | Ok(Some(Err(error))) => {
+                self.status
+                    .change(Status::Fatal, format!("{}", error.root_cause()));
+            }
+            _ => {}
+        }
+
+        // UI
+        self.status.next();
+        if self.status.is_successful() && self.status.elapsed() > AUTO_CLOSE_AFTER {
+            stack.close_tab();
+        }
         Ok(())
     }
 
@@ -47,6 +95,7 @@ impl Window for StopTab {
                 return Ok(());
             }
             if event.code == KeyCode::Esc {
+                self.request.abort();
                 stack.close_tab();
             }
         }
@@ -71,10 +120,12 @@ impl Widget for &mut StopTab {
 
 impl StopTab {
     fn render_footer(area: Rect, buffer: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, ↵ to select, Esc to close tab.")
+        Paragraph::new("Esc to close tab.")
             .centered()
             .render(area, buffer);
     }
 
-    fn render_body(&mut self, _area: Rect, _buffer: &mut Buffer) {}
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        self.status.render_in_center(area, buffer);
+    }
 }

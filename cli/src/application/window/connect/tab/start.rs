@@ -165,7 +165,11 @@ impl Window for StartTab {
                             ),
 
                             Action::RequestStop => {
-                                stack.add_tab("Stop", RED, StopTab::new(self.connection.clone()));
+                                stack.add_tab(
+                                    "Stop",
+                                    RED,
+                                    StopTab::new_stack(self.connection.clone()),
+                                );
                             }
                             Action::GetVersions => stack.add_tab(
                                 "Versions",

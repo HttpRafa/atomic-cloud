@@ -111,6 +111,7 @@ where
                             if selected.selected {
                                 // Confirmed selection
                                 if let Some(selected) = self.list.take_selected() {
+                                    stack.pop();
                                     (self.callback)(selected.inner, stack, state)?;
                                 }
                             } else {
@@ -121,6 +122,7 @@ where
                     } else {
                         // No confirmation needed
                         if let Some(selected) = self.list.take_selected() {
+                            stack.pop();
                             (self.callback)(selected.inner, stack, state)?;
                         }
                     }

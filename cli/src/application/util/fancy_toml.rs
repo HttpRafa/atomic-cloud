@@ -65,7 +65,7 @@ impl FancyToml {
             "host" | "port" => INFO_SELECTED_COLOR,
             "memory" | "swap" | "cpu" | "io" | "disk" | "ports" => Color::Magenta,
             "img" | "max_players" | "settings" | "env" | "retention" => Color::Blue,
-            "key" | "value" => Color::LightYellow,
+            "key" | "value" | "protocol" | "version" => Color::LightYellow,
             "max" | "min" | "prio" => Color::LightCyan,
             _ => TEXT_FG_COLOR,
         }

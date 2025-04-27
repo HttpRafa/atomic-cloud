@@ -10,7 +10,7 @@ use crate::{
     network::proto::{
         common::KeyValue,
         manage::{
-            group::{Constraints, Item, List, Scaling},
+            group::{Constraints, Detail, List, Scaling, Short},
             server::{self, Fallback},
         },
     },
@@ -74,7 +74,7 @@ impl GenericTask for UpdateGroupTask {
             )
             .await
         {
-            Ok(group) => return Task::new_ok(Item::from(group)),
+            Ok(group) => return Task::new_ok(Detail::from(group)),
             Err(error) => Task::new_err(error.into()),
         }
     }
@@ -87,7 +87,7 @@ impl GenericTask for GetGroupTask {
             return Task::new_err(Status::not_found("Group not found"));
         };
 
-        Task::new_ok(Item::from(group))
+        Task::new_ok(Detail::from(group))
     }
 }
 
@@ -99,13 +99,21 @@ impl GenericTask for GetGroupsTask {
                 .groups
                 .get_groups()
                 .iter()
-                .map(|group| group.name().clone())
+                .map(std::convert::Into::into)
                 .collect(),
         })
     }
 }
 
-impl From<&Group> for Item {
+impl From<&&Group> for Short {
+    fn from(group: &&Group) -> Self {
+        Self {
+            name: group.name().clone(),
+        }
+    }
+}
+
+impl From<&Group> for Detail {
     fn from(value: &Group) -> Self {
         Self {
             name: value.name().clone(),

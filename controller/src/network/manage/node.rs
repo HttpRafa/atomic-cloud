@@ -7,7 +7,7 @@ use crate::{
         node::{Capabilities, Node},
         Controller,
     },
-    network::proto::manage::node::{self, Item, List},
+    network::proto::manage::node::{self, Detail, List, Short},
     task::{BoxedAny, GenericTask, Task},
 };
 
@@ -38,7 +38,7 @@ impl GenericTask for UpdateNodeTask {
             .update_node(&self.0, self.1.as_ref(), self.2.as_ref())
             .await
         {
-            Ok(node) => return Task::new_ok(Item::from(node)),
+            Ok(node) => return Task::new_ok(Detail::from(node)),
             Err(error) => Task::new_err(error.into()),
         }
     }
@@ -51,7 +51,7 @@ impl GenericTask for GetNodeTask {
             return Task::new_err(Status::not_found("Node not found"));
         };
 
-        Task::new_ok(Item::from(node))
+        Task::new_ok(Detail::from(node))
     }
 }
 
@@ -63,13 +63,21 @@ impl GenericTask for GetNodesTask {
                 .nodes
                 .get_nodes()
                 .iter()
-                .map(|node| node.name().clone())
+                .map(std::convert::Into::into)
                 .collect(),
         })
     }
 }
 
-impl From<&Node> for Item {
+impl From<&&Node> for Short {
+    fn from(node: &&Node) -> Self {
+        Self {
+            name: node.name().clone(),
+        }
+    }
+}
+
+impl From<&Node> for Detail {
     fn from(value: &Node) -> Self {
         Self {
             name: value.name().clone(),

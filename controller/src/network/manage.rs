@@ -118,7 +118,7 @@ impl ManageService for ManageServiceImpl {
     // Node
     async fn create_node(
         &self,
-        request: Request<manage::node::Item>,
+        request: Request<manage::node::Detail>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
@@ -149,9 +149,9 @@ impl ManageService for ManageServiceImpl {
     async fn update_node(
         &self,
         request: Request<manage::node::UpdateReq>,
-    ) -> Result<Response<manage::node::Item>, Status> {
+    ) -> Result<Response<manage::node::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::Item, _, _>(
+            Task::execute::<manage::node::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -192,9 +192,9 @@ impl ManageService for ManageServiceImpl {
     async fn get_node(
         &self,
         request: Request<String>,
-    ) -> Result<Response<manage::node::Item>, Status> {
+    ) -> Result<Response<manage::node::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::Item, _, _>(
+            Task::execute::<manage::node::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -222,7 +222,7 @@ impl ManageService for ManageServiceImpl {
     // Group
     async fn create_group(
         &self,
-        request: Request<manage::group::Item>,
+        request: Request<manage::group::Detail>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
             Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
@@ -321,9 +321,9 @@ impl ManageService for ManageServiceImpl {
     async fn update_group(
         &self,
         request: Request<manage::group::UpdateReq>,
-    ) -> Result<Response<manage::group::Item>, Status> {
+    ) -> Result<Response<manage::group::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Item, _, _>(
+            Task::execute::<manage::group::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -415,9 +415,9 @@ impl ManageService for ManageServiceImpl {
     async fn get_group(
         &self,
         request: Request<String>,
-    ) -> Result<Response<manage::group::Item>, Status> {
+    ) -> Result<Response<manage::group::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Item, _, _>(
+            Task::execute::<manage::group::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,

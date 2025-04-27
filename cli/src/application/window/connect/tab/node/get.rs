@@ -1,34 +1,81 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Display, Formatter},
+    sync::Arc,
+};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{Paragraph, Widget},
+    text::Line,
+    widgets::{ListItem, Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::EstablishedConnection,
-    window::{StackBatcher, Window},
+    network::{connection::EstablishedConnection, proto::manage::node},
+    util::{fancy_toml::FancyToml, TEXT_FG_COLOR},
+    window::{
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
+        StackBatcher, Window,
+    },
     State,
 };
 
 pub struct GetNodeTab {
     /* Connection */
     connection: Arc<EstablishedConnection>,
+    node: node::Detail,
+
+    /* Lines */
+    lines: Vec<Line<'static>>,
 }
 
 impl GetNodeTab {
-    pub fn new(connection: Arc<EstablishedConnection>) -> Self {
-        Self { connection }
+    /// Creates a new get node tab.
+    /// This function will create a window stack to get the required information to display the node.
+    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<node::Short>> {
+        FetchWindow::new(
+            connection.get_nodes(),
+            connection,
+            move |nodes, connection: Arc<EstablishedConnection>, stack, _| {
+                stack.push(SelectWindow::new(nodes, move |node, stack, _| {
+                    stack.push(FetchWindow::new(
+                        connection.get_node(&node.name),
+                        connection.clone(),
+                        move |node, connection, stack, _| {
+                            stack.push(GetNodeTab::new(connection.clone(), node));
+                            Ok(())
+                        },
+                    ));
+                    Ok(())
+                }));
+                Ok(())
+            },
+        )
+    }
+
+    pub fn new(connection: Arc<EstablishedConnection>, node: node::Detail) -> Self {
+        Self {
+            connection,
+            node,
+            lines: vec![],
+        }
     }
 }
 
 #[async_trait]
 impl Window for GetNodeTab {
-    async fn init(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+    async fn init(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        // Compute the lines
+        if let Ok(toml) = toml::to_string_pretty(&self.node) {
+            self.lines.extend(FancyToml::to_lines(&toml));
+        }
+
+        // Change the title
+        stack.rename_tab(&self.node.name);
+
         Ok(())
     }
 
@@ -76,5 +123,19 @@ impl GetNodeTab {
             .render(area, buffer);
     }
 
-    fn render_body(&mut self, _area: Rect, _buffer: &mut Buffer) {}
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        Paragraph::new(self.lines.clone()).render(area, buffer);
+    }
+}
+
+impl From<&node::Short> for ListItem<'_> {
+    fn from(node: &node::Short) -> Self {
+        ListItem::new(Line::styled(format!(" {node}"), TEXT_FG_COLOR))
+    }
+}
+
+impl Display for node::Short {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.name)
+    }
 }

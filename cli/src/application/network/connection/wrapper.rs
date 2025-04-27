@@ -65,7 +65,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn create_node(&self, node: node::Item) -> EmptyTask {
+    pub fn create_node(&self, node: node::Detail) -> EmptyTask {
         let connection = self.connection.clone();
         let request = self.create_request(node);
 
@@ -75,7 +75,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn update_node(&self, request: node::UpdateReq) -> NetworkTask<Result<node::Item>> {
+    pub fn update_node(&self, request: node::UpdateReq) -> NetworkTask<Result<node::Detail>> {
         let connection = self.connection.clone();
         let request = self.create_request(request);
 
@@ -89,7 +89,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_node<'a, T>(&self, name: T) -> NetworkTask<Result<node::Item>>
+    pub fn get_node<'a, T>(&self, name: T) -> NetworkTask<Result<node::Detail>>
     where
         T: Into<Cow<'a, str>>,
     {
@@ -106,7 +106,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_nodes(&self) -> NetworkTask<Result<Vec<String>>> {
+    pub fn get_nodes(&self) -> NetworkTask<Result<Vec<node::Short>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 
@@ -121,7 +121,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn create_group(&self, group: group::Item) -> EmptyTask {
+    pub fn create_group(&self, group: group::Detail) -> EmptyTask {
         let connection = self.connection.clone();
         let request = self.create_request(group);
 
@@ -131,7 +131,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn update_group(&self, request: group::UpdateReq) -> NetworkTask<Result<group::Item>> {
+    pub fn update_group(&self, request: group::UpdateReq) -> NetworkTask<Result<group::Detail>> {
         let connection = self.connection.clone();
         let request = self.create_request(request);
 
@@ -145,7 +145,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_group<'a, T>(&self, name: T) -> NetworkTask<Result<group::Item>>
+    pub fn get_group<'a, T>(&self, name: T) -> NetworkTask<Result<group::Detail>>
     where
         T: Into<Cow<'a, str>>,
     {
@@ -162,7 +162,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_groups(&self) -> NetworkTask<Result<Vec<String>>> {
+    pub fn get_groups(&self) -> NetworkTask<Result<Vec<group::Short>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 

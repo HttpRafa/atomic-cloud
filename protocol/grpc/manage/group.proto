@@ -8,7 +8,13 @@ package manage;
 import "manage/server.proto";
 
 message Group {
-  message Item {
+  message List {
+    repeated Short groups = 1;
+  }
+  message Short {
+    string name = 1;
+  }
+  message Detail {
     string name = 1;
     repeated string nodes = 2;
     Constraints constraints = 3;
@@ -25,9 +31,6 @@ message Group {
     bool enabled = 1;
     float startThreshold = 2;
     bool stopEmpty = 3;
-  }
-  message List {
-    repeated string groups = 1;
   }
   message NodeList {
     repeated string nodes = 1;

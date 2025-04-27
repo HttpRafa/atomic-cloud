@@ -8,7 +8,7 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::palette::tailwind::{BLUE, GREEN, RED},
+    style::palette::tailwind::{BLUE, GREEN, RED, SLATE},
     text::Line,
     widgets::{ListItem, Paragraph, Widget},
 };
@@ -48,16 +48,13 @@ enum Action {
     // Node operations
     CreateNode,
     GetNode,
-    GetNodes,
 
     // Group operations
     CreateGroup,
     GetGroup,
-    GetGroups,
 
     // Server operations
     GetServer,
-    GetServers,
 
     // Screen operations
     OpenScreen,
@@ -81,11 +78,8 @@ impl StartTab {
                 Action::OpenScreen,
                 Action::TransferUsers,
                 Action::GetNode,
-                Action::GetNodes,
                 Action::GetGroup,
-                Action::GetGroups,
                 Action::GetServer,
-                Action::GetServers,
                 Action::GetVersions,
                 Action::DeleteResource,
                 Action::RequestStop,
@@ -137,13 +131,8 @@ impl Window for StartTab {
                             ),
                             Action::GetNode => stack.add_tab(
                                 "Node",
-                                GREEN,
-                                GetNodeTab::new(self.connection.clone()),
-                            ),
-                            Action::GetNodes => stack.add_tab(
-                                "Nodes",
-                                GREEN,
-                                GetNodeTab::new(self.connection.clone()),
+                                SLATE,
+                                GetNodeTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::CreateGroup => stack.add_tab(
@@ -153,30 +142,20 @@ impl Window for StartTab {
                             ),
                             Action::GetGroup => stack.add_tab(
                                 "Group",
-                                GREEN,
-                                GetGroupTab::new(self.connection.clone()),
-                            ),
-                            Action::GetGroups => stack.add_tab(
-                                "Groups",
-                                GREEN,
-                                GetGroupTab::new(self.connection.clone()),
+                                SLATE,
+                                GetGroupTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::GetServer => stack.add_tab(
                                 "Server",
-                                GREEN,
-                                GetServerTab::new(self.connection.clone()),
-                            ),
-                            Action::GetServers => stack.add_tab(
-                                "Servers",
-                                GREEN,
-                                GetServerTab::new(self.connection.clone()),
+                                SLATE,
+                                GetServerTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::OpenScreen => stack.add_tab(
                                 "Screen",
                                 BLUE,
-                                ScreenTab::collected(self.connection.clone()),
+                                ScreenTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::TransferUsers => stack.add_tab(
@@ -190,8 +169,8 @@ impl Window for StartTab {
                             }
                             Action::GetVersions => stack.add_tab(
                                 "Versions",
-                                RED,
-                                VersionTab::new(self.connection.clone()),
+                                SLATE,
+                                VersionTab::new_stack(self.connection.clone()),
                             ),
                         }
                     }
@@ -255,14 +234,11 @@ impl Display for Action {
 
             Action::CreateNode => write!(formatter, "Create Node"),
             Action::GetNode => write!(formatter, "Get information about a certain Node"),
-            Action::GetNodes => write!(formatter, "Get all Nodes"),
 
             Action::CreateGroup => write!(formatter, "Create Group"),
             Action::GetGroup => write!(formatter, "Get information about a certain Group"),
-            Action::GetGroups => write!(formatter, "Get all Groups"),
 
             Action::GetServer => write!(formatter, "Get information about a certain Server"),
-            Action::GetServers => write!(formatter, "Get all Servers"),
 
             Action::OpenScreen => write!(formatter, "Open the screen of a server"),
 

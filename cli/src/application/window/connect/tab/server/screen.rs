@@ -64,7 +64,7 @@ pub struct ScreenTab {
 impl ScreenTab {
     /// Creates a new screen tab.
     /// This function will create a window stack to get the required information to display the screen.
-    pub fn collected(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<server::Short>> {
+    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<server::Short>> {
         FetchWindow::new(
             connection.get_servers(),
             connection,

@@ -30,15 +30,15 @@ service ManageService {
   rpc GetPlugins(google.protobuf.Empty) returns (Plugin.List);
 
   // Node operations
-  rpc CreateNode(Node.Item) returns (google.protobuf.Empty);
-  rpc UpdateNode(Node.UpdateReq) returns (Node.Item);
-  rpc GetNode(google.protobuf.StringValue) returns (Node.Item);
+  rpc CreateNode(Node.Detail) returns (google.protobuf.Empty);
+  rpc UpdateNode(Node.UpdateReq) returns (Node.Detail);
+  rpc GetNode(google.protobuf.StringValue) returns (Node.Detail);
   rpc GetNodes(google.protobuf.Empty) returns (Node.List);
 
   // Group operations
-  rpc CreateGroup(Group.Item) returns (google.protobuf.Empty);
-  rpc UpdateGroup(Group.UpdateReq) returns (Group.Item);
-  rpc GetGroup(google.protobuf.StringValue) returns (Group.Item);
+  rpc CreateGroup(Group.Detail) returns (google.protobuf.Empty);
+  rpc UpdateGroup(Group.UpdateReq) returns (Group.Detail);
+  rpc GetGroup(google.protobuf.StringValue) returns (Group.Detail);
   rpc GetGroups(google.protobuf.Empty) returns (Group.List);
 
   // Server operations

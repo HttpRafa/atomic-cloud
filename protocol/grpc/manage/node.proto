@@ -8,7 +8,13 @@ package manage;
 import "google/protobuf/field_mask.proto";
 
 message Node {
-  message Item {
+  message List {
+    repeated Short nodes = 1;
+  }
+  message Short {
+    string name = 1;
+  }
+  message Detail {
     string name = 1;
     string plugin = 2;
     Capabilities capabilities = 3;
@@ -18,9 +24,6 @@ message Node {
     optional uint32 memory = 3;
     optional uint32 max = 4;
     optional string child = 5;
-  }
-  message List {
-    repeated string nodes = 1;
   }
   message UpdateReq {
     string name = 1;

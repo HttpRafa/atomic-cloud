@@ -6,6 +6,7 @@ use ratatui::style::{
 pub mod area;
 pub mod button;
 pub mod center;
+pub mod fancy_toml;
 pub mod list;
 pub mod status;
 

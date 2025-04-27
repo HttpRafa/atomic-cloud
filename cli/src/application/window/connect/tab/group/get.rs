@@ -1,34 +1,81 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Display, Formatter},
+    sync::Arc,
+};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{Paragraph, Widget},
+    text::Line,
+    widgets::{ListItem, Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::EstablishedConnection,
-    window::{StackBatcher, Window},
+    network::{connection::EstablishedConnection, proto::manage::group},
+    util::{fancy_toml::FancyToml, TEXT_FG_COLOR},
+    window::{
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
+        StackBatcher, Window,
+    },
     State,
 };
 
 pub struct GetGroupTab {
     /* Connection */
     connection: Arc<EstablishedConnection>,
+    group: group::Detail,
+
+    /* Lines */
+    lines: Vec<Line<'static>>,
 }
 
 impl GetGroupTab {
-    pub fn new(connection: Arc<EstablishedConnection>) -> Self {
-        Self { connection }
+    /// Creates a new get group tab.
+    /// This function will create a window stack to get the required information to display the group.
+    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<group::Short>> {
+        FetchWindow::new(
+            connection.get_groups(),
+            connection,
+            move |nodes, connection: Arc<EstablishedConnection>, stack, _| {
+                stack.push(SelectWindow::new(nodes, move |group, stack, _| {
+                    stack.push(FetchWindow::new(
+                        connection.get_group(&group.name),
+                        connection.clone(),
+                        move |group, connection, stack, _| {
+                            stack.push(GetGroupTab::new(connection.clone(), group));
+                            Ok(())
+                        },
+                    ));
+                    Ok(())
+                }));
+                Ok(())
+            },
+        )
+    }
+
+    pub fn new(connection: Arc<EstablishedConnection>, group: group::Detail) -> Self {
+        Self {
+            connection,
+            group,
+            lines: vec![],
+        }
     }
 }
 
 #[async_trait]
 impl Window for GetGroupTab {
-    async fn init(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+    async fn init(&mut self, stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
+        // Compute the lines
+        if let Ok(toml) = toml::to_string_pretty(&self.group) {
+            self.lines.extend(FancyToml::to_lines(&toml));
+        }
+
+        // Change the title
+        stack.rename_tab(&self.group.name);
+
         Ok(())
     }
 
@@ -76,5 +123,19 @@ impl GetGroupTab {
             .render(area, buffer);
     }
 
-    fn render_body(&mut self, _area: Rect, _buffer: &mut Buffer) {}
+    fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
+        Paragraph::new(self.lines.clone()).render(area, buffer);
+    }
+}
+
+impl From<&group::Short> for ListItem<'_> {
+    fn from(group: &group::Short) -> Self {
+        ListItem::new(Line::styled(format!(" {group}"), TEXT_FG_COLOR))
+    }
+}
+
+impl Display for group::Short {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", self.name)
+    }
 }

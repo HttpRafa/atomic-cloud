@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn generate_build_info() {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut file = File::create(format!("{}/build_info.rs", out_dir)).unwrap();
+    let mut file = File::create(format!("{out_dir}/build_info.rs")).unwrap();
 
     let commit = env::var("CURRENT_COMMIT").unwrap_or_else(|_| "unknown".to_string());
     let build = env::var("CURRENT_BUILD").unwrap_or_else(|_| "0".to_string());
@@ -25,10 +25,10 @@ fn generate_build_info() {
     writeln!(file, "    major: {},", version.0).unwrap();
     writeln!(file, "    minor: {},", version.1).unwrap();
     writeln!(file, "    patch: {},", version.2).unwrap();
-    writeln!(file, "    build: {},", build).unwrap();
-    writeln!(file, "    commit: \"{}\",", commit).unwrap();
+    writeln!(file, "    build: {build},").unwrap();
+    writeln!(file, "    commit: \"{commit}\",").unwrap();
     writeln!(file, "    stage: Stage::{},", version.3).unwrap();
-    writeln!(file, "    protocol: {},", protocol_version).unwrap();
+    writeln!(file, "    protocol: {protocol_version},").unwrap();
     writeln!(file, "}};").unwrap();
 }
 

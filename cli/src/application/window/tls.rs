@@ -135,17 +135,18 @@ impl TrustTlsWindow {
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         let area = WindowUtils::render_background(area, buffer);
 
-        // TODO: Maybe this can be done with one Paragraph instead of three?
-        let [title_area, _, host_area, _, fingerprint_area, button_area, _] = Layout::vertical([
-            Constraint::Length(1), // Title
-            Constraint::Length(1),
-            Constraint::Length(1), // Host
-            Constraint::Length(1),
-            Constraint::Fill(4), // Fingerprint
-            Constraint::Length(3),
-            Constraint::Fill(1),
-        ])
-        .areas(area);
+        let [_, title_area, _, host_area, _, fingerprint_area, button_area, _] =
+            Layout::vertical([
+                Constraint::Fill(1),
+                Constraint::Length(1), // Title
+                Constraint::Length(1),
+                Constraint::Length(1), // Host
+                Constraint::Length(1),
+                Constraint::Fill(6), // Fingerprint
+                Constraint::Length(3),
+                Constraint::Fill(2),
+            ])
+            .areas(area);
 
         Paragraph::new("A new certificate has been detected. This certificate is currently untrusted. Would you like to trust it?").blue().bold().centered().render(title_area, buffer);
         Paragraph::new(self.request.get_host().host.to_string())

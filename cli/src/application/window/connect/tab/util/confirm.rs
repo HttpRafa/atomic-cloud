@@ -128,12 +128,13 @@ impl ConfirmWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [title_area, _, message_area, button_area, _] = Layout::vertical([
+        let [_, title_area, _, message_area, button_area, _] = Layout::vertical([
+            Constraint::Fill(1),
             Constraint::Length(1), // Title
             Constraint::Length(1),
-            Constraint::Fill(4), // Message
+            Constraint::Fill(6), // Message
             Constraint::Length(3),
-            Constraint::Fill(1),
+            Constraint::Fill(2),
         ])
         .areas(area);
 

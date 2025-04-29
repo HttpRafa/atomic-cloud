@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Display, Formatter},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -11,24 +8,31 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 use tonic::async_trait;
-use url::Url;
 
 use crate::application::{
-    network::{connection::EstablishedConnection, proto::manage::plugin},
+    network::{
+        connection::EstablishedConnection,
+        proto::manage::{
+            group::{Constraints, Scaling},
+            node::{self},
+        },
+    },
     util::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
-    window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
-        StackBatcher, Window, WindowUtils,
-    },
+    window::{StackBatcher, Window, WindowUtils},
     State,
 };
 
-use super::capabilities::CapabilitiesWindow;
+use super::resources::ResourcesWindow;
 
-pub struct BasicWindow<'a> {
+pub struct ScalingWindow<'a> {
+    /* Data */
+    name: String,
+    nodes: Vec<node::Short>,
+    constraints: Constraints,
+
     /* Connection */
     connection: Arc<EstablishedConnection>,
 
@@ -37,18 +41,42 @@ pub struct BasicWindow<'a> {
 
     current: bool,
 
-    name: SimpleTextArea<'a, Vec<String>>,
-    url: SimpleTextArea<'a, ()>,
+    start_threshold: SimpleTextArea<'a, ()>,
+    stop_empty: SimpleTextArea<'a, ()>,
 }
 
-impl BasicWindow<'_> {
-    pub fn new(connection: Arc<EstablishedConnection>, nodes: Vec<String>) -> Self {
-        Self { connection, status: StatusDisplay::new(Status::Error, ""), current: true, name: SimpleTextArea::new_selected(nodes, "Name", "Please enter the name of the node", SimpleTextArea::already_exists_validation), url: SimpleTextArea::new((), "URL of Controller (From the servers perspective)", "Please enter the url of the controller from the perspective of a started server on the node", SimpleTextArea::type_validation::<Url>) }
+impl ScalingWindow<'_> {
+    pub fn new(
+        connection: Arc<EstablishedConnection>,
+        name: String,
+        nodes: Vec<node::Short>,
+        constraints: Constraints,
+    ) -> Self {
+        Self {
+            name,
+            nodes,
+            constraints,
+            connection,
+            status: StatusDisplay::new(Status::Error, ""),
+            current: true,
+            start_threshold: SimpleTextArea::new_selected(
+                (),
+                "Start Threshold (in 0-100%)",
+                "At what percentage of max players should the auto scaler start a new server",
+                SimpleTextArea::type_validation::<f32>,
+            ),
+            stop_empty: SimpleTextArea::new(
+                (),
+                "Stop empty servers",
+                "true/false",
+                SimpleTextArea::type_validation::<bool>,
+            ),
+        }
     }
 }
 
 #[async_trait]
-impl Window for BasicWindow<'_> {
+impl Window for ScalingWindow<'_> {
     async fn init(&mut self, _stack: &mut StackBatcher, _state: &mut State) -> Result<()> {
         Ok(())
     }
@@ -83,34 +111,37 @@ impl Window for BasicWindow<'_> {
                     }
                 }
                 KeyCode::Enter => {
-                    if self.name.is_valid() && self.url.is_valid() {
-                        let name = self.name.get_first_line();
-                        let url = self.url.get_first_line();
+                    if self.start_threshold.is_valid() && self.stop_empty.is_valid() {
+                        // We use .unwrap because the values are validated by the text area
+                        let start_threshold = self
+                            .start_threshold
+                            .get_first_line()
+                            .parse::<f32>()
+                            .unwrap()
+                            / 100.0;
+                        let stop_empty = self.stop_empty.get_first_line().parse::<bool>().unwrap();
+
+                        let scaling = Scaling {
+                            enabled: true,
+                            start_threshold,
+                            stop_empty,
+                        };
+
                         stack.pop(); // This is required to free the data stored in the struct
-                        stack.push(FetchWindow::new(
-                            self.connection.get_plugins(),
+                        stack.push(ResourcesWindow::new(
                             self.connection.clone(),
-                            move |plugins, connection, stack, _| {
-                                stack.push(SelectWindow::new(
-                                    "What plugin do you want to use of this node?",
-                                    plugins,
-                                    move |plugin, stack, _| {
-                                        stack.push(CapabilitiesWindow::new(
-                                            connection, name, url, plugin,
-                                        ));
-                                        Ok(())
-                                    },
-                                ));
-                                Ok(())
-                            },
+                            self.name.clone(),
+                            self.nodes.clone(),
+                            self.constraints,
+                            scaling,
                         ));
                     }
                 }
                 _ => {
                     if self.current {
-                        self.name.handle_event(event);
+                        self.start_threshold.handle_event(event);
                     } else {
-                        self.url.handle_event(event);
+                        self.stop_empty.handle_event(event);
                     }
                 }
             }
@@ -123,14 +154,14 @@ impl Window for BasicWindow<'_> {
     }
 }
 
-impl Widget for &mut BasicWindow<'_> {
+impl Widget for &mut ScalingWindow<'_> {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         // Update the selected fields
-        self.name.set_selected(self.current);
-        self.url.set_selected(!self.current);
+        self.start_threshold.set_selected(self.current);
+        self.stop_empty.set_selected(!self.current);
 
         // Update the status message
-        if self.name.is_valid() && self.url.is_valid() {
+        if self.start_threshold.is_valid() && self.stop_empty.is_valid() {
             self.status.change(Status::Ok, "Press ↵ to confirm");
         } else {
             self.status
@@ -144,14 +175,14 @@ impl Widget for &mut BasicWindow<'_> {
         ])
         .areas(area);
 
-        WindowUtils::render_tab_header("Node basics", title_area, buffer);
-        BasicWindow::render_footer(footer_area, buffer);
+        WindowUtils::render_tab_header("Group constraints", title_area, buffer);
+        ScalingWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
     }
 }
 
-impl BasicWindow<'_> {
+impl ScalingWindow<'_> {
     fn render_footer(area: Rect, buffer: &mut Buffer) {
         Paragraph::new("Use ↓↑ to switch fields, ↵ to confirm, Esc to close tab.")
             .centered()
@@ -159,7 +190,7 @@ impl BasicWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [name_area, url_area, _, status_area] = Layout::vertical([
+        let [start_threshold_area, stop_empty_area, _, status_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(1), // Empty space
@@ -167,15 +198,9 @@ impl BasicWindow<'_> {
         ])
         .areas(area);
 
-        self.name.render(name_area, buffer);
-        self.url.render(url_area, buffer);
+        self.start_threshold.render(start_threshold_area, buffer);
+        self.stop_empty.render(stop_empty_area, buffer);
 
         self.status.render(status_area, buffer);
-    }
-}
-
-impl Display for plugin::Short {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}", self.name)
     }
 }

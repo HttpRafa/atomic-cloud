@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Display, Formatter},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -11,22 +8,21 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 use tonic::async_trait;
-use url::Url;
 
 use crate::application::{
-    network::{connection::EstablishedConnection, proto::manage::plugin},
+    network::connection::EstablishedConnection,
     util::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
     window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
+        connect::tab::util::{fetch::FetchWindow, multi_select::MultiSelectWindow},
         StackBatcher, Window, WindowUtils,
     },
     State,
 };
 
-use super::capabilities::CapabilitiesWindow;
+use super::constraints::ConstraintsWindow;
 
 pub struct BasicWindow<'a> {
     /* Connection */
@@ -35,15 +31,21 @@ pub struct BasicWindow<'a> {
     /* Window */
     status: StatusDisplay,
 
-    current: bool,
-
     name: SimpleTextArea<'a, Vec<String>>,
-    url: SimpleTextArea<'a, ()>,
 }
 
 impl BasicWindow<'_> {
-    pub fn new(connection: Arc<EstablishedConnection>, nodes: Vec<String>) -> Self {
-        Self { connection, status: StatusDisplay::new(Status::Error, ""), current: true, name: SimpleTextArea::new_selected(nodes, "Name", "Please enter the name of the node", SimpleTextArea::already_exists_validation), url: SimpleTextArea::new((), "URL of Controller (From the servers perspective)", "Please enter the url of the controller from the perspective of a started server on the node", SimpleTextArea::type_validation::<Url>) }
+    pub fn new(connection: Arc<EstablishedConnection>, groups: Vec<String>) -> Self {
+        Self {
+            connection,
+            status: StatusDisplay::new(Status::Error, ""),
+            name: SimpleTextArea::new_selected(
+                groups,
+                "Name",
+                "Please enter the name of the group",
+                SimpleTextArea::already_exists_validation,
+            ),
+        }
     }
 }
 
@@ -72,32 +74,19 @@ impl Window for BasicWindow<'_> {
             }
             match event.code {
                 KeyCode::Esc => stack.close_tab(),
-                KeyCode::Up => {
-                    if !self.current {
-                        self.current = true;
-                    }
-                }
-                KeyCode::Down | KeyCode::Tab => {
-                    if self.current {
-                        self.current = false;
-                    }
-                }
                 KeyCode::Enter => {
-                    if self.name.is_valid() && self.url.is_valid() {
+                    if self.name.is_valid() {
                         let name = self.name.get_first_line();
-                        let url = self.url.get_first_line();
                         stack.pop(); // This is required to free the data stored in the struct
                         stack.push(FetchWindow::new(
-                            self.connection.get_plugins(),
+                            self.connection.get_nodes(),
                             self.connection.clone(),
-                            move |plugins, connection, stack, _| {
-                                stack.push(SelectWindow::new(
-                                    "What plugin do you want to use of this node?",
-                                    plugins,
-                                    move |plugin, stack, _| {
-                                        stack.push(CapabilitiesWindow::new(
-                                            connection, name, url, plugin,
-                                        ));
+                            move |nodes, connection, stack, _| {
+                                stack.push(MultiSelectWindow::new(
+                                    "Select the node/s the group can use to start servers on",
+                                    nodes,
+                                    move |nodes, stack, _| {
+                                        stack.push(ConstraintsWindow::new(connection, name, nodes));
                                         Ok(())
                                     },
                                 ));
@@ -106,13 +95,7 @@ impl Window for BasicWindow<'_> {
                         ));
                     }
                 }
-                _ => {
-                    if self.current {
-                        self.name.handle_event(event);
-                    } else {
-                        self.url.handle_event(event);
-                    }
-                }
+                _ => self.name.handle_event(event),
             }
         }
         Ok(())
@@ -125,12 +108,8 @@ impl Window for BasicWindow<'_> {
 
 impl Widget for &mut BasicWindow<'_> {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        // Update the selected fields
-        self.name.set_selected(self.current);
-        self.url.set_selected(!self.current);
-
         // Update the status message
-        if self.name.is_valid() && self.url.is_valid() {
+        if self.name.is_valid() {
             self.status.change(Status::Ok, "Press ↵ to confirm");
         } else {
             self.status
@@ -144,7 +123,7 @@ impl Widget for &mut BasicWindow<'_> {
         ])
         .areas(area);
 
-        WindowUtils::render_tab_header("Node basics", title_area, buffer);
+        WindowUtils::render_tab_header("Group basics", title_area, buffer);
         BasicWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
@@ -153,14 +132,13 @@ impl Widget for &mut BasicWindow<'_> {
 
 impl BasicWindow<'_> {
     fn render_footer(area: Rect, buffer: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to switch fields, ↵ to confirm, Esc to close tab.")
+        Paragraph::new("Use ↵ to confirm, Esc to close tab.")
             .centered()
             .render(area, buffer);
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [name_area, url_area, _, status_area] = Layout::vertical([
-            Constraint::Length(3),
+        let [name_area, _, status_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(1), // Empty space
             Constraint::Fill(1),
@@ -168,14 +146,7 @@ impl BasicWindow<'_> {
         .areas(area);
 
         self.name.render(name_area, buffer);
-        self.url.render(url_area, buffer);
 
         self.status.render(status_area, buffer);
-    }
-}
-
-impl Display for plugin::Short {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "{}", self.name)
     }
 }

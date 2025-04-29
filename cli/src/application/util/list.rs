@@ -103,6 +103,10 @@ impl<T: Display> ActionList<'_, T> {
         self.items.is_empty()
     }
 
+    pub fn get_items(&self) -> &[T] {
+        &self.items
+    }
+
     pub fn handle_event(&mut self, input: impl Into<Input>) {
         let input = input.into();
         match input {

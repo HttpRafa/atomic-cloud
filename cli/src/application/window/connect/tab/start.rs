@@ -141,7 +141,7 @@ impl Window for StartTab {
                             Action::CreateGroup => stack.add_tab(
                                 "Create",
                                 GREEN,
-                                CreateGroupTab::new(self.connection.clone()),
+                                CreateGroupTab::new_stack(self.connection.clone()),
                             ),
                             Action::GetGroup => stack.add_tab(
                                 "Group",

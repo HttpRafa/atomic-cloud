@@ -6,7 +6,10 @@ use futures::{future::BoxFuture, FutureExt};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{palette::tailwind::Palette, Style, Stylize},
+    style::{
+        palette::tailwind::{Palette, WHITE},
+        Style, Stylize,
+    },
     text::Line,
     widgets::{Block, Borders, Paragraph, Widget},
 };
@@ -198,6 +201,19 @@ impl WindowUtils {
         ])
         .centered()
         .render(area, buffer);
+    }
+
+    pub fn render_tab_header(title: &str, area: Rect, buffer: &mut Buffer) {
+        let block = Block::default()
+            .border_style(Style::default().not_bold().fg(WHITE))
+            .borders(Borders::BOTTOM);
+        let inner_area = block.inner(area);
+        block.render(area, buffer);
+        Paragraph::new(title)
+            .centered()
+            .white()
+            .bold()
+            .render(inner_area, buffer);
     }
 
     pub fn render_background(area: Rect, buffer: &mut Buffer) -> Rect {

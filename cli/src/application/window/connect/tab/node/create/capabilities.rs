@@ -5,8 +5,7 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{palette::tailwind::WHITE, Style, Stylize},
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
 };
 use tonic::async_trait;
 
@@ -22,7 +21,7 @@ use crate::application::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
-    window::{StackBatcher, Window},
+    window::{StackBatcher, Window, WindowUtils},
     State,
 };
 
@@ -132,7 +131,8 @@ impl Window for CapabilitiesWindow<'_> {
                         let memory = self.memory.get_first_line();
                         let max_servers = self.max_servers.get_first_line();
                         let child_node = self.child_node.get_first_line();
-                        // Use .clone() because we are lazy and .unwrap because the values are validated by the text area
+                        stack.pop(); // This is required to free the data stored in the struct
+                                     // Use .clone() because we are lazy and .unwrap because the values are validated by the text area
                         stack.push(CreateNodeTab::new(
                             self.connection.clone(),
                             Detail {
@@ -193,9 +193,14 @@ impl Widget for &mut CapabilitiesWindow<'_> {
                 .change(Status::Error, "Please fill in the fields");
         }
 
-        let [main_area, footer_area] =
-            Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+        let [title_area, main_area, footer_area] = Layout::vertical([
+            Constraint::Length(2),
+            Constraint::Fill(1),
+            Constraint::Length(1),
+        ])
+        .areas(area);
 
+        WindowUtils::render_tab_header("Node capabilities", title_area, buffer);
         CapabilitiesWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
@@ -210,27 +215,14 @@ impl CapabilitiesWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [title_area, memory_area, max_servers_area, child_node_area, _, status_area] =
-            Layout::vertical([
-                Constraint::Length(2), // Title
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(1), // Empty space
-                Constraint::Fill(1),
-            ])
-            .areas(area);
-
-        Paragraph::new("Node capabilities")
-            .centered()
-            .white()
-            .bold()
-            .render(title_area, buffer);
-
-        let block = Block::default()
-            .border_style(Style::default().not_bold().fg(WHITE))
-            .borders(Borders::BOTTOM);
-        block.render(title_area, buffer);
+        let [memory_area, max_servers_area, child_node_area, _, status_area] = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(1), // Empty space
+            Constraint::Fill(1),
+        ])
+        .areas(area);
 
         self.memory.render(memory_area, buffer);
         self.max_servers.render(max_servers_area, buffer);

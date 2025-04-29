@@ -5,15 +5,14 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{palette::tailwind::WHITE, Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, ListItem, Paragraph, Widget},
+    widgets::{ListItem, Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
     util::{center::CenterWarning, list::ActionList, ERROR_SELECTED_COLOR, TEXT_FG_COLOR},
-    window::{StackBatcher, Window},
+    window::{StackBatcher, Window, WindowUtils},
     State,
 };
 
@@ -147,9 +146,14 @@ impl<T: Display + Sync + Send> Window for SelectWindow<'_, T> {
 
 impl<T: Display> Widget for &mut SelectWindow<'_, T> {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let [main_area, footer_area] =
-            Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+        let [title_area, main_area, footer_area] = Layout::vertical([
+            Constraint::Length(2),
+            Constraint::Fill(1),
+            Constraint::Length(1),
+        ])
+        .areas(area);
 
+        WindowUtils::render_tab_header(self.title, title_area, buffer);
         SelectWindow::<T>::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
@@ -164,20 +168,6 @@ impl<T: Display> SelectWindow<'_, T> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [title_area, area] =
-            Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).areas(area);
-
-        Paragraph::new(self.title)
-            .centered()
-            .white()
-            .bold()
-            .render(title_area, buffer);
-
-        let block = Block::default()
-            .border_style(Style::default().not_bold().fg(WHITE))
-            .borders(Borders::BOTTOM);
-        block.render(title_area, buffer);
-
         self.list.render(area, buffer);
         if self.list.is_empty() {
             CenterWarning::render("You dont have any options. Use Esc to close.", area, buffer);

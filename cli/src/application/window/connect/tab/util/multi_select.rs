@@ -5,15 +5,14 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{palette::tailwind::WHITE, Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, ListItem, Paragraph, Widget},
+    widgets::{ListItem, Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
     util::{center::CenterWarning, list::ActionList, OK_SELECTED_COLOR, TEXT_FG_COLOR},
-    window::{StackBatcher, Window},
+    window::{StackBatcher, Window, WindowUtils},
     State,
 };
 
@@ -31,6 +30,7 @@ pub struct MultiSelectWindow<'a, T: Display> {
 
     /* Window */
     title: &'a str,
+    selected: usize, // We use this track the amount of selected items to that we dont have to iterate over the list.
     list: ActionList<'a, Selectable<T>>,
 }
 
@@ -43,6 +43,7 @@ impl<'a, T: Display> MultiSelectWindow<'a, T> {
         Self {
             title,
             callback: Some(Box::new(callback)),
+            selected: 0,
             list: ActionList::new(
                 items
                     .into_iter()
@@ -83,26 +84,34 @@ impl<T: Display + Sync + Send> Window for MultiSelectWindow<'_, T> {
                     stack.close_tab();
                 }
                 KeyCode::Right | KeyCode::Left => {
-                    if let Some(selected) = self.list.selected_mut() {
-                        selected.selected = !selected.selected;
+                    if let Some(item) = self.list.selected_mut() {
+                        if item.selected {
+                            self.selected -= 1;
+                            item.selected = false;
+                        } else {
+                            self.selected += 1;
+                            item.selected = true;
+                        }
                     }
                 }
                 KeyCode::Enter => {
-                    let items = self
-                        .list
-                        .take_items()
-                        .into_iter()
-                        .filter_map(|item| {
-                            if item.selected {
-                                Some(item.inner)
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    stack.pop();
-                    if let Some(callback) = self.callback.take() {
-                        callback(items, stack, state)?;
+                    if self.selected > 0 {
+                        let items = self
+                            .list
+                            .take_items()
+                            .into_iter()
+                            .filter_map(|item| {
+                                if item.selected {
+                                    Some(item.inner)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        stack.pop();
+                        if let Some(callback) = self.callback.take() {
+                            callback(items, stack, state)?;
+                        }
                     }
                 }
                 _ => self.list.handle_event(event),
@@ -118,9 +127,14 @@ impl<T: Display + Sync + Send> Window for MultiSelectWindow<'_, T> {
 
 impl<T: Display> Widget for &mut MultiSelectWindow<'_, T> {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let [main_area, footer_area] =
-            Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+        let [title_area, main_area, footer_area] = Layout::vertical([
+            Constraint::Length(2),
+            Constraint::Fill(1),
+            Constraint::Length(1),
+        ])
+        .areas(area);
 
+        WindowUtils::render_tab_header(self.title, title_area, buffer);
         MultiSelectWindow::<T>::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
@@ -135,20 +149,6 @@ impl<T: Display> MultiSelectWindow<'_, T> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [title_area, area] =
-            Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).areas(area);
-
-        Paragraph::new(self.title)
-            .centered()
-            .white()
-            .bold()
-            .render(title_area, buffer);
-
-        let block = Block::default()
-            .border_style(Style::default().not_bold().fg(WHITE))
-            .borders(Borders::BOTTOM);
-        block.render(title_area, buffer);
-
         self.list.render(area, buffer);
         if self.list.is_empty() {
             CenterWarning::render("You dont have any options. Use Esc to close.", area, buffer);

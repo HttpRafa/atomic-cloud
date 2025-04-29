@@ -11,7 +11,7 @@ RUN apt update && apt upgrade -y
 RUN apt install -y \
     build-essential git gh \
     mkdocs-material \
-    protobuf-compiler \
+    protobuf-compiler gcc-mingw-w64 \
     rustup \
     openjdk-21-jdk gradle
 

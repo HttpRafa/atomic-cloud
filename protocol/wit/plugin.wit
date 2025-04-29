@@ -66,7 +66,7 @@ interface data-types {
         temporary,
     }
 
-    record spec {
+    record specification {
         settings: list<tuple<string, string>>,
         environment: list<tuple<string, string>>,
         disk-retention: disk-retention,
@@ -76,14 +76,14 @@ interface data-types {
     record allocation {
         ports: list<address>,
         resources: resources,
-        spec: spec,
+        specification: specification,
     }
 
     record server-proposal {
         name: string,
         group: option<string>,
         resources: resources,
-        spec: spec,
+        specification: specification,
     }
 
     record server {

@@ -15,7 +15,9 @@ use crate::{
 
 use super::{
     plugin::BoxedNode,
-    server::{guard::Guard, manager::StartRequest, screen::BoxedScreen, Resources, Server, Spec},
+    server::{
+        guard::Guard, manager::StartRequest, screen::BoxedScreen, Resources, Server, Specification,
+    },
 };
 
 pub mod manager;
@@ -120,7 +122,7 @@ pub struct Allocation {
     #[getset(get = "pub")]
     pub resources: Resources,
     #[getset(get = "pub")]
-    pub spec: Spec,
+    pub specification: Specification,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Getters)]
@@ -128,9 +130,9 @@ pub struct Capabilities {
     #[getset(get = "pub")]
     memory: Option<u32>,
     #[getset(get = "pub")]
-    max_servers: Option<u32>,
+    servers: Option<u32>,
     #[getset(get = "pub")]
-    child: Option<String>,
+    child_node: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq)]
@@ -155,11 +157,11 @@ impl Allocation {
 }
 
 impl Capabilities {
-    pub fn new(memory: Option<u32>, max_servers: Option<u32>, child: Option<String>) -> Self {
+    pub fn new(memory: Option<u32>, servers: Option<u32>, child_node: Option<String>) -> Self {
         Self {
             memory,
-            max_servers,
-            child,
+            servers,
+            child_node,
         }
     }
 }

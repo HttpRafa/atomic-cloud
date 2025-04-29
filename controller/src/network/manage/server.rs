@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     application::{
         node::Allocation,
-        server::{manager::StartRequest, Resources, Server, Spec},
+        server::{manager::StartRequest, Resources, Server, Specification},
         Controller,
     },
     network::proto::{
@@ -16,7 +16,13 @@ use crate::{
     task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct ScheduleServerTask(pub i32, pub String, pub String, pub Resources, pub Spec);
+pub struct ScheduleServerTask(
+    pub i32,
+    pub String,
+    pub String,
+    pub Resources,
+    pub Specification,
+);
 pub struct GetServerTask(pub Uuid);
 pub struct GetServersTask();
 
@@ -107,7 +113,7 @@ impl From<&Allocation> for server::Allocation {
                 })
                 .collect(),
             resources: Some(value.resources().into()),
-            spec: Some(value.spec().into()),
+            specification: Some(value.specification().into()),
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     fs,
     path::{Path, PathBuf},
 };
@@ -57,15 +58,21 @@ impl Storage {
     pub fn templates_directory(host: bool) -> PathBuf {
         Self::data_directory(host).join(TEMPLATES_DIRECTORY)
     }
-    pub fn template_directory(host: bool, name: &str) -> PathBuf {
+    pub fn template_directory<'a, T>(host: bool, name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Self::data_directory(host)
             .join(TEMPLATES_DIRECTORY)
-            .join(name)
+            .join(name.into().into_owned())
     }
     pub fn template_data_file_name() -> &'static str {
         TEMPLATE_DATA_FILE
     }
-    pub fn create_template_directory(name: &str) -> Directory {
+    pub fn create_template_directory<'a, T>(name: T) -> Directory
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Directory {
             reference: Reference::Data,
             path: Self::template_directory(true, name)
@@ -78,13 +85,19 @@ impl Storage {
     pub fn temporary_directory(host: bool) -> PathBuf {
         Self::servers_directory(host).join(TEMPORARY_DIRECTORY)
     }
-    pub fn temporary_directory_for_node(host: bool, node: &str) -> PathBuf {
-        Self::temporary_directory(host).join(node)
+    pub fn temporary_directory_for_node<'a, T>(host: bool, node: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        Self::temporary_directory(host).join(node.into().into_owned())
     }
-    pub fn permanent_directory_for_node(host: bool, node: &str) -> PathBuf {
+    pub fn permanent_directory_for_node<'a, T>(host: bool, node: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Self::servers_directory(host)
             .join(PERMANENT_DIRECTORY)
-            .join(node)
+            .join(node.into().into_owned())
     }
     pub fn create_temporary_directory() -> Directory {
         Directory {
@@ -95,12 +108,15 @@ impl Storage {
         }
     }
 
-    pub fn server_directory(
+    pub fn server_directory<'a, T>(
         host: bool,
-        node: &str,
+        node: T,
         name: &TimedName,
         retention: DiskRetention,
-    ) -> PathBuf {
+    ) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
         match retention {
             DiskRetention::Temporary => {
                 Self::temporary_directory_for_node(host, node).join(name.get_name())
@@ -110,11 +126,14 @@ impl Storage {
             }
         }
     }
-    pub fn create_server_directory(
-        node: &str,
+    pub fn create_server_directory<'a, T>(
+        node: T,
         name: &TimedName,
         retention: DiskRetention,
-    ) -> Directory {
+    ) -> Directory
+    where
+        T: Into<Cow<'a, str>>,
+    {
         Directory {
             reference: Reference::Data,
             path: Self::server_directory(true, node, name, retention)

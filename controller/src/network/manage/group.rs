@@ -4,13 +4,13 @@ use tonic::{async_trait, Status};
 use crate::{
     application::{
         group::{Group, ScalingPolicy, StartConstraints},
-        server::{FallbackPolicy, Resources, Spec},
+        server::{FallbackPolicy, Resources, Specification},
         Controller,
     },
     network::proto::{
         common::KeyValue,
         manage::{
-            group::{Constraints, Item, List, Scaling},
+            group::{Constraints, Detail, List, Scaling, Short},
             server::{self, Fallback},
         },
     },
@@ -22,7 +22,7 @@ pub struct CreateGroupTask(
     pub StartConstraints,
     pub ScalingPolicy,
     pub Resources,
-    pub Spec,
+    pub Specification,
     pub Vec<String>,
 );
 pub struct UpdateGroupTask(
@@ -30,7 +30,7 @@ pub struct UpdateGroupTask(
     pub Option<StartConstraints>,
     pub Option<ScalingPolicy>,
     pub Option<Resources>,
-    pub Option<Spec>,
+    pub Option<Specification>,
     pub Option<Vec<String>>,
 );
 pub struct GetGroupTask(pub String);
@@ -74,7 +74,7 @@ impl GenericTask for UpdateGroupTask {
             )
             .await
         {
-            Ok(group) => return Task::new_ok(Item::from(group)),
+            Ok(group) => return Task::new_ok(Detail::from(group)),
             Err(error) => Task::new_err(error.into()),
         }
     }
@@ -87,7 +87,7 @@ impl GenericTask for GetGroupTask {
             return Task::new_err(Status::not_found("Group not found"));
         };
 
-        Task::new_ok(Item::from(group))
+        Task::new_ok(Detail::from(group))
     }
 }
 
@@ -99,13 +99,21 @@ impl GenericTask for GetGroupsTask {
                 .groups
                 .get_groups()
                 .iter()
-                .map(|group| group.name().clone())
+                .map(std::convert::Into::into)
                 .collect(),
         })
     }
 }
 
-impl From<&Group> for Item {
+impl From<&&Group> for Short {
+    fn from(group: &&Group) -> Self {
+        Self {
+            name: group.name().clone(),
+        }
+    }
+}
+
+impl From<&Group> for Detail {
     fn from(value: &Group) -> Self {
         Self {
             name: value.name().clone(),
@@ -113,7 +121,7 @@ impl From<&Group> for Item {
             scaling: Some(value.scaling().to_grpc()),
             constraints: Some(value.constraints().into()),
             resources: Some(value.resources().into()),
-            spec: Some(value.spec().into()),
+            specification: Some(value.specification().into()),
         }
     }
 }
@@ -121,9 +129,9 @@ impl From<&Group> for Item {
 impl From<&StartConstraints> for Constraints {
     fn from(value: &StartConstraints) -> Self {
         Self {
-            min: *value.minimum(),
-            max: *value.maximum(),
-            prio: *value.priority(),
+            min_servers: *value.minimum(),
+            max_servers: *value.maximum(),
+            priority: *value.priority(),
         }
     }
 }
@@ -151,10 +159,10 @@ impl From<&Resources> for server::Resources {
     }
 }
 
-impl From<&Spec> for server::Spec {
-    fn from(value: &Spec) -> Self {
+impl From<&Specification> for server::Specification {
+    fn from(value: &Specification) -> Self {
         Self {
-            img: value.image().clone(),
+            image: value.image().clone(),
             max_players: *value.max_players(),
             settings: value
                 .settings()
@@ -164,7 +172,7 @@ impl From<&Spec> for server::Spec {
                     value: value.clone(),
                 })
                 .collect(),
-            env: value
+            environment: value
                 .environment()
                 .iter()
                 .map(|(key, value)| KeyValue {
@@ -182,7 +190,7 @@ impl FallbackPolicy {
     pub fn to_grpc(&self) -> Option<Fallback> {
         if *self.enabled() {
             Some(Fallback {
-                prio: *self.priority(),
+                priority: *self.priority(),
             })
         } else {
             None

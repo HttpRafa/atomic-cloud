@@ -1,4 +1,7 @@
-use std::any::{type_name, Any};
+use std::{
+    any::{type_name, Any},
+    borrow::Cow,
+};
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
@@ -20,6 +23,7 @@ pub struct Task {
 }
 
 impl Task {
+    #[allow(clippy::result_large_err)]
     pub fn get_auth<T>(auth: AuthType, request: &Request<T>) -> Result<Authorization, Status> {
         match request.extensions().get::<Authorization>() {
             Some(data) if data.is_type(auth) => Ok(data.clone()),
@@ -89,8 +93,11 @@ impl Task {
         Ok(Box::new(value))
     }
 
-    pub fn new_permission_error(message: &str) -> Result<BoxedAny> {
-        Self::new_err(Status::permission_denied(message))
+    pub fn new_permission_error<'a, T>(message: T) -> Result<BoxedAny>
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        Self::new_err(Status::permission_denied(message.into()))
     }
 
     pub fn new_link_error() -> Result<BoxedAny> {

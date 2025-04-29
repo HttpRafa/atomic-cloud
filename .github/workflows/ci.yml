@@ -4,14 +4,16 @@ on:
   push:
     branches: ["main"]
   pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
     
 env: 
   CARGO_TERM_COLOR: always
 
 jobs:
   build-and-test:
+    if: github.event.pull_request.draft == false
     name: Build & Test
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -67,13 +69,13 @@ jobs:
         run: cargo clippy --all-features -- -D warnings
 
       - name: Build Projects
-        run: cargo build --all --all-features --verbose
+        run: cargo build --all --all-features
         env:
           CURRENT_COMMIT: ${{ steps.vars.outputs.sha_short }}
           CURRENT_BUILD: ${{ github.run_number }}
 
       - name: Run Tests
-        run: cargo test --workspace --exclude pelican --exclude local --exclude cloudflare --all-features --verbose
+        run: cargo test --workspace --exclude pelican --exclude local --exclude cloudflare --all-features
 
       - name: Build & Test Java Client
         working-directory: clients/java

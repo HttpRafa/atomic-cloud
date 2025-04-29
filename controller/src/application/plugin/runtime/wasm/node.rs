@@ -9,7 +9,9 @@ use wasmtime::{component::ResourceAny, AsContextMut, Store};
 use crate::application::{
     node::Allocation,
     plugin::{BoxedScreen, GenericNode},
-    server::{guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Spec},
+    server::{
+        guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Specification,
+    },
     subscriber::manager::event::ServerEvent,
 };
 
@@ -204,9 +206,9 @@ impl From<&DiskRetention> for data_types::DiskRetention {
     }
 }
 
-impl From<&Spec> for data_types::Spec {
-    fn from(val: &Spec) -> Self {
-        data_types::Spec {
+impl From<&Specification> for data_types::Specification {
+    fn from(val: &Specification) -> Self {
+        data_types::Specification {
             settings: val
                 .settings()
                 .iter()
@@ -241,7 +243,7 @@ impl From<&Allocation> for data_types::Allocation {
         data_types::Allocation {
             ports: val.ports.iter().map(Into::into).collect(),
             resources: val.resources().into(),
-            spec: (&val.spec).into(),
+            specification: (&val.specification).into(),
         }
     }
 }
@@ -276,7 +278,7 @@ impl From<&StartRequest> for bridge::ServerProposal {
             name: val.id().name().clone(),
             group: val.group().clone(),
             resources: val.resources().into(),
-            spec: val.spec().into(),
+            specification: val.specification().into(),
         }
     }
 }

@@ -10,5 +10,5 @@ public record CloudGroupImpl(
         Group.Constraints constraints,
         Group.Scaling scaling,
         Server.Resources resources,
-        Server.Spec spec)
+        Server.Specification specification)
         implements CloudGroup {}

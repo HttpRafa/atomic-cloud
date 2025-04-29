@@ -7,35 +7,38 @@ edition = "2021"
 # Common
 common = { path = "../common" }
 
-# Logging
-simplelog = { version = "0.12.2", features = ["paris"] }
-loading = "0.4.0"
+# Terminal
+crossterm = { version = "0.28.1", features = ["event-stream"] }
+ratatui = "0.29.0"
+tui-textarea = "0.7.0"
+ansi-to-tui = "7.0.0"
 
 # File management
-dirs = "6.0.0"
-
-# Input parsing
-inquire = { version = "0.7.5", features = ["editor"] }
-rustyline = "15.0.0"
+directories = "6.0.0"
 
 # Error handling
-anyhow = "1.0.97"
-
-# Command line arguments
-clap = { version = "4.5.32", features = ["derive"] }
+color-eyre = "0.6.3"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.20"
+base64 = "0.22.1"
 
 # Async runtime
-tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
+tokio-stream = "0.1.17"
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 futures = "0.3.31"
 
 # Network
-url = { version = "2.5.4", features = ["serde"] }
+sha2 = "0.10.8"
 prost = "0.13.5"
-tonic = { version = "0.13.0", features = ["tls-ring", "tls-native-roots"] }
+tower = "0.5.2"
+hyper = "1.6.0"
+hyper-util = "0.1.11"
+url = { version = "2.5.4", features = ["serde"] }
+tonic = { version = "0.13.0", features = ["tls-ring"] }
+tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring", "tls12"] }
+hyper-rustls = { version = "0.27.5", default-features = false, features = ["http2", "ring", "tls12"] }
 
 [build-dependencies]
 toml = "0.8.20"

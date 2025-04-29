@@ -97,6 +97,8 @@ impl AuthManager {
 }
 
 mod stored {
+    use std::borrow::Cow;
+
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
@@ -109,9 +111,12 @@ mod stored {
     }
 
     impl StoredUser {
-        pub fn new(token: &str) -> Self {
+        pub fn new<'a, T>(token: T) -> Self
+        where
+            T: Into<Cow<'a, str>>,
+        {
             Self {
-                token: token.to_string(),
+                token: token.into().into_owned(),
             }
         }
     }

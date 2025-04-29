@@ -1,4 +1,4 @@
-use std::{fmt::Display, rc::Rc, time::Instant};
+use std::{borrow::Cow, fmt::Display, rc::Rc, time::Instant};
 
 use anyhow::{anyhow, Result};
 use common::name::TimedName;
@@ -51,7 +51,7 @@ impl Server {
         let name = TimedName::new_no_identifier(
             &request.name,
             matches!(
-                request.allocation.spec.disk_retention,
+                request.allocation.specification.disk_retention,
                 DiskRetention::Permanent
             ),
         );
@@ -62,7 +62,7 @@ impl Server {
                 false,
                 &node.name,
                 &name,
-                request.allocation.spec.disk_retention,
+                request.allocation.specification.disk_retention,
             );
             if !directory.exists() {
                 template.copy_self(&directory)?;
@@ -70,7 +70,7 @@ impl Server {
         }
 
         // Prepare the environment
-        let mut environment = request.allocation.spec.environment.clone();
+        let mut environment = request.allocation.specification.environment.clone();
         environment.reserve(4);
         environment.push((CONTROLLER_ADDRESS.to_string(), node.controller.clone()));
         environment.push((SERVER_TOKEN.to_string(), request.token.clone()));
@@ -100,7 +100,7 @@ impl Server {
             &Storage::create_server_directory(
                 &node.name,
                 &name,
-                request.allocation.spec.disk_retention,
+                request.allocation.specification.disk_retention,
             ),
         )?;
 
@@ -115,10 +115,13 @@ impl Server {
         })
     }
 
-    pub fn cleanup(&self, node: &str) -> Result<()> {
+    pub fn cleanup<'a, T>(&self, node: T) -> Result<()>
+    where
+        T: Into<Cow<'a, str>>,
+    {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
-            self.request.allocation.spec.disk_retention,
+            self.request.allocation.specification.disk_retention,
             DiskRetention::Temporary
         ) {
             remove_dir_all(&Storage::create_server_directory(

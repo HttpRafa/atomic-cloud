@@ -18,7 +18,9 @@ use crate::{
     config::Config,
 };
 
-use super::{guard::WeakGuard, screen::BoxedScreen, NameAndUuid, Resources, Server, Spec, State};
+use super::{
+    guard::WeakGuard, screen::BoxedScreen, NameAndUuid, Resources, Server, Specification, State,
+};
 
 mod action;
 mod restart;
@@ -59,9 +61,9 @@ impl ServerManager {
                 server.id.uuid() != ignore
                     && server.ready
                     && server.state == State::Running
-                    && server.allocation.spec.fallback.enabled
+                    && server.allocation.specification.fallback.enabled
             })
-            .max_by_key(|server| server.allocation.spec.fallback.priority)
+            .max_by_key(|server| server.allocation.specification.fallback.priority)
     }
 
     pub fn get_servers(&self) -> Vec<&Server> {
@@ -240,7 +242,7 @@ pub struct StartRequest {
     #[getset(get = "pub")]
     resources: Resources,
     #[getset(get = "pub")]
-    spec: Spec,
+    specification: Specification,
     #[getset(get = "pub")]
     priority: i32,
 
@@ -297,7 +299,7 @@ impl StartRequest {
         group: Option<String>,
         nodes: &[String],
         resources: &Resources,
-        spec: &Spec,
+        specification: &Specification,
     ) -> Self {
         Self {
             id: NameAndUuid::generate(name),
@@ -306,7 +308,7 @@ impl StartRequest {
             group,
             nodes: nodes.to_vec(),
             resources: resources.clone(),
-            spec: spec.clone(),
+            specification: specification.clone(),
             stage: StartStage::Queued,
         }
     }

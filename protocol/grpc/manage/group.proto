@@ -8,26 +8,29 @@ package manage;
 import "manage/server.proto";
 
 message Group {
-  message Item {
+  message List {
+    repeated Short groups = 1;
+  }
+  message Short {
+    string name = 1;
+  }
+  message Detail {
     string name = 1;
     repeated string nodes = 2;
     Constraints constraints = 3;
     Scaling scaling = 4;
     Server.Resources resources = 5;
-    Server.Spec spec = 6;
+    Server.Specification specification = 6;
   }
   message Constraints {
-    uint32 min = 1;
-    uint32 max = 2;
-    int32 prio = 3;
+    uint32 minServers = 1;
+    uint32 maxServers = 2;
+    int32 priority = 3;
   }
   message Scaling {
     bool enabled = 1;
     float startThreshold = 2;
     bool stopEmpty = 3;
-  }
-  message List {
-    repeated string groups = 1;
   }
   message NodeList {
     repeated string nodes = 1;
@@ -38,6 +41,6 @@ message Group {
     optional Constraints constraints = 3;
     optional Scaling scaling = 4;
     optional Server.Resources resources = 5;
-    optional Server.Spec spec = 6;
+    optional Server.Specification specification = 6;
   }
 }

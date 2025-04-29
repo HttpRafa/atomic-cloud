@@ -9,7 +9,7 @@ use tokio::fs;
 use crate::{
     application::{
         node::manager::NodeManager,
-        server::{manager::ServerManager, Resources, Spec},
+        server::{manager::ServerManager, Resources, Specification},
         OptVoter, Voter,
     },
     config::Config,
@@ -77,7 +77,7 @@ impl GroupManager {
         constraints: &StartConstraints,
         scaling: &ScalingPolicy,
         resources: &Resources,
-        spec: &Spec,
+        specification: &Specification,
         g_nodes: &[String],
         nodes: &NodeManager,
     ) -> Result<(), CreateResourceError> {
@@ -93,7 +93,7 @@ impl GroupManager {
             constraints.clone(),
             scaling.clone(),
             resources.clone(),
-            spec.clone(),
+            specification.clone(),
         );
 
         let group = Group::new(name, &group);
@@ -110,7 +110,7 @@ impl GroupManager {
         constraints: Option<&StartConstraints>,
         scaling: Option<&ScalingPolicy>,
         resources: Option<&Resources>,
-        spec: Option<&Spec>,
+        specification: Option<&Specification>,
         g_nodes: Option<&[String]>,
         nodes: &NodeManager,
     ) -> Result<&Group, UpdateResourceError> {
@@ -133,8 +133,8 @@ impl GroupManager {
         if let Some(resources) = resources {
             group.set_resources(resources.clone());
         }
-        if let Some(spec) = spec {
-            group.set_spec(spec.clone());
+        if let Some(specification) = specification {
+            group.set_specification(specification.clone());
         }
         group.save().await.map_err(UpdateResourceError::Error)?;
         debug!("Updated group {}", name);
@@ -170,7 +170,7 @@ impl Group {
             constraints: group.constraints().clone(),
             scaling: group.scaling().clone(),
             resources: group.resources().clone(),
-            spec: group.spec().clone(),
+            specification: group.specification().clone(),
             id_allocator: NumberAllocator::new(1..usize::MAX),
             servers: HashMap::new(),
         }
@@ -212,7 +212,7 @@ pub(super) mod stored {
         application::{
             group::{Group, ScalingPolicy, StartConstraints},
             node::LifecycleStatus,
-            server::{Resources, Spec},
+            server::{Resources, Specification},
         },
         storage::{LoadFromTomlFile, SaveToTomlFile},
     };
@@ -235,7 +235,7 @@ pub(super) mod stored {
         #[getset(get = "pub", get_mut = "pub")]
         resources: Resources,
         #[getset(get = "pub", get_mut = "pub")]
-        spec: Spec,
+        specification: Specification,
     }
 
     impl StoredGroup {
@@ -244,7 +244,7 @@ pub(super) mod stored {
             constraints: StartConstraints,
             scaling: ScalingPolicy,
             resources: Resources,
-            spec: Spec,
+            specification: Specification,
         ) -> Self {
             Self {
                 status: LifecycleStatus::Inactive,
@@ -252,7 +252,7 @@ pub(super) mod stored {
                 constraints,
                 scaling,
                 resources,
-                spec,
+                specification,
             }
         }
 
@@ -263,7 +263,7 @@ pub(super) mod stored {
                 constraints: group.constraints.clone(),
                 scaling: group.scaling.clone(),
                 resources: group.resources.clone(),
-                spec: group.spec.clone(),
+                specification: group.specification.clone(),
             }
         }
     }

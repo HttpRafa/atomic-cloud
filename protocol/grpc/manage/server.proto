@@ -33,12 +33,12 @@ message Server {
     string name = 2;
     string node = 3;
     Server.Resources resources = 4;
-    Server.Spec spec = 5;
+    Server.Specification specification = 5;
   }
   message Allocation {
     repeated common.Address ports = 1;
-    Resources resources = 2;
-    Spec spec = 3;
+    Server.Resources resources = 2;
+    Server.Specification specification = 3;
   }
   message Resources {
     uint32 memory = 1;
@@ -48,16 +48,16 @@ message Server {
     uint32 disk = 5;
     uint32 ports = 6;
   }
-  message Spec {
-    string img = 1;
+  message Specification {
+    string image = 1;
     uint32 maxPlayers = 2;
     repeated common.KeyValue settings = 3;
-    repeated common.KeyValue env = 4;
+    repeated common.KeyValue environment = 4;
     optional DiskRetention retention = 5;
     optional Fallback fallback = 6;
   }
   message Fallback {
-    int32 prio = 1;
+    int32 priority = 1;
   }
   enum DiskRetention {
     TEMPORARY = 0;

@@ -117,7 +117,7 @@ impl ActiveScreen {
             screen,
             handle: None,
             subscribers: vec![],
-            cache: FixedSizeCache::new(91),
+            cache: FixedSizeCache::new(120),
         }
     }
 
@@ -156,15 +156,22 @@ impl ActiveScreen {
 
         self.handle = match self.handle.take() {
             Some(handle) if handle.is_finished() => {
-                let lines = handle.await?.map_err(Into::into);
-                {
-                    let lines = lines.clone().map(|lines| ScreenLines { lines });
-                    for subscriber in &self.subscribers {
-                        subscriber.send_network(lines.clone()).await;
+                let lines = handle.await?.map_err(Into::<Status>::into);
+                match lines {
+                    Ok(lines) => {
+                        if !lines.is_empty() {
+                            self.cache.extend(lines.clone());
+                            let lines = ScreenLines { lines };
+                            for subscriber in &self.subscribers {
+                                subscriber.send_network(Ok(lines.clone())).await;
+                            }
+                        }
                     }
-                }
-                if let Ok(lines) = lines {
-                    self.cache.extend(lines);
+                    Err(error) => {
+                        for subscriber in &self.subscribers {
+                            subscriber.send_network(Err(error.clone())).await;
+                        }
+                    }
                 }
                 Some(self.screen.pull())
             }

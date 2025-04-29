@@ -3,7 +3,10 @@ All the storage related functions are implemented here.
 This makes it easier to change them in the future
 */
 
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
@@ -103,11 +106,17 @@ impl Storage {
     pub fn plugins_directory() -> PathBuf {
         PathBuf::from(PLUGINS_DIRECTORY)
     }
-    pub fn data_directory_for_plugin(name: &str) -> PathBuf {
-        PathBuf::from(DATA_DIRECTORY).join(name)
+    pub fn data_directory_for_plugin<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        PathBuf::from(DATA_DIRECTORY).join(name.into().into_owned())
     }
-    pub fn config_directory_for_plugin(name: &str) -> PathBuf {
-        Storage::configs_directory().join(name)
+    pub fn config_directory_for_plugin<'a, T>(name: T) -> PathBuf
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        Storage::configs_directory().join(name.into().into_owned())
     }
 
     pub async fn for_each_content(path: &Path) -> Result<Vec<(PathBuf, String, String)>> {

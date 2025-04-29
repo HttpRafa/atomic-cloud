@@ -67,10 +67,10 @@ impl ServerManager {
         let templates = node.templates.borrow();
         let name = request.name.clone();
 
-        let Some(template) = templates.get_template(&request.allocation.spec.image) else {
+        let Some(template) = templates.get_template(&request.allocation.specification.image) else {
             error!(
                 "Template not found while starting server {}: {}",
-                request.name, request.allocation.spec.image
+                request.name, request.allocation.specification.image
             );
             return ScreenType::Unsupported;
         };

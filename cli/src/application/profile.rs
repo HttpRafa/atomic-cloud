@@ -1,100 +1,34 @@
-use std::{
-    fmt::{Display, Formatter},
-    fs,
-};
+use std::{borrow::Cow, sync::Arc};
 
-use anyhow::{anyhow, Result};
-use simplelog::debug;
+use color_eyre::eyre::Result;
 use stored::StoredProfile;
+use tokio::fs;
 use url::Url;
 
 use crate::storage::{SaveToTomlFile, Storage};
 
-use super::network::{CloudConnection, EstablishedConnection};
+use super::network::{
+    connection::{task::ConnectTask, EstablishedConnection},
+    known_host::manager::KnownHosts,
+};
 
-pub struct Profiles {
-    pub profiles: Vec<Profile>,
-}
-
-impl Profiles {
-    pub async fn init() -> Result<Self> {
-        debug!("Loading profiles...");
-        let mut profiles = vec![];
-
-        let directory = Storage::profiles_folder();
-        if !directory.exists() {
-            fs::create_dir_all(&directory)?;
-        }
-
-        for (_, _, name, value) in Storage::for_each_content_toml::<StoredProfile>(
-            &directory,
-            "Failed to read profile from file",
-        )
-        .await?
-        {
-            debug!("Loaded profile {}", name);
-            profiles.push(Profile::from(&name, &value));
-        }
-
-        debug!("Loaded {} profile(s)", profiles.len());
-        Ok(Self { profiles })
-    }
-
-    pub async fn create_profile(&mut self, profile: &Profile) -> Result<()> {
-        // Check if profile already exists
-        if Self::is_id_used(&self.profiles, &profile.id) {
-            return Err(anyhow!("Profile '{}' already exists", profile.name));
-        }
-
-        let profile = profile.clone();
-        profile.mark_dirty().await?;
-        self.add_profile(profile);
-        Ok(())
-    }
-
-    pub fn delete_profile(&mut self, profile: &Profile) -> Result<()> {
-        let index = self
-            .profiles
-            .iter()
-            .position(|p| p.id == profile.id)
-            .ok_or_else(|| anyhow!("Profile '{}' not found", profile.name))?;
-
-        let profile = self.profiles.remove(index);
-        profile.delete_file()?;
-        Ok(())
-    }
-
-    fn add_profile(&mut self, profile: Profile) {
-        self.profiles.push(profile);
-    }
-
-    pub fn already_exists(profiles: &[Profile], name: &str) -> bool {
-        profiles.iter().any(|p| p.id == Profile::compute_id(name))
-    }
-
-    pub fn is_id_used(profiles: &[Profile], id: &str) -> bool {
-        profiles.iter().any(|p| p.id == id)
-    }
-}
+pub mod manager;
 
 #[derive(Clone)]
 pub struct Profile {
     pub id: String,
     pub name: String,
-    pub authorization: String,
+    pub token: String,
     pub url: Url,
-
-    pub cert: Option<String>,
 }
 
 impl Profile {
-    pub fn new(name: &str, authorization: &str, url: Url, cert: Option<String>) -> Self {
+    pub fn new(name: &str, token: &str, url: Url) -> Self {
         Self {
-            id: Self::compute_id(name),
+            id: Self::create_id(name),
             name: name.to_string(),
-            authorization: authorization.to_string(),
+            token: token.to_string(),
             url,
-            cert,
         }
     }
 
@@ -102,42 +36,46 @@ impl Profile {
         Self {
             id: id.to_string(),
             name: profile.name.clone(),
-            authorization: profile.authorization.clone(),
+            token: profile.token.clone(),
             url: profile.url.clone(),
-            cert: profile.cert.clone(),
         }
     }
 
-    pub async fn establish_connection(&self) -> Result<EstablishedConnection> {
-        CloudConnection::establish_connection(self).await
+    pub fn establish_connection(&self, known_hosts: Arc<KnownHosts>) -> ConnectTask {
+        EstablishedConnection::establish_new(
+            self.name.clone(),
+            self.url.clone(),
+            self.token.clone(),
+            known_hosts,
+        )
     }
 
-    pub async fn mark_dirty(&self) -> Result<()> {
-        self.save_to_file().await
-    }
-
-    fn delete_file(&self) -> Result<()> {
-        let file_path = Storage::profile_file(&self.id);
-        if file_path.exists() {
-            fs::remove_file(file_path)?;
+    async fn remove_file(&self) -> Result<()> {
+        let file = Storage::profile_file(&self.id)?;
+        if file.exists() {
+            fs::remove_file(&file).await?;
         }
         Ok(())
     }
 
     async fn save_to_file(&self) -> Result<()> {
-        let stored_profile = StoredProfile {
+        let profile = StoredProfile {
             name: self.name.clone(),
-            authorization: self.authorization.clone(),
+            token: self.token.clone(),
             url: self.url.clone(),
-            cert: self.cert.clone(),
         };
-        stored_profile
-            .save(&Storage::profile_file(&self.id), true)
-            .await
+        profile
+            .save(&Storage::profile_file(&self.id)?, true)
+            .await?;
+        Ok(())
     }
 
-    pub fn compute_id(name: &str) -> String {
-        name.chars()
+    pub fn create_id<'a, T>(name: T) -> String
+    where
+        T: Into<Cow<'a, str>>,
+    {
+        name.into()
+            .chars()
             .map(|c| match c {
                 '/' | ':' | '|' => '-',
                 '<' | '>' | '"' | '\\' | '?' | '*' => '.',
@@ -149,12 +87,6 @@ impl Profile {
     }
 }
 
-impl Display for Profile {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
 mod stored {
     use serde::{Deserialize, Serialize};
     use url::Url;
@@ -163,13 +95,9 @@ mod stored {
 
     #[derive(Serialize, Deserialize)]
     pub struct StoredProfile {
-        /* Settings */
         pub name: String,
-        pub authorization: String,
-
-        /* Controller */
+        pub token: String,
         pub url: Url,
-        pub cert: Option<String>,
     }
 
     impl LoadFromTomlFile for StoredProfile {}

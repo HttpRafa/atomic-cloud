@@ -278,8 +278,11 @@ impl From<&Capabilities> for bridge::Capabilities {
     fn from(val: &Capabilities) -> Self {
         bridge::Capabilities {
             memory: *val.memory(),
-            max_servers: *val.max_servers(),
-            child: val.child().as_ref().map(std::string::ToString::to_string),
+            max_servers: *val.servers(),
+            child: val
+                .child_node()
+                .as_ref()
+                .map(std::string::ToString::to_string),
         }
     }
 }

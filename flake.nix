@@ -11,7 +11,7 @@
     nixpkgs,
   }: let
     system = "x86_64-linux";
-    pkgs = import nixpkgs {inherit system;};
+    pkgs = import nixpkgs {inherit system;config.allowUnfree = true;};
   in {
     devShell.${system} = let
       targetName = {
@@ -41,6 +41,9 @@
 
             gradle
             temurin-bin
+
+            # IDEs
+            jetbrains.idea-ultimate
           ]
           ++ builtins.attrValues ccPkgs;
 

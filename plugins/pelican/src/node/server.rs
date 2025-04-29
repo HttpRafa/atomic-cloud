@@ -61,7 +61,7 @@ impl Server {
             &node.identifier,
             &request.name,
             matches!(
-                request.allocation.spec.disk_retention,
+                request.allocation.specification.disk_retention,
                 DiskRetention::Permanent
             ),
         );
@@ -79,7 +79,7 @@ impl Server {
         let egg = {
             let mut id = None;
             let mut startup = None;
-            for value in &request.allocation.spec.settings {
+            for value in &request.allocation.specification.settings {
                 match value.0.as_str() {
                     "egg" => match value.1.parse::<u32>() {
                         Ok(value) => {
@@ -106,7 +106,7 @@ impl Server {
         };
 
         // Prepare the environment
-        let mut environment = request.allocation.spec.environment.clone();
+        let mut environment = request.allocation.specification.environment.clone();
         environment.reserve(4);
         environment.push((CONTROLLER_ADDRESS.to_string(), node.controller.clone()));
         environment.push((SERVER_TOKEN.to_string(), request.token.clone()));
@@ -133,7 +133,7 @@ impl Server {
         environment: &[(String, String)],
     ) -> Result<Self> {
         if matches!(
-            request.allocation.spec.disk_retention,
+            request.allocation.specification.disk_retention,
             DiskRetention::Temporary
         ) {
             bail!("The server {} already exists on the panel, but the disk retention is set to temporary. How is that possible?", name.get_name());
@@ -190,7 +190,7 @@ impl Server {
     pub fn cleanup(&mut self, node: &InnerNode) {
         debug!("Cleaning up server {}", self.name.get_name());
         if matches!(
-            self.request.allocation.spec.disk_retention,
+            self.request.allocation.specification.disk_retention,
             DiskRetention::Temporary
         ) {
             node.backend.delete_server(self.backend.0);

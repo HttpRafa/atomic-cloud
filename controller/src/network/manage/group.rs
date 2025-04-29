@@ -4,7 +4,7 @@ use tonic::{async_trait, Status};
 use crate::{
     application::{
         group::{Group, ScalingPolicy, StartConstraints},
-        server::{FallbackPolicy, Resources, Spec},
+        server::{FallbackPolicy, Resources, Specification},
         Controller,
     },
     network::proto::{
@@ -22,7 +22,7 @@ pub struct CreateGroupTask(
     pub StartConstraints,
     pub ScalingPolicy,
     pub Resources,
-    pub Spec,
+    pub Specification,
     pub Vec<String>,
 );
 pub struct UpdateGroupTask(
@@ -30,7 +30,7 @@ pub struct UpdateGroupTask(
     pub Option<StartConstraints>,
     pub Option<ScalingPolicy>,
     pub Option<Resources>,
-    pub Option<Spec>,
+    pub Option<Specification>,
     pub Option<Vec<String>>,
 );
 pub struct GetGroupTask(pub String);
@@ -121,7 +121,7 @@ impl From<&Group> for Detail {
             scaling: Some(value.scaling().to_grpc()),
             constraints: Some(value.constraints().into()),
             resources: Some(value.resources().into()),
-            spec: Some(value.spec().into()),
+            specification: Some(value.specification().into()),
         }
     }
 }
@@ -129,9 +129,9 @@ impl From<&Group> for Detail {
 impl From<&StartConstraints> for Constraints {
     fn from(value: &StartConstraints) -> Self {
         Self {
-            min: *value.minimum(),
-            max: *value.maximum(),
-            prio: *value.priority(),
+            min_servers: *value.minimum(),
+            max_servers: *value.maximum(),
+            priority: *value.priority(),
         }
     }
 }
@@ -159,10 +159,10 @@ impl From<&Resources> for server::Resources {
     }
 }
 
-impl From<&Spec> for server::Spec {
-    fn from(value: &Spec) -> Self {
+impl From<&Specification> for server::Specification {
+    fn from(value: &Specification) -> Self {
         Self {
-            img: value.image().clone(),
+            image: value.image().clone(),
             max_players: *value.max_players(),
             settings: value
                 .settings()
@@ -172,7 +172,7 @@ impl From<&Spec> for server::Spec {
                     value: value.clone(),
                 })
                 .collect(),
-            env: value
+            environment: value
                 .environment()
                 .iter()
                 .map(|(key, value)| KeyValue {
@@ -190,7 +190,7 @@ impl FallbackPolicy {
     pub fn to_grpc(&self) -> Option<Fallback> {
         if *self.enabled() {
             Some(Fallback {
-                prio: *self.priority(),
+                priority: *self.priority(),
             })
         } else {
             None

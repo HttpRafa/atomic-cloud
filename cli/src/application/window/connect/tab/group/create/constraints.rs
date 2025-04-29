@@ -143,9 +143,9 @@ impl Window for ConstraintsWindow<'_> {
 
                         let connection = self.connection.clone();
                         group.constraints = Some(Constraints {
-                            min: min_servers,
-                            max: max_servers,
-                            prio: priority,
+                            min_servers,
+                            max_servers,
+                            priority,
                         });
 
                         stack.pop(); // This is required to free the data stored in the struct

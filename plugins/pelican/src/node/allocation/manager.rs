@@ -25,7 +25,10 @@ impl AllocationManager {
     pub fn allocate(&mut self, node: &InnerNode, server: &ServerProposal) -> Vec<Address> {
         let required = server.resources.ports as usize;
 
-        if matches!(server.spec.disk_retention, DiskRetention::Permanent) {
+        if matches!(
+            server.specification.disk_retention,
+            DiskRetention::Permanent
+        ) {
             let name = TimedName::new(&node.identifier, &server.name, true);
 
             // Check if a server with the same name is already exists

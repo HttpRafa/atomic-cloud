@@ -55,11 +55,11 @@ public class ManageConnection extends Connection {
         return super.wrapInFuture(this.futureClient.deleteResource(request));
     }
 
-    public CompletableFuture<Empty> createNode(Node.Item node) {
+    public CompletableFuture<Empty> createNode(Node.Detail node) {
         return super.wrapInFuture(this.futureClient.createNode(node));
     }
 
-    public CompletableFuture<Empty> createGroup(Group.Item group) {
+    public CompletableFuture<Empty> createGroup(Group.Detail group) {
         return super.wrapInFuture(this.futureClient.createGroup(group));
     }
 
@@ -75,11 +75,11 @@ public class ManageConnection extends Connection {
         return super.wrapInFuture(this.futureClient.transferUsers(request));
     }
 
-    public CompletableFuture<Node.Item> node(String node) {
+    public CompletableFuture<Node.Detail> node(String node) {
         return super.wrapInFuture(this.futureClient.getNode(StringValue.of(node)));
     }
 
-    public CompletableFuture<Group.Item> group(String group) {
+    public CompletableFuture<Group.Detail> group(String group) {
         return super.wrapInFuture(this.futureClient.getGroup(StringValue.of(group)));
     }
 

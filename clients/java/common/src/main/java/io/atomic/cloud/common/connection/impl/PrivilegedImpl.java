@@ -53,7 +53,7 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
     }
 
     @Override
-    public CompletableFuture<Void> deleteResource(CloudResource resource) {
+    public @NotNull CompletableFuture<Void> deleteResource(CloudResource resource) {
         var builder = Resource.DelReq.newBuilder();
         if (resource instanceof SimpleCloudNode node) {
             builder.setCategory(Resource.Category.NODE);
@@ -70,37 +70,41 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
 
     @Override
     public @NotNull CompletableFuture<Void> createNode(@NotNull CloudNode node) {
-        var builder = Node.Item.newBuilder()
+        var builder = Node.Detail.newBuilder()
                 .setName(node.name())
                 .setPlugin(node.plugin())
                 .setCapabilities(node.capabilities())
-                .setCtrlAddr(node.controllerAddress());
+                .setControllerAddress(node.controllerAddress());
         return this.connection.createNode(builder.build()).thenAccept(response -> {});
     }
 
     @Override
-    public @NotNull CompletableFuture<Void> createGroup(CloudGroup group) {
+    public @NotNull CompletableFuture<Void> createGroup(@NotNull CloudGroup group) {
         return this.connection
-                .createGroup(Group.Item.newBuilder()
+                .createGroup(Group.Detail.newBuilder()
                         .addAllNodes(Arrays.asList(group.nodes()))
                         .setConstraints(group.constraints())
                         .setScaling(group.scaling())
                         .setResources(group.resources())
-                        .setSpec(group.spec())
+                        .setSpecification(group.specification())
                         .build())
                 .thenAccept(empty -> {});
     }
 
     @Override
     public @NotNull CompletableFuture<UUID> scheduleServer(
-            int priority, String name, @NotNull SimpleCloudNode node, Server.Resources resources, Server.Spec spec) {
+            int priority,
+            String name,
+            @NotNull SimpleCloudNode node,
+            Server.Resources resources,
+            Server.Specification specification) {
         return this.connection
                 .scheduleServer(Server.Proposal.newBuilder()
                         .setPrio(priority)
                         .setName(name)
                         .setNode(node.name())
                         .setResources(resources)
-                        .setSpec(spec)
+                        .setSpecification(specification)
                         .build())
                 .thenApply(string -> UUID.fromString(string.getValue()));
     }
@@ -118,7 +122,7 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
         return this.connection
                 .node(node.name())
                 .thenApply(item -> new CloudNodeImpl(
-                        item.getName(), item.getPlugin(), item.getCapabilities(), item.getCtrlAddr()));
+                        item.getName(), item.getPlugin(), item.getCapabilities(), item.getControllerAddress()));
     }
 
     @Override
@@ -131,7 +135,7 @@ public record PrivilegedImpl(ManageConnection connection) implements Privileged 
                         item.getConstraints(),
                         item.getScaling(),
                         item.getResources(),
-                        item.getSpec()));
+                        item.getSpecification()));
     }
 
     @Override

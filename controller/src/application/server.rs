@@ -96,7 +96,7 @@ pub struct FallbackPolicy {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Getters)]
-pub struct Spec {
+pub struct Specification {
     #[getset(get = "pub")]
     settings: HashMap<String, String>,
     #[getset(get = "pub")]
@@ -195,7 +195,7 @@ impl FallbackPolicy {
     }
 }
 
-impl Spec {
+impl Specification {
     pub fn new(
         settings: HashMap<String, String>,
         environment: HashMap<String, String>,

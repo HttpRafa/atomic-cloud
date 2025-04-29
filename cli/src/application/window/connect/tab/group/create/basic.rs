@@ -97,7 +97,7 @@ impl Window for BasicWindow<'_> {
                                                 constraints: None,
                                                 resources: None,
                                                 scaling: None,
-                                                spec: None,
+                                                specification: None,
                                             },
                                         ));
                                         Ok(())

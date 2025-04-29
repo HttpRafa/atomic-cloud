@@ -63,11 +63,15 @@ public interface Privileged {
      * @param name The name of the server
      * @param node The node to start the server on
      * @param resources The resources that the server can use
-     * @param spec The specs for the server
+     * @param specification The specs for the server
      * @return The id of the server
      */
     CompletableFuture<UUID> scheduleServer(
-            int priority, String name, SimpleCloudNode node, Server.Resources resources, Server.Spec spec);
+            int priority,
+            String name,
+            SimpleCloudNode node,
+            Server.Resources resources,
+            Server.Specification specification);
 
     /**
      * Writes data to the screen of a server

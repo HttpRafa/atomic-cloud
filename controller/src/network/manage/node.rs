@@ -83,7 +83,7 @@ impl From<&Node> for Detail {
             name: value.name().clone(),
             plugin: value.plugin().to_string(),
             capabilities: Some(value.capabilities().into()),
-            ctrl_addr: value.controller().to_string(),
+            controller_address: value.controller().to_string(),
         }
     }
 }
@@ -92,8 +92,8 @@ impl From<&Capabilities> for node::Capabilities {
     fn from(value: &Capabilities) -> Self {
         Self {
             memory: *value.memory(),
-            max: *value.max_servers(),
-            child: value.child().clone(),
+            servers: *value.servers(),
+            child_node: value.child_node().clone(),
         }
     }
 }

@@ -19,7 +19,7 @@ use super::{
     node::LifecycleStatus,
     server::{
         manager::{ServerManager, StartRequest},
-        NameAndUuid, Resources, Server, Spec,
+        NameAndUuid, Resources, Server, Specification,
     },
 };
 
@@ -45,7 +45,7 @@ pub struct Group {
     #[getset(get = "pub", set = "pub")]
     resources: Resources,
     #[getset(get = "pub", set = "pub")]
-    spec: Spec,
+    specification: Specification,
 
     /* What do i need to know? */
     id_allocator: NumberAllocator<usize>,
@@ -70,7 +70,7 @@ impl Group {
         if self.scaling.enabled {
             self.servers.retain(|id, server| match &server.1 {
                 Stage::Active => servers.get_server(id.uuid()).is_some_and(|server| {
-                    if *server.connected_users() as f32 / *self.spec.max_players() as f32
+                    if *server.connected_users() as f32 / *self.specification.max_players() as f32
                         >= self.scaling.start_threshold
                     {
                         target_count += 1;
@@ -130,7 +130,7 @@ impl Group {
                 Some(self.name.clone()),
                 &self.nodes,
                 &self.resources,
-                &self.spec,
+                &self.specification,
             );
             self.servers
                 .insert(request.id().clone(), GroupServer::new(id));

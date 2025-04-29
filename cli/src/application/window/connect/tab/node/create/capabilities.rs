@@ -42,13 +42,13 @@ pub struct CapabilitiesWindow<'a> {
     current: Field,
 
     memory: SimpleTextArea<'a, ()>,
-    max_servers: SimpleTextArea<'a, ()>,
+    servers: SimpleTextArea<'a, ()>,
     child_node: SimpleTextArea<'a, ()>,
 }
 
 enum Field {
     Memory,
-    MaxServers,
+    Servers,
     ChildNode,
 }
 
@@ -72,9 +72,9 @@ impl CapabilitiesWindow<'_> {
                 "Please enter the amount of memory that the node can use",
                 SimpleTextArea::optional_type_validation::<u32>,
             ),
-            max_servers: SimpleTextArea::new(
+            servers: SimpleTextArea::new(
                 (),
-                "Max servers [Not required]",
+                "Servers [Not required]",
                 "Please enter the amount of servers this node can start",
                 SimpleTextArea::optional_type_validation::<u32>,
             ),
@@ -115,21 +115,21 @@ impl Window for CapabilitiesWindow<'_> {
                 KeyCode::Esc => stack.close_tab(),
                 KeyCode::Up => match self.current {
                     Field::Memory => {}
-                    Field::MaxServers => self.current = Field::Memory,
-                    Field::ChildNode => self.current = Field::MaxServers,
+                    Field::Servers => self.current = Field::Memory,
+                    Field::ChildNode => self.current = Field::Servers,
                 },
                 KeyCode::Down | KeyCode::Tab => match self.current {
-                    Field::Memory => self.current = Field::MaxServers,
-                    Field::MaxServers => self.current = Field::ChildNode,
+                    Field::Memory => self.current = Field::Servers,
+                    Field::Servers => self.current = Field::ChildNode,
                     Field::ChildNode => {}
                 },
                 KeyCode::Enter => {
                     if self.memory.is_valid()
-                        && self.max_servers.is_valid()
+                        && self.servers.is_valid()
                         && self.child_node.is_valid()
                     {
                         let memory = self.memory.get_first_line();
-                        let max_servers = self.max_servers.get_first_line();
+                        let servers = self.servers.get_first_line();
                         let child_node = self.child_node.get_first_line();
                         stack.pop(); // This is required to free the data stored in the struct
                                      // Use .clone() because we are lazy and .unwrap because the values are validated by the text area
@@ -137,7 +137,7 @@ impl Window for CapabilitiesWindow<'_> {
                             self.connection.clone(),
                             Detail {
                                 name: self.name.clone(),
-                                ctrl_addr: self.url.clone(),
+                                controller_address: self.url.clone(),
                                 plugin: self.plugin.name.clone(),
                                 capabilities: Some(Capabilities {
                                     memory: if memory.is_empty() {
@@ -145,12 +145,12 @@ impl Window for CapabilitiesWindow<'_> {
                                     } else {
                                         Some(memory.parse::<u32>().unwrap())
                                     },
-                                    max: if max_servers.is_empty() {
+                                    servers: if servers.is_empty() {
                                         None
                                     } else {
-                                        Some(max_servers.parse::<u32>().unwrap())
+                                        Some(servers.parse::<u32>().unwrap())
                                     },
-                                    child: if child_node.is_empty() {
+                                    child_node: if child_node.is_empty() {
                                         None
                                     } else {
                                         Some(child_node)
@@ -162,7 +162,7 @@ impl Window for CapabilitiesWindow<'_> {
                 }
                 _ => match self.current {
                     Field::Memory => self.memory.handle_event(event),
-                    Field::MaxServers => self.max_servers.handle_event(event),
+                    Field::Servers => self.servers.handle_event(event),
                     Field::ChildNode => self.child_node.handle_event(event),
                 },
             }
@@ -180,13 +180,13 @@ impl Widget for &mut CapabilitiesWindow<'_> {
         // Update the selected fields
         self.memory
             .set_selected(matches!(self.current, Field::Memory));
-        self.max_servers
-            .set_selected(matches!(self.current, Field::MaxServers));
+        self.servers
+            .set_selected(matches!(self.current, Field::Servers));
         self.child_node
             .set_selected(matches!(self.current, Field::ChildNode));
 
         // Update the status message
-        if self.memory.is_valid() && self.max_servers.is_valid() && self.child_node.is_valid() {
+        if self.memory.is_valid() && self.servers.is_valid() && self.child_node.is_valid() {
             self.status.change(Status::Ok, "Press ↵ to confirm");
         } else {
             self.status
@@ -225,7 +225,7 @@ impl CapabilitiesWindow<'_> {
         .areas(area);
 
         self.memory.render(memory_area, buffer);
-        self.max_servers.render(max_servers_area, buffer);
+        self.servers.render(max_servers_area, buffer);
         self.child_node.render(child_node_area, buffer);
 
         self.status.render(status_area, buffer);

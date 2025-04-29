@@ -14,5 +14,5 @@ public interface CloudGroup extends SimpleCloudGroup {
 
     Server.Resources resources();
 
-    Server.Spec spec();
+    Server.Specification specification();
 }

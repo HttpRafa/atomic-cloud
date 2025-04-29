@@ -18,7 +18,7 @@ use crate::{
         auth::AuthType,
         group::{ScalingPolicy, StartConstraints},
         node::Capabilities,
-        server::{DiskRetention, FallbackPolicy, Resources, Spec},
+        server::{DiskRetention, FallbackPolicy, Resources, Specification},
         user::transfer::TransferTarget,
         Shared, TaskSender,
     },
@@ -125,13 +125,15 @@ impl ManageService for ManageServiceImpl {
                 let request = request.into_inner();
 
                 let capabilities = match request.capabilities {
-                    Some(capabilities) => {
-                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
-                    }
+                    Some(capabilities) => Capabilities::new(
+                        capabilities.memory,
+                        capabilities.servers,
+                        capabilities.child_node,
+                    ),
                     None => return Err(Status::invalid_argument("No capabilities provided")),
                 };
                 let controller = request
-                    .ctrl_addr
+                    .controller_address
                     .parse()
                     .map_err(|_| Status::invalid_argument("Invalid controller address provided"))?;
                 let plugin = request.plugin;
@@ -159,10 +161,14 @@ impl ManageService for ManageServiceImpl {
                     let request = request.into_inner();
 
                     let capabilities = request.capabilities.map(|capabilities| {
-                        Capabilities::new(capabilities.memory, capabilities.max, capabilities.child)
+                        Capabilities::new(
+                            capabilities.memory,
+                            capabilities.servers,
+                            capabilities.child_node,
+                        )
                     });
                     let controller = {
-                        match request.ctrl_addr {
+                        match request.controller_address {
                             Some(addr) => {
                                 let url = addr.parse();
 
@@ -229,9 +235,11 @@ impl ManageService for ManageServiceImpl {
                 let request = request.into_inner();
 
                 let constraints = match request.constraints {
-                    Some(constrains) => {
-                        StartConstraints::new(constrains.min, constrains.max, constrains.prio)
-                    }
+                    Some(constrains) => StartConstraints::new(
+                        constrains.min_servers,
+                        constrains.max_servers,
+                        constrains.priority,
+                    ),
                     None => return Err(Status::invalid_argument("No constraints provided")),
                 };
 
@@ -256,21 +264,21 @@ impl ManageService for ManageServiceImpl {
                     None => return Err(Status::invalid_argument("No resources provided")),
                 };
 
-                let spec = match request.spec {
-                    Some(spec) => {
-                        let image = spec.img;
-                        let max_players = spec.max_players;
-                        let settings = spec
+                let specification = match request.specification {
+                    Some(specification) => {
+                        let image = specification.image;
+                        let max_players = specification.max_players;
+                        let settings = specification
                             .settings
                             .iter()
                             .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                             .collect();
-                        let environment = spec
-                            .env
+                        let environment = specification
+                            .environment
                             .iter()
                             .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                             .collect();
-                        let disk_retention = if let Some(retention) = spec.retention {
+                        let disk_retention = if let Some(retention) = specification.retention {
                             match manage::server::DiskRetention::try_from(retention) {
                                 Ok(manage::server::DiskRetention::Permanent) => {
                                     DiskRetention::Permanent
@@ -287,12 +295,12 @@ impl ManageService for ManageServiceImpl {
                         } else {
                             DiskRetention::Temporary
                         };
-                        let fallback = if let Some(fallback) = spec.fallback {
-                            FallbackPolicy::new(true, fallback.prio)
+                        let fallback = if let Some(fallback) = specification.fallback {
+                            FallbackPolicy::new(true, fallback.priority)
                         } else {
                             FallbackPolicy::default()
                         };
-                        Spec::new(
+                        Specification::new(
                             settings,
                             environment,
                             disk_retention,
@@ -301,7 +309,7 @@ impl ManageService for ManageServiceImpl {
                             fallback,
                         )
                     }
-                    None => return Err(Status::invalid_argument("No spec provided")),
+                    None => return Err(Status::invalid_argument("No specification provided")),
                 };
 
                 let nodes = request.nodes;
@@ -311,7 +319,7 @@ impl ManageService for ManageServiceImpl {
                     constraints,
                     scaling,
                     resources,
-                    spec,
+                    specification,
                     nodes,
                 )))
             })
@@ -333,7 +341,11 @@ impl ManageService for ManageServiceImpl {
                     let nodes = request.nodes.map(|list| list.nodes);
 
                     let constraints = request.constraints.map(|constraints| {
-                        StartConstraints::new(constraints.min, constraints.max, constraints.prio)
+                        StartConstraints::new(
+                            constraints.min_servers,
+                            constraints.max_servers,
+                            constraints.priority,
+                        )
                     });
 
                     let scaling = request.scaling.map(|scaling| {
@@ -351,21 +363,21 @@ impl ManageService for ManageServiceImpl {
                         )
                     });
 
-                    let spec = match request.spec {
-                        Some(spec) => {
-                            let image = spec.img;
-                            let max_players = spec.max_players;
-                            let settings = spec
+                    let specification = match request.specification {
+                        Some(specification) => {
+                            let image = specification.image;
+                            let max_players = specification.max_players;
+                            let settings = specification
                                 .settings
                                 .iter()
                                 .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                                 .collect();
-                            let environment = spec
-                                .env
+                            let environment = specification
+                                .environment
                                 .iter()
                                 .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                                 .collect();
-                            let disk_retention = if let Some(retention) = spec.retention {
+                            let disk_retention = if let Some(retention) = specification.retention {
                                 match manage::server::DiskRetention::try_from(retention) {
                                     Ok(manage::server::DiskRetention::Permanent) => {
                                         DiskRetention::Permanent
@@ -382,12 +394,12 @@ impl ManageService for ManageServiceImpl {
                             } else {
                                 DiskRetention::Temporary
                             };
-                            let fallback = if let Some(fallback) = spec.fallback {
-                                FallbackPolicy::new(true, fallback.prio)
+                            let fallback = if let Some(fallback) = specification.fallback {
+                                FallbackPolicy::new(true, fallback.priority)
                             } else {
                                 FallbackPolicy::default()
                             };
-                            Some(Spec::new(
+                            Some(Specification::new(
                                 settings,
                                 environment,
                                 disk_retention,
@@ -404,7 +416,7 @@ impl ManageService for ManageServiceImpl {
                         constraints,
                         scaling,
                         resources,
-                        spec,
+                        specification,
                         nodes,
                     )))
                 },
@@ -463,21 +475,21 @@ impl ManageService for ManageServiceImpl {
                     None => return Err(Status::invalid_argument("No resources provided")),
                 };
 
-                let spec = match request.spec {
-                    Some(spec) => {
-                        let image = spec.img;
-                        let max_players = spec.max_players;
-                        let settings = spec
+                let specification = match request.specification {
+                    Some(specification) => {
+                        let image = specification.image;
+                        let max_players = specification.max_players;
+                        let settings = specification
                             .settings
                             .iter()
                             .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                             .collect();
-                        let environment = spec
-                            .env
+                        let environment = specification
+                            .environment
                             .iter()
                             .map(|key_value| (key_value.key.clone(), key_value.value.clone()))
                             .collect();
-                        let disk_retention = if let Some(retention) = spec.retention {
+                        let disk_retention = if let Some(retention) = specification.retention {
                             match manage::server::DiskRetention::try_from(retention) {
                                 Ok(manage::server::DiskRetention::Permanent) => {
                                     DiskRetention::Permanent
@@ -494,12 +506,12 @@ impl ManageService for ManageServiceImpl {
                         } else {
                             DiskRetention::Temporary
                         };
-                        let fallback = if let Some(fallback) = spec.fallback {
-                            FallbackPolicy::new(true, fallback.prio)
+                        let fallback = if let Some(fallback) = specification.fallback {
+                            FallbackPolicy::new(true, fallback.priority)
                         } else {
                             FallbackPolicy::default()
                         };
-                        Spec::new(
+                        Specification::new(
                             settings,
                             environment,
                             disk_retention,
@@ -516,7 +528,7 @@ impl ManageService for ManageServiceImpl {
                     request.name.clone(),
                     request.node,
                     resources,
-                    spec,
+                    specification,
                 )))
             })
             .await?,

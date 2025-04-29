@@ -137,7 +137,7 @@ impl Backend {
             node: self.node_id,
             user: self.user_id,
             egg: egg.id,
-            docker_image: server.allocation.spec.image.clone(),
+            docker_image: server.allocation.specification.image.clone(),
             startup: egg.startup.clone(),
             environment: environment.iter().cloned().collect(),
             limits: server.allocation.resources.into(),

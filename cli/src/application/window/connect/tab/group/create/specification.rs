@@ -21,7 +21,7 @@ use crate::application::{
             common::KeyValue,
             manage::{
                 group::Detail,
-                server::{DiskRetention, Fallback, Spec},
+                server::{DiskRetention, Fallback, Specification},
             },
         },
     },
@@ -195,13 +195,13 @@ impl Window for SpecificationWindow<'_> {
                             )
                         };
 
-                        group.spec = Some(Spec {
-                            img: self.image.get_first_line(),
+                        group.specification = Some(Specification {
+                            image: self.image.get_first_line(),
                             max_players,
                             settings: settings.0,
-                            env: environment.0,
+                            environment: environment.0,
                             retention: Some(retention as i32),
-                            fallback: fallback.map(|fallback| Fallback { prio: fallback }),
+                            fallback: fallback.map(|fallback| Fallback { priority: fallback }),
                         });
 
                         stack.pop(); // This is required to free the data stored in the struct

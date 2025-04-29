@@ -67,7 +67,7 @@ impl ServerManager {
                     allocation: Allocation {
                         ports,
                         resources: request.resources.clone(),
-                        spec: request.spec.clone(),
+                        specification: request.specification.clone(),
                     },
                     connected_users: 0,
                     token: shared.auth.register_server(request.id.uuid).await,

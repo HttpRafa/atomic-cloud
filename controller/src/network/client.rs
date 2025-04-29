@@ -8,7 +8,7 @@ use ready::SetReadyTask;
 use server::GetServersTask;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
-use user::{UserConnectedTask, UserDisconnectedTask};
+use user::{UserConnectedTask, UserCountTask, UserDisconnectedTask};
 use uuid::Uuid;
 
 use crate::{
@@ -124,6 +124,14 @@ impl ClientService for ClientServiceImpl {
                 };
 
                 Ok(Box::new(UserDisconnectedTask(auth, uuid)))
+            })
+            .await?,
+        ))
+    }
+    async fn get_user_count(&self, request: Request<()>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(
+            Task::execute::<u32, _, _>(AuthType::Server, &self.0, request, |_, _| {
+                Ok(Box::new(UserCountTask))
             })
             .await?,
         ))

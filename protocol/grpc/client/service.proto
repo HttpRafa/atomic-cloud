@@ -30,6 +30,7 @@ service ClientService {
   // User operations
   rpc UserConnected(User.ConnectedReq) returns (google.protobuf.Empty);
   rpc UserDisconnected(User.DisconnectedReq) returns (google.protobuf.Empty);
+  rpc GetUserCount(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 
   // Transfer operations
   rpc TransferUsers(Transfer.TransferReq) returns (google.protobuf.UInt32Value);

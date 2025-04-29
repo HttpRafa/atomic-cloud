@@ -7,6 +7,7 @@ import io.atomic.cloud.common.health.Heart;
 import io.atomic.cloud.common.resource.ResourceManager;
 import io.atomic.cloud.common.resource.object.LocalCloudServerImpl;
 import io.atomic.cloud.common.transfer.ClientTransfers;
+import io.atomic.cloud.common.user.UserManager;
 import io.atomic.cloud.paper.api.CloudImpl;
 import io.atomic.cloud.paper.listener.PlayerEventsListener;
 import io.atomic.cloud.paper.setting.Settings;
@@ -35,6 +36,7 @@ public class CloudPlugin extends JavaPlugin {
     private ChannelManager channels;
     private ClientTransfers transfers;
     private ResourceManager resources;
+    private UserManager users;
     private Heart heart;
     private ClientConnection clientConnection;
     private LocalCloudServerImpl self;
@@ -57,6 +59,7 @@ public class CloudPlugin extends JavaPlugin {
         this.channels = new ChannelManager(this.clientConnection);
         this.transfers = new ClientTransfers(this.clientConnection);
         this.resources = new ResourceManager(this.clientConnection);
+        this.users = new UserManager(this.clientConnection);
         this.transferHandler = new TransferHandler(this.clientConnection);
 
         LOGGER.info("Connecting to controller...");

@@ -13,6 +13,7 @@ use crate::{
 
 pub struct UserConnectedTask(pub Authorization, pub NameAndUuid);
 pub struct UserDisconnectedTask(pub Authorization, pub Uuid);
+pub struct UserCountTask;
 
 #[async_trait]
 impl GenericTask for UserConnectedTask {
@@ -43,5 +44,12 @@ impl GenericTask for UserDisconnectedTask {
             return Task::new_permission_error("You are not allowed to disconnect this user");
         }
         Task::new_empty()
+    }
+}
+
+#[async_trait]
+impl GenericTask for UserCountTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        Task::new_ok(controller.users.get_user_count())
     }
 }

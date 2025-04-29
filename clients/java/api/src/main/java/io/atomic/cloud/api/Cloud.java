@@ -5,6 +5,7 @@ import io.atomic.cloud.api.client.self.LocalCloudServer;
 import io.atomic.cloud.api.manage.Privileged;
 import io.atomic.cloud.api.resource.Resources;
 import io.atomic.cloud.api.transfer.Transfers;
+import io.atomic.cloud.api.user.Users;
 import java.io.IOException;
 
 public class Cloud {
@@ -37,6 +38,15 @@ public class Cloud {
      */
     public static Resources resources() {
         return Cloud.INSTANCE.resources();
+    }
+
+    /**
+     * The users API
+     *
+     * @return the users API
+     */
+    public static Users users() {
+        return Cloud.INSTANCE.users();
     }
 
     /**
@@ -87,6 +97,13 @@ public class Cloud {
          * @return the resources API
          */
         Resources resources();
+
+        /**
+         * The users API
+         *
+         * @return the users API
+         */
+        Users users();
 
         /**
          * The channels API

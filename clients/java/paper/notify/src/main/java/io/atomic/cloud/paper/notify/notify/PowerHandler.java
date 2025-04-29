@@ -51,8 +51,8 @@ public class PowerHandler implements StreamObserver<Notify.PowerEvent> {
                         }
                     });
         } catch (Throwable throwable) {
-            NotifyPlugin.LOGGER.info(
-                    "Failed to process power event for server {}: {}", powerEvent.getName(), throwable);
+            NotifyPlugin.LOGGER.info("Failed to process power event for server {}:", powerEvent.getName());
+            NotifyPlugin.LOGGER.error("-> ", throwable);
         }
     }
 

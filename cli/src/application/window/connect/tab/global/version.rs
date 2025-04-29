@@ -23,7 +23,6 @@ use crate::{
 
 pub struct VersionTab {
     /* Connection */
-    connection: Arc<EstablishedConnection>,
     values: Values,
 
     /* Lines */
@@ -39,24 +38,20 @@ impl VersionTab {
             connection,
             move |version, connection: Arc<EstablishedConnection>, stack, _| {
                 let protocol = connection.get_protocol();
-                stack.push(VersionTab::new(
-                    connection,
-                    Values {
-                        client: Client {
-                            protocol: VERSION.protocol,
-                            version: format!("{VERSION}"),
-                        },
-                        server: Server { protocol, version },
+                stack.push(VersionTab::new(Values {
+                    client: Client {
+                        protocol: VERSION.protocol,
+                        version: format!("{VERSION}"),
                     },
-                ));
+                    server: Server { protocol, version },
+                }));
                 Ok(())
             },
         )
     }
 
-    fn new(connection: Arc<EstablishedConnection>, values: Values) -> Self {
+    fn new(values: Values) -> Self {
         Self {
-            connection,
             values,
             lines: vec![],
         }

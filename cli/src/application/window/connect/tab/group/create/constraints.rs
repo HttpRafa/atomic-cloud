@@ -15,10 +15,7 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::{
-            group::{Constraints, Scaling},
-            node::{self},
-        },
+        proto::manage::group::{Constraints, Detail, Scaling},
     },
     util::{
         area::SimpleTextArea,
@@ -32,8 +29,7 @@ use super::{resources::ResourcesWindow, scaling::ScalingWindow};
 
 pub struct ConstraintsWindow<'a> {
     /* Data */
-    name: String,
-    nodes: Vec<node::Short>,
+    group: Option<Detail>,
 
     /* Connection */
     connection: Arc<EstablishedConnection>,
@@ -60,14 +56,9 @@ enum Field {
 }
 
 impl ConstraintsWindow<'_> {
-    pub fn new(
-        connection: Arc<EstablishedConnection>,
-        name: String,
-        nodes: Vec<node::Short>,
-    ) -> Self {
+    pub fn new(connection: Arc<EstablishedConnection>, group: Detail) -> Self {
         Self {
-            name,
-            nodes,
+            group: Some(group),
             connection,
             status: StatusDisplay::new(Status::Error, ""),
             current: Field::MinServers,
@@ -132,21 +123,30 @@ impl Window for ConstraintsWindow<'_> {
                     if self.min_servers.is_valid()
                         && self.max_servers.is_valid()
                         && self.priority.is_valid()
+                        && let Some(mut group) = self.group.take()
                     {
-                        // We use .unwrap because the values are validated by the text area
-                        let min_servers = self.min_servers.get_first_line().parse::<u32>().unwrap();
-                        let max_servers = self.max_servers.get_first_line().parse::<u32>().unwrap();
-                        let priority = self.priority.get_first_line().parse::<i32>().unwrap();
+                        let min_servers = self
+                            .min_servers
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let max_servers = self
+                            .max_servers
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let priority = self
+                            .priority
+                            .get_first_line()
+                            .parse::<i32>()
+                            .expect("Should be validated by the text area");
 
-                        let constraints = Constraints {
+                        let connection = self.connection.clone();
+                        group.constraints = Some(Constraints {
                             min: min_servers,
                             max: max_servers,
                             prio: priority,
-                        };
-
-                        let connection = self.connection.clone();
-                        let name = self.name.clone();
-                        let nodes = self.nodes.clone();
+                        });
 
                         stack.pop(); // This is required to free the data stored in the struct
                         stack.push(SelectWindow::new(
@@ -154,24 +154,16 @@ impl Window for ConstraintsWindow<'_> {
                             vec![ScalingState::Use, ScalingState::DontUse],
                             move |state, stack, _| {
                                 if matches!(state, ScalingState::Use) {
-                                    stack.push(ScalingWindow::new(
-                                        connection,
-                                        name,
-                                        nodes,
-                                        constraints,
-                                    ));
+                                    stack.push(ScalingWindow::new(connection, group));
                                 } else {
-                                    stack.push(ResourcesWindow::new(
-                                        connection,
-                                        name,
-                                        nodes,
-                                        constraints,
-                                        Scaling {
-                                            enabled: false,
-                                            start_threshold: 0.0,
-                                            stop_empty: false,
-                                        },
-                                    ));
+                                    // The user does not want to use automatic scaling
+                                    group.scaling = Some(Scaling {
+                                        enabled: false,
+                                        start_threshold: 0.0,
+                                        stop_empty: false,
+                                    });
+
+                                    stack.push(ResourcesWindow::new(connection, group));
                                 }
                                 Ok(())
                             },
@@ -253,8 +245,8 @@ impl ConstraintsWindow<'_> {
 impl Display for ScalingState {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ScalingState::Use => write!(formatter, "Use it"),
-            ScalingState::DontUse => write!(formatter, "Dont use it"),
+            ScalingState::Use => write!(formatter, "Yes (Use it)"),
+            ScalingState::DontUse => write!(formatter, "No (Don't use it)"),
         }
     }
 }

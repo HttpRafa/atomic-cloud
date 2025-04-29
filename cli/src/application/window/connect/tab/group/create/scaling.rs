@@ -12,10 +12,7 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::{
-            group::{Constraints, Scaling},
-            node::{self},
-        },
+        proto::manage::group::{Detail, Scaling},
     },
     util::{
         area::SimpleTextArea,
@@ -29,9 +26,7 @@ use super::resources::ResourcesWindow;
 
 pub struct ScalingWindow<'a> {
     /* Data */
-    name: String,
-    nodes: Vec<node::Short>,
-    constraints: Constraints,
+    group: Option<Detail>,
 
     /* Connection */
     connection: Arc<EstablishedConnection>,
@@ -46,16 +41,9 @@ pub struct ScalingWindow<'a> {
 }
 
 impl ScalingWindow<'_> {
-    pub fn new(
-        connection: Arc<EstablishedConnection>,
-        name: String,
-        nodes: Vec<node::Short>,
-        constraints: Constraints,
-    ) -> Self {
+    pub fn new(connection: Arc<EstablishedConnection>, group: Detail) -> Self {
         Self {
-            name,
-            nodes,
-            constraints,
+            group: Some(group),
             connection,
             status: StatusDisplay::new(Status::Error, ""),
             current: true,
@@ -111,30 +99,30 @@ impl Window for ScalingWindow<'_> {
                     }
                 }
                 KeyCode::Enter => {
-                    if self.start_threshold.is_valid() && self.stop_empty.is_valid() {
-                        // We use .unwrap because the values are validated by the text area
+                    if self.start_threshold.is_valid()
+                        && self.stop_empty.is_valid()
+                        && let Some(mut group) = self.group.take()
+                    {
                         let start_threshold = self
                             .start_threshold
                             .get_first_line()
                             .parse::<f32>()
-                            .unwrap()
-                            / 100.0;
-                        let stop_empty = self.stop_empty.get_first_line().parse::<bool>().unwrap();
+                            .expect("Should be validated by the text area")
+                            / 100.0; // The controller expects a value from 0 to 1
+                        let stop_empty = self
+                            .stop_empty
+                            .get_first_line()
+                            .parse::<bool>()
+                            .expect("Should be validated by the text area");
 
-                        let scaling = Scaling {
+                        group.scaling = Some(Scaling {
                             enabled: true,
                             start_threshold,
                             stop_empty,
-                        };
+                        });
 
                         stack.pop(); // This is required to free the data stored in the struct
-                        stack.push(ResourcesWindow::new(
-                            self.connection.clone(),
-                            self.name.clone(),
-                            self.nodes.clone(),
-                            self.constraints,
-                            scaling,
-                        ));
+                        stack.push(ResourcesWindow::new(self.connection.clone(), group));
                     }
                 }
                 _ => {
@@ -175,7 +163,7 @@ impl Widget for &mut ScalingWindow<'_> {
         ])
         .areas(area);
 
-        WindowUtils::render_tab_header("Group constraints", title_area, buffer);
+        WindowUtils::render_tab_header("Group scaling", title_area, buffer);
         ScalingWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);

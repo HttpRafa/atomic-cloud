@@ -1,4 +1,9 @@
-use std::sync::Arc;
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+    sync::Arc,
+};
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -12,10 +17,12 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::{
-            group::{Constraints, Detail, Scaling},
-            node::{self},
-            server::{DiskRetention, Fallback, Resources, Spec},
+        proto::{
+            common::KeyValue,
+            manage::{
+                group::Detail,
+                server::{DiskRetention, Fallback, Spec},
+            },
         },
     },
     util::{
@@ -30,11 +37,7 @@ use super::CreateGroupTab;
 
 pub struct SpecificationWindow<'a> {
     /* Data */
-    name: String,
-    nodes: Vec<node::Short>,
-    constraints: Constraints,
-    scaling: Scaling,
-    resources: Resources,
+    group: Option<Detail>,
 
     /* Connection */
     connection: Arc<EstablishedConnection>,
@@ -52,6 +55,9 @@ pub struct SpecificationWindow<'a> {
     fallback: SimpleTextArea<'a, ()>,
 }
 
+// Required to implement the FromStr trait
+struct KeyValueList(Vec<KeyValue>);
+
 enum Field {
     Image,
     MaxPlayers,
@@ -62,20 +68,9 @@ enum Field {
 }
 
 impl SpecificationWindow<'_> {
-    pub fn new(
-        connection: Arc<EstablishedConnection>,
-        name: String,
-        nodes: Vec<node::Short>,
-        constraints: Constraints,
-        scaling: Scaling,
-        resources: Resources,
-    ) -> Self {
+    pub fn new(connection: Arc<EstablishedConnection>, group: Detail) -> Self {
         Self {
-            name,
-            nodes,
-            constraints,
-            scaling,
-            resources,
+            group: Some(group),
             connection,
             status: StatusDisplay::new(Status::Error, ""),
             current: Field::Image,
@@ -95,23 +90,23 @@ impl SpecificationWindow<'_> {
                 (),
                 "Settings (key=value,key1=value1)",
                 "Please enter the setings that are passed to the plugin",
-                SimpleTextArea::not_empty_validation,
+                SimpleTextArea::type_validation::<KeyValueList>,
             ),
             environment: SimpleTextArea::new(
                 (),
                 "Environment (key=value,key1=value1)",
                 "Please enter the environment that are passed to the plugin",
-                SimpleTextArea::not_empty_validation,
+                SimpleTextArea::type_validation::<KeyValueList>,
             ),
             retention: SimpleTextArea::new(
                 (),
-                "Disk Retention (Permanent or not)",
-                "true/false",
-                SimpleTextArea::type_validation::<bool>,
+                "Disk Retention (Should the server's data be retained until the next start)",
+                "yes/no or perm/temp",
+                SimpleTextArea::type_validation::<DiskRetention>,
             ),
             fallback: SimpleTextArea::new(
                 (),
-                "Fallback priority (Leave empty if this group is not a fallback group)",
+                "Fallback priority (Not required if this group is not a fallback group)",
                 "Please enter the priority for this group",
                 SimpleTextArea::optional_type_validation::<i32>,
             ),
@@ -167,42 +162,50 @@ impl Window for SpecificationWindow<'_> {
                         && self.environment.is_valid()
                         && self.retention.is_valid()
                         && self.fallback.is_valid()
+                        && let Some(mut group) = self.group.take()
                     {
-                        // We use .unwrap because the values are validated by the text area
-                        let max_players = self.max_players.get_first_line().parse::<u32>().unwrap();
-                        let retention = self.retention.get_first_line().parse::<bool>().unwrap();
+                        let max_players = self
+                            .max_players
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let settings = self
+                            .settings
+                            .get_first_line()
+                            .parse::<KeyValueList>()
+                            .expect("Should be validated by the text area");
+                        let environment = self
+                            .environment
+                            .get_first_line()
+                            .parse::<KeyValueList>()
+                            .expect("Should be validated by the text area");
+                        let retention = self
+                            .retention
+                            .get_first_line()
+                            .parse::<DiskRetention>()
+                            .expect("Should be validated by the text area");
                         let fallback = self.fallback.get_first_line();
                         let fallback = if fallback.is_empty() {
                             None
                         } else {
-                            Some(fallback.parse::<i32>().unwrap())
+                            Some(
+                                fallback
+                                    .parse::<i32>()
+                                    .expect("Should be validated by the text area"),
+                            )
                         };
 
-                        let spec = Spec {
+                        group.spec = Some(Spec {
                             img: self.image.get_first_line(),
                             max_players,
-                            settings: vec![],
-                            env: vec![],
-                            retention: Some(if retention {
-                                DiskRetention::Permanent as i32
-                            } else {
-                                DiskRetention::Temporary as i32
-                            }),
+                            settings: settings.0,
+                            env: environment.0,
+                            retention: Some(retention as i32),
                             fallback: fallback.map(|fallback| Fallback { prio: fallback }),
-                        };
+                        });
 
                         stack.pop(); // This is required to free the data stored in the struct
-                        stack.push(CreateGroupTab::new(
-                            self.connection.clone(),
-                            Detail {
-                                name: self.name.clone(),
-                                nodes: self.nodes.iter().map(|item| item.name.clone()).collect(),
-                                constraints: Some(self.constraints),
-                                scaling: Some(self.scaling),
-                                resources: Some(self.resources),
-                                spec: Some(spec),
-                            },
-                        ));
+                        stack.push(CreateGroupTab::new(self.connection.clone(), group));
                     }
                 }
                 _ => match self.current {
@@ -260,7 +263,7 @@ impl Widget for &mut SpecificationWindow<'_> {
         ])
         .areas(area);
 
-        WindowUtils::render_tab_header("Group constraints", title_area, buffer);
+        WindowUtils::render_tab_header("Group specification", title_area, buffer);
         SpecificationWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);
@@ -298,3 +301,62 @@ impl SpecificationWindow<'_> {
         self.status.render(status_area, buffer);
     }
 }
+
+impl FromStr for DiskRetention {
+    type Err = ParseRetentionError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        match string.to_lowercase().as_str() {
+            "true" | "yes" | "perm" | "permanent" => Ok(Self::Permanent),
+            "false" | "no" | "temp" | "temporary" => Ok(Self::Temporary),
+            _ => Err(ParseRetentionError),
+        }
+    }
+}
+
+impl FromStr for KeyValueList {
+    type Err = ParseKeyValueListError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        let mut result = Vec::new();
+        if string.is_empty() {
+            return Ok(Self(result));
+        }
+        for pair in string.split(',') {
+            let mut parts = pair.split('=');
+            let key = parts
+                .next()
+                .ok_or_else(|| ParseKeyValueListError(format!("No key found in pair '{pair}'")))?;
+            let value = parts.next().ok_or_else(|| {
+                ParseKeyValueListError(format!("No value found for key '{key}' in pair '{pair}'"))
+            })?;
+            result.push(KeyValue {
+                key: key.to_string(),
+                value: value.to_string(),
+            });
+        }
+        Ok(Self(result))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseRetentionError;
+
+impl Display for ParseRetentionError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        "Use: yes/no or perm/temp".fmt(formatter)
+    }
+}
+
+impl Error for ParseRetentionError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseKeyValueListError(String);
+
+impl Display for ParseKeyValueListError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl Error for ParseKeyValueListError {}

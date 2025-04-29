@@ -7,7 +7,7 @@ use super::EstablishedConnection;
 
 pub type ConnectTask = NetworkTask<Result<EstablishedConnection>>;
 pub type EmptyTask = NetworkTask<Result<()>>;
-pub type DataTask<T> = NetworkTask<Result<T>>;
+//pub type DataTask<T> = NetworkTask<Result<T>>;
 
 pub struct NetworkTask<T> {
     instant: Instant,

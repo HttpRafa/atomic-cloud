@@ -12,11 +12,7 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::{
-            group::{Constraints, Scaling},
-            node::{self},
-            server::Resources,
-        },
+        proto::manage::{group::Detail, server::Resources},
     },
     util::{
         area::SimpleTextArea,
@@ -30,10 +26,7 @@ use super::specification::SpecificationWindow;
 
 pub struct ResourcesWindow<'a> {
     /* Data */
-    name: String,
-    nodes: Vec<node::Short>,
-    constraints: Constraints,
-    scaling: Scaling,
+    group: Option<Detail>,
 
     /* Connection */
     connection: Arc<EstablishedConnection>,
@@ -61,18 +54,9 @@ enum Field {
 }
 
 impl ResourcesWindow<'_> {
-    pub fn new(
-        connection: Arc<EstablishedConnection>,
-        name: String,
-        nodes: Vec<node::Short>,
-        constraints: Constraints,
-        scaling: Scaling,
-    ) -> Self {
+    pub fn new(connection: Arc<EstablishedConnection>, group: Detail) -> Self {
         Self {
-            name,
-            nodes,
-            constraints,
-            scaling,
+            group: Some(group),
             connection,
             status: StatusDisplay::new(Status::Error, ""),
             current: Field::Memory,
@@ -164,33 +148,50 @@ impl Window for ResourcesWindow<'_> {
                         && self.io.is_valid()
                         && self.disk.is_valid()
                         && self.ports.is_valid()
+                        && let Some(mut group) = self.group.take()
                     {
-                        // We use .unwrap because the values are validated by the text area
-                        let memory = self.memory.get_first_line().parse::<u32>().unwrap();
-                        let swap = self.swap.get_first_line().parse::<u32>().unwrap();
-                        let cpu = self.cpu.get_first_line().parse::<u32>().unwrap();
-                        let io = self.io.get_first_line().parse::<u32>().unwrap();
-                        let disk = self.disk.get_first_line().parse::<u32>().unwrap();
-                        let ports = self.ports.get_first_line().parse::<u32>().unwrap();
+                        let memory = self
+                            .memory
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let swap = self
+                            .swap
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let cpu = self
+                            .cpu
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let io = self
+                            .io
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let disk = self
+                            .disk
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
+                        let ports = self
+                            .ports
+                            .get_first_line()
+                            .parse::<u32>()
+                            .expect("Should be validated by the text area");
 
-                        let resources = Resources {
+                        group.resources = Some(Resources {
                             memory,
                             swap,
                             cpu,
                             io,
                             disk,
                             ports,
-                        };
+                        });
 
                         stack.pop(); // This is required to free the data stored in the struct
-                        stack.push(SpecificationWindow::new(
-                            self.connection.clone(),
-                            self.name.clone(),
-                            self.nodes.clone(),
-                            self.constraints,
-                            self.scaling,
-                            resources,
-                        ));
+                        stack.push(SpecificationWindow::new(self.connection.clone(), group));
                     }
                 }
                 _ => match self.current {
@@ -244,7 +245,7 @@ impl Widget for &mut ResourcesWindow<'_> {
         ])
         .areas(area);
 
-        WindowUtils::render_tab_header("Group constraints", title_area, buffer);
+        WindowUtils::render_tab_header("Group resources", title_area, buffer);
         ResourcesWindow::render_footer(footer_area, buffer);
 
         self.render_body(main_area, buffer);

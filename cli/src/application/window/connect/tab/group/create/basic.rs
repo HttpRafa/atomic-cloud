@@ -10,7 +10,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::EstablishedConnection,
+    network::{connection::EstablishedConnection, proto::manage::group::Detail},
     util::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
@@ -86,7 +86,20 @@ impl Window for BasicWindow<'_> {
                                     "Select the node/s the group can use to start servers on",
                                     nodes,
                                     move |nodes, stack, _| {
-                                        stack.push(ConstraintsWindow::new(connection, name, nodes));
+                                        stack.push(ConstraintsWindow::new(
+                                            connection,
+                                            Detail {
+                                                name,
+                                                nodes: nodes
+                                                    .into_iter()
+                                                    .map(|item| item.name)
+                                                    .collect(),
+                                                constraints: None,
+                                                resources: None,
+                                                scaling: None,
+                                                spec: None,
+                                            },
+                                        ));
                                         Ok(())
                                     },
                                 ));

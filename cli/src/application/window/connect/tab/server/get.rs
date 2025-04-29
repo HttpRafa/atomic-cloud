@@ -25,7 +25,6 @@ use crate::application::{
 
 pub struct GetServerTab {
     /* Connection */
-    connection: Arc<EstablishedConnection>,
     server: server::Detail,
 
     /* Lines */
@@ -47,8 +46,8 @@ impl GetServerTab {
                         stack.push(FetchWindow::new(
                             connection.get_server(&server.id),
                             connection,
-                            move |server, connection, stack, _| {
-                                stack.push(GetServerTab::new(connection, server));
+                            move |server, _, stack, _| {
+                                stack.push(GetServerTab::new(server));
                                 Ok(())
                             },
                         ));
@@ -60,9 +59,8 @@ impl GetServerTab {
         )
     }
 
-    pub fn new(connection: Arc<EstablishedConnection>, server: server::Detail) -> Self {
+    pub fn new(server: server::Detail) -> Self {
         Self {
-            connection,
             server,
             lines: vec![],
         }

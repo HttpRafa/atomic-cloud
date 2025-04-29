@@ -6,6 +6,7 @@ import io.atomic.cloud.api.client.self.LocalCloudServer;
 import io.atomic.cloud.api.manage.Privileged;
 import io.atomic.cloud.api.resource.Resources;
 import io.atomic.cloud.api.transfer.Transfers;
+import io.atomic.cloud.api.user.Users;
 import io.atomic.cloud.common.connection.client.ManageConnection;
 import io.atomic.cloud.common.connection.impl.PrivilegedImpl;
 import io.atomic.cloud.paper.CloudPlugin;
@@ -21,6 +22,11 @@ public class CloudImpl implements Cloud.CloudAPI {
     @Override
     public Resources resources() {
         return CloudPlugin.INSTANCE.resources();
+    }
+
+    @Override
+    public Users users() {
+        return CloudPlugin.INSTANCE.users();
     }
 
     @Override

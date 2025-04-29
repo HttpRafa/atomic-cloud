@@ -111,6 +111,11 @@ impl UserManager {
         ActionResult::Allowed
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn get_user_count(&self) -> u32 {
+        self.users.len() as u32
+    }
+
     pub fn get_users(&self) -> Vec<&User> {
         self.users.values().collect()
     }

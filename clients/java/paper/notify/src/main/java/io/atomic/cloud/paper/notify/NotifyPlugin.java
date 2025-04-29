@@ -29,7 +29,7 @@ public class NotifyPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Enable notification system
+        // Enable the notification system
         this.powerHandler.enable();
     }
 

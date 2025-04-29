@@ -1,0 +1,19 @@
+name: "ac-fake-proxy"
+version: "${client_version}"
+author: "HttpRafa"
+main: "io.atomic.cloud.paper.proxy.FakeProxyPlugin"
+folia-supported: true
+description: "This plugin provides a way to fake the existence of a proxy"
+api-version: "1.21"
+bootstrapper: "io.atomic.cloud.paper.proxy.FakeProxyPluginBootstrap"
+dependencies:
+  bootstrap:
+    ac-core:
+      load: BEFORE
+      required: true
+      join-classpath: true
+  server:
+    ac-core:
+      load: BEFORE
+      required: true
+      join-classpath: true

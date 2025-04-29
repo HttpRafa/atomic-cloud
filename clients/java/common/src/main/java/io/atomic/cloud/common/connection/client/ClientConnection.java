@@ -27,6 +27,7 @@ public class ClientConnection extends Connection {
     private ClientServiceGrpc.ClientServiceFutureStub futureClient;
 
     // Cache values
+    private final CachedObject<UInt32Value> userCount = new CachedObject<>();
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
     private final CachedObject<Server.List> serversInfo = new CachedObject<>();
@@ -74,6 +75,23 @@ public class ClientConnection extends Connection {
 
     public CompletableFuture<UInt32Value> publishMessage(Channel.Msg message) {
         return super.wrapInFuture(this.futureClient.publishMessage(message));
+    }
+
+    public synchronized Optional<UInt32Value> userCountNow() {
+        var cached = this.userCount.getValue();
+        if (cached.isEmpty()) {
+            this.userCount(); // Request value from controller
+        }
+        return cached;
+    }
+
+    public synchronized CompletableFuture<UInt32Value> userCount() {
+        return this.userCount.getValue().map(CompletableFuture::completedFuture).orElseGet(() -> super.wrapInFuture(
+                        this.futureClient.getUserCount(Empty.getDefaultInstance()))
+                .thenApply((value) -> {
+                    this.userCount.setValue(value);
+                    return value;
+                }));
     }
 
     public synchronized Optional<Server.List> serversNow() {

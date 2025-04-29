@@ -12,7 +12,9 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     text::Line,
-    widgets::{Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
+    widgets::{
+        Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, Wrap,
+    },
 };
 use tonic::{async_trait, Streaming};
 use tui_textarea::TextArea;
@@ -265,6 +267,7 @@ impl ScreenTab {
             #[allow(clippy::cast_possible_truncation)]
             Paragraph::new(self.lines.clone())
                 .gray()
+                .wrap(Wrap { trim: false })
                 .scroll((self.scroll as u16, 0))
                 .render(content_area, buffer);
             StatefulWidget::render(

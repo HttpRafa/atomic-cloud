@@ -57,6 +57,7 @@ impl Window for ConnectWindow {
     async fn init(&mut self, _stack: &mut StackBatcher, state: &mut State) -> Result<()> {
         self.list = Some(ActionList::new(
             state.profiles.profiles.values().cloned().collect(),
+            true,
         ));
         Ok(())
     }

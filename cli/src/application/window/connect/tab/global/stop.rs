@@ -37,7 +37,7 @@ impl StopTab {
             ("No", "Cancel"),
             move |result, stack, _| {
                 if result {
-                    stack.push(StopTab::new(connection.clone()));
+                    stack.push(StopTab::new(&connection));
                 } else {
                     stack.close_tab();
                 }
@@ -46,10 +46,10 @@ impl StopTab {
         )
     }
 
-    pub fn new(connection: Arc<EstablishedConnection>) -> Self {
+    pub fn new(connection: &Arc<EstablishedConnection>) -> Self {
         Self {
             request: connection.request_stop(),
-            status: StatusDisplay::new(Status::Loading, "Stopping controller..."),
+            status: StatusDisplay::new_with_startpoint(Status::Loading, "Stopping controller..."),
         }
     }
 }

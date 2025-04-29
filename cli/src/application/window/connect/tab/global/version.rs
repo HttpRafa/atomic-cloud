@@ -54,7 +54,7 @@ impl VersionTab {
         )
     }
 
-    pub fn new(connection: Arc<EstablishedConnection>, values: Values) -> Self {
+    fn new(connection: Arc<EstablishedConnection>, values: Values) -> Self {
         Self {
             connection,
             values,

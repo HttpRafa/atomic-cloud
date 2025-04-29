@@ -12,10 +12,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     text::Line,
-    widgets::{
-        ListItem, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
-        Widget,
-    },
+    widgets::{Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
 };
 use tonic::{async_trait, Streaming};
 use tui_textarea::TextArea;
@@ -69,17 +66,21 @@ impl ScreenTab {
             connection.get_servers(),
             connection,
             move |servers, connection: Arc<EstablishedConnection>, stack, _| {
-                stack.push(SelectWindow::new(servers, move |server, stack, _| {
-                    stack.push(FetchWindow::new(
-                        connection.subscribe_to_screen(&server.id),
-                        connection.clone(),
-                        move |screen, connection, stack, _| {
-                            stack.push(ScreenTab::new(connection, server.clone(), screen));
-                            Ok(())
-                        },
-                    ));
-                    Ok(())
-                }));
+                stack.push(SelectWindow::new(
+                    "Select the server you want to open the screen for",
+                    servers,
+                    move |server, stack, _| {
+                        stack.push(FetchWindow::new(
+                            connection.subscribe_to_screen(&server.id),
+                            connection,
+                            move |screen, connection, stack, _| {
+                                stack.push(ScreenTab::new(connection, server, screen));
+                                Ok(())
+                            },
+                        ));
+                        Ok(())
+                    },
+                ));
                 Ok(())
             },
         )
@@ -285,12 +286,6 @@ impl ScreenTab {
                 .render(symbol_area, buffer);
             self.command.render(main_area, buffer);
         }
-    }
-}
-
-impl From<&server::Short> for ListItem<'_> {
-    fn from(server: &server::Short) -> Self {
-        ListItem::new(Line::styled(format!(" {server}"), TEXT_FG_COLOR))
     }
 }
 

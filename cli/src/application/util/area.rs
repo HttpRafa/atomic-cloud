@@ -179,6 +179,18 @@ impl<'a, D> SimpleTextArea<'a, D> {
         line.parse::<T>().map(|_| ()).map_err(|error| eyre!(error))
     }
 
+    pub fn optional_type_validation<T>(line: &str, _: &mut D) -> Result<()>
+    where
+        T: FromStr,
+        T::Err: Error + Send + Sync + 'static,
+    {
+        if line.is_empty() {
+            return Ok(());
+        }
+
+        line.parse::<T>().map(|_| ()).map_err(|error| eyre!(error))
+    }
+
     pub fn not_empty_validation(line: &str, _: &mut D) -> Result<()> {
         if line.trim().is_empty() {
             Err(eyre!("The field cannot be empty"))
@@ -193,10 +205,19 @@ impl<'a, D> SimpleTextArea<'a, D> {
     {
         if line.trim().is_empty() {
             Err(eyre!("The field cannot be empty"))
-        } else if data.as_ref().iter().any(|entry| entry == line) {
+        } else if data
+            .as_ref()
+            .iter()
+            .any(|entry| entry.to_lowercase() == line.to_lowercase())
+        {
             Err(eyre!("The field value already exists"))
         } else {
             Ok(())
         }
+    }
+
+    #[allow(clippy::unnecessary_wraps)]
+    pub fn i_dont_care_validation(_: &str, _: &mut D) -> Result<()> {
+        Ok(())
     }
 }

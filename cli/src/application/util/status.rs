@@ -44,7 +44,7 @@ impl StatusDisplay {
         }
     }
 
-    pub fn _new_with_startpoint<'a, T>(status: Status, message: T) -> Self
+    pub fn new_with_startpoint<'a, T>(status: Status, message: T) -> Self
     where
         T: Into<Cow<'a, str>>,
     {

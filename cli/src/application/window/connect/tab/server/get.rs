@@ -40,17 +40,21 @@ impl GetServerTab {
             connection.get_servers(),
             connection,
             move |servers, connection: Arc<EstablishedConnection>, stack, _| {
-                stack.push(SelectWindow::new(servers, move |server, stack, _| {
-                    stack.push(FetchWindow::new(
-                        connection.get_server(&server.id),
-                        connection.clone(),
-                        move |server, connection, stack, _| {
-                            stack.push(GetServerTab::new(connection.clone(), server));
-                            Ok(())
-                        },
-                    ));
-                    Ok(())
-                }));
+                stack.push(SelectWindow::new(
+                    "Select the server you want to view",
+                    servers,
+                    move |server, stack, _| {
+                        stack.push(FetchWindow::new(
+                            connection.get_server(&server.id),
+                            connection,
+                            move |server, connection, stack, _| {
+                                stack.push(GetServerTab::new(connection, server));
+                                Ok(())
+                            },
+                        ));
+                        Ok(())
+                    },
+                ));
                 Ok(())
             },
         )

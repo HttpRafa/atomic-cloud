@@ -64,13 +64,6 @@
         ];
 
         shellHook = ''
-          # Avoid polluting home directory
-          export RUSTUP_HOME=$(pwd)/.rustup/
-          export CARGO_HOME=$(pwd)/.cargo/
-
-          # Use binaries installed with `cargo install`
-          export PATH=$PATH:$CARGO_HOME/bin
-
           # Install and display the current toolchain
           rustup show
         '';

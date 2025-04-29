@@ -71,19 +71,22 @@ impl StartTab {
     pub fn new(connection: Arc<EstablishedConnection>) -> Self {
         Self {
             connection,
-            list: ActionList::new(vec![
-                Action::CreateNode,
-                Action::CreateGroup,
-                Action::SetResource,
-                Action::OpenScreen,
-                Action::TransferUsers,
-                Action::GetNode,
-                Action::GetGroup,
-                Action::GetServer,
-                Action::GetVersions,
-                Action::DeleteResource,
-                Action::RequestStop,
-            ]),
+            list: ActionList::new(
+                vec![
+                    Action::CreateNode,
+                    Action::CreateGroup,
+                    Action::SetResource,
+                    Action::OpenScreen,
+                    Action::TransferUsers,
+                    Action::GetNode,
+                    Action::GetGroup,
+                    Action::GetServer,
+                    Action::GetVersions,
+                    Action::DeleteResource,
+                    Action::RequestStop,
+                ],
+                false,
+            ),
         }
     }
 }
@@ -116,7 +119,7 @@ impl Window for StartTab {
                             Action::SetResource => stack.add_tab(
                                 "Active",
                                 GREEN,
-                                SetActiveTab::new(self.connection.clone()),
+                                SetActiveTab::new_stack(self.connection.clone()),
                             ),
                             Action::DeleteResource => stack.add_tab(
                                 "Delete",
@@ -127,7 +130,7 @@ impl Window for StartTab {
                             Action::CreateNode => stack.add_tab(
                                 "Create",
                                 GREEN,
-                                CreateNodeTab::new(self.connection.clone()),
+                                CreateNodeTab::new_stack(self.connection.clone()),
                             ),
                             Action::GetNode => stack.add_tab(
                                 "Node",
@@ -161,7 +164,7 @@ impl Window for StartTab {
                             Action::TransferUsers => stack.add_tab(
                                 "Transfer",
                                 BLUE,
-                                TransferUserTab::new(self.connection.clone()),
+                                TransferUserTab::new_stack(self.connection.clone()),
                             ),
 
                             Action::RequestStop => {
@@ -233,8 +236,8 @@ impl From<&Action> for ListItem<'_> {
 impl Display for Action {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Action::SetResource => write!(formatter, "Activate node or group"),
-            Action::DeleteResource => write!(formatter, "Delete node, group or stop server"),
+            Action::SetResource => write!(formatter, "Activate nodes or groups"),
+            Action::DeleteResource => write!(formatter, "Delete nodes, groups or stop servers"),
 
             Action::CreateNode => write!(formatter, "Create Node"),
             Action::GetNode => write!(formatter, "Get information about a certain Node"),

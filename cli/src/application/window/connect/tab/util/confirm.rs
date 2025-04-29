@@ -14,11 +14,11 @@ use crate::application::{
     State,
 };
 
-type Callback = Box<dyn Fn(bool, &mut StackBatcher, &mut State) -> Result<()> + Send + 'static>;
+type Callback = Box<dyn FnOnce(bool, &mut StackBatcher, &mut State) -> Result<()> + Send + 'static>;
 
 pub struct ConfirmWindow<'a> {
     /* Callback */
-    callback: Callback,
+    callback: Option<Callback>,
 
     /* Window */
     title: &'a str,
@@ -39,7 +39,7 @@ impl<'a> ConfirmWindow<'a> {
         callback: F,
     ) -> Self
     where
-        F: Fn(bool, &mut StackBatcher, &mut State) -> Result<()> + Send + 'static,
+        F: FnOnce(bool, &mut StackBatcher, &mut State) -> Result<()> + Send + 'static,
     {
         Self {
             title,
@@ -49,7 +49,7 @@ impl<'a> ConfirmWindow<'a> {
                 SimpleButton::new(first.0, first.1, (OK_SELECTED_COLOR, OK_COLOR)),
                 SimpleButton::new(second.0, second.1, (ERROR_SELECTED_COLOR, ERROR_COLOR)),
             ),
-            callback: Box::new(callback),
+            callback: Some(Box::new(callback)),
         }
     }
 }
@@ -77,7 +77,9 @@ impl Window for ConfirmWindow<'_> {
             match event.code {
                 KeyCode::Esc => {
                     stack.pop();
-                    (self.callback)(false, stack, state)?;
+                    if let Some(callback) = self.callback.take() {
+                        callback(false, stack, state)?;
+                    }
                 }
                 KeyCode::Right | KeyCode::Tab => {
                     if self.current {
@@ -91,7 +93,9 @@ impl Window for ConfirmWindow<'_> {
                 }
                 KeyCode::Enter => {
                     stack.pop();
-                    (self.callback)(self.current, stack, state)?;
+                    if let Some(callback) = self.callback.take() {
+                        callback(self.current, stack, state)?;
+                    }
                 }
                 _ => {}
             }

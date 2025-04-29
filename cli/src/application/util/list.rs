@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, mem};
 
 use ratatui::{
     buffer::Buffer,
@@ -20,13 +20,18 @@ pub struct ActionList<'a, T: Display> {
 }
 
 impl<T: Display> ActionList<'_, T> {
-    pub fn new(items: Vec<T>) -> Self {
+    pub fn new(mut items: Vec<T>, sort: bool) -> Self {
         let mut search = TextArea::default();
         search.set_cursor_line_style(Style::default());
         search.set_placeholder_text("Type to search");
 
         let mut state = ListState::default();
         state.select_first();
+
+        // Sort the items by name
+        if sort {
+            items.sort_by_key(std::string::ToString::to_string);
+        }
 
         let mut list = Self {
             search,
@@ -44,6 +49,13 @@ impl<T: Display> ActionList<'_, T> {
 
     pub fn previous(&mut self) {
         self.state.select_previous();
+    }
+
+    pub fn take_items(&mut self) -> Vec<T> {
+        let items = mem::take(&mut self.items);
+        self.view.clear();
+        self.state.select(None);
+        items
     }
 
     pub fn take_selected(&mut self) -> Option<T> {

@@ -6,7 +6,7 @@ use tonic::Streaming;
 use crate::application::network::proto::{
     common::notify,
     manage::{
-        group, node,
+        group, node, plugin,
         resource::{DelReq, SetReq},
         screen, server,
         transfer::TransferReq,
@@ -50,7 +50,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_plugins(&self) -> NetworkTask<Result<Vec<String>>> {
+    pub fn get_plugins(&self) -> NetworkTask<Result<Vec<plugin::Short>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 

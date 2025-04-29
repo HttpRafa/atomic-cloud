@@ -39,7 +39,7 @@ impl Default for StartWindow {
 impl StartWindow {
     pub fn new() -> Self {
         Self {
-            list: ActionList::new(vec![Action::Connect, Action::Create, Action::Delete]),
+            list: ActionList::new(vec![Action::Connect, Action::Create, Action::Delete], false),
         }
     }
 }

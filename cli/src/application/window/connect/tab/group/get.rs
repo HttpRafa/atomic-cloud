@@ -9,13 +9,13 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     text::Line,
-    widgets::{ListItem, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
     network::{connection::EstablishedConnection, proto::manage::group},
-    util::{fancy_toml::FancyToml, TEXT_FG_COLOR},
+    util::fancy_toml::FancyToml,
     window::{
         connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
@@ -25,7 +25,6 @@ use crate::application::{
 
 pub struct GetGroupTab {
     /* Connection */
-    connection: Arc<EstablishedConnection>,
     group: group::Detail,
 
     /* Lines */
@@ -39,26 +38,29 @@ impl GetGroupTab {
         FetchWindow::new(
             connection.get_groups(),
             connection,
-            move |nodes, connection: Arc<EstablishedConnection>, stack, _| {
-                stack.push(SelectWindow::new(nodes, move |group, stack, _| {
-                    stack.push(FetchWindow::new(
-                        connection.get_group(&group.name),
-                        connection.clone(),
-                        move |group, connection, stack, _| {
-                            stack.push(GetGroupTab::new(connection.clone(), group));
-                            Ok(())
-                        },
-                    ));
-                    Ok(())
-                }));
+            move |groups, connection: Arc<EstablishedConnection>, stack, _| {
+                stack.push(SelectWindow::new(
+                    "Select the group you want to view",
+                    groups,
+                    move |group, stack, _| {
+                        stack.push(FetchWindow::new(
+                            connection.get_group(&group.name),
+                            connection,
+                            move |group, _, stack, _| {
+                                stack.push(GetGroupTab::new(group));
+                                Ok(())
+                            },
+                        ));
+                        Ok(())
+                    },
+                ));
                 Ok(())
             },
         )
     }
 
-    pub fn new(connection: Arc<EstablishedConnection>, group: group::Detail) -> Self {
+    fn new(group: group::Detail) -> Self {
         Self {
-            connection,
             group,
             lines: vec![],
         }
@@ -125,12 +127,6 @@ impl GetGroupTab {
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         Paragraph::new(self.lines.clone()).render(area, buffer);
-    }
-}
-
-impl From<&group::Short> for ListItem<'_> {
-    fn from(group: &group::Short) -> Self {
-        ListItem::new(Line::styled(format!(" {group}"), TEXT_FG_COLOR))
     }
 }
 

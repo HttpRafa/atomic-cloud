@@ -9,13 +9,13 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     text::Line,
-    widgets::{ListItem, Paragraph, Widget},
+    widgets::{Paragraph, Widget},
 };
 use tonic::async_trait;
 
 use crate::application::{
     network::{connection::EstablishedConnection, proto::manage::node},
-    util::{fancy_toml::FancyToml, TEXT_FG_COLOR},
+    util::fancy_toml::FancyToml,
     window::{
         connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
@@ -25,7 +25,6 @@ use crate::application::{
 
 pub struct GetNodeTab {
     /* Connection */
-    connection: Arc<EstablishedConnection>,
     node: node::Detail,
 
     /* Lines */
@@ -40,25 +39,28 @@ impl GetNodeTab {
             connection.get_nodes(),
             connection,
             move |nodes, connection: Arc<EstablishedConnection>, stack, _| {
-                stack.push(SelectWindow::new(nodes, move |node, stack, _| {
-                    stack.push(FetchWindow::new(
-                        connection.get_node(&node.name),
-                        connection.clone(),
-                        move |node, connection, stack, _| {
-                            stack.push(GetNodeTab::new(connection.clone(), node));
-                            Ok(())
-                        },
-                    ));
-                    Ok(())
-                }));
+                stack.push(SelectWindow::new(
+                    "Select the node you want to view",
+                    nodes,
+                    move |node, stack, _| {
+                        stack.push(FetchWindow::new(
+                            connection.get_node(&node.name),
+                            connection,
+                            move |node, _, stack, _| {
+                                stack.push(GetNodeTab::new(node));
+                                Ok(())
+                            },
+                        ));
+                        Ok(())
+                    },
+                ));
                 Ok(())
             },
         )
     }
 
-    pub fn new(connection: Arc<EstablishedConnection>, node: node::Detail) -> Self {
+    fn new(node: node::Detail) -> Self {
         Self {
-            connection,
             node,
             lines: vec![],
         }
@@ -125,12 +127,6 @@ impl GetNodeTab {
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
         Paragraph::new(self.lines.clone()).render(area, buffer);
-    }
-}
-
-impl From<&node::Short> for ListItem<'_> {
-    fn from(node: &node::Short) -> Self {
-        ListItem::new(Line::styled(format!(" {node}"), TEXT_FG_COLOR))
     }
 }
 

@@ -17,14 +17,14 @@ use crate::application::{
 };
 
 type Callback<T> = Box<
-    dyn Fn(T, Arc<EstablishedConnection>, &mut StackBatcher, &mut State) -> Result<()>
+    dyn FnOnce(T, Arc<EstablishedConnection>, &mut StackBatcher, &mut State) -> Result<()>
         + Send
         + 'static,
 >;
 
 pub struct FetchWindow<T> {
     /* Callback */
-    callback: Callback<T>,
+    callback: Option<Callback<T>>,
 
     /* Network */
     request: NetworkTask<Result<T>>,
@@ -43,15 +43,18 @@ impl<T> FetchWindow<T> {
         callback: F,
     ) -> Self
     where
-        F: Fn(T, Arc<EstablishedConnection>, &mut StackBatcher, &mut State) -> Result<()>
+        F: FnOnce(T, Arc<EstablishedConnection>, &mut StackBatcher, &mut State) -> Result<()>
             + Send
             + 'static,
     {
         Self {
             request,
             connection,
-            callback: Box::new(callback),
-            status: StatusDisplay::new(Status::Loading, "Retreiving required information..."),
+            callback: Some(Box::new(callback)),
+            status: StatusDisplay::new_with_startpoint(
+                Status::Loading,
+                "Retreiving required information...",
+            ),
         }
     }
 }
@@ -71,7 +74,9 @@ impl<T: Send> Window for FetchWindow<T> {
                     "Sucessfully retrieved the required information", // Not really visible
                 );
                 stack.pop();
-                (self.callback)(connection, self.connection.clone(), stack, state)?;
+                if let Some(callback) = self.callback.take() {
+                    callback(connection, self.connection.clone(), stack, state)?;
+                }
             }
             Err(error) | Ok(Some(Err(error))) => {
                 self.status

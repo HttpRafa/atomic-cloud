@@ -55,6 +55,7 @@ impl Window for DeleteWindow {
                     delete: false,
                 })
                 .collect(),
+            true,
         ));
         Ok(())
     }

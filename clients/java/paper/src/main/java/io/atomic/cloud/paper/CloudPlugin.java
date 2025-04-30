@@ -88,6 +88,7 @@ public class CloudPlugin extends JavaPlugin {
         this.transferHandler.cleanup();
 
         try {
+            this.self.ready(false).join();
             if (this.settings.suicideOnDisable()) {
                 this.self.shutdown().thenRun(heart::stop).join();
             } else {

@@ -15,4 +15,8 @@ message Notify {
         string name = 2;
         string node = 3;
     }
+    message ReadyEvent {
+        bool ready = 1;
+        string name = 2;
+    }
 }

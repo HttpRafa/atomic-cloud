@@ -20,7 +20,7 @@ public class TransferHandler implements StreamObserver<Transfer.TransferRes> {
     }
 
     public void cleanup() {
-        this.handle.cancel();
+        this.handle.cancel("Closed by cleanup");
     }
 
     @Override

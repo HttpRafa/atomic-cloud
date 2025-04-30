@@ -30,7 +30,7 @@ use super::{
             transfer::{target::Type, TransferReq, TransferRes},
             user::{ConnectedReq, DisconnectedReq},
         },
-        common::notify::PowerEvent,
+        common::notify::{PowerEvent, ReadyEvent},
     },
 };
 
@@ -45,6 +45,7 @@ mod user;
 pub type TransferMsg = TransferRes;
 pub type ChannelMsg = Msg;
 pub type PowerMsg = PowerEvent;
+pub type ReadyMsg = ReadyEvent;
 
 pub struct ClientServiceImpl(pub TaskSender, pub Arc<Shared>);
 
@@ -53,6 +54,7 @@ impl ClientService for ClientServiceImpl {
     type SubscribeToTransfersStream = ReceiverStream<Result<TransferRes, Status>>;
     type SubscribeToChannelStream = ReceiverStream<Result<Msg, Status>>;
     type SubscribeToPowerEventsStream = ReceiverStream<Result<PowerEvent, Status>>;
+    type SubscribeToReadyEventsStream = ReceiverStream<Result<ReadyEvent, Status>>;
 
     // Heartbeat
     async fn beat(&self, request: Request<()>) -> Result<Response<()>, Status> {
@@ -282,6 +284,15 @@ impl ClientService for ClientServiceImpl {
     ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
         let (sender, receiver) = Subscriber::create_network();
         self.1.subscribers.network().power().subscribe(sender).await;
+
+        Ok(Response::new(receiver))
+    }
+    async fn subscribe_to_ready_events(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToReadyEventsStream>, Status> {
+        let (sender, receiver) = Subscriber::create_network();
+        self.1.subscribers.network().ready().subscribe(sender).await;
 
         Ok(Response::new(receiver))
     }

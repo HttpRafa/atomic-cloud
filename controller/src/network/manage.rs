@@ -19,6 +19,7 @@ use crate::{
         group::{ScalingPolicy, StartConstraints},
         node::Capabilities,
         server::{DiskRetention, FallbackPolicy, Resources, Specification},
+        subscriber::Subscriber,
         user::transfer::TransferTarget,
         Shared, TaskSender,
     },
@@ -27,7 +28,7 @@ use crate::{
 };
 
 use super::proto::{
-    common::notify::PowerEvent,
+    common::notify::{PowerEvent, ReadyEvent},
     manage::{
         self,
         manage_service_server::ManageService,
@@ -54,6 +55,7 @@ pub struct ManageServiceImpl(pub TaskSender, pub Arc<Shared>);
 impl ManageService for ManageServiceImpl {
     type SubscribeToScreenStream = ReceiverStream<Result<Lines, Status>>;
     type SubscribeToPowerEventsStream = ReceiverStream<Result<PowerEvent, Status>>;
+    type SubscribeToReadyEventsStream = ReceiverStream<Result<ReadyEvent, Status>>;
 
     // Power
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
@@ -669,6 +671,18 @@ impl ManageService for ManageServiceImpl {
         &self,
         _request: Request<()>,
     ) -> Result<Response<Self::SubscribeToPowerEventsStream>, Status> {
-        Err(Status::unimplemented("Not implemented yet"))
+        let (sender, receiver) = Subscriber::create_network();
+        self.1.subscribers.network().power().subscribe(sender).await;
+
+        Ok(Response::new(receiver))
+    }
+    async fn subscribe_to_ready_events(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<Self::SubscribeToReadyEventsStream>, Status> {
+        let (sender, receiver) = Subscriber::create_network();
+        self.1.subscribers.network().ready().subscribe(sender).await;
+
+        Ok(Response::new(receiver))
     }
 }

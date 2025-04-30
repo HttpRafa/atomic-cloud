@@ -174,6 +174,12 @@ public class ClientConnection extends Connection {
         return handle;
     }
 
+    public CallHandle<?, Notify.ReadyEvent> subscribeToReadyEvents(StreamObserver<Notify.ReadyEvent> observer) {
+        var handle = new CallHandle<>(observer);
+        this.client.subscribeToReadyEvents(Empty.getDefaultInstance(), handle);
+        return handle;
+    }
+
     @Contract(" -> new")
     public static @NotNull ClientConnection createFromEnv() {
         var address = System.getenv("CONTROLLER_ADDRESS");

@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
+    sync::Arc,
     time::Duration,
 };
 
@@ -11,7 +12,7 @@ use uuid::Uuid;
 
 use crate::network::client::TransferMsg;
 
-use super::node::Allocation;
+use super::{node::Allocation, Shared};
 
 pub mod guard;
 pub mod manager;
@@ -42,7 +43,7 @@ pub struct Server {
     flags: Flags,
     #[getset(get = "pub", get_mut = "pub", set = "pub")]
     state: State,
-    #[getset(get = "pub", set = "pub")]
+    #[getset(get = "pub")]
     ready: bool,
 }
 
@@ -125,6 +126,25 @@ impl Server {
             host: port.host.clone(),
             port: u32::from(port.port),
         })
+    }
+
+    pub async fn set_ready(&mut self, ready: bool, shared: &Arc<Shared>) {
+        if self.ready != ready {
+            self.ready = ready;
+            // Fire the server change ready event
+            shared
+                .subscribers
+                .plugin()
+                .server_change_ready()
+                .publish(((&*self).into(), ready))
+                .await;
+            shared
+                .subscribers
+                .network()
+                .ready()
+                .publish((&*self).into())
+                .await;
+        }
     }
 }
 

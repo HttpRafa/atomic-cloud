@@ -1,3 +1,5 @@
 messages:
   server-starting: "<green>⬆ <color:#4AE77A>Spinning up server <color:#2DA953><name> <color:#4AE77A>on node <color:#2DA953><node>!"
   server-stopping: "<red>⬇ <color:#C85252>Shutting down server <color:#FA2E2E><name>!"
+  server-ready: "<green>✓ <color:#4AE77A>Server <color:#2DA953><name> <color:#4AE77A>is now ready!"
+  server-not-ready: "<red>⚠ <color:#C85252>Server <color:#FA2E2E><name> <color:#C85252>is no longer ready!"

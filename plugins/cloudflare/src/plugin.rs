@@ -38,7 +38,7 @@ impl GuestPlugin for Cloudflare {
 
     fn init_listener(&self) -> (Events, GenericListener) {
         (
-            Events::SERVER_START | Events::SERVER_STOP,
+            Events::SERVER_STOP | Events::SERVER_CHANGE_READY,
             GenericListener::new(Listener()),
         )
     }

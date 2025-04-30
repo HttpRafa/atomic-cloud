@@ -10,7 +10,6 @@ use tonic::async_trait;
 use url::Url;
 use wasmtime::{component::ResourceAny, AsContextMut, Engine, Store};
 use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
-use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::application::{
     node::Capabilities,
@@ -51,7 +50,6 @@ pub(crate) struct PluginState {
 
     /* Wasmtime */
     wasi: WasiCtx,
-    http: WasiHttpCtx,
     resources: ResourceTable,
 }
 
@@ -241,12 +239,6 @@ impl IoView for PluginState {
 impl WasiView for PluginState {
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.wasi
-    }
-}
-
-impl WasiHttpView for PluginState {
-    fn ctx(&mut self) -> &mut WasiHttpCtx {
-        &mut self.http
     }
 }
 

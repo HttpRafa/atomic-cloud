@@ -59,14 +59,16 @@ impl FancyToml {
     fn word_to_color(key: &str) -> Color {
         match key {
             "name" | "id" => WARN_SELECTED_COLOR,
-            "group" | "node" | "plugin" | "ctrl_addr" | "nodes" => AMBER.c600,
+            "group" | "node" | "plugin" | "controller_address" | "nodes" => AMBER.c600,
             "state" | "ready" | "users" | "token" | "enabled" | "start_threshold"
             | "stop_empty" => OK_SELECTED_COLOR,
             "host" | "port" => INFO_SELECTED_COLOR,
             "memory" | "swap" | "cpu" | "io" | "disk" | "ports" => Color::Magenta,
-            "img" | "max_players" | "settings" | "env" | "retention" => Color::Blue,
+            "image" | "max_players" | "settings" | "environment" | "retention" => Color::Blue,
             "key" | "value" | "protocol" | "version" => Color::LightYellow,
-            "max" | "min" | "prio" | "child" => Color::LightCyan,
+            "max_servers" | "min_servers" | "servers" | "priority" | "child_node" => {
+                Color::LightCyan
+            }
             _ => TEXT_FG_COLOR,
         }
     }

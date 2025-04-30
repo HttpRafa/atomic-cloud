@@ -91,8 +91,8 @@ jobs:
       - name: Build Projects
         run: |
           rustup target add x86_64-pc-windows-gnu
-          cargo build --release --all --all-features --target x86_64-unknown-linux-gnu --verbose
-          cargo build --release --all --all-features --target x86_64-pc-windows-gnu --verbose
+          cargo build --release --all --all-features --target x86_64-unknown-linux-gnu
+          cargo build --release --all --all-features --target x86_64-pc-windows-gnu
         env:
           CURRENT_COMMIT: ${{ steps.vars.outputs.sha_short }}
           CURRENT_BUILD: ${{ github.run_number }}

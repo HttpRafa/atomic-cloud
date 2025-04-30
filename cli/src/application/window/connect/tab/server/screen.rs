@@ -134,13 +134,6 @@ impl Window for ScreenTab {
                         }
                     }
                 }
-
-                // Update the scrollbar
-                // This will check if the user is at the bottom if so it will scroll to the new bottom
-                if self.scroll >= self.scrollable_lines {
-                    self.update_lines(self.available_lines);
-                    self.update_scroll(self.scrollable_lines);
-                }
             }
             Some(Err(error)) => {
                 // Handle error
@@ -229,9 +222,15 @@ impl ScreenTab {
         self.scroll_state = self.scroll_state.position(scroll);
     }
 
-    fn update_lines(&mut self, height: u16) {
-        self.available_lines = height;
-        self.scrollable_lines = self.lines.len().saturating_sub(height as usize);
+    fn update_lines(&mut self, total_lines: usize, viewport_height: u16) {
+        let should_scroll_to_bottom = self.scroll == self.scrollable_lines;
+        self.available_lines = viewport_height;
+        self.scrollable_lines = total_lines.saturating_sub(viewport_height as usize);
+
+        if should_scroll_to_bottom {
+            // Automatically scroll to the bottom if previously at the bottom
+            self.update_scroll(self.scrollable_lines);
+        }
     }
 
     fn render_footer(area: Rect, buffer: &mut Buffer) {
@@ -256,20 +255,26 @@ impl ScreenTab {
         let [content_area, scrollbar_area] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(main_area);
 
-        // Calculate the height/lines of the content area
-        self.update_lines(content_area.height);
-
-        // Update the content length of the scrollbar
-        self.scroll_state = self.scroll_state.content_length(self.scrollable_lines);
-
         // Content area
         {
             #[allow(clippy::cast_possible_truncation)]
-            Paragraph::new(self.lines.clone())
+            let paragraph = Paragraph::new(self.lines.clone())
                 .gray()
                 .wrap(Wrap { trim: false })
-                .scroll((self.scroll as u16, 0))
-                .render(content_area, buffer);
+                .scroll((self.scroll as u16, 0));
+
+            // Calculate the height/lines of the content area
+            self.update_lines(
+                paragraph.line_count(content_area.width), // Might be removed in the future my ratatui
+                content_area.height,
+            );
+
+            // Update the content length of the scrollbar
+            self.scroll_state = self.scroll_state.content_length(self.scrollable_lines);
+
+            // Render paragraph
+            paragraph.render(content_area, buffer);
+
             StatefulWidget::render(
                 Scrollbar::new(ScrollbarOrientation::VerticalRight).style(TEXT_FG_COLOR),
                 scrollbar_area,

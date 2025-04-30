@@ -18,7 +18,7 @@ impl GenericTask for SetReadyTask {
         else {
             return Task::new_link_error();
         };
-        server.set_ready(self.1);
+        server.set_ready(self.1, &controller.shared).await;
         Task::new_empty()
     }
 }

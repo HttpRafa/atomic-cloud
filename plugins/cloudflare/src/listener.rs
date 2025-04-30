@@ -13,4 +13,8 @@ impl GuestListener for Listener {
     fn server_stop(&self, _: Server) -> Result<(), ErrorMessage> {
         Ok(())
     }
+
+    fn server_change_ready(&self, _: Server, _: bool) -> Result<(), ErrorMessage> {
+        Ok(())
+    }
 }

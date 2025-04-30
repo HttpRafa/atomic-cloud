@@ -7,7 +7,10 @@ use tokio::sync::{mpsc::Receiver, MutexGuard};
 use wasmtime::{component::ResourceAny, AsContextMut, Store};
 
 use crate::application::{
-    subscriber::{manager::event::ServerEvent, Subscriber},
+    subscriber::{
+        manager::event::server::{ServerEvent, ServerReadyEvent},
+        Subscriber,
+    },
     Shared,
 };
 
@@ -27,6 +30,7 @@ pub struct PluginListener {
     /* Events */
     server_start: Option<Receiver<Result<ServerEvent>>>,
     server_stop: Option<Receiver<Result<ServerEvent>>>,
+    server_change_ready: Option<Receiver<Result<ServerReadyEvent>>>,
 }
 
 impl PluginListener {
@@ -38,6 +42,7 @@ impl PluginListener {
 
             server_start: None,
             server_stop: None,
+            server_change_ready: None,
         }
     }
 
@@ -61,6 +66,16 @@ impl PluginListener {
                 .subscribe(subscriber)
                 .await;
             self.server_stop = Some(receiver);
+        }
+        if self.events.contains(Events::SERVER_CHANGE_READY) {
+            let (subscriber, receiver) = Subscriber::create_plugin();
+            shared
+                .subscribers
+                .plugin()
+                .server_change_ready()
+                .subscribe(subscriber)
+                .await;
+            self.server_change_ready = Some(receiver);
         }
     }
 
@@ -116,6 +131,21 @@ impl PluginListener {
                     .plugin_system_event()
                     .listener()
                     .call_server_stop(store.as_context_mut(), self.instance, &event)
+                    .await,
+            );
+        }
+        for event in Self::collect_events(&mut self.server_change_ready) {
+            let server = event.0.into();
+            Self::handle_result(
+                bindings
+                    .plugin_system_event()
+                    .listener()
+                    .call_server_change_ready(
+                        store.as_context_mut(),
+                        self.instance,
+                        &server,
+                        event.1,
+                    )
                     .await,
             );
         }

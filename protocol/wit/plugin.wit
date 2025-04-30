@@ -199,11 +199,13 @@ interface event {
     flags events {
         server-start,
         server-stop,
+        server-change-ready,
     }
 
     resource listener {
         server-start: func(server: server) -> result<_, error-message>;
         server-stop: func(server: server) -> result<_, error-message>;
+        server-change-ready: func(server: server, ready: bool) -> result<_, error-message>;
     }
 }
 

@@ -12,7 +12,7 @@ use crate::application::{
     server::{
         guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Specification,
     },
-    subscriber::manager::event::ServerEvent,
+    subscriber::manager::event::server::ServerEvent,
 };
 
 use super::{

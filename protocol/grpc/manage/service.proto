@@ -62,4 +62,5 @@ service ManageService {
 
   // Notify operations
   rpc SubscribeToPowerEvents(google.protobuf.Empty) returns (stream common.Notify.PowerEvent);
+  rpc SubscribeToReadyEvents(google.protobuf.Empty) returns (stream common.Notify.ReadyEvent);
 }

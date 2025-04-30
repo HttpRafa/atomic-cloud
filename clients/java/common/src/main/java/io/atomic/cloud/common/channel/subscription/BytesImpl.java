@@ -25,7 +25,7 @@ public class BytesImpl implements StreamObserver<Channel.Msg>, Bytes {
 
     @Override
     public void close() {
-        this.handle.cancel();
+        this.handle.cancel("Closed by user");
     }
 
     @Override

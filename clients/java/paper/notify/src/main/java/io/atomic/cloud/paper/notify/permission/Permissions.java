@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 @Getter
 @SuppressWarnings("UnstableApiUsage")
 public enum Permissions {
-    POWER_NOTIFY("atomic.cloud.power.notify");
+    POWER_NOTIFY("atomic.cloud.power.notify"),
+    READY_NOTIFY("atomic.cloud.ready.notify");
 
     private final String permission;
 

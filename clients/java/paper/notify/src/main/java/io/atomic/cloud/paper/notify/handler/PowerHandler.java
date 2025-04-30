@@ -1,4 +1,4 @@
-package io.atomic.cloud.paper.notify.notify;
+package io.atomic.cloud.paper.notify.handler;
 
 import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.common.connection.client.ClientConnection;
@@ -23,35 +23,35 @@ public class PowerHandler implements StreamObserver<Notify.PowerEvent> {
     }
 
     public void cleanup() {
-        this.handle.cancel();
+        this.handle.cancel("Closed by cleanup");
     }
 
     @Override
-    public void onNext(Notify.PowerEvent powerEvent) {
+    public void onNext(Notify.PowerEvent event) {
         try {
             Bukkit.getOnlinePlayers().stream()
                     .filter(Permissions.POWER_NOTIFY::check)
                     .forEach(player -> {
-                        if (powerEvent.getState() == Notify.PowerEvent.State.START) {
+                        if (event.getState() == Notify.PowerEvent.State.START) {
                             NotifyPlugin.INSTANCE
                                     .messages()
                                     .serverStarting()
                                     .send(
                                             player,
-                                            Placeholder.unparsed("name", powerEvent.getName()),
-                                            Placeholder.unparsed("node", powerEvent.getNode()));
+                                            Placeholder.unparsed("name", event.getName()),
+                                            Placeholder.unparsed("node", event.getNode()));
                         } else {
                             NotifyPlugin.INSTANCE
                                     .messages()
                                     .serverStopping()
                                     .send(
                                             player,
-                                            Placeholder.unparsed("name", powerEvent.getName()),
-                                            Placeholder.unparsed("node", powerEvent.getNode()));
+                                            Placeholder.unparsed("name", event.getName()),
+                                            Placeholder.unparsed("node", event.getNode()));
                         }
                     });
         } catch (Throwable throwable) {
-            NotifyPlugin.LOGGER.info("Failed to process power event for server {}:", powerEvent.getName());
+            NotifyPlugin.LOGGER.info("Failed to process power event for server {}:", event.getName());
             NotifyPlugin.LOGGER.error("-> ", throwable);
         }
     }

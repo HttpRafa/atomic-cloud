@@ -14,8 +14,8 @@ public class CallHandle<ReqT, RespT> implements ClientResponseObserver<ReqT, Res
     @Getter
     private ClientCallStreamObserver<ReqT> stream;
 
-    public void cancel() {
-        stream.cancel(null, null);
+    public void cancel(String message) {
+        stream.cancel(message, new InterruptedException(message));
     }
 
     @Override

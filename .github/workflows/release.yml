@@ -129,6 +129,7 @@ jobs:
           cp $(find ./clients/java/paper/build -name "*-all.jar") ac-core.jar
           cp $(find ./clients/java/paper/send/build -name "*-all.jar") ac-send.jar
           cp $(find ./clients/java/paper/notify/build -name "*-all.jar") ac-notify.jar
+          cp $(find ./clients/java/paper/fake-proxy/build -name "*-all.jar") ac-fake-proxy.jar
 
       - name: Create egg tar.gz and template tar.gz
         run: |
@@ -158,3 +159,4 @@ jobs:
             ac-core.jar
             ac-send.jar
             ac-notify.jar
+            ac-fake-proxy.jar

@@ -13,7 +13,10 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::server::{self},
+        proto::{
+            common::common_server,
+            manage::server::{self},
+        },
     },
     util::fancy_toml::FancyToml,
     window::{
@@ -34,7 +37,9 @@ pub struct GetServerTab {
 impl GetServerTab {
     /// Creates a new get server tab.
     /// This function will create a window stack to get the required information to display the server.
-    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<server::Short>> {
+    pub fn new_stack(
+        connection: Arc<EstablishedConnection>,
+    ) -> FetchWindow<Vec<common_server::Short>> {
         FetchWindow::new(
             connection.get_servers(),
             connection,

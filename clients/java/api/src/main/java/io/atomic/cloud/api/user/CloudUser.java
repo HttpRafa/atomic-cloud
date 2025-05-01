@@ -1,7 +1,5 @@
 package io.atomic.cloud.api.user;
 
-import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
-import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,7 +9,7 @@ public interface CloudUser {
 
     UUID uuid();
 
-    Optional<SimpleCloudGroup> group();
+    Optional<String> group();
 
-    Optional<SimpleCloudServer> server();
+    Optional<UUID> server();
 }

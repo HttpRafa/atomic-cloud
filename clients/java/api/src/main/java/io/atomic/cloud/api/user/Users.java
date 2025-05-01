@@ -1,5 +1,6 @@
 package io.atomic.cloud.api.user;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,7 +20,7 @@ public interface Users {
      * @param name the uuid of the server to retrieve
      * @return a User instance
      */
-    CompletableFuture<CloudUser> userFromName(String name);
+    CompletableFuture<Optional<CloudUser>> userFromName(String name);
 
     /**
      * Retrieves a User object that matches the specified uuid.
@@ -27,5 +28,5 @@ public interface Users {
      * @param uuid the uuid of the user to retrieve
      * @return a User instance
      */
-    CompletableFuture<CloudUser> userFromUuid(UUID uuid);
+    CompletableFuture<Optional<CloudUser>> userFromUuid(UUID uuid);
 }

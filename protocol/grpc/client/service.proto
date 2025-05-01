@@ -33,7 +33,7 @@ service ClientService {
   rpc UserDisconnected(User.DisconnectedReq) returns (google.protobuf.Empty);
   /// Info
   rpc GetUser(google.protobuf.StringValue) returns (common.CommonUser.Item);
-  rpc GetUserFromId(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUserFromName(google.protobuf.StringValue) returns (common.CommonUser.Item);
   rpc GetUsers(google.protobuf.Empty) returns (common.CommonUser.List);
   rpc GetUserCount(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 
@@ -51,6 +51,7 @@ service ClientService {
 
   // Server operations
   rpc GetServer(google.protobuf.StringValue) returns (common.CommonServer.Short);
+  rpc GetServerFromName(google.protobuf.StringValue) returns (common.CommonServer.Short);
   rpc GetServers(google.protobuf.Empty) returns (common.CommonServer.List);
 
   // Version info

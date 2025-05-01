@@ -1,13 +1,38 @@
 use anyhow::Result;
-use tonic::async_trait;
+use tonic::{async_trait, Status};
+use uuid::Uuid;
 
 use crate::{
     application::{server::Server, Controller},
-    network::proto::client::server::{List, Short},
+    network::proto::common::common_server::{List, Short},
     task::{BoxedAny, GenericTask, Task},
 };
 
-pub struct GetServersTask();
+pub struct GetServerTask(pub Uuid);
+pub struct GetServerFromNameTask(pub String);
+pub struct GetServersTask;
+
+#[async_trait]
+impl GenericTask for GetServerTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let Some(server) = controller.servers.get_server(&self.0) else {
+            return Task::new_err(Status::not_found("Server not found"));
+        };
+
+        Task::new_ok(Short::from(&server))
+    }
+}
+
+#[async_trait]
+impl GenericTask for GetServerFromNameTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let Some(server) = controller.servers.get_server_from_name(&self.0) else {
+            return Task::new_err(Status::not_found("Server not found"));
+        };
+
+        Task::new_ok(Short::from(&server))
+    }
+}
 
 #[async_trait]
 impl GenericTask for GetServersTask {
@@ -17,7 +42,7 @@ impl GenericTask for GetServersTask {
                 .servers
                 .get_servers()
                 .iter()
-                .map(std::convert::Into::into)
+                .map(Into::into)
                 .collect(),
         })
     }

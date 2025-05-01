@@ -8,7 +8,7 @@ use crate::{
         Controller,
     },
     network::proto::{
-        common::KeyValue,
+        common::{common_group::List, KeyValue},
         manage::{
             group::{Constraints, Detail, Scaling},
             server::{self, Fallback},
@@ -34,6 +34,7 @@ pub struct UpdateGroupTask(
     pub Option<Vec<String>>,
 );
 pub struct GetGroupTask(pub String);
+pub struct GetGroupsTask;
 
 #[async_trait]
 impl GenericTask for CreateGroupTask {
@@ -87,6 +88,20 @@ impl GenericTask for GetGroupTask {
         };
 
         Task::new_ok(Detail::from(group))
+    }
+}
+
+#[async_trait]
+impl GenericTask for GetGroupsTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        Task::new_ok(List {
+            groups: controller
+                .groups
+                .get_groups()
+                .iter()
+                .map(Into::into)
+                .collect(),
+        })
     }
 }
 

@@ -10,8 +10,8 @@ use crate::{
         Controller,
     },
     network::proto::{
-        common::Address,
-        manage::server::{self, Detail, List, Short},
+        common::{common_server::List, Address},
+        manage::server::{self, Detail},
     },
     task::{BoxedAny, GenericTask, Task},
 };
@@ -24,7 +24,8 @@ pub struct ScheduleServerTask(
     pub Specification,
 );
 pub struct GetServerTask(pub Uuid);
-pub struct GetServersTask();
+pub struct GetServerFromNameTask(pub String);
+pub struct GetServersTask;
 
 #[async_trait]
 impl GenericTask for ScheduleServerTask {
@@ -61,6 +62,17 @@ impl GenericTask for GetServerTask {
 }
 
 #[async_trait]
+impl GenericTask for GetServerFromNameTask {
+    async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
+        let Some(server) = controller.servers.get_server_from_name(&self.0) else {
+            return Task::new_err(Status::not_found("Server not found"));
+        };
+
+        Task::new_ok(Detail::from(server))
+    }
+}
+
+#[async_trait]
 impl GenericTask for GetServersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         Task::new_ok(List {
@@ -71,17 +83,6 @@ impl GenericTask for GetServersTask {
                 .map(std::convert::Into::into)
                 .collect(),
         })
-    }
-}
-
-impl From<&&Server> for Short {
-    fn from(server: &&Server) -> Self {
-        Self {
-            id: server.id().uuid().to_string(),
-            name: server.id().name().clone(),
-            group: server.group().clone(),
-            node: server.node().clone(),
-        }
     }
 }
 

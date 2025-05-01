@@ -2,8 +2,8 @@ package io.atomic.cloud.api.resource;
 
 import io.atomic.cloud.api.resource.simple.SimpleCloudGroup;
 import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
-import java.util.Collection;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /** The Resources interface provides methods to access cloud groups and cloud servers. */
@@ -30,7 +30,7 @@ public interface Resources {
      * @param uuid the uuid of the user to retrieve the group for
      * @return a SimpleGroup instance
      */
-    CompletableFuture<Optional<SimpleCloudGroup>> groupFromUser(String uuid);
+    CompletableFuture<Optional<SimpleCloudGroup>> groupFromUser(UUID uuid);
 
     /**
      * Retrieves an array of SimpleServer objects.
@@ -40,15 +40,12 @@ public interface Resources {
     CompletableFuture<SimpleCloudServer[]> servers();
 
     /**
-     * Retrieves an array of SimpleServer objects that match the specified name.
-     * <p>
-     * NOTE: It is possible that multiple servers have the same name.
-     * Because the controller currently on imposes no uniqueness constraints, this method may return multiple servers.
+     * Retrieves a SimpleServer object that matches the specified name.
      *
-     * @param name the name of the servers to retrieve
-     * @return a collection of SimpleServer instances
+     * @param name the name of the server to retrieve
+     * @return a SimpleServer instance
      */
-    CompletableFuture<Collection<SimpleCloudServer>> serverFromName(String name);
+    CompletableFuture<Optional<SimpleCloudServer>> serverFromName(String name);
 
     /**
      * Retrieves a SimpleServer object that matches the specified uuid.
@@ -56,7 +53,7 @@ public interface Resources {
      * @param uuid the uuid of the server to retrieve
      * @return a SimpleServer instance
      */
-    CompletableFuture<Optional<SimpleCloudServer>> serverFromUuid(String uuid);
+    CompletableFuture<Optional<SimpleCloudServer>> serverFromUuid(UUID uuid);
 
     /**
      * Retrieves a SimpleServer object that contains the specified user as a member.
@@ -64,5 +61,5 @@ public interface Resources {
      * @param uuid the uuid of the user to retrieve the server for
      * @return a SimpleServer instance
      */
-    CompletableFuture<Optional<SimpleCloudServer>> serverFromUser(String uuid);
+    CompletableFuture<Optional<SimpleCloudServer>> serverFromUser(UUID uuid);
 }

@@ -46,6 +46,7 @@ service ManageService {
   // Server operations
   rpc ScheduleServer(Server.Proposal) returns (google.protobuf.StringValue);
   rpc GetServer(google.protobuf.StringValue) returns (Server.Detail);
+  rpc GetServerFromName(google.protobuf.StringValue) returns (Server.Detail);
   rpc GetServers(google.protobuf.Empty) returns (common.CommonServer.List);
 
   // Screen operations
@@ -54,7 +55,7 @@ service ManageService {
 
   // User operations
   rpc GetUser(google.protobuf.StringValue) returns (common.CommonUser.Item);
-  rpc GetUserFromId(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUserFromName(google.protobuf.StringValue) returns (common.CommonUser.Item);
   rpc GetUsers(google.protobuf.Empty) returns (common.CommonUser.List);
   rpc GetUserCount(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 

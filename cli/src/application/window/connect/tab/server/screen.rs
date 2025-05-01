@@ -22,9 +22,9 @@ use tui_textarea::TextArea;
 use crate::application::{
     network::{
         connection::EstablishedConnection,
-        proto::manage::{
-            screen::{self, WriteReq},
-            server,
+        proto::{
+            common::common_server,
+            manage::screen::{self, WriteReq},
         },
     },
     util::{
@@ -41,7 +41,7 @@ use crate::application::{
 pub struct ScreenTab {
     /* Connection */
     connection: Arc<EstablishedConnection>,
-    server: server::Short,
+    server: common_server::Short,
     stream: Streaming<screen::Lines>,
 
     /* State */
@@ -63,7 +63,9 @@ pub struct ScreenTab {
 impl ScreenTab {
     /// Creates a new screen tab.
     /// This function will create a window stack to get the required information to display the screen.
-    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<server::Short>> {
+    pub fn new_stack(
+        connection: Arc<EstablishedConnection>,
+    ) -> FetchWindow<Vec<common_server::Short>> {
         FetchWindow::new(
             connection.get_servers(),
             connection,
@@ -90,7 +92,7 @@ impl ScreenTab {
 
     pub fn new(
         connection: Arc<EstablishedConnection>,
-        server: server::Short,
+        server: common_server::Short,
         stream: Streaming<screen::Lines>,
     ) -> Self {
         let mut command = TextArea::default();
@@ -297,7 +299,7 @@ impl ScreenTab {
     }
 }
 
-impl Display for server::Short {
+impl Display for common_server::Short {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}", self.name)
     }

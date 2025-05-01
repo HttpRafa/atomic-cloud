@@ -14,7 +14,7 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::{task::EmptyTask, EstablishedConnection},
-        proto::manage::group,
+        proto::{common::common_group, manage::group},
     },
     util::{
         fancy_toml::FancyToml,
@@ -50,7 +50,9 @@ pub struct CreateGroupTab {
 impl CreateGroupTab {
     /// Creates a new create group tab.
     /// This function will create a window stack to get the required information to create a group.
-    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<group::Short>> {
+    pub fn new_stack(
+        connection: Arc<EstablishedConnection>,
+    ) -> FetchWindow<Vec<common_group::Short>> {
         FetchWindow::new(
             connection.get_groups(),
             connection,

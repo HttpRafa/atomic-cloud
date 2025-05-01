@@ -14,7 +14,10 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::{connection::EstablishedConnection, proto::manage::group},
+    network::{
+        connection::EstablishedConnection,
+        proto::{common::common_group, manage::group},
+    },
     util::fancy_toml::FancyToml,
     window::{
         connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
@@ -34,7 +37,9 @@ pub struct GetGroupTab {
 impl GetGroupTab {
     /// Creates a new get group tab.
     /// This function will create a window stack to get the required information to display the group.
-    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<group::Short>> {
+    pub fn new_stack(
+        connection: Arc<EstablishedConnection>,
+    ) -> FetchWindow<Vec<common_group::Short>> {
         FetchWindow::new(
             connection.get_groups(),
             connection,
@@ -130,7 +135,7 @@ impl GetGroupTab {
     }
 }
 
-impl Display for group::Short {
+impl Display for common_group::Short {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}", self.name)
     }

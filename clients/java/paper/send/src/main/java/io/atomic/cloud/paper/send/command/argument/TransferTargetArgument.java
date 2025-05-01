@@ -7,9 +7,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import io.atomic.cloud.grpc.client.Group;
-import io.atomic.cloud.grpc.client.Server;
 import io.atomic.cloud.grpc.client.Transfer;
+import io.atomic.cloud.grpc.common.CommonGroup;
+import io.atomic.cloud.grpc.common.CommonServer;
 import io.atomic.cloud.paper.CloudPlugin;
 import io.papermc.paper.command.brigadier.MessageComponentSerializer;
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
@@ -53,12 +53,12 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
             var cached = CloudPlugin.INSTANCE.clientConnection().groupsNow();
             if (cached.isEmpty()) throw createException("Fetching available groups...");
             var group = cached.get().getGroupsList().stream()
-                    .filter(item -> item.equalsIgnoreCase(identifier))
+                    .filter(item -> item.getName().equalsIgnoreCase(identifier))
                     .findFirst();
             if (group.isEmpty()) throw createException("\"" + identifier + "\" does not exist");
             return Transfer.Target.newBuilder()
                     .setType(Transfer.Target.Type.GROUP)
-                    .setTarget(group.get())
+                    .setTarget(group.get().getName())
                     .build();
         }
         throw createException("Unknown transfer target type: " + type);
@@ -82,9 +82,10 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
                     response.groups
                             .getGroupsList()
                             .forEach(group -> builder.suggest(
-                                    "group:" + group,
+                                    "group:" + group.getName(),
                                     MessageComponentSerializer.message()
-                                            .serialize(Component.text(group).color(NamedTextColor.BLUE))));
+                                            .serialize(Component.text(group.getName())
+                                                    .color(NamedTextColor.BLUE))));
                     builder.suggest(
                             "fallback",
                             MessageComponentSerializer.message()
@@ -105,5 +106,5 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
         return new CommandSyntaxException(new SimpleCommandExceptionType(() -> message), () -> message);
     }
 
-    private record SuggestionsData(Server.List servers, Group.List groups) {}
+    private record SuggestionsData(CommonServer.List servers, CommonGroup.List groups) {}
 }

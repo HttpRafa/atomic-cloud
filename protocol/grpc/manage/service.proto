@@ -8,6 +8,9 @@ package manage;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+import "common/server.proto";
+import "common/group.proto";
+import "common/user.proto";
 import "common/notify.proto";
 
 import "manage/resource.proto";
@@ -16,7 +19,6 @@ import "manage/node.proto";
 import "manage/group.proto";
 import "manage/server.proto";
 import "manage/screen.proto";
-import "manage/user.proto";
 import "manage/transfer.proto";
 
 service ManageService {
@@ -39,19 +41,23 @@ service ManageService {
   rpc CreateGroup(Group.Detail) returns (google.protobuf.Empty);
   rpc UpdateGroup(Group.UpdateReq) returns (Group.Detail);
   rpc GetGroup(google.protobuf.StringValue) returns (Group.Detail);
-  rpc GetGroups(google.protobuf.Empty) returns (Group.List);
+  rpc GetGroups(google.protobuf.Empty) returns (common.CommonGroup.List);
 
   // Server operations
   rpc ScheduleServer(Server.Proposal) returns (google.protobuf.StringValue);
   rpc GetServer(google.protobuf.StringValue) returns (Server.Detail);
-  rpc GetServers(google.protobuf.Empty) returns (Server.List);
+  rpc GetServerFromName(google.protobuf.StringValue) returns (Server.Detail);
+  rpc GetServers(google.protobuf.Empty) returns (common.CommonServer.List);
 
   // Screen operations
   rpc WriteToScreen(Screen.WriteReq) returns (google.protobuf.Empty);
   rpc SubscribeToScreen(google.protobuf.StringValue) returns (stream Screen.Lines);
 
   // User operations
-  rpc GetUsers(google.protobuf.Empty) returns (User.List);
+  rpc GetUser(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUserFromName(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUsers(google.protobuf.Empty) returns (common.CommonUser.List);
+  rpc GetUserCount(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 
   // Transfer operations
   rpc TransferUsers(Transfer.TransferReq) returns (google.protobuf.UInt32Value);

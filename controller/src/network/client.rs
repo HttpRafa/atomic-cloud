@@ -2,13 +2,16 @@ use std::{str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use beat::BeatTask;
-use group::GetGroupsTask;
+use group::{GetGroupTask, GetGroupsTask};
 use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
-use server::GetServersTask;
+use server::{GetServerFromNameTask, GetServerTask, GetServersTask};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
-use user::{UserConnectedTask, UserCountTask, UserDisconnectedTask};
+use user::{
+    GetUserFromNameTask, GetUserTask, GetUsersTask, UserConnectedTask, UserCountTask,
+    UserDisconnectedTask,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -24,13 +27,15 @@ use super::{
     manage::transfer::TransferUsersTask,
     proto::{
         client::{
-            self,
             channel::Msg,
             client_service_server::ClientService,
             transfer::{target::Type, TransferReq, TransferRes},
             user::{ConnectedReq, DisconnectedReq},
         },
-        common::notify::{PowerEvent, ReadyEvent},
+        common::{
+            common_group, common_server, common_user,
+            notify::{PowerEvent, ReadyEvent},
+        },
     },
 };
 
@@ -126,6 +131,54 @@ impl ClientService for ClientServiceImpl {
                 };
 
                 Ok(Box::new(UserDisconnectedTask(auth, uuid)))
+            })
+            .await?,
+        ))
+    }
+    async fn get_user(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<common_user::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_user::Item, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let Ok(uuid) = Uuid::from_str(&request) else {
+                        return Err(Status::invalid_argument("Invalid UUID provided"));
+                    };
+
+                    Ok(Box::new(GetUserTask(uuid)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_user_from_name(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<common_user::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_user::Item, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetUserFromNameTask(request)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_users(&self, request: Request<()>) -> Result<Response<common_user::List>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_user::List, _, _>(AuthType::Server, &self.0, request, |_, _| {
+                Ok(Box::new(GetUsersTask))
             })
             .await?,
         ))
@@ -238,32 +291,90 @@ impl ClientService for ClientServiceImpl {
     }
 
     // Server
-    async fn get_servers(
+    async fn get_server(
         &self,
-        request: Request<()>,
-    ) -> Result<Response<client::server::List>, Status> {
+        request: Request<String>,
+    ) -> Result<Response<common_server::Short>, Status> {
         Ok(Response::new(
-            Task::execute::<client::server::List, _, _>(
+            Task::execute::<common_server::Short, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
-                |_, _| Ok(Box::new(GetServersTask())),
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let Ok(uuid) = Uuid::parse_str(&request) else {
+                        return Err(Status::invalid_argument("Invalid UUID provided"));
+                    };
+
+                    Ok(Box::new(GetServerTask(uuid)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_server_from_name(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<common_server::Short>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_server::Short, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetServerFromNameTask(request)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_servers(
+        &self,
+        request: Request<()>,
+    ) -> Result<Response<common_server::List>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_server::List, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetServersTask)),
             )
             .await?,
         ))
     }
 
     // Group
-    async fn get_groups(
+    async fn get_group(
         &self,
-        request: Request<()>,
-    ) -> Result<Response<client::group::List>, Status> {
+        request: Request<String>,
+    ) -> Result<Response<common_group::Short>, Status> {
         Ok(Response::new(
-            Task::execute::<client::group::List, _, _>(
+            Task::execute::<common_group::Short, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
-                |_, _| Ok(Box::new(GetGroupsTask())),
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetGroupTask(request)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_groups(
+        &self,
+        request: Request<()>,
+    ) -> Result<Response<common_group::List>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_group::List, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetGroupsTask)),
             )
             .await?,
         ))

@@ -15,9 +15,9 @@ use tonic::async_trait;
 use crate::application::{
     network::{
         connection::{task::EmptyTask, EstablishedConnection},
-        proto::manage::{
-            transfer::{target::Type, Target, TransferReq},
-            user,
+        proto::{
+            common::common_user,
+            manage::transfer::{target::Type, Target, TransferReq},
         },
     },
     util::status::{Status, StatusDisplay},
@@ -42,7 +42,9 @@ pub struct TransferUserTab {
 impl TransferUserTab {
     /// Creates a new transfer user tab.
     /// This function will create a window stack to get the required information to transfer the users.
-    pub fn new_stack(connection: Arc<EstablishedConnection>) -> FetchWindow<Vec<user::Item>> {
+    pub fn new_stack(
+        connection: Arc<EstablishedConnection>,
+    ) -> FetchWindow<Vec<common_user::Item>> {
         FetchWindow::new(
             connection.get_users(),
             connection,
@@ -114,7 +116,7 @@ impl TransferUserTab {
         target: Option<String>,
     ) -> Self
     where
-        T: IntoIterator<Item = user::Item>,
+        T: IntoIterator<Item = common_user::Item>,
     {
         Self {
             request: connection.transfer_users(TransferReq {
@@ -205,7 +207,7 @@ impl TransferUserTab {
     }
 }
 
-impl Display for user::Item {
+impl Display for common_user::Item {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{} ({})", self.name, self.id)
     }

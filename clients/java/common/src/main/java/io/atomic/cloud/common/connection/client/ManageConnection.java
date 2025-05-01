@@ -7,6 +7,9 @@ import io.atomic.cloud.common.cache.CachedObject;
 import io.atomic.cloud.common.connection.Connection;
 import io.atomic.cloud.common.connection.call.CallHandle;
 import io.atomic.cloud.common.connection.credential.TokenCredential;
+import io.atomic.cloud.grpc.common.CommonGroup;
+import io.atomic.cloud.grpc.common.CommonServer;
+import io.atomic.cloud.grpc.common.CommonUser;
 import io.atomic.cloud.grpc.common.Notify;
 import io.atomic.cloud.grpc.manage.*;
 import io.grpc.stub.StreamObserver;
@@ -23,13 +26,14 @@ public class ManageConnection extends Connection {
     private ManageServiceGrpc.ManageServiceFutureStub futureClient;
 
     // Cache values
+    private final CachedObject<UInt32Value> userCount = new CachedObject<>();
     private final CachedObject<UInt32Value> protocolVersion = new CachedObject<>();
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
     private final CachedObject<Plugin.List> pluginsInfo = new CachedObject<>();
     private final CachedObject<Node.List> nodesInfo = new CachedObject<>();
-    private final CachedObject<Group.List> groupsInfo = new CachedObject<>();
-    private final CachedObject<Server.List> serversInfo = new CachedObject<>();
-    private final CachedObject<User.List> usersInfo = new CachedObject<>();
+    private final CachedObject<CommonGroup.List> groupsInfo = new CachedObject<>();
+    private final CachedObject<CommonServer.List> serversInfo = new CachedObject<>();
+    private final CachedObject<CommonUser.List> usersInfo = new CachedObject<>();
 
     public ManageConnection(URL address, String token, String certificate) {
         super(address, token, certificate);
@@ -87,6 +91,35 @@ public class ManageConnection extends Connection {
         return super.wrapInFuture(this.futureClient.getServer(StringValue.of(server)));
     }
 
+    public CompletableFuture<Server.Detail> serverFromName(String server) {
+        return super.wrapInFuture(this.futureClient.getServerFromName(StringValue.of(server)));
+    }
+
+    public CompletableFuture<CommonUser.Item> user(String server) {
+        return super.wrapInFuture(this.futureClient.getUser(StringValue.of(server)));
+    }
+
+    public CompletableFuture<CommonUser.Item> userFromName(String server) {
+        return super.wrapInFuture(this.futureClient.getUserFromName(StringValue.of(server)));
+    }
+
+    public synchronized Optional<UInt32Value> userCountNow() {
+        var cached = this.userCount.getValue();
+        if (cached.isEmpty()) {
+            this.userCount(); // Request value from controller
+        }
+        return cached;
+    }
+
+    public synchronized CompletableFuture<UInt32Value> userCount() {
+        return this.userCount.getValue().map(CompletableFuture::completedFuture).orElseGet(() -> super.wrapInFuture(
+                        this.futureClient.getUserCount(Empty.getDefaultInstance()))
+                .thenApply((value) -> {
+                    this.userCount.setValue(value);
+                    return value;
+                }));
+    }
+
     public synchronized Optional<Plugin.List> pluginsNow() {
         var cached = this.pluginsInfo.getValue();
         if (cached.isEmpty()) {
@@ -123,7 +156,7 @@ public class ManageConnection extends Connection {
                 }));
     }
 
-    public synchronized Optional<Group.List> groupsNow() {
+    public synchronized Optional<CommonGroup.List> groupsNow() {
         var cached = this.groupsInfo.getValue();
         if (cached.isEmpty()) {
             this.groups(); // Request value from controller
@@ -131,7 +164,7 @@ public class ManageConnection extends Connection {
         return cached;
     }
 
-    public synchronized CompletableFuture<Group.List> groups() {
+    public synchronized CompletableFuture<CommonGroup.List> groups() {
         return this.groupsInfo
                 .getValue()
                 .map(CompletableFuture::completedFuture)
@@ -142,7 +175,7 @@ public class ManageConnection extends Connection {
                         }));
     }
 
-    public synchronized Optional<Server.List> serversNow() {
+    public synchronized Optional<CommonServer.List> serversNow() {
         var cached = this.serversInfo.getValue();
         if (cached.isEmpty()) {
             this.servers(); // Request value from controller
@@ -150,7 +183,7 @@ public class ManageConnection extends Connection {
         return cached;
     }
 
-    public synchronized CompletableFuture<Server.List> servers() {
+    public synchronized CompletableFuture<CommonServer.List> servers() {
         return this.serversInfo
                 .getValue()
                 .map(CompletableFuture::completedFuture)
@@ -161,7 +194,7 @@ public class ManageConnection extends Connection {
                         }));
     }
 
-    public synchronized Optional<User.List> usersNow() {
+    public synchronized Optional<CommonUser.List> usersNow() {
         var cached = this.usersInfo.getValue();
         if (cached.isEmpty()) {
             this.users(); // Request value from controller
@@ -169,7 +202,7 @@ public class ManageConnection extends Connection {
         return cached;
     }
 
-    public synchronized CompletableFuture<User.List> users() {
+    public synchronized CompletableFuture<CommonUser.List> users() {
         return this.usersInfo.getValue().map(CompletableFuture::completedFuture).orElseGet(() -> super.wrapInFuture(
                         this.futureClient.getUsers(Empty.getDefaultInstance()))
                 .thenApply((value) -> {

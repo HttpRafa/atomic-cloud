@@ -8,13 +8,14 @@ package client;
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
+import "common/server.proto";
+import "common/group.proto";
+import "common/user.proto";
 import "common/notify.proto";
 
 import "client/user.proto";
 import "client/transfer.proto";
 import "client/channel.proto";
-import "client/server.proto";
-import "client/group.proto";
 
 service ClientService {
   // Heartbeat
@@ -30,6 +31,10 @@ service ClientService {
   // User operations
   rpc UserConnected(User.ConnectedReq) returns (google.protobuf.Empty);
   rpc UserDisconnected(User.DisconnectedReq) returns (google.protobuf.Empty);
+  /// Info
+  rpc GetUser(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUserFromId(google.protobuf.StringValue) returns (common.CommonUser.Item);
+  rpc GetUsers(google.protobuf.Empty) returns (common.CommonUser.List);
   rpc GetUserCount(google.protobuf.Empty) returns (google.protobuf.UInt32Value);
 
   // Transfer operations
@@ -40,9 +45,13 @@ service ClientService {
   rpc PublishMessage(Channel.Msg) returns (google.protobuf.UInt32Value);
   rpc SubscribeToChannel(google.protobuf.StringValue) returns (stream Channel.Msg);
 
-  // Server/Group info
-  rpc GetServers(google.protobuf.Empty) returns (Server.List);
-  rpc GetGroups(google.protobuf.Empty) returns (Group.List);
+  // Group operations
+  rpc GetGroup(google.protobuf.StringValue) returns (common.CommonGroup.Short);
+  rpc GetGroups(google.protobuf.Empty) returns (common.CommonGroup.List);
+
+  // Server operations
+  rpc GetServer(google.protobuf.StringValue) returns (common.CommonServer.Short);
+  rpc GetServers(google.protobuf.Empty) returns (common.CommonServer.List);
 
   // Version info
   rpc GetProtoVer(google.protobuf.Empty) returns (google.protobuf.UInt32Value);

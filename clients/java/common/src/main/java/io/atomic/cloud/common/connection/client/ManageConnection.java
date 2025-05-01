@@ -27,7 +27,7 @@ public class ManageConnection extends Connection {
     private final CachedObject<StringValue> controllerVersion = new CachedObject<>();
     private final CachedObject<Plugin.List> pluginsInfo = new CachedObject<>();
     private final CachedObject<Node.List> nodesInfo = new CachedObject<>();
-    private final CachedObject<Group.List> groupsInfo = new CachedObject<>();
+    private final CachedObject<io.atomic.cloud.grpc.common.Group.List> groupsInfo = new CachedObject<>();
     private final CachedObject<Server.List> serversInfo = new CachedObject<>();
     private final CachedObject<User.List> usersInfo = new CachedObject<>();
 

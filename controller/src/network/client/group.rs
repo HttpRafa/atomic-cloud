@@ -2,8 +2,7 @@ use anyhow::Result;
 use tonic::async_trait;
 
 use crate::{
-    application::Controller,
-    network::proto::client::group::List,
+    application::{group::Group, Controller},
     task::{BoxedAny, GenericTask, Task},
 };
 
@@ -20,5 +19,13 @@ impl GenericTask for GetGroupsTask {
                 .map(|group| group.name().clone())
                 .collect(),
         })
+    }
+}
+
+impl From<&&Group> for Short {
+    fn from(group: &&Group) -> Self {
+        Self {
+            name: group.name().clone(),
+        }
     }
 }

@@ -6,6 +6,8 @@ import io.atomic.cloud.api.resource.simple.SimpleCloudServer;
 import io.atomic.cloud.common.connection.client.ClientConnection;
 import io.atomic.cloud.common.resource.object.simple.SimpleCloudGroupImpl;
 import io.atomic.cloud.common.resource.object.simple.SimpleCloudServerImpl;
+
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +26,16 @@ public class ResourceManager implements Resources {
     }
 
     @Override
+    public CompletableFuture<Optional<SimpleCloudGroup>> groupFromName(String name) {
+        return null;
+    }
+
+    @Override
+    public CompletableFuture<Optional<SimpleCloudGroup>> groupFromUser(String uuid) {
+        return null;
+    }
+
+    @Override
     public CompletableFuture<SimpleCloudServer[]> servers() {
         return this.connection.servers().thenApply(list -> list.getServersList().stream()
                 .map(server -> new SimpleCloudServerImpl(
@@ -33,4 +45,20 @@ public class ResourceManager implements Resources {
                         server.getNode()))
                 .toArray(SimpleCloudServerImpl[]::new));
     }
+
+    @Override
+    public CompletableFuture<Collection<SimpleCloudServer>> serverFromName(String name) {
+        return null;
+    }
+
+    @Override
+    public CompletableFuture<Optional<SimpleCloudServer>> serverFromUuid(String uuid) {
+        return null;
+    }
+
+    @Override
+    public CompletableFuture<Optional<SimpleCloudServer>> serverFromUser(String uuid) {
+        return null;
+    }
+
 }

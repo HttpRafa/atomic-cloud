@@ -265,7 +265,7 @@ impl ScreenTab {
 
             // Calculate the height/lines of the content area
             self.update_lines(
-                paragraph.line_count(content_area.width), // Might be removed in the future my ratatui
+                paragraph.line_count(content_area.width), // Might be removed in the future by ratatui
                 content_area.height,
             );
 

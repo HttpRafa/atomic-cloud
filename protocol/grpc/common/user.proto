@@ -1,16 +1,18 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "io.atomic.cloud.grpc.manage";
+option java_package = "io.atomic.cloud.grpc.common";
 
-package manage;
+package common;
 
-message User {
+message CommonUser {
   message List {
     repeated Item users = 1;
   }
   message Item {
     string name = 1;
     string id = 2;
+    optional string group = 3;
+    optional string server = 4;
   }
 }

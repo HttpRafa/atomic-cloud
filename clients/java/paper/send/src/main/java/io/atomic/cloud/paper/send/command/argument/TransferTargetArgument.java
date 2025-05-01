@@ -72,7 +72,7 @@ public class TransferTargetArgument implements CustomArgumentType.Converted<Tran
                 .servers()
                 .thenCombine(CloudPlugin.INSTANCE.clientConnection().groups(), SuggestionsData::new)
                 .thenCompose(response -> {
-                    response.servers
+                    response.
                             .getServersList()
                             .forEach(server -> builder.suggest(
                                     "server:" + server.getName(),

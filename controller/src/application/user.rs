@@ -10,6 +10,7 @@ pub mod transfer;
 pub struct User {
     #[getset(get = "pub")]
     id: NameAndUuid,
+    #[getset(get = "pub")]
     server: CurrentServer,
 }
 

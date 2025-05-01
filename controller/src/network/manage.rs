@@ -6,11 +6,11 @@ use node::{CreateNodeTask, GetNodeTask, GetNodesTask, UpdateNodeTask};
 use plugin::GetPluginsTask;
 use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
-use server::{GetServerTask, GetServersTask, ScheduleServerTask};
+use server::{GetServerFromNameTask, GetServerTask, GetServersTask, ScheduleServerTask};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{async_trait, Request, Response, Status};
 use transfer::TransferUsersTask;
-use user::GetUsersTask;
+use user::{GetUserFromNameTask, GetUserTask, GetUsersTask, UserCountTask};
 use uuid::Uuid;
 
 use crate::{
@@ -28,7 +28,10 @@ use crate::{
 };
 
 use super::proto::{
-    common::notify::{PowerEvent, ReadyEvent},
+    common::{
+        common_group, common_server, common_user,
+        notify::{PowerEvent, ReadyEvent},
+    },
     manage::{
         self,
         manage_service_server::ManageService,
@@ -435,11 +438,7 @@ impl ManageService for ManageServiceImpl {
                 AuthType::User,
                 &self.0,
                 request,
-                |request, _| {
-                    let request = request.into_inner();
-
-                    Ok(Box::new(GetGroupTask(request)))
-                },
+                |request, _| Ok(Box::new(GetGroupTask(request.into_inner()))),
             )
             .await?,
         ))
@@ -447,10 +446,10 @@ impl ManageService for ManageServiceImpl {
     async fn get_groups(
         &self,
         request: Request<()>,
-    ) -> Result<Response<manage::group::List>, Status> {
+    ) -> Result<Response<common_group::List>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetGroupsTask()))
+            Task::execute::<common_group::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetGroupsTask))
             })
             .await?,
         ))
@@ -558,17 +557,32 @@ impl ManageService for ManageServiceImpl {
             .await?,
         ))
     }
-    async fn get_servers(
+    async fn get_server_from_name(
         &self,
-        request: Request<()>,
-    ) -> Result<Response<manage::server::List>, Status> {
+        request: Request<String>,
+    ) -> Result<Response<manage::server::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::server::List, _, _>(
+            Task::execute::<manage::server::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
-                |_, _| Ok(Box::new(GetServersTask())),
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetServerFromNameTask(request)))
+                },
             )
+            .await?,
+        ))
+    }
+    async fn get_servers(
+        &self,
+        request: Request<()>,
+    ) -> Result<Response<common_server::List>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_server::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetServersTask))
+            })
             .await?,
         ))
     }
@@ -590,7 +604,9 @@ impl ManageService for ManageServiceImpl {
         &self,
         request: Request<String>,
     ) -> Result<Response<Self::SubscribeToScreenStream>, Status> {
-        let Ok(uuid) = Uuid::from_str(&request.into_inner()) else {
+        let request = request.into_inner();
+
+        let Ok(uuid) = Uuid::from_str(&request) else {
             return Err(Status::invalid_argument("Invalid UUID provided"));
         };
 
@@ -598,13 +614,58 @@ impl ManageService for ManageServiceImpl {
     }
 
     // User
-    async fn get_users(
+    async fn get_user(
         &self,
-        request: Request<()>,
-    ) -> Result<Response<manage::user::List>, Status> {
+        request: Request<String>,
+    ) -> Result<Response<common_user::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::user::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetUsersTask()))
+            Task::execute::<common_user::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    let Ok(uuid) = Uuid::from_str(&request) else {
+                        return Err(Status::invalid_argument("Invalid UUID provided"));
+                    };
+
+                    Ok(Box::new(GetUserTask(uuid)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_user_from_name(
+        &self,
+        request: Request<String>,
+    ) -> Result<Response<common_user::Item>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_user::Item, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |request, _| {
+                    let request = request.into_inner();
+
+                    Ok(Box::new(GetUserFromNameTask(request)))
+                },
+            )
+            .await?,
+        ))
+    }
+    async fn get_users(&self, request: Request<()>) -> Result<Response<common_user::List>, Status> {
+        Ok(Response::new(
+            Task::execute::<common_user::List, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(GetUsersTask))
+            })
+            .await?,
+        ))
+    }
+    async fn get_user_count(&self, request: Request<()>) -> Result<Response<u32>, Status> {
+        Ok(Response::new(
+            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |_, _| {
+                Ok(Box::new(UserCountTask))
             })
             .await?,
         ))

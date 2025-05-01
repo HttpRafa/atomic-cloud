@@ -4,13 +4,12 @@ use color_eyre::eyre::Result;
 use tonic::Streaming;
 
 use crate::application::network::proto::{
-    common::notify,
+    common::{common_group, common_server, common_user, notify},
     manage::{
         group, node, plugin,
         resource::{DelReq, SetReq},
         screen, server,
         transfer::TransferReq,
-        user,
     },
 };
 
@@ -162,7 +161,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_groups(&self) -> NetworkTask<Result<Vec<group::Short>>> {
+    pub fn get_groups(&self) -> NetworkTask<Result<Vec<common_group::Short>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 
@@ -194,7 +193,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_servers(&self) -> NetworkTask<Result<Vec<server::Short>>> {
+    pub fn get_servers(&self) -> NetworkTask<Result<Vec<common_server::Short>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 
@@ -236,7 +235,7 @@ impl EstablishedConnection {
         })
     }
 
-    pub fn get_users(&self) -> NetworkTask<Result<Vec<user::Item>>> {
+    pub fn get_users(&self) -> NetworkTask<Result<Vec<common_user::Item>>> {
         let connection = self.connection.clone();
         let request = self.create_request(());
 

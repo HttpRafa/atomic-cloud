@@ -8,12 +8,6 @@ package manage;
 import "manage/server.proto";
 
 message Group {
-  message List {
-    repeated Short groups = 1;
-  }
-  message Short {
-    string name = 1;
-  }
   message Detail {
     string name = 1;
     repeated string nodes = 2;

@@ -70,6 +70,12 @@ impl ServerManager {
         self.servers.values().collect()
     }
 
+    pub fn get_server_from_name(&self, name: &str) -> Option<&Server> {
+        self.servers
+            .values()
+            .find(|server| server.id().name() == name)
+    }
+
     pub fn get_server(&self, uuid: &Uuid) -> Option<&Server> {
         self.servers.get(uuid)
     }

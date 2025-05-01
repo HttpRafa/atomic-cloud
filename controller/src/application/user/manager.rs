@@ -120,7 +120,11 @@ impl UserManager {
         self.users.values().collect()
     }
 
-    pub fn _get_user(&self, uuid: &Uuid) -> Option<&User> {
+    pub fn get_user_from_name(&self, name: &str) -> Option<&User> {
+        self.users.values().find(|user| user.id().name() == name)
+    }
+
+    pub fn get_user(&self, uuid: &Uuid) -> Option<&User> {
         self.users.get(uuid)
     }
     pub fn get_user_mut(&mut self, uuid: &Uuid) -> Option<&mut User> {

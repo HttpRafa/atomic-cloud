@@ -8,9 +8,9 @@ use crate::{
         Controller,
     },
     network::proto::{
-        common::KeyValue,
+        common::{common_group::List, KeyValue},
         manage::{
-            group::{Constraints, Detail, List, Scaling, Short},
+            group::{Constraints, Detail, Scaling},
             server::{self, Fallback},
         },
     },
@@ -34,7 +34,7 @@ pub struct UpdateGroupTask(
     pub Option<Vec<String>>,
 );
 pub struct GetGroupTask(pub String);
-pub struct GetGroupsTask();
+pub struct GetGroupsTask;
 
 #[async_trait]
 impl GenericTask for CreateGroupTask {
@@ -99,17 +99,9 @@ impl GenericTask for GetGroupsTask {
                 .groups
                 .get_groups()
                 .iter()
-                .map(std::convert::Into::into)
+                .map(Into::into)
                 .collect(),
         })
-    }
-}
-
-impl From<&&Group> for Short {
-    fn from(group: &&Group) -> Self {
-        Self {
-            name: group.name().clone(),
-        }
     }
 }
 

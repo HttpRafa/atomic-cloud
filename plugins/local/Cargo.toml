@@ -2,7 +2,7 @@ cargo-features = ["per-package-target"]
 
 [package]
 name = "local"
-version = "0.0.0-nightly"
+version = "0.10.1-alpha"
 edition = "2021"
 forced-target = "wasm32-wasip2"
 

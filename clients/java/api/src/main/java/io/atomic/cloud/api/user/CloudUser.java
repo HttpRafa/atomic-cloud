@@ -9,7 +9,5 @@ public interface CloudUser {
 
     UUID uuid();
 
-    Optional<String> group();
-
     Optional<UUID> server();
 }

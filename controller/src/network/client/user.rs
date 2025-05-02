@@ -59,23 +59,14 @@ impl GenericTask for GetUserTask {
             return Task::new_err(Status::not_found("User not found"));
         };
 
-        let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-            let server = server.uuid();
-            (
-                Some(server.to_string()),
-                controller
-                    .servers
-                    .get_server(server)
-                    .and_then(|server| server.group().clone()),
-            )
-        } else {
-            (None, None)
-        };
         Task::new_ok(Item {
             name: user.id().name().clone(),
             id: user.id().uuid().to_string(),
-            group,
-            server,
+            server: if let CurrentServer::Connected(server) = user.server() {
+                Some(server.uuid().to_string())
+            } else {
+                None
+            },
         })
     }
 }
@@ -87,29 +78,18 @@ impl GenericTask for GetUserFromNameTask {
             return Task::new_err(Status::not_found("User not found"));
         };
 
-        let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-            let server = server.uuid();
-            (
-                Some(server.to_string()),
-                controller
-                    .servers
-                    .get_server(server)
-                    .and_then(|server| server.group().clone()),
-            )
-        } else {
-            (None, None)
-        };
         Task::new_ok(Item {
             name: user.id().name().clone(),
             id: user.id().uuid().to_string(),
-            group,
-            server,
+            server: if let CurrentServer::Connected(server) = user.server() {
+                Some(server.uuid().to_string())
+            } else {
+                None
+            },
         })
     }
 }
 
-// TODO: This call is very expensive
-// TODO: Remove or find a different solution
 #[async_trait]
 impl GenericTask for GetUsersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
@@ -118,25 +98,14 @@ impl GenericTask for GetUsersTask {
                 .users
                 .get_users()
                 .iter()
-                .map(|user| {
-                    let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-                        let server = server.uuid();
-                        (
-                            Some(server.to_string()),
-                            controller
-                                .servers
-                                .get_server(server)
-                                .and_then(|server| server.group().clone()),
-                        )
+                .map(|user| Item {
+                    name: user.id().name().clone(),
+                    id: user.id().uuid().to_string(),
+                    server: if let CurrentServer::Connected(server) = user.server() {
+                        Some(server.uuid().to_string())
                     } else {
-                        (None, None)
-                    };
-                    Item {
-                        name: user.id().name().clone(),
-                        id: user.id().uuid().to_string(),
-                        group,
-                        server,
-                    }
+                        None
+                    },
                 })
                 .collect(),
         })

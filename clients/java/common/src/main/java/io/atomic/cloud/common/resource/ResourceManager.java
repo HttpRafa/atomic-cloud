@@ -40,17 +40,6 @@ public class ResourceManager implements Resources {
     }
 
     @Override
-    public CompletableFuture<Optional<SimpleCloudGroup>> groupFromUser(UUID uuid) {
-        return Cloud.users().userFromUuid(uuid).thenCompose(user -> {
-            if (user.isPresent() && user.get().group().isPresent()) {
-                return this.groupFromName(user.get().group().get());
-            } else {
-                return CompletableFuture.completedFuture(Optional.empty());
-            }
-        });
-    }
-
-    @Override
     public CompletableFuture<SimpleCloudServer[]> servers() {
         return this.connection.servers().thenApply(list -> list.getServersList().stream()
                 .map(server -> new SimpleCloudServerImpl(

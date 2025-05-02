@@ -25,14 +25,6 @@ public interface Resources {
     CompletableFuture<Optional<SimpleCloudGroup>> groupFromName(String name);
 
     /**
-     * Retrieves a SimpleGroup object that contains the specified user as a member.
-     *
-     * @param uuid the uuid of the user to retrieve the group for
-     * @return a SimpleGroup instance
-     */
-    CompletableFuture<Optional<SimpleCloudGroup>> groupFromUser(UUID uuid);
-
-    /**
      * Retrieves an array of SimpleServer objects.
      *
      * @return an array of SimpleServer instances

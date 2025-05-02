@@ -1,0 +1,26 @@
+[account]
+# The email associated with your Cloudflare account
+mail = "example@something.com"
+token = ""
+
+# NOTE: This plugin will delete all DNS records under the DNS name specified in the tasks array.
+# Be cautious when using the "prepend" type with your root domain, as it may unintentionally remove other SRV records on the domain.
+# The plugin assumes any records matching to the DNS name are leftovers and will delete them.
+# If the type is set to "static," it will only delete records that are exactly under the DNS name.
+[[tasks]]
+# Task type: can be "static" or "prepend" (prepends the server name to the DNS record, e.g., lobby-1.mynetwork.net)
+type = "static"
+
+[tasks.dns]
+# The Zone ID from your Cloudflare dashboard
+id = ""
+# The DNS record name under which the plugin will create SRV records
+name = "mynetwork.net"
+
+[tasks.target]
+# A regex pattern to match all servers that will be added as DNS SRV entries
+servers = "^lobby-.*"
+
+[tasks.priority]
+# The priority of SRV records is calculated as: max - (current players online on the server)
+max = 10000

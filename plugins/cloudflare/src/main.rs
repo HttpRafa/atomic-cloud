@@ -17,6 +17,7 @@ mod dummy;
 mod listener;
 mod log;
 mod plugin;
+mod storage;
 
 #[allow(clippy::all)]
 pub mod generated {

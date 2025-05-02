@@ -1,7 +1,10 @@
-use crate::{generated::{
-    exports::plugin::system::event::GuestListener,
-    plugin::system::{data_types::Server, types::ErrorMessage},
-}, info};
+use crate::{
+    generated::{
+        exports::plugin::system::event::GuestListener,
+        plugin::system::{data_types::Server, types::ErrorMessage},
+    },
+    info,
+};
 
 pub struct Listener();
 
@@ -16,7 +19,9 @@ impl GuestListener for Listener {
     }
 
     fn server_change_ready(&self, server: Server, ready: bool) -> Result<(), ErrorMessage> {
-        if !ready { return Ok(()); }
+        if !ready {
+            return Ok(());
+        }
 
         info!("Server {} is ready updating dns records...", server.name);
         Ok(())

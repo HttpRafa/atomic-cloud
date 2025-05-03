@@ -9,12 +9,7 @@ use crate::{
         exports::plugin::system::event::GuestListener,
         plugin::system::{data_types::Server, types::ErrorMessage},
     },
-    plugin::{
-        batcher::Batcher,
-        config::Entry,
-        dns::NewRecord,
-        math::WeightCalc,
-    },
+    plugin::{batcher::Batcher, config::Entry, dns::Record},
 };
 
 pub struct Listener {
@@ -52,6 +47,12 @@ impl GuestListener for Listener {
     }
 
     fn server_stop(&self, server: Server) -> Result<(), ErrorMessage> {
+        for (regex, _) in &self.entries {
+            if regex.is_match(&server.name) {
+                self.batcher.borrow_mut().delete(server.uuid);
+                break;
+            }
+        }
         Ok(())
     }
 
@@ -73,14 +74,13 @@ impl GuestListener for Listener {
                     .into_iter()
                     .next()
                     .expect("There is always a first value");
-                self.batcher.borrow_mut().create(NewRecord {
-                    name: entry.name.clone(),
-                    priority: entry.priority,
-                    weight: WeightCalc::calc_from(server.connected_users, &entry.weight),
-                    port: address.port,
-                    target: address.host,
-                });
-                break; //
+                self.batcher.borrow_mut().create(Record::new(
+                    entry,
+                    server.uuid,
+                    server.connected_users,
+                    address,
+                ));
+                break;
             }
         }
         Ok(())

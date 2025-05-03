@@ -10,7 +10,7 @@ const DEFAULT_CONFIG: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/configs/config.toml"));
 
 #[derive(Deserialize, Default)]
-struct Account {
+pub struct Account {
     pub mail: String,
     pub token: String,
 }
@@ -33,6 +33,7 @@ pub struct Entry {
 
 #[derive(Deserialize, Default)]
 pub struct Config {
+    pub rate: u16,
     pub account: Account,
     pub entries: Vec<Entry>,
 }

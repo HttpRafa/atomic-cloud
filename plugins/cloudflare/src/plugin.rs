@@ -1,9 +1,15 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use anyhow::Result;
 
+use backend::Backend;
 use batcher::Batcher;
 use config::Config;
+use dns::manager::Records;
 
 use crate::{
     error,
@@ -15,11 +21,12 @@ use crate::{
             },
             event::Events,
         },
-        plugin::system::data_types::Features,
+        plugin::system::{data_types::Features, types::ScopedError},
     },
     listener::Listener,
 };
 
+pub mod backend;
 pub mod batcher;
 pub mod config;
 pub mod dns;
@@ -35,8 +42,15 @@ pub struct Cloudflare {
     /* Configuration */
     config: RefCell<Config>,
 
-    /* Actions */
+    /* Batcher */
     batcher: Rc<RefCell<Batcher>>,
+
+    /* Managers */
+    backend: RefCell<Backend>,
+    records: RefCell<Records>,
+
+    /* Tick Intervals */
+    last: RefCell<Instant>,
 }
 
 impl GuestPlugin for Cloudflare {
@@ -44,6 +58,9 @@ impl GuestPlugin for Cloudflare {
         Self {
             config: RefCell::new(Config::default()), // Dummy config
             batcher: Rc::new(RefCell::new(Batcher::default())),
+            backend: RefCell::new(Backend::default()),
+            records: RefCell::new(Records::default()),
+            last: RefCell::new(Instant::now()),
         }
     }
 
@@ -52,6 +69,7 @@ impl GuestPlugin for Cloudflare {
             // Load configuration
             {
                 let config = Config::parse()?;
+                own.backend.replace(Backend::new(&config));
                 own.config.replace(config);
             }
             Ok(())
@@ -90,6 +108,25 @@ impl GuestPlugin for Cloudflare {
     }
 
     fn tick(&self) -> Result<(), ScopedErrors> {
+        if self.last.borrow().elapsed()
+            >= Duration::from_secs(60 / u64::from(self.config.borrow().rate))
+        {
+            self.last.replace(Instant::now());
+
+            // Execute update
+            self.records
+                .borrow_mut()
+                .tick(
+                    &mut self.backend.borrow_mut(),
+                    &mut self.batcher.borrow_mut(),
+                )
+                .map_err(|error| {
+                    vec![ScopedError {
+                        scope: "tick".to_string(),
+                        message: error.to_string(),
+                    }]
+                })?;
+        }
         Ok(())
     }
 

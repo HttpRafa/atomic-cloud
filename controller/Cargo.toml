@@ -20,7 +20,7 @@ bitflags = "2.9.0"
 # Signal handling
 ctrlc = "3.4.6"
 
-# Unit system
+# Server system
 uuid = { version = "1.16.0", features = ["v4"] }
 
 # Command line arguments

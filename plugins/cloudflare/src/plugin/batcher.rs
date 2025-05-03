@@ -1,26 +1,29 @@
-use std::collections::VecDeque;
+use std::collections::{hash_map::Drain, HashMap};
 
-
-use super::dns::{NewRecord, Record};
+use super::dns::Record;
 
 pub enum Action {
-    Create(NewRecord),
-    Delete(Record),
+    Create(Record),
+    Delete(String), // UUID of server
 }
 
 #[derive(Default)]
 pub struct Batcher {
-    inner: VecDeque<Action>,
+    inner: HashMap<String, Action>,
 }
 
 impl Batcher {
-    pub fn create(&mut self, record: NewRecord) {
-        self.inner.push_front(Action::Create(record));
+    pub fn create(&mut self, record: Record) {
+        self.inner
+            .insert(record.uuid.clone(), Action::Create(record));
     }
-    pub fn delete(&mut self, record: Record) {
-        self.inner.push_front(Action::Delete(record));
+    pub fn delete(&mut self, uuid: String) {
+        self.inner.insert(uuid.clone(), Action::Delete(uuid));
     }
-    pub fn pop(&mut self) -> Option<Action> {
-        self.inner.pop_back()
+    pub fn drain(&mut self) -> Drain<String, Action> {
+        self.inner.drain()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 }

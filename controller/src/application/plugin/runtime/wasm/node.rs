@@ -256,6 +256,7 @@ impl From<&Server> for bridge::Server {
             group: val.group().clone(),
             allocation: val.allocation().into(),
             token: val.token().clone(),
+            connected_users: *val.connected_users(),
         }
     }
 }
@@ -268,6 +269,7 @@ impl From<ServerEvent> for bridge::Server {
             group: val.group().clone(),
             allocation: val.allocation().into(),
             token: val.token().clone(),
+            connected_users: *val.connected_users(),
         }
     }
 }

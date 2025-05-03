@@ -4,16 +4,14 @@ mail = "example@something.com"
 token = ""
 
 [[entries]]
+# The Zone ID from your Cloudflare dashboard
+zone = ""
+# The DNS record name under which the plugin will create SRV records
+name = "_minecraft._tcp.mynetwork.net"
 # A regular expression to identify servers that should receive an SRV record
 servers = "^lobby-.*"
 # The priority assigned to the SRV records
 priority = 5
-
-[entries.dns]
-# The Zone ID from your Cloudflare dashboard
-id = ""
-# The DNS record name under which the plugin will create SRV records
-name = "_minecraft._tcp.mynetwork.net"
 
 # The weight is calculated using a formula where k is a constant, a is a constant, max is the maximum number of players on a server,
 # and x is the current number of players on the server.

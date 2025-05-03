@@ -92,6 +92,7 @@ interface data-types {
         group: option<string>,
         allocation: allocation,
         token: string,
+        connected-users: u32,
     }
 }
 

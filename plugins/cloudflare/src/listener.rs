@@ -1,12 +1,50 @@
+use std::{cell::RefCell, rc::Rc};
+
+use anyhow::Result;
+use regex::Regex;
+
 use crate::{
+    error,
     generated::{
         exports::plugin::system::event::GuestListener,
         plugin::system::{data_types::Server, types::ErrorMessage},
     },
-    info,
+    plugin::{
+        batcher::Batcher,
+        config::Entry,
+        dns::NewRecord,
+        math::WeightCalc,
+    },
 };
 
-pub struct Listener();
+pub struct Listener {
+    /* Configuration */
+    entries: Vec<(Regex, Entry)>,
+
+    /* Batcher */
+    batcher: Rc<RefCell<Batcher>>,
+}
+
+impl Listener {
+    pub fn new(entries: &[Entry], batcher: Rc<RefCell<Batcher>>) -> Self {
+        Self {
+            entries: entries
+                .iter()
+                .filter_map(|entry| match Regex::new(&entry.servers) {
+                    Ok(servers) => Some((servers, entry.clone())),
+                    Err(error) => {
+                        error!(
+                            "Failed to compile regex({}) for entry({}): {}",
+                            entry.servers, entry.name, error
+                        );
+                        None
+                    }
+                })
+                .collect(),
+            batcher,
+        }
+    }
+}
 
 impl GuestListener for Listener {
     fn server_start(&self, _: Server) -> Result<(), ErrorMessage> {
@@ -14,16 +52,37 @@ impl GuestListener for Listener {
     }
 
     fn server_stop(&self, server: Server) -> Result<(), ErrorMessage> {
-        info!("Server {} is stopping updating dns records...", server.name);
         Ok(())
     }
 
     fn server_change_ready(&self, server: Server, ready: bool) -> Result<(), ErrorMessage> {
         if !ready {
+            // Only run if the server is ready
             return Ok(());
         }
 
-        info!("Server {} is ready updating dns records...", server.name);
+        for (regex, entry) in &self.entries {
+            if regex.is_match(&server.name) {
+                if server.allocation.ports.is_empty() {
+                    error!("Failed to schedule DNS record for server({}) because it does not have any ports to expose", server.name);
+                    continue;
+                }
+                let address = server
+                    .allocation
+                    .ports
+                    .into_iter()
+                    .next()
+                    .expect("There is always a first value");
+                self.batcher.borrow_mut().create(NewRecord {
+                    name: entry.name.clone(),
+                    priority: entry.priority,
+                    weight: WeightCalc::calc_from(server.connected_users, &entry.weight),
+                    port: address.port,
+                    target: address.host,
+                });
+                break; //
+            }
+        }
         Ok(())
     }
 }

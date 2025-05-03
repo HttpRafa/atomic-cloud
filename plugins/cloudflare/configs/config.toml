@@ -1,26 +1,28 @@
 [account]
-# The email associated with your Cloudflare account
+# The email address associated with your Cloudflare account
 mail = "example@something.com"
 token = ""
 
-# NOTE: This plugin will delete all DNS records under the DNS name specified in the tasks array.
-# Be cautious when using the "prepend" type with your root domain, as it may unintentionally remove other SRV records on the domain.
-# The plugin assumes any records matching to the DNS name are leftovers and will delete them.
-# If the type is set to "static," it will only delete records that are exactly under the DNS name.
-[[tasks]]
-# Task type: can be "static" or "prepend" (prepends the server name to the DNS record, e.g., lobby-1.mynetwork.net)
-type = "static"
+[[entries]]
+# A regular expression to identify servers that should receive an SRV record
+servers = "^lobby-.*"
+# The priority assigned to the SRV records
+priority = 5
 
-[tasks.dns]
+[entries.dns]
 # The Zone ID from your Cloudflare dashboard
 id = ""
 # The DNS record name under which the plugin will create SRV records
-name = "mynetwork.net"
+name = "_minecraft._tcp.mynetwork.net"
 
-[tasks.target]
-# A regex pattern to match all servers that will be added as DNS SRV entries
-servers = "^lobby-.*"
-
-[tasks.priority]
-# The priority of SRV records is calculated as: max - (current players online on the server)
-max = 10000
+# The weight is calculated using a formula where k is a constant, a is a constant, max is the maximum number of players on a server,
+# and x is the current number of players on the server.
+# NOTE: Adjust the values as necessary: https://www.geogebra.org/m/fmat9nc2
+[entries.weight]
+# Scale factor: Multiplies the entire result to mitigate resolution issues in scenarios with a low max value
+a = 1.5
+# Determines the rate of weight reduction; higher values result in a steeper decline
+# NOTE: Since weights can only be represented as integers, excessively high values may lead to resolution issues.
+k = 2.5
+# Maximum number of players allowed per server
+max = 20

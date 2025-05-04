@@ -23,7 +23,7 @@ use crate::{
         user::transfer::TransferTarget,
         Shared,
     },
-    task::{manager::TaskSender, Task},
+    task::{manager::TaskSender, network::TonicTask},
     VERSION,
 };
 
@@ -63,7 +63,7 @@ impl ManageService for ManageServiceImpl {
     // Power
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
+            TonicTask::execute::<(), _, _>(AuthType::User, &self.0, request, |_, _| {
                 Ok(Box::new(RequestStopTask()))
             })
             .await?,
@@ -73,7 +73,7 @@ impl ManageService for ManageServiceImpl {
     // Resource
     async fn set_resource(&self, request: Request<SetReq>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+            TonicTask::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
                 let Ok(category) = Category::try_from(request.category) else {
@@ -91,7 +91,7 @@ impl ManageService for ManageServiceImpl {
     }
     async fn delete_resource(&self, request: Request<DelReq>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+            TonicTask::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
                 let Ok(category) = Category::try_from(request.category) else {
@@ -110,7 +110,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<()>,
     ) -> Result<Response<manage::plugin::List>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::plugin::List, _, _>(
+            TonicTask::execute::<manage::plugin::List, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -126,7 +126,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::node::Detail>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+            TonicTask::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
                 let capabilities = match request.capabilities {
@@ -158,7 +158,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::node::UpdateReq>,
     ) -> Result<Response<manage::node::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::Detail, _, _>(
+            TonicTask::execute::<manage::node::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -205,7 +205,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::node::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::Detail, _, _>(
+            TonicTask::execute::<manage::node::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -223,9 +223,12 @@ impl ManageService for ManageServiceImpl {
         request: Request<()>,
     ) -> Result<Response<manage::node::List>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::node::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetNodesTask()))
-            })
+            TonicTask::execute::<manage::node::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetNodesTask())),
+            )
             .await?,
         ))
     }
@@ -236,7 +239,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::group::Detail>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
+            TonicTask::execute::<(), _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
                 let constraints = match request.constraints {
@@ -336,7 +339,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::group::UpdateReq>,
     ) -> Result<Response<manage::group::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Detail, _, _>(
+            TonicTask::execute::<manage::group::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -434,7 +437,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::group::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::group::Detail, _, _>(
+            TonicTask::execute::<manage::group::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -448,9 +451,12 @@ impl ManageService for ManageServiceImpl {
         request: Request<()>,
     ) -> Result<Response<common_group::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_group::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetGroupsTask))
-            })
+            TonicTask::execute::<common_group::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetGroupsTask)),
+            )
             .await?,
         ))
     }
@@ -461,7 +467,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<manage::server::Proposal>,
     ) -> Result<Response<String>, Status> {
         Ok(Response::new(
-            Task::execute::<String, _, _>(AuthType::User, &self.0, request, |request, _| {
+            TonicTask::execute::<String, _, _>(AuthType::User, &self.0, request, |request, _| {
                 let request = request.into_inner();
 
                 let resources = match request.resources {
@@ -540,7 +546,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::server::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::server::Detail, _, _>(
+            TonicTask::execute::<manage::server::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -562,7 +568,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<manage::server::Detail>, Status> {
         Ok(Response::new(
-            Task::execute::<manage::server::Detail, _, _>(
+            TonicTask::execute::<manage::server::Detail, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -580,9 +586,12 @@ impl ManageService for ManageServiceImpl {
         request: Request<()>,
     ) -> Result<Response<common_server::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_server::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetServersTask))
-            })
+            TonicTask::execute::<common_server::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetServersTask)),
+            )
             .await?,
         ))
     }
@@ -619,7 +628,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_user::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::Item, _, _>(
+            TonicTask::execute::<common_user::Item, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -641,7 +650,7 @@ impl ManageService for ManageServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_user::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::Item, _, _>(
+            TonicTask::execute::<common_user::Item, _, _>(
                 AuthType::User,
                 &self.0,
                 request,
@@ -656,15 +665,18 @@ impl ManageService for ManageServiceImpl {
     }
     async fn get_users(&self, request: Request<()>) -> Result<Response<common_user::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::List, _, _>(AuthType::User, &self.0, request, |_, _| {
-                Ok(Box::new(GetUsersTask))
-            })
+            TonicTask::execute::<common_user::List, _, _>(
+                AuthType::User,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetUsersTask)),
+            )
             .await?,
         ))
     }
     async fn get_user_count(&self, request: Request<()>) -> Result<Response<u32>, Status> {
         Ok(Response::new(
-            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |_, _| {
+            TonicTask::execute::<u32, _, _>(AuthType::User, &self.0, request, |_, _| {
                 Ok(Box::new(UserCountTask))
             })
             .await?,
@@ -674,7 +686,7 @@ impl ManageService for ManageServiceImpl {
     // Transfer
     async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
         Ok(Response::new(
-            Task::execute::<u32, _, _>(AuthType::User, &self.0, request, |request, auth| {
+            TonicTask::execute::<u32, _, _>(AuthType::User, &self.0, request, |request, auth| {
                 let request = request.into_inner();
 
                 let target = match request.target {

@@ -8,7 +8,7 @@ use crate::{
         Controller,
     },
     network::proto::manage::node::{self, Detail, List, Short},
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct CreateNodeTask(pub String, pub String, pub Capabilities, pub Url);
@@ -24,9 +24,9 @@ impl GenericTask for CreateNodeTask {
             .create_node(&self.0, &self.1, &self.2, &self.3, &controller.plugins)
             .await
         {
-            return Task::new_err(error.into());
+            return TonicTask::new_err(error.into());
         }
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }
 
@@ -38,8 +38,8 @@ impl GenericTask for UpdateNodeTask {
             .update_node(&self.0, self.1.as_ref(), self.2.as_ref())
             .await
         {
-            Ok(node) => return Task::new_ok(Detail::from(node)),
-            Err(error) => Task::new_err(error.into()),
+            Ok(node) => return TonicTask::new_ok(Detail::from(node)),
+            Err(error) => TonicTask::new_err(error.into()),
         }
     }
 }
@@ -48,17 +48,17 @@ impl GenericTask for UpdateNodeTask {
 impl GenericTask for GetNodeTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(node) = controller.nodes.get_node(&self.0) else {
-            return Task::new_err(Status::not_found("Node not found"));
+            return TonicTask::new_err(Status::not_found("Node not found"));
         };
 
-        Task::new_ok(Detail::from(node))
+        TonicTask::new_ok(Detail::from(node))
     }
 }
 
 #[async_trait]
 impl GenericTask for GetNodesTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(List {
+        TonicTask::new_ok(List {
             nodes: controller
                 .nodes
                 .get_nodes()

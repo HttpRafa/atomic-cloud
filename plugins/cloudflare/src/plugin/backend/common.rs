@@ -14,19 +14,6 @@ pub mod error;
 pub const CLOUDFLARE_API_URL: &str = "https://api.cloudflare.com/client/v4";
 
 impl Backend {
-    pub fn delete_in_api(&self, target: &str) -> bool {
-        self.send_to_api(Method::Delete, target, 200, None, None)
-    }
-
-    pub fn get_object_from_api<T: Serialize, K: DeserializeOwned>(
-        &self,
-        target: &str,
-        object: &T,
-    ) -> Option<BObject<K>> {
-        let body = serde_json::to_vec(object).ok();
-        self.send_to_api_parse(Method::Get, target, 200, body.as_deref(), None)
-    }
-
     pub fn post_object_to_api<T: Serialize, K: DeserializeOwned>(
         &self,
         target: &str,
@@ -34,52 +21,6 @@ impl Backend {
     ) -> Option<BObject<K>> {
         let body = serde_json::to_vec(object).ok();
         self.send_to_api_parse(Method::Post, target, 200, body.as_deref(), None)
-    }
-
-    pub fn patch_object_to_api<T: Serialize, K: DeserializeOwned>(
-        &self,
-        target: &str,
-        object: &T,
-    ) -> Option<BObject<K>> {
-        let body = serde_json::to_vec(object).ok();
-        self.send_to_api_parse(Method::Patch, target, 200, body.as_deref(), None)
-    }
-
-    pub fn send_to_api(
-        &self,
-        method: Method,
-        target: &str,
-        expected_code: u32,
-        body: Option<&[u8]>,
-        page: Option<u32>,
-    ) -> bool {
-        let mut url = format!("{CLOUDFLARE_API_URL}/{target}");
-        if let Some(page) = page {
-            url = format!("{}?page={}", &url, &page);
-        }
-        debug!(
-            "Sending request to the cloudflare api: {:?} {}",
-            method, &url
-        );
-        let response = send_http_request(
-            method,
-            &url,
-            &[
-                Header {
-                    key: "Authorization".to_string(),
-                    value: format!("Bearer {}", self.token),
-                },
-                Header {
-                    key: "Content-Type".to_string(),
-                    value: "application/json".to_string(),
-                },
-            ],
-            body,
-        );
-        if Self::check_response(&url, body, response, expected_code).is_some() {
-            return true;
-        }
-        false
     }
 
     fn send_to_api_parse<T: DeserializeOwned>(

@@ -4,7 +4,7 @@ use tonic::async_trait;
 use crate::{
     application::Controller,
     network::proto::manage::plugin::{List, Short},
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct GetPluginsTask();
@@ -12,7 +12,7 @@ pub struct GetPluginsTask();
 #[async_trait]
 impl GenericTask for GetPluginsTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(List {
+        TonicTask::new_ok(List {
             plugins: controller
                 .plugins
                 .get_plugins_keys()

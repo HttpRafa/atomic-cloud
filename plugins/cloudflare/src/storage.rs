@@ -5,7 +5,7 @@ const CONFIG_DIRECTORY: &str = "/configs";
 const PRIMARY_CONFIG_FILE: &str = "config.toml";
 
 /* Data */
-const DATA_DIRECTORY: &str = "/data";
+//const DATA_DIRECTORY: &str = "/data";
 
 pub struct Storage;
 
@@ -19,7 +19,7 @@ impl Storage {
     }
 
     /* Data */
-    pub fn data_directory(host: bool) -> PathBuf {
-        PathBuf::from(DATA_DIRECTORY)
-    }
+    //pub fn data_directory(host: bool) -> PathBuf {
+    //    PathBuf::from(DATA_DIRECTORY)
+    //}
 }

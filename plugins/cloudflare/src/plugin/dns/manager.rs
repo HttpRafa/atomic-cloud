@@ -4,6 +4,7 @@ use anyhow::Result;
 
 use crate::{
     generated::plugin::system::data_types::Uuid,
+    info,
     plugin::{
         backend::{
             batch::{
@@ -41,10 +42,10 @@ impl Records {
                 .entry(entry.clone())
                 .or_default();
         }
+        info!("Found {} unique zones", zones.len());
         Self { zones }
     }
 
-    // TODO: Rewrite this i dont like the complexity
     pub fn tick(&mut self, backend: &Backend, batcher: &mut Batcher) -> Result<()> {
         for (zone_id, zone) in &mut self.zones {
             let mut batch = BBatch::default();
@@ -67,8 +68,8 @@ impl Records {
                         }
                         Action::Delete => {
                             // Send delete for existing record
-                            if let Some(rec_map) = zone.records.get(entry)
-                                && let Some(existing_record) = rec_map.get(&uuid)
+                            if let Some(record_map) = zone.records.get(entry)
+                                && let Some(existing_record) = record_map.get(&uuid)
                             {
                                 batch.deletes.push(BDelete::from(existing_record));
                             }
@@ -78,8 +79,8 @@ impl Records {
             }
 
             // Update weights for all existing records
-            for (entry, rec_map) in &mut zone.records {
-                for record in rec_map.values_mut() {
+            for (entry, record_map) in &mut zone.records {
+                for record in record_map.values_mut() {
                     if record.update(&entry.weight)
                         && let Some(brec) = BRecord::new(entry, record)
                     {
@@ -116,8 +117,8 @@ impl Records {
                 // Apply creations: set CF-assigned IDs on placeholders
                 if let Some(posts) = posts {
                     for created_record in posts {
-                        for rec_map in zone.records.values_mut() {
-                            if let Some(record) = rec_map.get_mut(&created_record.comment) {
+                        for record_map in zone.records.values_mut() {
+                            if let Some(record) = record_map.get_mut(&created_record.comment) {
                                 // Only update placeholders (empty id)
                                 if record.id.is_empty() {
                                     record.id = created_record.id.clone();
@@ -142,6 +143,27 @@ impl Records {
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn shutdown(&mut self, backend: &Backend) -> Result<()> {
+        info!("Deleting created records...");
+
+        let mut count = 0;
+        for (zone_id, zone) in &mut self.zones {
+            let mut batch = BBatch::default();
+
+            for record_map in zone.records.values_mut() {
+                for record in record_map.values_mut() {
+                    batch.deletes.push(BDelete::from(&*record));
+                }
+            }
+
+            count += batch.deletes.len();
+            backend.send_batch(zone_id, batch);
+        }
+
+        info!("Deleted {} records...", count);
         Ok(())
     }
 }

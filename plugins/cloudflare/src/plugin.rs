@@ -132,6 +132,15 @@ impl GuestPlugin for Cloudflare {
     }
 
     fn shutdown(&self) -> Result<(), ScopedErrors> {
+        self.records
+            .borrow_mut()
+            .shutdown(&self.backend.borrow())
+            .map_err(|error| {
+                vec![ScopedError {
+                    scope: "SHUTDOWN".to_string(),
+                    message: error.to_string(),
+                }]
+            })?;
         Ok(())
     }
 }

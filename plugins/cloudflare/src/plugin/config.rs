@@ -1,4 +1,7 @@
-use std::fs;
+use std::{
+    fs,
+    hash::{Hash, Hasher},
+};
 
 use anyhow::Result;
 use common::file::SyncLoadFromTomlFile;
@@ -48,6 +51,42 @@ impl Config {
             fs::write(&path, DEFAULT_CONFIG)?;
         }
         Self::from_file(&path)
+    }
+}
+
+impl Hash for Weight {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.a.to_bits());
+        state.write_u64(self.k.to_bits());
+        state.write_u64(self.max.to_bits());
+    }
+}
+
+impl PartialEq for Weight {
+    fn eq(&self, other: &Self) -> bool {
+        self.a.to_bits() == other.a.to_bits()
+            && self.k.to_bits() == other.k.to_bits()
+            && self.max.to_bits() == other.max.to_bits()
+    }
+}
+impl Eq for Weight {}
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.servers == other.servers
+            && self.priority == other.priority
+            && self.weight == other.weight
+    }
+}
+impl Eq for Entry {}
+
+impl Hash for Entry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.servers.hash(state);
+        self.priority.hash(state);
+        self.weight.hash(state);
     }
 }
 

@@ -5,14 +5,17 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
+use manager::TaskSender;
 use simplelog::debug;
 use tokio::sync::oneshot::{channel, Sender};
 use tonic::{async_trait, Request, Status};
 
 use crate::application::{
     auth::{AuthType, Authorization},
-    Controller, TaskSender,
+    Controller,
 };
+
+pub mod manager;
 
 pub type BoxedTask = Box<dyn GenericTask + Send>;
 pub type BoxedAny = Box<dyn Any + Send>;
@@ -57,6 +60,7 @@ impl Task {
     ) -> Result<Result<T, Status>> {
         let (sender, receiver) = channel();
         queue
+            .inner()?
             .send(Task { task, sender })
             .await
             .map_err(|_| anyhow!("Failed to send task to task queue"))?;

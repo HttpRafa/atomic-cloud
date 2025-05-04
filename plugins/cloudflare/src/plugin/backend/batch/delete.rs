@@ -1,8 +1,16 @@
 use serde::Serialize;
 
-// SEE: https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/delete/
+use crate::plugin::dns::Record;
 
 #[derive(Serialize, Clone)]
 pub struct BDelete {
     id: String,
+}
+
+impl From<&Record> for BDelete {
+    fn from(value: &Record) -> Self {
+        Self {
+            id: value.id.clone(),
+        }
+    }
 }

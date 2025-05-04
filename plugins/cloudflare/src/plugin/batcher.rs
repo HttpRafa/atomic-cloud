@@ -1,27 +1,36 @@
 use std::collections::{hash_map::Drain, HashMap};
 
-use super::dns::Record;
+use crate::generated::plugin::system::data_types::{Server, Uuid};
+
+use super::config::Entry;
 
 pub enum Action {
-    Create(Record),
-    Delete(String), // UUID of server
+    Create(Server),
+    Delete,
 }
 
 #[derive(Default)]
 pub struct Batcher {
-    inner: HashMap<String, Action>,
+    inner: HashMap<String, (Entry, HashMap<Uuid, Action>)>, // Grouped by zone, entry and uuid of server
 }
 
 impl Batcher {
-    pub fn create(&mut self, record: Record) {
+    pub fn create(&mut self, entry: Entry, server: Server) {
         self.inner
-            .insert(record.uuid.clone(), Action::Create(record));
+            .entry(entry.zone.clone())
+            .or_insert((entry, HashMap::new()))
+            .1
+            .insert(server.uuid.clone(), Action::Create(server));
     }
-    pub fn delete(&mut self, uuid: String) {
-        self.inner.insert(uuid.clone(), Action::Delete(uuid));
+    pub fn delete(&mut self, entry: Entry, uuid: String) {
+        self.inner
+            .entry(entry.zone.clone())
+            .or_insert((entry, HashMap::new()))
+            .1
+            .insert(uuid, Action::Delete);
     }
-    pub fn drain(&mut self) -> Drain<String, Action> {
-        self.inner.drain()
+    pub fn drain(&mut self, zone: &str) -> Option<&mut (Entry, HashMap<Uuid, Action>)> {
+        self.inner.get_mut(zone)
     }
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()

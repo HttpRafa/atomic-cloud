@@ -18,12 +18,12 @@ use subscriber::manager::SubscriberManager;
 use tls::TlsSetting;
 use tokio::{
     select,
-    sync::{mpsc, watch},
+    sync::watch,
     time::{interval, Instant, MissedTickBehavior},
 };
 use user::manager::UserManager;
 
-use crate::{config::Config, network::NetworkStack, task::Task};
+use crate::{config::Config, network::NetworkStack, task::manager::TaskManager};
 
 pub mod auth;
 pub mod group;
@@ -35,9 +35,6 @@ pub mod tls;
 pub mod user;
 
 pub const TICK_RATE: u64 = 10;
-const TASK_BUFFER: usize = 128;
-
-pub type TaskSender = mpsc::Sender<Task>;
 
 #[derive(Getters, MutGetters)]
 pub struct Controller {
@@ -45,7 +42,7 @@ pub struct Controller {
     state: State,
 
     /* Tasks */
-    tasks: (TaskSender, mpsc::Receiver<Task>),
+    tasks: TaskManager,
 
     /* Shared Components */
     pub shared: Arc<Shared>,
@@ -62,6 +59,7 @@ pub struct Controller {
     config: Config,
 }
 
+// This is data that is shared between network thread/tasks and plugin execution threads/tasks
 pub struct Shared {
     pub auth: AuthManager,
     pub subscribers: SubscriberManager,
@@ -78,9 +76,9 @@ impl Controller {
             tls: TlsSetting::init(&config).await?,
         });
 
-        let tasks = mpsc::channel(TASK_BUFFER);
+        let tasks = TaskManager::init();
 
-        let plugins = PluginManager::init(&config, &shared).await?;
+        let plugins = PluginManager::init(&config, &tasks.get_sender(), &shared).await?;
         let nodes = NodeManager::init(&plugins).await?;
         let groups = GroupManager::init(&nodes).await?;
 
@@ -101,10 +99,14 @@ impl Controller {
     }
 
     pub async fn run(&mut self) -> Result<()> {
+        // Set task system to ready
+        self.tasks.set_ready(true);
+
         // Setup signal handlers
         self.setup_handlers()?;
 
-        let network = NetworkStack::start(&self.config, &self.shared, &self.tasks.0);
+        let network =
+            NetworkStack::start(&self.config, self.shared.clone(), self.tasks.get_sender());
 
         // Main loop
         let mut interval = interval(Duration::from_millis(1000 / TICK_RATE));
@@ -114,12 +116,15 @@ impl Controller {
 
             select! {
                 _ = interval.tick() => self.tick(&network).await?,
-                task = self.tasks.1.recv() => if let Some(task) = task {
+                task = self.tasks.recv() => if let Some(task) = task {
                     task.run(self).await?;
                 },
                 _ = self.state.signal.1.changed() => self.shutdown()?,
             }
         }
+
+        // Set task system to not ready
+        self.tasks.set_ready(false);
 
         // Cleanup
         self.cleanup(network).await?;

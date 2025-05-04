@@ -1,10 +1,20 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use super::{create::BCreate, delete::BDelete, update::BUpdate};
+use super::{
+    delete::BDelete,
+    record::{BRRecord, BRecord},
+};
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Default, Clone)]
 pub struct BBatch {
-    deletes: Vec<BDelete>,
-    patches: Vec<BUpdate>,
-    posts: Vec<BCreate>,
+    pub deletes: Vec<BDelete>,
+    pub patches: Vec<BRecord>,
+    pub posts: Vec<BRecord>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct BBatchResult {
+    pub deletes: Vec<BRRecord>,
+    pub patches: Vec<BRRecord>,
+    pub posts: Vec<BRRecord>,
 }

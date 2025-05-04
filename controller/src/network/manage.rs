@@ -21,9 +21,9 @@ use crate::{
         server::{DiskRetention, FallbackPolicy, Resources, Specification},
         subscriber::Subscriber,
         user::transfer::TransferTarget,
-        Shared, TaskSender,
+        Shared,
     },
-    task::Task,
+    task::{manager::TaskSender, Task},
     VERSION,
 };
 

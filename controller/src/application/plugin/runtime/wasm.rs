@@ -11,10 +11,13 @@ use url::Url;
 use wasmtime::{component::ResourceAny, AsContextMut, Engine, Store};
 use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 
-use crate::application::{
-    node::Capabilities,
-    plugin::{BoxedNode, Features, GenericPlugin, Information},
-    Shared,
+use crate::{
+    application::{
+        node::Capabilities,
+        plugin::{BoxedNode, Features, GenericPlugin, Information},
+        Shared,
+    },
+    task::manager::TaskSender,
 };
 
 pub(crate) mod config;
@@ -43,6 +46,7 @@ pub mod generated {
 
 pub(crate) struct PluginState {
     /* Global */
+    tasks: TaskSender,
     shared: Arc<Shared>,
 
     /* Plugin */

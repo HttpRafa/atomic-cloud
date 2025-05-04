@@ -17,6 +17,7 @@ use crate::{
     },
     config::Config,
     storage::Storage,
+    task::manager::TaskSender,
 };
 
 use super::{
@@ -28,6 +29,7 @@ use super::{
 #[allow(clippy::too_many_lines)]
 pub async fn init_wasm_plugins(
     global_config: &Config,
+    tasks: &TaskSender,
     shared: &Arc<Shared>,
     plugins: &mut HashMap<String, BoxedPlugin>,
 ) -> Result<()> {
@@ -89,7 +91,8 @@ pub async fn init_wasm_plugins(
             &name,
             &source,
             global_config,
-            shared,
+            tasks.clone(),
+            shared.clone(),
             &plugins_config,
             &data_directory,
             &config_directory,
@@ -168,7 +171,8 @@ impl Plugin {
         name: &str,
         source: &Source,
         global_config: &Config,
-        shared: &Arc<Shared>,
+        tasks: TaskSender,
+        shared: Arc<Shared>,
         plugins_config: &PluginsConfig,
         data_directory: &Path,
         config_directory: &Path,
@@ -230,7 +234,8 @@ impl Plugin {
         let mut store = Store::new(
             &engine,
             PluginState {
-                shared: shared.clone(),
+                tasks,
+                shared,
                 name: name.to_string(),
                 wasi,
                 resources,

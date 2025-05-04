@@ -70,6 +70,7 @@ impl GuestPlugin for Cloudflare {
             {
                 let config = Config::parse()?;
                 own.backend.replace(Backend::new(&config));
+                own.records.replace(Records::new(&config));
                 own.config.replace(config);
             }
             Ok(())

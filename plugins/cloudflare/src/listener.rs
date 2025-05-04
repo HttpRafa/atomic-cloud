@@ -47,9 +47,9 @@ impl GuestListener for Listener {
     }
 
     fn server_stop(&self, server: Server) -> Result<(), ErrorMessage> {
-        for (regex, _) in &self.entries {
+        for (regex, entry) in &self.entries {
             if regex.is_match(&server.name) {
-                self.batcher.borrow_mut().delete(server.uuid);
+                self.batcher.borrow_mut().delete(entry.clone(), server.uuid);
                 break;
             }
         }
@@ -64,22 +64,7 @@ impl GuestListener for Listener {
 
         for (regex, entry) in &self.entries {
             if regex.is_match(&server.name) {
-                if server.allocation.ports.is_empty() {
-                    error!("Failed to schedule DNS record for server({}) because it does not have any ports to expose", server.name);
-                    continue;
-                }
-                let address = server
-                    .allocation
-                    .ports
-                    .into_iter()
-                    .next()
-                    .expect("There is always a first value");
-                self.batcher.borrow_mut().create(Record::new(
-                    entry,
-                    server.uuid,
-                    server.connected_users,
-                    address,
-                ));
+                self.batcher.borrow_mut().create(entry.clone(), server);
                 break;
             }
         }

@@ -17,10 +17,7 @@ use tokio::{
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
-use crate::{
-    application::{Shared, TaskSender},
-    config::Config,
-};
+use crate::{application::Shared, config::Config, task::manager::TaskSender};
 
 mod auth;
 pub mod client;
@@ -34,7 +31,7 @@ pub struct NetworkStack {
 }
 
 impl NetworkStack {
-    pub fn start(config: &Config, shared: &Arc<Shared>, queue: &TaskSender) -> Self {
+    pub fn start(config: &Config, shared: Arc<Shared>, queue: TaskSender) -> Self {
         async fn run(
             bind: SocketAddr,
             identity: Option<Identity>,
@@ -77,8 +74,6 @@ impl NetworkStack {
             .tls
             .as_ref()
             .map(|(_, identity)| identity.clone());
-        let shared = shared.clone();
-        let queue = queue.clone();
 
         let task = spawn(async move {
             if let Err(error) = run(bind, identity, shared, queue, receiver).await {

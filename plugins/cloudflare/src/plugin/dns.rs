@@ -1,30 +1,44 @@
-use crate::generated::plugin::system::data_types::Address;
+use crate::generated::plugin::system::{
+    data_types::{Address, Server},
+    server::get_server,
+};
 
-use super::{config::Entry, math::WeightCalc};
+use super::{
+    config::{Entry, Weight},
+    math::WeightCalc,
+};
 
 pub mod manager;
 
 pub struct Record {
-    pub uuid: String, // UUID of server
-    pub id: String,   // Id of the record at Cloudflare
-
-    pub name: String,
-    pub priority: u16,
+    pub server: Server,
+    pub id: String,
     pub weight: u16,
-    pub port: u16,
-    pub target: String,
 }
 
 impl Record {
-    pub fn new(entry: &Entry, uuid: String, connected_users: u32, address: Address) -> Self {
-        Self {
-            uuid,
-            id: String::new(), // We get that on the creation of the record
-            name: entry.name.clone(),
-            priority: entry.priority,
-            weight: WeightCalc::calc_from(connected_users, &entry.weight),
-            port: address.port,
-            target: address.host,
+    pub fn new(values: &Weight, server: Server, id: String) -> Self {
+        let mut record = Self {
+            server,
+            id,
+            weight: 0,
+        };
+        record.update_weight(values);
+        record
+    }
+
+    fn update_weight(&mut self, values: &Weight) -> bool {
+        let new = WeightCalc::calc_from(self.server.connected_users, values);
+        let changed = new != self.weight;
+        self.weight = new;
+        changed
+    }
+
+    pub fn update(&mut self, values: &Weight) -> bool {
+        if let Some(server) = get_server(&self.server.uuid) {
+            self.server = server;
         }
+
+        self.update_weight(values)
     }
 }

@@ -96,6 +96,12 @@ interface data-types {
     }
 }
 
+interface server {
+    use data-types.{uuid, server};
+
+    get-server: func(uuid: uuid) -> option<server>;
+}
+
 interface log {
     variant level {
         debug,
@@ -241,6 +247,7 @@ world plugin {
     export screen;
     export event;
     import guard;
+    import server;
     import log;
     import platform;
     import tls;

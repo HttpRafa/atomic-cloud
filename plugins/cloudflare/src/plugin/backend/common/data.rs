@@ -1,7 +1,10 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Deserialize, Serialize)]
+use super::error::BError;
+
+#[derive(Deserialize)]
 pub struct BObject<T> {
+    pub errors: Vec<BError>,
     pub success: bool,
     pub result: T,
 }

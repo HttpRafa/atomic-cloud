@@ -9,6 +9,7 @@ use crate::{
 use super::Backend;
 
 pub mod data;
+pub mod error;
 
 pub const CLOUDFLARE_API_URL: &str = "https://api.cloudflare.com/client/v4";
 

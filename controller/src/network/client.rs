@@ -17,9 +17,9 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::AuthType, server::NameAndUuid, subscriber::Subscriber,
-        user::transfer::TransferTarget, Shared, TaskSender,
+        user::transfer::TransferTarget, Shared,
     },
-    task::Task,
+    task::{manager::TaskSender, Task},
     VERSION,
 };
 

@@ -10,7 +10,7 @@ pub struct BDelete {
 impl From<&Record> for BDelete {
     fn from(value: &Record) -> Self {
         Self {
-            id: value.id.clone(),
+            id: value.id.clone().unwrap_or_default(),
         }
     }
 }

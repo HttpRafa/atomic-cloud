@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
-
 use crate::{
     generated::plugin::system::data_types::Uuid,
     info,
@@ -46,7 +44,7 @@ impl Records {
         Self { zones }
     }
 
-    pub fn tick(&mut self, backend: &Backend, batcher: &mut Batcher) -> Result<()> {
+    pub fn tick(&mut self, backend: &Backend, batcher: &mut Batcher) {
         for (zone_id, zone) in &mut self.zones {
             let mut batch = BBatch::default();
 
@@ -56,7 +54,7 @@ impl Records {
                     match action {
                         Action::Create(server) => {
                             // Prepare DNS record and send create
-                            let record = Record::new(&entry.weight, server, String::new());
+                            let record = Record::new(&entry.weight, server, None);
                             if let Some(brecord) = BRecord::new(entry, &record) {
                                 batch.posts.push(brecord);
                                 // Insert placeholder to be updated once CF returns an ID
@@ -71,6 +69,11 @@ impl Records {
                             if let Some(record_map) = zone.records.get(entry)
                                 && let Some(existing_record) = record_map.get(&uuid)
                             {
+                                // If this record is a placeholder we skip it.
+                                if existing_record.id.is_none() {
+                                    continue;
+                                }
+
                                 batch.deletes.push(BDelete::from(existing_record));
                             }
                         }
@@ -81,6 +84,11 @@ impl Records {
             // Update weights for all existing records
             for (entry, record_map) in &mut zone.records {
                 for record in record_map.values_mut() {
+                    // If this record is a placeholder we skip it.
+                    if record.id.is_none() {
+                        continue;
+                    }
+
                     if record.update(&entry.weight)
                         && let Some(brec) = BRecord::new(entry, record)
                     {
@@ -103,7 +111,7 @@ impl Records {
                 posts,
                 patches,
                 deletes,
-            }) = backend.send_batch(zone_id, batch)
+            }) = backend.send_batch(zone_id, &batch)
             {
                 // Apply deletions
                 if let Some(deletes) = deletes {
@@ -120,8 +128,8 @@ impl Records {
                         for record_map in zone.records.values_mut() {
                             if let Some(record) = record_map.get_mut(&created_record.comment) {
                                 // Only update placeholders (empty id)
-                                if record.id.is_empty() {
-                                    record.id = created_record.id.clone();
+                                if record.id.is_none() {
+                                    record.id = Some(created_record.id.clone());
                                 }
                                 break;
                             }
@@ -134,7 +142,6 @@ impl Records {
                     for patch_record in patches {
                         for record_map in zone.records.values_mut() {
                             if let Some(record) = record_map.get_mut(&patch_record.comment) {
-                                record.id = patch_record.id.clone();
                                 record.weight = patch_record.data.weight;
                                 break;
                             }
@@ -143,10 +150,9 @@ impl Records {
                 }
             }
         }
-        Ok(())
     }
 
-    pub fn shutdown(&mut self, backend: &Backend) -> Result<()> {
+    pub fn shutdown(&mut self, backend: &Backend) {
         info!("Deleting created records...");
 
         let mut count = 0;
@@ -155,15 +161,19 @@ impl Records {
 
             for record_map in zone.records.values_mut() {
                 for record in record_map.values_mut() {
+                    // If this record is a placeholder we skip it.
+                    if record.id.is_none() {
+                        continue;
+                    }
+
                     batch.deletes.push(BDelete::from(&*record));
                 }
             }
 
             count += batch.deletes.len();
-            backend.send_batch(zone_id, batch);
+            backend.send_batch(zone_id, &batch);
         }
 
         info!("Deleted {} records...", count);
-        Ok(())
     }
 }

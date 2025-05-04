@@ -97,9 +97,10 @@ interface data-types {
 }
 
 interface server {
+    use types.{error-message};
     use data-types.{uuid, server};
 
-    get-server: func(uuid: uuid) -> option<server>;
+    get-server: func(uuid: uuid) -> result<option<server>, error-message>;
 }
 
 interface log {

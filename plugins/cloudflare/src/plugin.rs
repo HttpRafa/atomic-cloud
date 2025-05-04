@@ -21,7 +21,7 @@ use crate::{
             },
             event::Events,
         },
-        plugin::system::{data_types::Features, types::ScopedError},
+        plugin::system::data_types::Features,
     },
     listener::Listener,
 };
@@ -117,30 +117,13 @@ impl GuestPlugin for Cloudflare {
             // Execute update
             self.records
                 .borrow_mut()
-                .tick(
-                    &mut self.backend.borrow_mut(),
-                    &mut self.batcher.borrow_mut(),
-                )
-                .map_err(|error| {
-                    vec![ScopedError {
-                        scope: "tick".to_string(),
-                        message: error.to_string(),
-                    }]
-                })?;
+                .tick(&self.backend.borrow(), &mut self.batcher.borrow_mut());
         }
         Ok(())
     }
 
     fn shutdown(&self) -> Result<(), ScopedErrors> {
-        self.records
-            .borrow_mut()
-            .shutdown(&self.backend.borrow())
-            .map_err(|error| {
-                vec![ScopedError {
-                    scope: "SHUTDOWN".to_string(),
-                    message: error.to_string(),
-                }]
-            })?;
+        self.records.borrow_mut().shutdown(&self.backend.borrow());
         Ok(())
     }
 }

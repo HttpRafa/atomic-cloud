@@ -6,12 +6,12 @@ pub mod manager;
 
 pub struct Record {
     pub server: Server,
-    pub id: String,
+    pub id: Option<String>,
     pub weight: u16,
 }
 
 impl Record {
-    pub fn new(values: &Weight, server: Server, id: String) -> Self {
+    pub fn new(values: &Weight, server: Server, id: Option<String>) -> Self {
         let mut record = Self {
             server,
             id,
@@ -29,7 +29,7 @@ impl Record {
     }
 
     pub fn update(&mut self, values: &Weight) -> bool {
-        if let Some(server) = get_server(&self.server.uuid) {
+        if let Ok(Some(server)) = get_server(&self.server.uuid) {
             self.server = server;
         }
 

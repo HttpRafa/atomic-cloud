@@ -54,12 +54,12 @@ impl PluginTask {
         Ok(Box::new(value))
     }
 
-    pub fn new_empty() -> Result<BoxedAny> {
+    pub fn _new_empty() -> Result<BoxedAny> {
         Self::new_ok(())
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    pub fn new_err(value: anyhow::Error) -> Result<BoxedAny> {
+    pub fn _new_err(value: anyhow::Error) -> Result<BoxedAny> {
         Ok(Box::new(value))
     }
 }

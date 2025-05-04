@@ -18,6 +18,7 @@ pub struct BRecord {
     pub proxied: bool,
     pub ttl: u16,
     pub r#type: String,
+    pub id: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -43,6 +44,7 @@ impl BRecord {
             proxied: false,
             ttl: 1,
             r#type: "SRV".to_string(),
+            id: record.id.clone(),
         })
     }
 }

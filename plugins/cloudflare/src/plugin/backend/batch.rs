@@ -9,7 +9,7 @@ pub mod delete;
 pub mod record;
 
 impl Backend {
-    pub fn send_batch(&self, zone: &str, batch: BBatch) -> Option<BBatchResult> {
+    pub fn send_batch(&self, zone: &str, batch: &BBatch) -> Option<BBatchResult> {
         let response =
             self.post_object_to_api(&format!("zones/{zone}/dns_records/batch"), &batch)?;
         if !response.success {

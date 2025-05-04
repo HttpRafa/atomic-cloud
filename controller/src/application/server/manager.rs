@@ -136,12 +136,13 @@ impl ServerManager {
         for server in self.servers.values() {
             if server.heart.is_dead() {
                 match server.state {
-                    State::Starting | State::Running => {
+                    State::Starting | State::Restarting => {
                         warn!("Unit {} failed to establish online status within the expected startup time of {:.2?}.", server.id, config.restart_timeout());
                     }
-                    _ => {
+                    State::Running => {
                         warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.id, server.heart.timeout);
                     }
+                    State::Stopping => continue, // We ignore that the server has not checked in because he is stopping
                 }
                 self.restart_requests
                     .push(RestartRequest::new(None, server.id().clone()));

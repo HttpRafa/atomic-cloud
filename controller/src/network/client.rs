@@ -17,9 +17,9 @@ use uuid::Uuid;
 use crate::{
     application::{
         auth::AuthType, server::NameAndUuid, subscriber::Subscriber,
-        user::transfer::TransferTarget, Shared, TaskSender,
+        user::transfer::TransferTarget, Shared,
     },
-    task::Task,
+    task::{manager::TaskSender, network::TonicTask},
     VERSION,
 };
 
@@ -64,7 +64,7 @@ impl ClientService for ClientServiceImpl {
     // Heartbeat
     async fn beat(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
                 Ok(Box::new(BeatTask(auth)))
             })
             .await?,
@@ -74,7 +74,7 @@ impl ClientService for ClientServiceImpl {
     // Ready state
     async fn set_ready(&self, request: Request<bool>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
                 Ok(Box::new(SetReadyTask(auth, *request.get_ref())))
             })
             .await?,
@@ -84,7 +84,7 @@ impl ClientService for ClientServiceImpl {
     // Health
     async fn set_running(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
                 Ok(Box::new(SetRunningTask(auth)))
             })
             .await?,
@@ -92,7 +92,7 @@ impl ClientService for ClientServiceImpl {
     }
     async fn request_stop(&self, request: Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |_, auth| {
                 Ok(Box::new(RequestStopTask(auth)))
             })
             .await?,
@@ -102,7 +102,7 @@ impl ClientService for ClientServiceImpl {
     // User
     async fn user_connected(&self, request: Request<ConnectedReq>) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
                 let request = request.into_inner();
 
                 let name = request.name;
@@ -123,7 +123,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<DisconnectedReq>,
     ) -> Result<Response<()>, Status> {
         Ok(Response::new(
-            Task::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
+            TonicTask::execute::<(), _, _>(AuthType::Server, &self.0, request, |request, auth| {
                 let request = request.into_inner();
 
                 let Ok(uuid) = Uuid::from_str(&request.id) else {
@@ -140,7 +140,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_user::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::Item, _, _>(
+            TonicTask::execute::<common_user::Item, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -162,7 +162,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_user::Item>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::Item, _, _>(
+            TonicTask::execute::<common_user::Item, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -177,15 +177,18 @@ impl ClientService for ClientServiceImpl {
     }
     async fn get_users(&self, request: Request<()>) -> Result<Response<common_user::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_user::List, _, _>(AuthType::Server, &self.0, request, |_, _| {
-                Ok(Box::new(GetUsersTask))
-            })
+            TonicTask::execute::<common_user::List, _, _>(
+                AuthType::Server,
+                &self.0,
+                request,
+                |_, _| Ok(Box::new(GetUsersTask)),
+            )
             .await?,
         ))
     }
     async fn get_user_count(&self, request: Request<()>) -> Result<Response<u32>, Status> {
         Ok(Response::new(
-            Task::execute::<u32, _, _>(AuthType::Server, &self.0, request, |_, _| {
+            TonicTask::execute::<u32, _, _>(AuthType::Server, &self.0, request, |_, _| {
                 Ok(Box::new(UserCountTask))
             })
             .await?,
@@ -195,7 +198,7 @@ impl ClientService for ClientServiceImpl {
     // Transfer
     async fn transfer_users(&self, request: Request<TransferReq>) -> Result<Response<u32>, Status> {
         Ok(Response::new(
-            Task::execute::<u32, _, _>(AuthType::Server, &self.0, request, |request, auth| {
+            TonicTask::execute::<u32, _, _>(AuthType::Server, &self.0, request, |request, auth| {
                 let request = request.into_inner();
 
                 let target = match request.target {
@@ -243,7 +246,7 @@ impl ClientService for ClientServiceImpl {
         &self,
         request: Request<()>,
     ) -> Result<Response<Self::SubscribeToTransfersStream>, Status> {
-        let auth = Task::get_auth(AuthType::Server, &request)?;
+        let auth = TonicTask::get_auth(AuthType::Server, &request)?;
         let server = auth
             .get_server()
             .expect("Should be ok. Because type is checked in get_auth");
@@ -296,7 +299,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_server::Short>, Status> {
         Ok(Response::new(
-            Task::execute::<common_server::Short, _, _>(
+            TonicTask::execute::<common_server::Short, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -318,7 +321,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_server::Short>, Status> {
         Ok(Response::new(
-            Task::execute::<common_server::Short, _, _>(
+            TonicTask::execute::<common_server::Short, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -336,7 +339,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<()>,
     ) -> Result<Response<common_server::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_server::List, _, _>(
+            TonicTask::execute::<common_server::List, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -352,7 +355,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<String>,
     ) -> Result<Response<common_group::Short>, Status> {
         Ok(Response::new(
-            Task::execute::<common_group::Short, _, _>(
+            TonicTask::execute::<common_group::Short, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,
@@ -370,7 +373,7 @@ impl ClientService for ClientServiceImpl {
         request: Request<()>,
     ) -> Result<Response<common_group::List>, Status> {
         Ok(Response::new(
-            Task::execute::<common_group::List, _, _>(
+            TonicTask::execute::<common_group::List, _, _>(
                 AuthType::Server,
                 &self.0,
                 request,

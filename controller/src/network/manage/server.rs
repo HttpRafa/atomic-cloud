@@ -13,7 +13,7 @@ use crate::{
         common::{common_server::List, Address},
         manage::server::{self, Detail},
     },
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct ScheduleServerTask(
@@ -46,7 +46,7 @@ impl GenericTask for ScheduleServerTask {
         );
         controller.servers.schedule_start(request);
 
-        Task::new_ok(uuid)
+        TonicTask::new_ok(uuid)
     }
 }
 
@@ -54,10 +54,10 @@ impl GenericTask for ScheduleServerTask {
 impl GenericTask for GetServerTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(server) = controller.servers.get_server(&self.0) else {
-            return Task::new_err(Status::not_found("Server not found"));
+            return TonicTask::new_err(Status::not_found("Server not found"));
         };
 
-        Task::new_ok(Detail::from(server))
+        TonicTask::new_ok(Detail::from(server))
     }
 }
 
@@ -65,17 +65,17 @@ impl GenericTask for GetServerTask {
 impl GenericTask for GetServerFromNameTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(server) = controller.servers.get_server_from_name(&self.0) else {
-            return Task::new_err(Status::not_found("Server not found"));
+            return TonicTask::new_err(Status::not_found("Server not found"));
         };
 
-        Task::new_ok(Detail::from(server))
+        TonicTask::new_ok(Detail::from(server))
     }
 }
 
 #[async_trait]
 impl GenericTask for GetServersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(List {
+        TonicTask::new_ok(List {
             servers: controller
                 .servers
                 .get_servers()

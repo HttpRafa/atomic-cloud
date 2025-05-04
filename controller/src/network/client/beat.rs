@@ -3,7 +3,7 @@ use tonic::async_trait;
 
 use crate::{
     application::{auth::Authorization, Controller},
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct BeatTask(pub Authorization);
@@ -16,9 +16,9 @@ impl GenericTask for BeatTask {
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         server.heart_mut().beat();
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }

@@ -8,7 +8,7 @@ use crate::{
         user::transfer::{Transfer, TransferTarget},
         Controller,
     },
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct TransferUsersTask(pub Authorization, pub Vec<Uuid>, pub TransferTarget);
@@ -29,13 +29,13 @@ impl GenericTask for TransferUsersTask {
                 &controller.groups,
             ) {
                 Ok(transfer) => transfer,
-                Err(error) => return Task::new_err(error.into()),
+                Err(error) => return TonicTask::new_err(error.into()),
             };
             if let Err(error) = Transfer::transfer_user(&mut transfer, &controller.shared).await {
-                return Task::new_err(error);
+                return TonicTask::new_err(error);
             }
             count += 1;
         }
-        Task::new_ok(count)
+        TonicTask::new_ok(count)
     }
 }

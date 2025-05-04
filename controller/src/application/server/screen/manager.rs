@@ -19,7 +19,8 @@ use crate::{
 
 use super::{BoxedScreen, ScreenPullJoinHandle, ScreenWriteJoinHandle};
 
-const SCREEN_TICK_RATE: u64 = TICK_RATE / 2;
+const SCREEN_TICK_RATE: u64 = TICK_RATE / 3;
+const PASSIVE_SCREEN_TICK_RATE_MULTIPLIER: u64 = 250;
 
 type SubscriberHolder<B> = Vec<Subscriber<B>>;
 
@@ -101,7 +102,8 @@ impl ScreenManager {
 }
 
 struct ActiveScreen {
-    interval: Interval,
+    // First is for normal ticks and second is for passiv ticks to prevent buffers from overflowing
+    intervals: (Interval, Interval),
     screen: BoxedScreen,
     handle: Option<ScreenPullJoinHandle>,
     subscribers: SubscriberHolder<ScreenLines>,
@@ -110,10 +112,20 @@ struct ActiveScreen {
 
 impl ActiveScreen {
     pub fn new(screen: BoxedScreen) -> Self {
-        let mut interval = interval(Duration::from_millis(1000 / SCREEN_TICK_RATE));
-        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        let mut intervals = (
+            interval(Duration::from_millis(1000 / SCREEN_TICK_RATE)),
+            interval(Duration::from_millis(
+                (1000 / SCREEN_TICK_RATE) * PASSIVE_SCREEN_TICK_RATE_MULTIPLIER,
+            )),
+        );
+        intervals
+            .0
+            .set_missed_tick_behavior(MissedTickBehavior::Skip);
+        intervals
+            .1
+            .set_missed_tick_behavior(MissedTickBehavior::Skip);
         Self {
-            interval,
+            intervals,
             screen,
             handle: None,
             subscribers: vec![],
@@ -127,13 +139,13 @@ impl ActiveScreen {
 
     pub async fn push(&mut self, subscriber: Subscriber<ScreenLines>) {
         if self.cache.has_data()
-            && subscriber
+            && !subscriber
                 .send_message(ScreenLines {
                     lines: self.cache.clone_items(),
                 })
                 .await
         {
-            warn!("Failed to send initial screen data to subscriber!",);
+            warn!("Failed to send initial screen data to subscriber!");
             return;
         }
 
@@ -141,7 +153,7 @@ impl ActiveScreen {
     }
 
     pub async fn tick(&mut self) -> Result<()> {
-        if self.interval.tick().now_or_never().is_none() {
+        if self.intervals.0.tick().now_or_never().is_none() {
             // Skip tick
             return Ok(());
         }
@@ -149,8 +161,8 @@ impl ActiveScreen {
         // Remove all dead subscribers
         self.subscribers.retain(Subscriber::is_alive);
 
-        if self.subscribers.is_empty() {
-            // If no one is watching dont pull
+        if self.intervals.1.tick().now_or_never().is_none() && self.subscribers.is_empty() {
+            // If no one is watching dont pull and no passiv tick is needed
             return Ok(());
         }
 

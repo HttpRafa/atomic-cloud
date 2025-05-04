@@ -25,16 +25,12 @@ public class UserManager implements Users {
         return this.connection
                 .userFromName(name)
                 .thenApply(user -> {
-                    Optional<String> group = Optional.empty();
                     Optional<UUID> server = Optional.empty();
-                    if (user.hasGroup()) {
-                        group = Optional.of(user.getGroup());
-                    }
                     if (user.hasServer()) {
                         server = Optional.of(UUID.fromString(user.getServer()));
                     }
-                    return Optional.of((CloudUser)
-                            new CloudUserImpl(user.getName(), UUID.fromString(user.getId()), group, server));
+                    return Optional.of(
+                            (CloudUser) new CloudUserImpl(user.getName(), UUID.fromString(user.getId()), server));
                 })
                 .exceptionally(throwable -> {
                     if (throwable.getMessage().equals("NOT_FOUND")) {
@@ -50,15 +46,11 @@ public class UserManager implements Users {
         return this.connection
                 .user(uuid.toString())
                 .thenApply(user -> {
-                    Optional<String> group = Optional.empty();
                     Optional<UUID> server = Optional.empty();
-                    if (user.hasGroup()) {
-                        group = Optional.of(user.getGroup());
-                    }
                     if (user.hasServer()) {
                         server = Optional.of(UUID.fromString(user.getServer()));
                     }
-                    return Optional.of((CloudUser) new CloudUserImpl(user.getName(), uuid, group, server));
+                    return Optional.of((CloudUser) new CloudUserImpl(user.getName(), uuid, server));
                 })
                 .exceptionally(throwable -> {
                     if (throwable.getMessage().equals("NOT_FOUND")) {

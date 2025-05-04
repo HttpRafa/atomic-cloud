@@ -17,6 +17,7 @@ mod log;
 mod platform;
 pub mod process;
 pub mod screen;
+mod server;
 mod tls;
 
 impl system::types::Host for PluginState {}

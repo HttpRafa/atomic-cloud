@@ -14,7 +14,7 @@ use crate::{
             server::{self, Fallback},
         },
     },
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct CreateGroupTask(
@@ -52,9 +52,9 @@ impl GenericTask for CreateGroupTask {
             )
             .await
         {
-            return Task::new_err(error.into());
+            return TonicTask::new_err(error.into());
         }
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }
 
@@ -74,8 +74,8 @@ impl GenericTask for UpdateGroupTask {
             )
             .await
         {
-            Ok(group) => return Task::new_ok(Detail::from(group)),
-            Err(error) => Task::new_err(error.into()),
+            Ok(group) => return TonicTask::new_ok(Detail::from(group)),
+            Err(error) => TonicTask::new_err(error.into()),
         }
     }
 }
@@ -84,17 +84,17 @@ impl GenericTask for UpdateGroupTask {
 impl GenericTask for GetGroupTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(group) = controller.groups.get_group(&self.0) else {
-            return Task::new_err(Status::not_found("Group not found"));
+            return TonicTask::new_err(Status::not_found("Group not found"));
         };
 
-        Task::new_ok(Detail::from(group))
+        TonicTask::new_ok(Detail::from(group))
     }
 }
 
 #[async_trait]
 impl GenericTask for GetGroupsTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(List {
+        TonicTask::new_ok(List {
             groups: controller
                 .groups
                 .get_groups()

@@ -17,6 +17,8 @@ pub struct ServerEvent {
     pub allocation: Allocation,
     #[getset(get = "pub")]
     pub token: String,
+    #[getset(get = "pub")]
+    pub connected_users: u32,
 }
 
 impl From<&Server> for ServerEvent {
@@ -26,6 +28,7 @@ impl From<&Server> for ServerEvent {
             group: value.group().clone(),
             allocation: value.allocation().clone(),
             token: value.token().clone(),
+            connected_users: *value.connected_users(),
         }
     }
 }

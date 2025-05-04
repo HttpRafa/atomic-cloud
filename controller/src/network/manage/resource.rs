@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{
     application::{server::manager::StopRequest, Controller},
     network::proto::manage::resource::Category,
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct SetResourceTask(pub Category, pub String, pub bool);
@@ -22,9 +22,9 @@ impl GenericTask for SetResourceTask {
                     .get_node_mut(&self.1)
                     .ok_or(Status::not_found("Node not found"))?;
                 if let Err(error) = node.set_active(self.2).await {
-                    return Task::new_err(Status::internal(error.to_string()));
+                    return TonicTask::new_err(Status::internal(error.to_string()));
                 }
-                Task::new_empty()
+                TonicTask::new_empty()
             }
             Category::Group => {
                 let group = controller
@@ -32,11 +32,11 @@ impl GenericTask for SetResourceTask {
                     .get_group_mut(&self.1)
                     .ok_or(Status::not_found("Group not found"))?;
                 if let Err(error) = group.set_active(self.2, &mut controller.servers).await {
-                    return Task::new_err(Status::internal(error.to_string()));
+                    return TonicTask::new_err(Status::internal(error.to_string()));
                 }
-                Task::new_empty()
+                TonicTask::new_empty()
             }
-            Category::Server => Task::new_err(Status::unimplemented(
+            Category::Server => TonicTask::new_err(Status::unimplemented(
                 "This category is not supported for this action",
             )),
         }
@@ -53,27 +53,27 @@ impl GenericTask for DeleteResourceTask {
                     .delete_node(&self.1, &controller.servers, &controller.groups)
                     .await
                 {
-                    return Task::new_err(error.into());
+                    return TonicTask::new_err(error.into());
                 }
-                Task::new_empty()
+                TonicTask::new_empty()
             }
             Category::Group => {
                 if let Err(error) = controller.groups.delete_group(&self.1).await {
-                    return Task::new_err(error.into());
+                    return TonicTask::new_err(error.into());
                 }
-                Task::new_empty()
+                TonicTask::new_empty()
             }
             Category::Server => {
                 let Ok(uuid) = Uuid::parse_str(&self.1) else {
-                    return Task::new_err(Status::invalid_argument("Invalid UUID"));
+                    return TonicTask::new_err(Status::invalid_argument("Invalid UUID"));
                 };
                 let id = match controller.servers.get_server(&uuid) {
                     Some(server) => server.id().clone(),
-                    None => return Task::new_err(Status::not_found("Server not found")),
+                    None => return TonicTask::new_err(Status::not_found("Server not found")),
                 };
 
                 controller.servers.schedule_stop(StopRequest::new(None, id));
-                Task::new_empty()
+                TonicTask::new_empty()
             }
         }
     }

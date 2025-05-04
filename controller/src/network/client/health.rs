@@ -7,7 +7,7 @@ use crate::{
         server::{manager::StopRequest, State},
         Controller,
     },
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct SetRunningTask(pub Authorization);
@@ -21,10 +21,10 @@ impl GenericTask for SetRunningTask {
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         server.set_state(State::Running);
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }
 
@@ -36,11 +36,11 @@ impl GenericTask for RequestStopTask {
             .get_server()
             .and_then(|server| controller.servers.resolve_server(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         controller
             .servers
             .schedule_stop(StopRequest::new(None, server));
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }

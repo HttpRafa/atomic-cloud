@@ -92,7 +92,15 @@ interface data-types {
         group: option<string>,
         allocation: allocation,
         token: string,
+        connected-users: u32,
     }
+}
+
+interface server {
+    use types.{error-message};
+    use data-types.{uuid, server};
+
+    get-server: func(uuid: uuid) -> result<option<server>, error-message>;
 }
 
 interface log {
@@ -240,6 +248,7 @@ world plugin {
     export screen;
     export event;
     import guard;
+    import server;
     import log;
     import platform;
     import tls;

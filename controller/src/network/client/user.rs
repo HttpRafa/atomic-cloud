@@ -10,7 +10,7 @@ use crate::{
         Controller,
     },
     network::proto::common::common_user::{Item, List},
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct UserConnectedTask(pub Authorization, pub NameAndUuid);
@@ -28,10 +28,10 @@ impl GenericTask for UserConnectedTask {
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         controller.users.user_connected(server, self.1.clone());
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }
 
@@ -43,12 +43,12 @@ impl GenericTask for UserDisconnectedTask {
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         if controller.users.user_disconnected(server, &self.1) == ActionResult::Denied {
-            return Task::new_permission_error("You are not allowed to disconnect this user");
+            return TonicTask::new_permission_error("You are not allowed to disconnect this user");
         }
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }
 
@@ -56,26 +56,17 @@ impl GenericTask for UserDisconnectedTask {
 impl GenericTask for GetUserTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(user) = controller.users.get_user(&self.0) else {
-            return Task::new_err(Status::not_found("User not found"));
+            return TonicTask::new_err(Status::not_found("User not found"));
         };
 
-        let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-            let server = server.uuid();
-            (
-                Some(server.to_string()),
-                controller
-                    .servers
-                    .get_server(server)
-                    .and_then(|server| server.group().clone()),
-            )
-        } else {
-            (None, None)
-        };
-        Task::new_ok(Item {
+        TonicTask::new_ok(Item {
             name: user.id().name().clone(),
             id: user.id().uuid().to_string(),
-            group,
-            server,
+            server: if let CurrentServer::Connected(server) = user.server() {
+                Some(server.uuid().to_string())
+            } else {
+                None
+            },
         })
     }
 }
@@ -84,59 +75,37 @@ impl GenericTask for GetUserTask {
 impl GenericTask for GetUserFromNameTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
         let Some(user) = controller.users.get_user_from_name(&self.0) else {
-            return Task::new_err(Status::not_found("User not found"));
+            return TonicTask::new_err(Status::not_found("User not found"));
         };
 
-        let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-            let server = server.uuid();
-            (
-                Some(server.to_string()),
-                controller
-                    .servers
-                    .get_server(server)
-                    .and_then(|server| server.group().clone()),
-            )
-        } else {
-            (None, None)
-        };
-        Task::new_ok(Item {
+        TonicTask::new_ok(Item {
             name: user.id().name().clone(),
             id: user.id().uuid().to_string(),
-            group,
-            server,
+            server: if let CurrentServer::Connected(server) = user.server() {
+                Some(server.uuid().to_string())
+            } else {
+                None
+            },
         })
     }
 }
 
-// TODO: This call is very expensive
-// TODO: Remove or find a different solution
 #[async_trait]
 impl GenericTask for GetUsersTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(List {
+        TonicTask::new_ok(List {
             users: controller
                 .users
                 .get_users()
                 .iter()
-                .map(|user| {
-                    let (server, group) = if let CurrentServer::Connected(server) = user.server() {
-                        let server = server.uuid();
-                        (
-                            Some(server.to_string()),
-                            controller
-                                .servers
-                                .get_server(server)
-                                .and_then(|server| server.group().clone()),
-                        )
+                .map(|user| Item {
+                    name: user.id().name().clone(),
+                    id: user.id().uuid().to_string(),
+                    server: if let CurrentServer::Connected(server) = user.server() {
+                        Some(server.uuid().to_string())
                     } else {
-                        (None, None)
-                    };
-                    Item {
-                        name: user.id().name().clone(),
-                        id: user.id().uuid().to_string(),
-                        group,
-                        server,
-                    }
+                        None
+                    },
                 })
                 .collect(),
         })
@@ -146,6 +115,6 @@ impl GenericTask for GetUsersTask {
 #[async_trait]
 impl GenericTask for UserCountTask {
     async fn run(&mut self, controller: &mut Controller) -> Result<BoxedAny> {
-        Task::new_ok(controller.users.get_user_count())
+        TonicTask::new_ok(controller.users.get_user_count())
     }
 }

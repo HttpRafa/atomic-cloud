@@ -3,7 +3,7 @@ use tonic::async_trait;
 
 use crate::{
     application::{auth::Authorization, Controller},
-    task::{BoxedAny, GenericTask, Task},
+    task::{network::TonicTask, BoxedAny, GenericTask},
 };
 
 pub struct SetReadyTask(pub Authorization, pub bool);
@@ -16,9 +16,9 @@ impl GenericTask for SetReadyTask {
             .get_server()
             .and_then(|server| controller.servers.get_server_mut(server.uuid()))
         else {
-            return Task::new_link_error();
+            return TonicTask::new_link_error();
         };
         server.set_ready(self.1, &controller.shared).await;
-        Task::new_empty()
+        TonicTask::new_empty()
     }
 }

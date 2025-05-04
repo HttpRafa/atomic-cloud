@@ -57,8 +57,10 @@ impl<T> Subscriber<T> {
             Dispatch::Plugin(sender) => {
                 if let Err(error) = sender.send(Ok(message)).await {
                     error!("Failed to send plugin message: {}", error);
+                    false
+                } else {
+                    true
                 }
-                false
             }
         }
     }

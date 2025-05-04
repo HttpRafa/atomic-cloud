@@ -1,12 +1,6 @@
-use crate::generated::plugin::system::{
-    data_types::Server,
-    server::get_server,
-};
+use crate::generated::plugin::system::{data_types::Server, server::get_server};
 
-use super::{
-    config::Weight,
-    math::WeightCalc,
-};
+use super::{config::Weight, math::WeightCalc};
 
 pub mod manager;
 

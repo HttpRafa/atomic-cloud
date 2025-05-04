@@ -1,4 +1,3 @@
-
 use data::{BBatch, BBatchResult};
 
 use crate::error;

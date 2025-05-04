@@ -68,9 +68,10 @@ impl Records {
                         Action::Delete => {
                             // Send delete for existing record
                             if let Some(rec_map) = zone.records.get(entry)
-                                && let Some(existing_record) = rec_map.get(&uuid) {
-                                    batch.deletes.push(BDelete::from(existing_record));
-                                }
+                                && let Some(existing_record) = rec_map.get(&uuid)
+                            {
+                                batch.deletes.push(BDelete::from(existing_record));
+                            }
                         }
                     }
                 }
@@ -80,10 +81,20 @@ impl Records {
             for (entry, rec_map) in &mut zone.records {
                 for record in rec_map.values_mut() {
                     if record.update(&entry.weight)
-                        && let Some(brec) = BRecord::new(entry, record) {
-                            batch.patches.push(brec);
-                        }
+                        && let Some(brec) = BRecord::new(entry, record)
+                    {
+                        batch.patches.push(brec);
+                    }
                 }
+            }
+
+            if batch.deletes.is_empty()
+                && batch.patches.is_empty()
+                && batch.posts.is_empty()
+                && batch.puts.is_empty()
+            {
+                // No request to cloudflare required
+                continue;
             }
 
             // Execute batch and apply Cloudflare response
@@ -94,19 +105,19 @@ impl Records {
             }) = backend.send_batch(zone_id, batch)
             {
                 // Apply deletions
-                for delete_result in deletes {
-                    if let Some(uuid) = Self::extract_uuid(&delete_result.tags) {
+                if let Some(deletes) = deletes {
+                    for delete_result in deletes {
                         for record_map in zone.records.values_mut() {
-                            record_map.remove(&uuid);
+                            record_map.remove(&delete_result.comment);
                         }
                     }
                 }
 
                 // Apply creations: set CF-assigned IDs on placeholders
-                for created_record in posts {
-                    if let Some(uuid) = Self::extract_uuid(&created_record.tags) {
+                if let Some(posts) = posts {
+                    for created_record in posts {
                         for rec_map in zone.records.values_mut() {
-                            if let Some(record) = rec_map.get_mut(&uuid) {
+                            if let Some(record) = rec_map.get_mut(&created_record.comment) {
                                 // Only update placeholders (empty id)
                                 if record.id.is_empty() {
                                     record.id = created_record.id.clone();
@@ -118,10 +129,10 @@ impl Records {
                 }
 
                 // Apply patches: update id (in case CF changed) and weight
-                for patch_record in patches {
-                    if let Some(uuid) = Self::extract_uuid(&patch_record.tags) {
+                if let Some(patches) = patches {
+                    for patch_record in patches {
                         for record_map in zone.records.values_mut() {
-                            if let Some(record) = record_map.get_mut(&uuid) {
+                            if let Some(record) = record_map.get_mut(&patch_record.comment) {
                                 record.id = patch_record.id.clone();
                                 record.weight = patch_record.data.weight;
                                 break;
@@ -132,11 +143,5 @@ impl Records {
             }
         }
         Ok(())
-    }
-
-    fn extract_uuid(tags: &[String]) -> Option<String> {
-        tags.iter()
-            .find_map(|tag| tag.strip_prefix("server:"))
-            .map(str::to_string)
     }
 }

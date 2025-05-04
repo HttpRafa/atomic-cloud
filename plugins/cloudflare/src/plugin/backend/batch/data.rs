@@ -10,11 +10,12 @@ pub struct BBatch {
     pub deletes: Vec<BDelete>,
     pub patches: Vec<BRecord>,
     pub posts: Vec<BRecord>,
+    pub puts: Vec<()>,
 }
 
 #[derive(Deserialize, Clone)]
 pub struct BBatchResult {
-    pub deletes: Vec<BRRecord>,
-    pub patches: Vec<BRRecord>,
-    pub posts: Vec<BRRecord>,
+    pub deletes: Option<Vec<BRRecord>>,
+    pub patches: Option<Vec<BRRecord>>,
+    pub posts: Option<Vec<BRRecord>>,
 }

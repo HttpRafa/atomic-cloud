@@ -16,16 +16,15 @@ pub struct BRecord {
     pub data: BData,
     pub name: String,
     pub proxied: bool,
-    pub tags: Vec<String>,
     pub ttl: u16,
     pub r#type: String,
 }
 
 #[derive(Deserialize, Clone)]
 pub struct BRRecord {
+    pub comment: String,
     pub id: String,
     pub data: BData,
-    pub tags: Vec<String>,
 }
 
 impl BRecord {
@@ -33,8 +32,7 @@ impl BRecord {
         let address = record.server.allocation.ports.first()?;
 
         Some(Self {
-            comment: record.server.name.clone(),
-            tags: vec![format!("server:{}", record.server.uuid)],
+            comment: record.server.uuid.clone(),
             data: BData {
                 priority: entry.priority,
                 weight: record.weight,

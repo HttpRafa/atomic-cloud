@@ -3,8 +3,7 @@
 rate = 6
 
 [account]
-# The email address associated with your Cloudflare account
-mail = "example@something.com"
+# The cloudflare API token
 token = ""
 
 [[entries]]

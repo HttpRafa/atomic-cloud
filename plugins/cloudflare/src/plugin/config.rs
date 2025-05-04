@@ -14,7 +14,6 @@ const DEFAULT_CONFIG: &str =
 
 #[derive(Deserialize, Default)]
 pub struct Account {
-    pub mail: String,
     pub token: String,
 }
 

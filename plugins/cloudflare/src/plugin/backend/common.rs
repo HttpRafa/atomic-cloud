@@ -66,12 +66,8 @@ impl Backend {
             &url,
             &[
                 Header {
-                    key: "X-Auth-Email".to_string(),
-                    value: self.mail.clone(),
-                },
-                Header {
-                    key: "X-Auth-Key".to_string(),
-                    value: self.token.clone(),
+                    key: "Authorization".to_string(),
+                    value: format!("Bearer {}", self.token),
                 },
                 Header {
                     key: "Content-Type".to_string(),
@@ -107,12 +103,8 @@ impl Backend {
             &url,
             &[
                 Header {
-                    key: "X-Auth-Email".to_string(),
-                    value: self.mail.clone(),
-                },
-                Header {
-                    key: "X-Auth-Key".to_string(),
-                    value: self.token.clone(),
+                    key: "Authorization".to_string(),
+                    value: format!("Bearer {}", self.token),
                 },
                 Header {
                     key: "Content-Type".to_string(),

@@ -7,15 +7,14 @@ use crate::{
     plugin::{
         backend::{
             batch::{
-                data::BBatch,
+                data::{BBatch, BBatchResult},
                 delete::BDelete,
-                record::{BData, BRecord},
+                record::BRecord,
             },
             Backend,
         },
         batcher::{Action, Batcher},
-        config::{Config, Entry, Weight},
-        math::WeightCalc,
+        config::{Config, Entry},
     },
 };
 
@@ -45,99 +44,99 @@ impl Records {
         Self { zones }
     }
 
-    pub fn tick(&mut self, backend: &mut Backend, batcher: &mut Batcher) -> Result<()> {
-        for (id, zone) in &mut self.zones {
+    // TODO: Rewrite this i dont like the complexity
+    pub fn tick(&mut self, backend: &Backend, batcher: &mut Batcher) -> Result<()> {
+        for (zone_id, zone) in &mut self.zones {
             let mut batch = BBatch::default();
-            let mut new = HashMap::new();
 
-            // Loop over all server starts and stops that happend since the last tick
-            if let Some((entry, actions)) = batcher.drain(id) {
+            // Process create/delete actions and prepare placeholder records
+            if let Some((entry, actions)) = batcher.drain(zone_id) {
                 for (uuid, action) in actions.drain() {
                     match action {
                         Action::Create(server) => {
-                            if let Some(record) = BRecord::new(
-                                entry,
-                                &Record::new(&entry.weight, server.clone(), String::new()),
-                            ) {
-                                batch.posts.push(record);
-                                new.insert(uuid, (server, entry.clone()));
+                            // Prepare DNS record and send create
+                            let record = Record::new(&entry.weight, server, String::new());
+                            if let Some(brecord) = BRecord::new(entry, &record) {
+                                batch.posts.push(brecord);
+                                // Insert placeholder to be updated once CF returns an ID
+                                zone.records
+                                    .entry(entry.clone())
+                                    .or_default()
+                                    .insert(uuid.clone(), record);
                             }
                         }
                         Action::Delete => {
-                            if let Some(records) = zone.records.get(&entry)
-                                && let Some(record) = records.get(&uuid)
-                            {
-                                batch.deletes.push(BDelete::from(record));
-                            }
+                            // Send delete for existing record
+                            if let Some(rec_map) = zone.records.get(entry)
+                                && let Some(existing_record) = rec_map.get(&uuid) {
+                                    batch.deletes.push(BDelete::from(existing_record));
+                                }
                         }
                     }
                 }
             }
 
-            // Add all updates to the weights
-            for (entry, records) in &mut zone.records {
-                for (_, record) in records {
+            // Update weights for all existing records
+            for (entry, rec_map) in &mut zone.records {
+                for record in rec_map.values_mut() {
                     if record.update(&entry.weight)
-                        && let Some(record) = BRecord::new(entry, record)
-                    {
-                        // Weight has changed
-                        batch.patches.push(record);
-                    }
+                        && let Some(brec) = BRecord::new(entry, record) {
+                            batch.patches.push(brec);
+                        }
                 }
             }
 
-            if let Some(result) = backend.send_batch(id, batch) {
-                for record in result.deletes {
-                    let mut uuid = "";
-                    for tag in &record.tags {
-                        if tag.starts_with("server:") {
-                            let split = tag.split(':').collect::<Vec<_>>();
-                            if split.len() >= 2 {
-                                uuid = split[1];
-                            }
+            // Execute batch and apply Cloudflare response
+            if let Some(BBatchResult {
+                posts,
+                patches,
+                deletes,
+            }) = backend.send_batch(zone_id, batch)
+            {
+                // Apply deletions
+                for delete_result in deletes {
+                    if let Some(uuid) = Self::extract_uuid(&delete_result.tags) {
+                        for record_map in zone.records.values_mut() {
+                            record_map.remove(&uuid);
                         }
-                    }
-                    for (_, records) in &mut zone.records {
-                        records.remove(uuid);
                     }
                 }
-                for record in result.posts {
-                    let mut uuid = "";
-                    for tag in &record.tags {
-                        if tag.starts_with("server:") {
-                            let split = tag.split(':').collect::<Vec<_>>();
-                            if split.len() >= 2 {
-                                uuid = split[1];
+
+                // Apply creations: set CF-assigned IDs on placeholders
+                for created_record in posts {
+                    if let Some(uuid) = Self::extract_uuid(&created_record.tags) {
+                        for rec_map in zone.records.values_mut() {
+                            if let Some(record) = rec_map.get_mut(&uuid) {
+                                // Only update placeholders (empty id)
+                                if record.id.is_empty() {
+                                    record.id = created_record.id.clone();
+                                }
+                                break;
                             }
                         }
-                    }
-                    if let Some((server, entry)) = new.remove(uuid) {
-                        zone.records.entry(entry.clone()).or_default().insert(
-                            uuid.to_string(),
-                            Record::new(&entry.weight, server, record.id),
-                        );
                     }
                 }
-                for record in result.patches {
-                    let mut uuid = "";
-                    for tag in &record.tags {
-                        if tag.starts_with("server:") {
-                            let split = tag.split(':').collect::<Vec<_>>();
-                            if split.len() >= 2 {
-                                uuid = split[1];
+
+                // Apply patches: update id (in case CF changed) and weight
+                for patch_record in patches {
+                    if let Some(uuid) = Self::extract_uuid(&patch_record.tags) {
+                        for record_map in zone.records.values_mut() {
+                            if let Some(record) = record_map.get_mut(&uuid) {
+                                record.id = patch_record.id.clone();
+                                record.weight = patch_record.data.weight;
+                                break;
                             }
-                        }
-                    }
-                    for (_, records) in &mut zone.records {
-                        if let Some(inner) = records.get_mut(uuid) {
-                            inner.id = record.id;
-                            inner.weight = record.data.weight;
-                            break;
                         }
                     }
                 }
             }
         }
         Ok(())
+    }
+
+    fn extract_uuid(tags: &[String]) -> Option<String> {
+        tags.iter()
+            .find_map(|tag| tag.strip_prefix("server:"))
+            .map(str::to_string)
     }
 }

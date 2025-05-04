@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Drain, HashMap};
+use std::collections::HashMap;
 
 use crate::generated::plugin::system::data_types::{Server, Uuid};
 
@@ -31,8 +31,5 @@ impl Batcher {
     }
     pub fn drain(&mut self, zone: &str) -> Option<&mut (Entry, HashMap<Uuid, Action>)> {
         self.inner.get_mut(zone)
-    }
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
     }
 }

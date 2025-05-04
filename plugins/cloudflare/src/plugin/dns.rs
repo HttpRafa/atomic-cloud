@@ -1,10 +1,10 @@
 use crate::generated::plugin::system::{
-    data_types::{Address, Server},
+    data_types::Server,
     server::get_server,
 };
 
 use super::{
-    config::{Entry, Weight},
+    config::Weight,
     math::WeightCalc,
 };
 

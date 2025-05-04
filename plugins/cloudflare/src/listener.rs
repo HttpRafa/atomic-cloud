@@ -9,7 +9,7 @@ use crate::{
         exports::plugin::system::event::GuestListener,
         plugin::system::{data_types::Server, types::ErrorMessage},
     },
-    plugin::{batcher::Batcher, config::Entry, dns::Record},
+    plugin::{batcher::Batcher, config::Entry},
 };
 
 pub struct Listener {

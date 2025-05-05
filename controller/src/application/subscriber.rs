@@ -32,7 +32,7 @@ impl<T> Subscriber<T> {
     pub async fn send_network(&self, data: Result<T, Status>) -> bool {
         match &self.0 {
             Dispatch::Network(sender) => {
-                if let Err(_) = sender.send(data).await {
+                if sender.send(data).await.is_err() {
                     // Channel closed
                     false
                 } else {
@@ -46,7 +46,7 @@ impl<T> Subscriber<T> {
     pub async fn send_message(&self, message: T) -> bool {
         match &self.0 {
             Dispatch::Network(sender) => {
-                if let Err(_) = sender.send(Ok(message)).await {
+                if sender.send(Ok(message)).await.is_err() {
                     // Channel closed
                     false
                 } else {
@@ -54,7 +54,7 @@ impl<T> Subscriber<T> {
                 }
             }
             Dispatch::Plugin(sender) => {
-                if let Err(_) = sender.send(Ok(message)).await {
+                if sender.send(Ok(message)).await.is_err() {
                     // Channel closed
                     false
                 } else {

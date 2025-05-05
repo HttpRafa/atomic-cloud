@@ -1,6 +1,6 @@
 [package]
 name = "wrapper"
-version = "0.0.0-nightly"
+version = "0.11.0-alpha"
 edition = "2021"
 
 [dependencies]

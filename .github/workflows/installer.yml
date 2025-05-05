@@ -42,4 +42,4 @@ jobs:
       - name: Upload Windows Installer to Release
         uses: softprops/action-gh-release@v2
         with:
-          cli-windows-x86_64-setup.exe
+          files: cli-windows-x86_64-setup.exe

@@ -170,6 +170,11 @@ impl Records {
                 }
             }
 
+            if batch.deletes.is_empty() {
+                // No request to cloudflare required
+                continue;
+            }
+
             count += batch.deletes.len();
             backend.send_batch(zone_id, &batch);
         }

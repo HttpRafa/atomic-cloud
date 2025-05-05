@@ -77,40 +77,53 @@ impl Group {
                     }
                     true
                 }),
-                Stage::Queueing => true,
+                Stage::Queueing | Stage::Stopping => true,
             });
 
-            if self.scaling.stop_empty_servers && self.servers.len() as u32 > target_count {
-                let mut to_stop = self.servers.len() as u32 - target_count;
+            // Count all servers that are active
+            let current_count = self
+                .servers
+                .iter()
+                .filter(|server| matches!(server.1 .1, Stage::Active))
+                .count();
+
+            if self.scaling.stop_empty_servers && current_count as u32 > target_count {
+                let mut to_stop = current_count as u32 - target_count;
                 let mut requests = vec![];
-                self.servers.retain(|id, server| match &server.1 {
-                    Stage::Active => servers.get_server_mut(id.uuid()).is_some_and(|server| {
-                        if server.connected_users() == &0 {
-                            if server.flags().should_stop() && to_stop > 0 {
-                                debug!(
+                self.servers
+                    .retain(|id, group_server| match &group_server.1 {
+                        Stage::Active => servers.get_server_mut(id.uuid()).is_some_and(|server| {
+                            if server.connected_users() == &0 {
+                                if server.flags().should_stop() && to_stop > 0 {
+                                    debug!(
                                     "Server {} is empty and reached the timeout, stopping it...",
                                     server.id()
                                 );
-                                requests.push(StopRequest::new(None, server.id().clone()));
-                                to_stop -= 1;
+                                    requests.push(StopRequest::new(None, server.id().clone()));
+                                    to_stop -= 1;
+                                    server.flags_mut().clear_stop();
+                                    // Mark server as stopping
+                                    group_server.1 = Stage::Stopping;
+                                } else if !server.flags().is_stop_set() {
+                                    debug!(
+                                        "Server {} is empty, starting stop timer...",
+                                        server.id()
+                                    );
+                                    server
+                                        .flags_mut()
+                                        .replace_stop(*config.empty_server_timeout());
+                                }
+                            } else if server.flags().is_stop_set() {
+                                debug!(
+                                    "Server {} is no longer empty, clearing stop timer...",
+                                    server.id()
+                                );
                                 server.flags_mut().clear_stop();
-                            } else if !server.flags().is_stop_set() {
-                                debug!("Server {} is empty, starting stop timer...", server.id());
-                                server
-                                    .flags_mut()
-                                    .replace_stop(*config.empty_server_timeout());
                             }
-                        } else if server.flags().is_stop_set() {
-                            debug!(
-                                "Server {} is no longer empty, clearing stop timer...",
-                                server.id()
-                            );
-                            server.flags_mut().clear_stop();
-                        }
-                        true
-                    }),
-                    Stage::Queueing => true,
-                });
+                            true
+                        }),
+                        Stage::Queueing | Stage::Stopping => true,
+                    });
                 servers.schedule_stops(requests);
             }
         }
@@ -181,6 +194,7 @@ impl Group {
                     servers.cancel_start(id.uuid());
                     false
                 }
+                Stage::Stopping => false,
             });
 
             self.status = LifecycleStatus::Inactive;
@@ -196,7 +210,7 @@ impl Group {
             .iter()
             .find_map(|(id, server)| match &server.1 {
                 Stage::Active => servers.get_server(id.uuid()),
-                Stage::Queueing => None,
+                Stage::Queueing | Stage::Stopping => None,
             })
     }
 
@@ -244,6 +258,7 @@ struct GroupServer(usize, Stage);
 enum Stage {
     Queueing,
     Active,
+    Stopping,
 }
 
 impl GroupServer {

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use common::error::FancyError;
+use config::Permissions;
 use generated::{exports::plugin::system::bridge, plugin::system::data_types};
 use listener::PluginListener;
 use node::PluginNode;
@@ -51,6 +52,7 @@ pub(crate) struct PluginState {
 
     /* Plugin */
     name: String,
+    permissions: Permissions,
 
     /* Wasmtime */
     wasi: WasiCtx,

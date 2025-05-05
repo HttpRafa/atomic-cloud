@@ -3,7 +3,7 @@ use std::{
     process::{self, Stdio},
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use simplelog::debug;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
@@ -15,6 +15,7 @@ use tokio::{
 use wasmtime::component::Resource;
 
 use crate::application::plugin::runtime::wasm::{
+    config::Permissions,
     generated::plugin::system::{
         self,
         process::ExitStatus,
@@ -26,7 +27,7 @@ use crate::application::plugin::runtime::wasm::{
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 
-const STREAM_BUFFER: usize = 64;
+const STREAM_BUFFER: usize = 128;
 
 pub struct ProcessBuilder {
     command: String,
@@ -139,6 +140,13 @@ impl system::process::HostProcessBuilder for PluginState {
         &mut self,
         instance: Resource<ProcessBuilder>,
     ) -> Result<Result<Resource<Process>, ErrorMessage>> {
+        // Check if the plugin has permissions
+        if !self.permissions.contains(Permissions::ALLOW_PROCESS) {
+            return Err(anyhow!(
+                "Plugin tried to spawn a process without the required permissions"
+            ));
+        }
+
         let builder = self.resources.get(&instance)?;
         debug!("Spawning process: {} {:?}", builder.command, builder.args);
 

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
+use bitflags::bitflags;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::warn;
@@ -22,49 +23,33 @@ pub struct PluginsConfig {
     plugins: Vec<PluginConfig>,
 }
 
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "Mybe refactor this in the future to use bitflags"
-)]
+bitflags! {
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+    #[serde(transparent)]
+    pub struct Permissions: u32 {
+        const INHERIT_STDIO = 1;
+        const INHERIT_ARGS = 1 << 1;
+        const INHERIT_ENV = 1 << 2;
+        const INHERIT_NETWORK = 1 << 3;
+        const ALLOW_IP_NAME_LOOKUP = 1 << 4;
+        const ALLOW_HTTP = 1 << 5;
+        const ALLOW_PROCESS = 1 << 6;
+        const ALLOW_REMOVE_DIR_ALL = 1 << 7;
+        const ALL = Self::INHERIT_STDIO.bits() | Self::INHERIT_ARGS.bits() | Self::INHERIT_ENV.bits() | Self::INHERIT_NETWORK.bits() | Self::ALLOW_IP_NAME_LOOKUP.bits() | Self::ALLOW_HTTP.bits() | Self::ALLOW_PROCESS.bits() | Self::ALLOW_REMOVE_DIR_ALL.bits();
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PluginConfig {
     name: String,
-    inherit_stdio: bool,
-    inherit_args: bool,
-    inherit_env: bool,
-    inherit_network: bool,
-    allow_ip_name_lookup: bool,
-    allow_http: bool,
-    allow_process: bool,
-    allow_remove_dir_all: bool,
+    permissions: Permissions,
 
     mounts: Vec<Mount>,
 }
 
 impl PluginConfig {
-    pub fn has_inherit_stdio(&self) -> bool {
-        self.inherit_stdio
-    }
-    pub fn has_inherit_args(&self) -> bool {
-        self.inherit_args
-    }
-    pub fn has_inherit_env(&self) -> bool {
-        self.inherit_env
-    }
-    pub fn has_inherit_network(&self) -> bool {
-        self.inherit_network
-    }
-    pub fn has_allow_ip_name_lookup(&self) -> bool {
-        self.allow_ip_name_lookup
-    }
-    pub fn _has_allow_http(&self) -> bool {
-        self.allow_http
-    }
-    pub fn _has_allow_process(&self) -> bool {
-        self.allow_process
-    }
-    pub fn _has_allow_remove_dir_all(&self) -> bool {
-        self.allow_remove_dir_all
+    pub fn get_permissions(&self) -> &Permissions {
+        &self.permissions
     }
     pub fn get_mounts(&self) -> &[Mount] {
         &self.mounts

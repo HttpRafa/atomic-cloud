@@ -42,7 +42,7 @@ impl BRecord {
             },
             name: entry.name.clone(),
             proxied: false,
-            ttl: 1,
+            ttl: entry.ttl,
             r#type: "SRV".to_string(),
             id: record.id.clone(),
         })

@@ -9,10 +9,13 @@ token = ""
 [[entries]]
 # The Zone ID from your Cloudflare dashboard
 zone = ""
-# The DNS record name under which the plugin will create SRV records
-name = "_minecraft._tcp.mynetwork.net"
 # A regular expression to identify servers that should receive an SRV record
 servers = "^lobby-.*"
+# The DNS record name under which the plugin will create SRV records
+name = "_minecraft._tcp.mynetwork.net"
+# The TTL (Time to Live) of the DNS record
+# NOTE: 1 = Auto / Otherwise in seconds
+ttl = 60
 # The priority assigned to the SRV records
 priority = 5
 
@@ -21,9 +24,9 @@ priority = 5
 # NOTE: Adjust the values as necessary: https://www.geogebra.org/m/fmat9nc2
 [entries.weight]
 # Scale factor: Multiplies the entire result to address resolution issues in scenarios with a low max value
-a = 1.5
+a = 2
 # Determines the rate of weight reduction; higher values result in a steeper decline
 # NOTE: Since weights can only be represented as integers, excessively high values may cause resolution issues.
-k = 2.5
+k = 2
 # Maximum number of players allowed per server
 max = 20

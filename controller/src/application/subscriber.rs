@@ -1,5 +1,4 @@
 use anyhow::Result;
-use simplelog::error;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
@@ -33,8 +32,8 @@ impl<T> Subscriber<T> {
     pub async fn send_network(&self, data: Result<T, Status>) -> bool {
         match &self.0 {
             Dispatch::Network(sender) => {
-                if let Err(error) = sender.send(data).await {
-                    error!("Failed to send network message: {}", error);
+                if let Err(_) = sender.send(data).await {
+                    // Channel closed
                     false
                 } else {
                     true
@@ -47,16 +46,16 @@ impl<T> Subscriber<T> {
     pub async fn send_message(&self, message: T) -> bool {
         match &self.0 {
             Dispatch::Network(sender) => {
-                if let Err(error) = sender.send(Ok(message)).await {
-                    error!("Failed to send network message: {}", error);
+                if let Err(_) = sender.send(Ok(message)).await {
+                    // Channel closed
                     false
                 } else {
                     true
                 }
             }
             Dispatch::Plugin(sender) => {
-                if let Err(error) = sender.send(Ok(message)).await {
-                    error!("Failed to send plugin message: {}", error);
+                if let Err(_) = sender.send(Ok(message)).await {
+                    // Channel closed
                     false
                 } else {
                     true

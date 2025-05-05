@@ -7,7 +7,9 @@ use tokio::{fs, sync::RwLock};
 use uuid::Uuid;
 
 use crate::{
-    application::auth::DEFAULT_ADMIN_USERNAME,
+    application::auth::{
+        permissions::Permissions, DEFAULT_ADMIN_PERMISSIONS, DEFAULT_ADMIN_USERNAME,
+    },
     storage::{SaveToTomlFile, Storage},
 };
 
@@ -34,11 +36,15 @@ impl AuthManager {
         .await?
         {
             info!("Loaded user {}", name);
-            tokens.insert(value.token().clone(), AdminUser::create(name));
+            tokens.insert(
+                value.token().clone(),
+                AdminUser::create(name, value.permissions().clone()),
+            );
         }
 
         if tokens.is_empty() {
-            let token = Self::create_user(DEFAULT_ADMIN_USERNAME).await?;
+            let token =
+                Self::create_user(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PERMISSIONS).await?;
             info!("-----------------------------------</>");
             info!("No users found, created default admin user");
             info!("Username: </>{}", DEFAULT_ADMIN_USERNAME);
@@ -46,7 +52,13 @@ impl AuthManager {
             info!("-----------------------------------");
             info!("Welcome to Atomic Cloud");
             info!("-----------------------------------");
-            tokens.insert(token, AdminUser::create(DEFAULT_ADMIN_USERNAME.to_string()));
+            tokens.insert(
+                token,
+                AdminUser::create(
+                    DEFAULT_ADMIN_USERNAME.to_string(),
+                    DEFAULT_ADMIN_PERMISSIONS,
+                ),
+            );
         }
 
         info!("Loaded {} user(s)", tokens.len());
@@ -82,13 +94,13 @@ impl AuthManager {
         token
     }
 
-    async fn create_user(username: &str) -> Result<String> {
+    async fn create_user(username: &str, permissions: Permissions) -> Result<String> {
         let token = format!(
             "actl_{}{}",
             Uuid::new_v4().as_simple(),
             Uuid::new_v4().as_simple()
         );
-        StoredUser::new(&token)
+        StoredUser::new(&token, permissions)
             .save(&Storage::user_file(username), true)
             .await?;
 
@@ -102,21 +114,27 @@ mod stored {
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
-    use crate::storage::{LoadFromTomlFile, SaveToTomlFile};
+    use crate::{
+        application::auth::permissions::Permissions,
+        storage::{LoadFromTomlFile, SaveToTomlFile},
+    };
 
     #[derive(Serialize, Deserialize, Getters)]
     pub struct StoredUser {
         #[getset(get = "pub")]
         token: String,
+        #[getset(get = "pub")]
+        permissions: Permissions,
     }
 
     impl StoredUser {
-        pub fn new<'a, T>(token: T) -> Self
+        pub fn new<'a, T>(token: T, permissions: Permissions) -> Self
         where
             T: Into<Cow<'a, str>>,
         {
             Self {
                 token: token.into().into_owned(),
+                permissions,
             }
         }
     }

@@ -3,6 +3,7 @@ use std::{net::SocketAddr, time::Duration};
 use anyhow::Result;
 use serde::Deserialize;
 use tokio::fs;
+use uuid::Uuid;
 
 use crate::storage::{LoadFromTomlFile, Storage};
 
@@ -46,7 +47,11 @@ impl Config {
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent).await?;
             }
-            fs::write(&path, DEFAULT_CONFIG).await?;
+            fs::write(
+                &path,
+                DEFAULT_CONFIG.replace("%RANDOM%", &Uuid::new_v4().to_string()),
+            )
+            .await?;
             Self::from_file(&path).await
         }
     }

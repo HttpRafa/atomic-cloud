@@ -1,16 +1,21 @@
 use getset::Getters;
 
-use super::{server::AuthServer, AuthType, GenericAuthorization, OwnedAuthorization};
+use super::{
+    permissions::Permissions, server::AuthServer, AuthType, GenericAuthorization,
+    OwnedAuthorization,
+};
 
 #[derive(Getters)]
 pub struct AdminUser {
     #[getset(get = "pub")]
     username: String,
+    #[getset(get = "pub")]
+    permissions: Permissions,
 }
 
 impl GenericAuthorization for AdminUser {
-    fn is_allowed(&self, _flag: u32) -> bool {
-        true
+    fn is_allowed(&self, flag: Permissions) -> bool {
+        self.permissions.contains(flag)
     }
 
     fn get_user(&self) -> Option<&AdminUser> {
@@ -24,12 +29,15 @@ impl GenericAuthorization for AdminUser {
     }
 
     fn recreate(&self) -> OwnedAuthorization {
-        AdminUser::create(self.username.clone())
+        AdminUser::create(self.username.clone(), self.permissions.clone())
     }
 }
 
 impl AdminUser {
-    pub fn create(username: String) -> OwnedAuthorization {
-        Box::new(Self { username })
+    pub fn create(username: String, permissions: Permissions) -> OwnedAuthorization {
+        Box::new(Self {
+            username,
+            permissions,
+        })
     }
 }

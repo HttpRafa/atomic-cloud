@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use permissions::Permissions;
 use server::AuthServer;
 use user::AdminUser;
 
@@ -10,6 +11,7 @@ pub mod server;
 pub mod user;
 
 const DEFAULT_ADMIN_USERNAME: &str = "admin";
+const DEFAULT_ADMIN_PERMISSIONS: Permissions = Permissions::ALL;
 
 pub type AuthToken = String;
 pub type OwnedAuthorization = Box<dyn GenericAuthorization + Send + Sync>;
@@ -21,8 +23,7 @@ pub trait GenericAuthorization {
     fn get_user(&self) -> Option<&AdminUser>;
     fn is_type(&self, auth: AuthType) -> bool;
 
-    #[allow(unused)]
-    fn is_allowed(&self, flag: u32) -> bool;
+    fn is_allowed(&self, flag: Permissions) -> bool;
 
     fn recreate(&self) -> OwnedAuthorization;
 }

@@ -1,7 +1,9 @@
 use getset::Getters;
 use uuid::Uuid;
 
-use super::{user::AdminUser, AuthType, GenericAuthorization, OwnedAuthorization};
+use super::{
+    permissions::Permissions, user::AdminUser, AuthType, GenericAuthorization, OwnedAuthorization,
+};
 
 #[derive(Getters)]
 pub struct AuthServer {
@@ -10,7 +12,8 @@ pub struct AuthServer {
 }
 
 impl GenericAuthorization for AuthServer {
-    fn is_allowed(&self, _flag: u32) -> bool {
+    fn is_allowed(&self, _flag: Permissions) -> bool {
+        // Server are allowed to do everything in there extra "client" gRPC area
         true
     }
 

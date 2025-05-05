@@ -9,11 +9,14 @@ use tokio::sync::oneshot::channel;
 use tonic::{Request, Status};
 
 use crate::{
-    application::auth::{AuthType, Authorization},
+    application::auth::{permissions::Permissions, AuthType, Authorization},
     task::Task,
 };
 
 use super::{manager::TaskSender, BoxedAny, BoxedTask};
+
+pub const INSUFFICIENT_PERMISSIONS_MESSAGE: &str =
+    "Insufficient permissions to perform this action";
 
 pub struct TonicTask;
 
@@ -22,8 +25,28 @@ impl TonicTask {
     pub fn get_auth<T>(auth: AuthType, request: &Request<T>) -> Result<Authorization, Status> {
         match request.extensions().get::<Authorization>() {
             Some(data) if data.is_type(auth) => Ok(data.clone()),
-            _ => Err(Status::permission_denied("Not linked")),
+            _ => Err(Status::unauthenticated("Not linked")),
         }
+    }
+
+    pub async fn execute_authorized<O: Send + 'static, I, F>(
+        auth: AuthType,
+        flag: Permissions,
+        queue: &TaskSender,
+        request: Request<I>,
+        task: F,
+    ) -> Result<O, Status>
+    where
+        F: FnOnce(Request<I>, Authorization) -> Result<BoxedTask, Status>,
+    {
+        Self::execute(auth, queue, request, |request, auth| {
+            if auth.is_allowed(flag) {
+                task(request, auth)
+            } else {
+                Err(Status::permission_denied(INSUFFICIENT_PERMISSIONS_MESSAGE))
+            }
+        })
+        .await
     }
 
     pub async fn execute<O: Send + 'static, I, F>(

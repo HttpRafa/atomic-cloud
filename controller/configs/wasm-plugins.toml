@@ -1,26 +1,17 @@
 # This configuration is crucial for granting the plugins their required permissions
-# https://httprafa.github.io/atomic-cloud/controller/plugins/wasm/permissions/
+# https://httprafa.github.io/atomic-cloud/plugins/wasm/permissions/
 
 [[plugins]]
 name = "local"
-inherit_stdio = false
-inherit_args = false
-inherit_env = false
-inherit_network = false
-allow_ip_name_lookup = false
-allow_http = false
-allow_process = true
-allow_remove_dir_all = true
+permissions = "ALLOW_PROCESS | ALLOW_REMOVE_DIR_ALL"
 mounts = []
 
 [[plugins]]
 name = "pelican"
-inherit_stdio = false
-inherit_args = false
-inherit_env = false
-inherit_network = true
-allow_ip_name_lookup = true
-allow_http = true
-allow_process = false
-allow_remove_dir_all = false
+permissions = "INHERIT_NETWORK | ALLOW_IP_NAME_LOOKUP | ALLOW_HTTP"
+mounts = []
+
+[[plugins]]
+name = "cloudflare"
+permissions = "INHERIT_NETWORK | ALLOW_IP_NAME_LOOKUP | ALLOW_HTTP"
 mounts = []

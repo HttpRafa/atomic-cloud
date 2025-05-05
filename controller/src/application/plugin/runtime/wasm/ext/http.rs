@@ -1,8 +1,9 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use simplelog::warn;
 use tokio::task::spawn_blocking;
 
 use crate::application::plugin::runtime::wasm::{
+    config::Permissions,
     generated::plugin::system::{
         self,
         http::{Header, Method, Response},
@@ -19,6 +20,13 @@ impl system::http::Host for PluginState {
         headers: Vec<Header>,
         body: Option<Vec<u8>>,
     ) -> Result<Option<Response>> {
+        // Check if the plugin has permissions
+        if !self.permissions.contains(Permissions::ALLOW_HTTP) {
+            return Err(anyhow!(
+                "Plugin tried to send a http request without the required permissions"
+            ));
+        }
+
         let name = self.name.clone();
         Ok(spawn_blocking(move || {
             let mut request = match method {

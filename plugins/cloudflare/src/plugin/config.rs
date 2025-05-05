@@ -27,8 +27,9 @@ pub struct Weight {
 #[derive(Deserialize, Clone)]
 pub struct Entry {
     pub zone: String,
-    pub name: String,
     pub servers: String,
+    pub name: String,
+    pub ttl: u16,
     pub priority: u16,
     pub weight: Weight,
 }

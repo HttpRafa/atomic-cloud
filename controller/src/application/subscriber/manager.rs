@@ -79,4 +79,17 @@ impl SubscriberManager {
         self.plugin.server_change_ready.cleanup().await;
         Ok(())
     }
+
+    pub async fn cleanup(&self) -> Result<()> {
+        // Drop all sender
+        self.network.channel.clear().await;
+        self.network.transfer.clear().await;
+        self.network.power.clear().await;
+        self.network.ready.clear().await;
+
+        self.plugin.server_start.clear().await;
+        self.plugin.server_stop.clear().await;
+        self.plugin.server_change_ready.clear().await;
+        Ok(())
+    }
 }

@@ -21,7 +21,7 @@ use crate::{
 };
 
 use super::{
-    config::{verify_engine_config, PluginsConfig},
+    config::{verify_engine_config, Permissions, PluginsConfig},
     epoch::EpochInvoker,
     generated, Plugin, PluginState,
 };
@@ -195,20 +195,30 @@ impl Plugin {
         generated::Plugin::add_to_linker(&mut linker, |state: &mut PluginState| state)?;
 
         let mut wasi = WasiCtxBuilder::new();
+        let mut permissions = Permissions::empty();
         if let Some(config) = plugins_config.find_config(name) {
-            if config.has_inherit_stdio() {
+            if config
+                .get_permissions()
+                .contains(Permissions::INHERIT_STDIO)
+            {
                 wasi.inherit_stdio();
             }
-            if config.has_inherit_args() {
+            if config.get_permissions().contains(Permissions::INHERIT_ARGS) {
                 wasi.inherit_args();
             }
-            if config.has_inherit_env() {
+            if config.get_permissions().contains(Permissions::INHERIT_ENV) {
                 wasi.inherit_env();
             }
-            if config.has_inherit_network() {
+            if config
+                .get_permissions()
+                .contains(Permissions::INHERIT_NETWORK)
+            {
                 wasi.inherit_network();
             }
-            if config.has_allow_ip_name_lookup() {
+            if config
+                .get_permissions()
+                .contains(Permissions::ALLOW_IP_NAME_LOOKUP)
+            {
                 wasi.allow_ip_name_lookup(true);
             }
             for mount in config.get_mounts() {
@@ -219,6 +229,7 @@ impl Plugin {
                     FilePerms::all(),
                 )?;
             }
+            permissions = config.get_permissions().clone();
         }
         let wasi = wasi
             .preopened_dir(
@@ -237,6 +248,7 @@ impl Plugin {
                 tasks,
                 shared,
                 name: name.to_string(),
+                permissions,
                 wasi,
                 resources,
             },

@@ -47,7 +47,11 @@ impl Config {
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent).await?;
             }
-            fs::write(&path, DEFAULT_CONFIG.replace("%RANDOM%", &Uuid::new_v4().to_string())).await?;
+            fs::write(
+                &path,
+                DEFAULT_CONFIG.replace("%RANDOM%", &Uuid::new_v4().to_string()),
+            )
+            .await?;
             Self::from_file(&path).await
         }
     }

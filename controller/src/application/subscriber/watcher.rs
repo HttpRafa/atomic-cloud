@@ -57,4 +57,9 @@ impl<A: Eq + Hash, B: Clone> Watcher<A, B> {
             !subscribers.is_empty()
         });
     }
+
+    pub async fn clear(&self) {
+        self.0.write().await.clear();
+        self.1.write().await.clear();
+    }
 }

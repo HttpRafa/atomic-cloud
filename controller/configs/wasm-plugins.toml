@@ -1,5 +1,5 @@
 # This configuration is crucial for granting the plugins their required permissions
-# https://httprafa.github.io/atomic-cloud/controller/plugins/wasm/permissions/
+# https://httprafa.github.io/atomic-cloud/plugins/wasm/permissions/
 
 [[plugins]]
 name = "local"

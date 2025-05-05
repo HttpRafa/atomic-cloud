@@ -201,6 +201,9 @@ impl Controller {
         // Cleanup node manager
         self.nodes.cleanup().await?;
 
+        // Cleanup subscription manager
+        self.shared.subscribers.cleanup().await?;
+
         // Cleanup screen manager
         self.shared.screens.cleanup().await?;
 

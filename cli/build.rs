@@ -1,15 +1,29 @@
 use std::{
     env,
+    error::Error,
     fs::{self, File},
     io::Write as _,
 };
 
+use winresource::WindowsResource;
+
 const PROTO_PATH: &str = "../protocol/grpc";
 
-fn main() -> Result<(), Box<dyn core::error::Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
+    add_windows_resources();
     generate_build_info();
     generate_grpc_code()?;
     Ok(())
+}
+
+fn add_windows_resources() {
+    if env::var("CARGO_CFG_TARGET_OS").expect("This variable should be set by cargo") == "windows" {
+        let mut resource = WindowsResource::new();
+        resource.set_icon("../images/icon.ico");
+        resource
+            .compile()
+            .expect("Failed to compile windows resources");
+    }
 }
 
 fn generate_build_info() {

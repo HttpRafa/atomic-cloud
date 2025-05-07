@@ -44,7 +44,8 @@
             gradle
             temurin-bin
 
-            # Docs
+            # Go/Docs
+            go
             hugo
 
             # IDEs

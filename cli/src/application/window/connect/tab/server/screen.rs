@@ -1,5 +1,6 @@
 use std::{
-    fmt::{Display, Formatter}, sync::Arc
+    fmt::{Display, Formatter},
+    sync::Arc,
 };
 
 use ansi_parser::{AnsiParser, AnsiSequence, Output};
@@ -306,18 +307,16 @@ impl Display for common_server::Short {
 }
 
 fn is_allowed_escape(sequence: &AnsiSequence) -> bool {
-    match sequence {
-        AnsiSequence::SetGraphicsMode(_) => true,
-        _ => false,
-    }
+    matches!(sequence, AnsiSequence::SetGraphicsMode(_))
 }
 
 fn clean_ansi(input: &str) -> String {
-    input.ansi_parse()
+    input
+        .ansi_parse()
         .filter_map(|item| match item {
             Output::TextBlock(text) => Some(text.to_string()),
             Output::Escape(sequence) if is_allowed_escape(&sequence) => Some(sequence.to_string()),
-            _ => None,
+            Output::Escape(_) => None,
         })
         .collect()
 }

@@ -36,11 +36,17 @@
       pkgs.mkShell {
         buildInputs =
           with pkgs; [
+            # Rust/Controller
             rustup
             protobuf
 
+            # Java
             gradle
             temurin-bin
+
+            # Go/Docs
+            go
+            hugo
 
             # IDEs
             jetbrains.idea-ultimate

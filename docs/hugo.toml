@@ -1,0 +1,113 @@
+baseURL = "/"
+languageCode = "en-us"
+title = "Atomic Cloud Docs"
+enableEmoji = true
+enableGitInfo = true
+
+defaultContentLanguage = "en"
+[languages]
+  [languages.en]
+    title = "Atomic Cloud Docs"
+    languageName = "English"
+    weight = 10
+  [languages.de]
+    title = "Atomic Cloud Docs"
+    languageName = "Deutsch"
+    contentDir = "content/de"
+    weight = 20
+
+[module]
+    [[module.imports]]
+        path = "github.com/colinwilson/lotusdocs"
+        disable = false
+    [[module.imports]]
+        path = "github.com/gohugoio/hugo-mod-bootstrap-scss/v5"
+        disable = false
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
+
+[markup]
+  defaultMarkdownHandler = "goldmark"
+  [markup.tableOfContents]
+      endLevel = 3
+      startLevel = 1
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[params]
+  google_fonts = [
+    ["Inter", "300, 400, 600, 700"],
+    ["Fira Code", "500, 700"]
+  ]
+
+  sans_serif_font = "Inter"     # Default is System font
+  secondary_font  = "Inter"     # Default is System font
+  mono_font       = "Fira Code" # Default is System font
+
+    [params.footer]
+        copyright = "© :YEAR: Atomic Cloud"
+        version = true
+
+    [params.social]
+        github = "HttpRafa/atomic-cloud"
+
+    [params.docs]
+        title           = "Atomic Cloud Docs"              
+
+        darkMode        = true
+
+        prism           = true
+
+        prismTheme      = "solarized-light"
+
+        # gitinfo
+        repoURL         = "https://github.com/HttpRafa/atomic-cloud"
+        repoBranch      = "main"
+        editPage        = true
+        lastMod         = true
+        lastModRelative = true
+
+        sidebarIcons    = true
+        breadcrumbs     = true
+        backToTop       = true
+
+        # ToC
+        toc             = true
+        tocMobile       = true
+        scrollSpy       = true
+
+        # front matter
+        descriptions    = true
+        titleIcon       = true
+
+        # content navigation
+        navDesc         = true
+        navDescTrunc    = 30
+
+        listDescTrunc   = 100
+
+        # Link behaviour
+        intLinkTooltip  = true
+        # extLinkNewTab   = false
+        # logoLinkURL = ".."
+
+    [params.flexsearch] # Parameters for FlexSearch
+        enabled             = true
+        tokenize            = "full"
+        optimize            = true
+
+[menu]
+[[menu.primary]]
+    name  = "Docs"
+    url = "docs/"
+    identifier = "docs"
+    weight = 10
+
+[[menu.primary]]
+    name  = "Community"
+    url = "https://github.com/HttpRafa/atomic-cloud/discussions"
+    identifier = "community"
+    weight = 30

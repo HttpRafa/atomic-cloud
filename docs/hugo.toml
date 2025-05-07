@@ -1,17 +1,17 @@
 baseURL = "/"
 languageCode = "en-us"
-title = "Atomic Cloud Docs"
+title = "Atomic Cloud"
 enableEmoji = true
 enableGitInfo = true
 
 defaultContentLanguage = "en"
 [languages]
   [languages.en]
-    title = "Atomic Cloud Docs"
+    title = "Atomic Cloud"
     languageName = "English"
     weight = 10
   [languages.de]
-    title = "Atomic Cloud Docs"
+    title = "Atomic Cloud"
     languageName = "Deutsch"
     contentDir = "content/de"
     weight = 20
@@ -48,56 +48,60 @@ defaultContentLanguage = "en"
   mono_font       = "Fira Code" # Default is System font
 
     [params.footer]
-        copyright = "© :YEAR: Atomic Cloud"
-        version = true
+      copyright = "© :YEAR: Atomic Cloud"
+      version = true
 
     [params.social]
-        github = "HttpRafa/atomic-cloud"
+      github = "HttpRafa/atomic-cloud"
 
     [params.docs]
-        title           = "Atomic Cloud Docs"              
+      title           = "Atomic Cloud"              
 
-        darkMode        = true
+      darkMode        = true
 
-        prism           = true
+      prism           = true
 
-        prismTheme      = "solarized-light"
+      prismTheme      = "solarized-light"
 
-        # gitinfo
-        repoURL         = "https://github.com/HttpRafa/atomic-cloud"
-        repoBranch      = "main"
-        editPage        = true
-        lastMod         = true
-        lastModRelative = true
+      # gitinfo
+      repoURL         = "https://github.com/HttpRafa/atomic-cloud"
+      repoBranch      = "main"
+      editPage        = true
+      lastMod         = true
+      lastModRelative = true
 
-        sidebarIcons    = true
-        breadcrumbs     = true
-        backToTop       = true
+      sidebarIcons    = true
+      breadcrumbs     = true
+      backToTop       = true
 
-        # ToC
-        toc             = true
-        tocMobile       = true
-        scrollSpy       = true
+      # ToC
+      toc             = true
+      tocMobile       = true
+      scrollSpy       = true
 
-        # front matter
-        descriptions    = true
-        titleIcon       = true
+      # front matter
+      descriptions    = true
+      titleIcon       = true
 
-        # content navigation
-        navDesc         = true
-        navDescTrunc    = 30
+      # content navigation
+      navDesc         = true
+      navDescTrunc    = 30
 
-        listDescTrunc   = 100
+      listDescTrunc   = 100
 
-        # Link behaviour
-        intLinkTooltip  = true
-        # extLinkNewTab   = false
-        # logoLinkURL = ".."
+      # Link behaviour
+      intLinkTooltip  = true
+      # extLinkNewTab   = false
+      # logoLinkURL = ".."
 
     [params.flexsearch] # Parameters for FlexSearch
-        enabled             = true
-        tokenize            = "full"
-        optimize            = true
+      enabled             = true
+      # tokenize            = "full"
+      # optimize            = true
+      # cache               = 100
+      # minQueryChar        = 3 # default is 0 (disabled)
+      # maxResult           = 5 # default is 5
+      # searchSectionsIndex = []
 
 [menu]
 [[menu.primary]]

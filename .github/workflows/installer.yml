@@ -18,15 +18,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Authenticate Github CLI
+      - name: Authenticate GitHub CLI
+        shell: bash
         run: |
-          Write-Output $Env:GITHUB_TOKEN | gh auth login --with-token
+          echo "$GITHUB_TOKEN" | gh auth login --with-token
 
       - name: Download cli-windows-x86_64.exe from this release
         run: |
-          gh release download "${{ github.event.release.tag_name }}" \
-            --pattern cli-windows-x86_64.exe \
-            --dir .
+          gh release download "${{ github.event.release.tag_name }}" --pattern cli-windows-x86_64.exe --dir .
 
       - name: Copy ICO into workspace root
         run: |
@@ -38,7 +37,7 @@ jobs:
       - name: Build Windows Installer
         run: |
           iscc cli\setup.iss /Ooutput
-    
+
       - name: Upload Windows Installer to Release
         uses: softprops/action-gh-release@v2
         with:

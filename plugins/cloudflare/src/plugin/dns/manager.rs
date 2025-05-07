@@ -33,6 +33,9 @@ impl Records {
     pub fn new(config: &Config) -> Self {
         let mut zones: HashMap<String, Zone> = HashMap::new();
         for entry in &config.entries {
+            if entry.zone.is_empty() {
+                continue;
+            }
             zones
                 .entry(entry.zone.clone())
                 .or_default()
@@ -40,7 +43,7 @@ impl Records {
                 .entry(entry.clone())
                 .or_default();
         }
-        info!("Found {} unique zones", zones.len());
+        info!("Found {} unique zone(s)", zones.len());
         Self { zones }
     }
 

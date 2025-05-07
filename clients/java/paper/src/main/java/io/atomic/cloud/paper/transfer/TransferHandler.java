@@ -7,6 +7,7 @@ import io.atomic.cloud.paper.CloudPlugin;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 @RequiredArgsConstructor
 public class TransferHandler implements StreamObserver<Transfer.TransferRes> {
@@ -47,7 +48,10 @@ public class TransferHandler implements StreamObserver<Transfer.TransferRes> {
     }
 
     @Override
-    public void onError(Throwable throwable) {
+    public void onError(@NotNull Throwable throwable) {
+        if (throwable.getMessage().contains("CANCELLED")) {
+            return;
+        }
         CloudPlugin.LOGGER.error("Failed to handle transfer request", throwable);
     }
 

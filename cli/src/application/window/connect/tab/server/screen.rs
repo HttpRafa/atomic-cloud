@@ -1,8 +1,8 @@
 use std::{
-    fmt::{Display, Formatter},
-    sync::Arc,
+    fmt::{Display, Formatter}, sync::Arc
 };
 
+use ansi_parser::{AnsiParser, AnsiSequence, Output};
 use ansi_to_tui::IntoText;
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -130,7 +130,7 @@ impl Window for ScreenTab {
                     if line.is_empty() {
                         continue;
                     }
-                    if let Ok(text) = line.into_text() {
+                    if let Ok(text) = clean_ansi(&line).into_text() {
                         for line in text {
                             self.lines.push(line);
                         }
@@ -303,4 +303,21 @@ impl Display for common_server::Short {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}", self.name)
     }
+}
+
+fn is_allowed_escape(sequence: &AnsiSequence) -> bool {
+    match sequence {
+        AnsiSequence::SetGraphicsMode(_) => true,
+        _ => false,
+    }
+}
+
+fn clean_ansi(input: &str) -> String {
+    input.ansi_parse()
+        .filter_map(|item| match item {
+            Output::TextBlock(text) => Some(text.to_string()),
+            Output::Escape(sequence) if is_allowed_escape(&sequence) => Some(sequence.to_string()),
+            _ => None,
+        })
+        .collect()
 }

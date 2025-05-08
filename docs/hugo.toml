@@ -66,7 +66,7 @@ defaultContentLanguage = "en"
       # gitinfo
       repoURL         = "https://github.com/HttpRafa/atomic-cloud"
       repoBranch      = "main"
-      editPage        = true
+      editPage        = false # Not working because of the mono repo
       lastMod         = true
       lastModRelative = true
 

@@ -6,5 +6,4 @@ icon: quick_reference_all
 date: 2025-05-07T21:40:36+02:00
 lastmod: 2025-05-07T21:40:36+02:00
 draft: false
-fmContentType: default
 ---

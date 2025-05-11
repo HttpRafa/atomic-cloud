@@ -12,7 +12,6 @@ tags:
     - Starter
 categories:
     - ""
-fmContentType: default
 ---
 
 Willkommen bei den Atomic Cloud Docs. In diesem Guide zeigen wir dir, wie du mit Atomic Cloud schnell und einfach ein eigenes Netzwerk für Minecraft oder andere Spiele aufbauen kannst. Außerdem stellen wir dir alle Features und verfügbaren Module von Atomic Cloud vor, damit du dir genau die Funktionen zusammenstellen kannst, die du für dein Netzwerk brauchst.

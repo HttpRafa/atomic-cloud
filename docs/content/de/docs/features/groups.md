@@ -1,5 +1,6 @@
-+++
-date = '2025-05-08T09:07:44+02:00'
-draft = true
-title = 'Groups'
-+++
+---
+weight: 100
+date: 2025-05-08T09:08:06+02:00
+draft: true
+title: Groups
+---

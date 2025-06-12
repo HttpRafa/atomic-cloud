@@ -1,5 +1,5 @@
 ---
-weight: 600
+weight: 300
 title: Funktionen
 description: Ein Guide zu allen wichtigen Kern Funktionen in Atomic Cloud.
 icon: auto_awesome

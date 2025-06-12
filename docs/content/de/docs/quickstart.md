@@ -1,5 +1,5 @@
 ---
-weight: 300
+weight: 200
 title: Schnellstart
 description: Eine Anleitung, um mit Atomic Cloud schnell loszulegen.
 icon: rocket_launch
@@ -78,7 +78,7 @@ Lade die Datei `controller-windows-x86_64.exe` manuell auf der GitHub-[Releases]
 {{% /tab %}}
 {{< /tabs >}}
 
-## Controller starten
+## Controller starten {#controller-start}
 
 {{< tabs tabTotal="3">}}
 {{% tab tabName="Linux" %}}
@@ -120,6 +120,10 @@ Nachdem du die Binärdatei in den Ordner verschoben hast, in dem du die Cloud in
 {{% /tab %}}
 {{< /tabs >}}
 
+### Beispiel
+
+![Startup](/images/controller/startup.png)
+
 ## CLI installieren
 
 Als nächstest müssen wir die CLI für die Cloud installieren. Die CLI emöglicht es uns mit dem Controller zu reden ohne SSH zugriff zu benötigen was bei der Rechte verteilung wichtig ist.
@@ -150,3 +154,9 @@ Lade die Datei `cli-windows-x86_64.exe` manuell auf der GitHub-[Releases](https:
 
 {{% /tab %}}
 {{< /tabs >}}
+
+## CLI Einrichten
+
+Nachdem wir die CLI installiert haben können wir sie starten. Der start vorgang ist sehr iden tische wie von dem Controller. Verfolge die selben anweisungen aber passe die Datei die du ausführst an zu der CLI binär datei. Siehe: [Controller starten](#controller-start)
+
+### Verbindung informationen eintragen

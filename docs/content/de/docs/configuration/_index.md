@@ -1,5 +1,5 @@
 ---
-weight: 700
+weight: 500
 title: Konfigurationsdateien
 description: Ein Guide zu allen wichtigen Konfigurationsdateien in Atomic Cloud.
 icon: quick_reference_all

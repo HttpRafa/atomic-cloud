@@ -32,7 +32,7 @@ futures = "0.3.31"
 
 # Network
 sha2 = "0.10.9"
-prost = "0.13.5"
+prost = "0.14.1"
 tower = "0.5.2"
 hyper = "1.6.0"
 hyper-util = "0.1.11"

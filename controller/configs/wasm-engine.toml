@@ -1,5 +1,4 @@
 # For more settings, please refer to the documentation:
-# https://bytecodealliance.github.io/wasmtime/cli-cache.html
+# https://docs.wasmtime.dev/cli-cache.html
 
 [cache]
-enabled = true

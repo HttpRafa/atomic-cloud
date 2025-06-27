@@ -10,7 +10,10 @@ use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
 use wasmtime::{component::ResourceAny, AsContextMut, Engine, Store};
-use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi::{
+    p2::{IoView, WasiCtx, WasiView},
+    ResourceTable,
+};
 
 use crate::{
     application::{
@@ -182,7 +185,7 @@ impl GenericPlugin for Plugin {
         }
 
         self.instance
-            .resource_drop_async(store.as_context_mut())
+            .resource_drop_async::<ResourceAny>(store.as_context_mut())
             .await?;
         self.dropped = true;
 

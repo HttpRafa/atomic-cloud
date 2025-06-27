@@ -152,7 +152,9 @@ impl PluginListener {
     }
 
     pub async fn cleanup(&mut self, store: impl AsContextMut<Data = PluginState>) -> Result<()> {
-        self.instance.resource_drop_async(store).await?;
+        self.instance
+            .resource_drop_async::<ResourceAny>(store)
+            .await?;
         self.dropped = true;
 
         Ok(())

@@ -169,7 +169,7 @@ impl GenericNode for PluginNode {
 
     async fn cleanup(&mut self) -> Result<()> {
         self.instance
-            .resource_drop_async(self.store.lock().await.as_context_mut())
+            .resource_drop_async::<ResourceAny>(self.store.lock().await.as_context_mut())
             .await?;
         self.dropped = true;
 

@@ -14,25 +14,25 @@ simplelog = { version = "0.12.2", features = ["paris"] }
 anyhow = "1.0.98"
 
 # Signal handling
-ctrlc = "3.4.6"
+ctrlc = "3.4.7"
 
 # User system
-uuid = { version = "1.16.0", features = ["v4"] }
+uuid = { version = "1.17.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.37", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 
 # Regex parsing
 regex = "1.11.1"
 
 # Async runtime
-tokio = { version = "1.45.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
 tonic = { version = "0.13.1", features = ["tls-ring"] }
 url = "2.5.4"
-prost = "0.14.1"
+prost = "0.13.5"
 
 [build-dependencies]
-toml = "0.8.22"
+toml = "0.8.23"
 tonic-build = "0.13.1"

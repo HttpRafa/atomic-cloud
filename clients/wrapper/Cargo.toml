@@ -31,7 +31,7 @@ tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread", "macros", "pr
 # API
 tonic = { version = "0.13.1", features = ["tls-ring"] }
 url = "2.5.4"
-prost = "0.13.5"
+prost = "0.14.1"
 
 [build-dependencies]
 toml = "0.9.2"

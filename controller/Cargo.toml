@@ -42,7 +42,7 @@ futures = "0.3.31"
 tonic = { version = "0.13.1", features = ["tls-ring"] }
 url = { version = "2.5.4", features = ["serde"] }
 prost = "0.13.5"
-rcgen = "0.13.2"
+rcgen = "0.14.2"
 
 # Plugins
 wasmtime = { version = "34.0.1", default-features = false, features = ["addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }

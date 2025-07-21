@@ -5,10 +5,10 @@ plugins {
     id("cloud-format")
     id("cloud-rpc")
 
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.16"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
 
     // Shadow (Only for relocating dependencies)
-    id("com.gradleup.shadow") version "9.0.0-beta11"
+    id("com.gradleup.shadow") version "9.0.0-rc1"
 }
 
 repositories {

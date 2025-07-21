@@ -8,26 +8,26 @@ use power::RequestStopTask;
 use resource::{DeleteResourceTask, SetResourceTask};
 use server::{GetServerFromNameTask, GetServerTask, GetServersTask, ScheduleServerTask};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{async_trait, Request, Response, Status};
+use tonic::{Request, Response, Status, async_trait};
 use transfer::TransferUsersTask;
 use user::{GetUserFromNameTask, GetUserTask, GetUsersTask, UserCountTask};
 use uuid::Uuid;
 
 use crate::{
+    VERSION,
     application::{
-        auth::{permissions::Permissions, AuthType},
+        Shared,
+        auth::{AuthType, permissions::Permissions},
         group::{ScalingPolicy, StartConstraints},
         node::Capabilities,
         server::{DiskRetention, FallbackPolicy, Resources, Specification},
         subscriber::Subscriber,
         user::transfer::TransferTarget,
-        Shared,
     },
     task::{
         manager::TaskSender,
-        network::{TonicTask, INSUFFICIENT_PERMISSIONS_MESSAGE},
+        network::{INSUFFICIENT_PERMISSIONS_MESSAGE, TonicTask},
     },
-    VERSION,
 };
 
 use super::proto::{
@@ -40,7 +40,7 @@ use super::proto::{
         manage_service_server::ManageService,
         resource::{Category, DelReq, SetReq},
         screen::{Lines, WriteReq},
-        transfer::{target::Type, TransferReq},
+        transfer::{TransferReq, target::Type},
     },
 };
 
@@ -208,7 +208,7 @@ impl ManageService for ManageServiceImpl {
                                     Err(_) => {
                                         return Err(Status::invalid_argument(
                                             "Invalid controller address provided",
-                                        ))
+                                        ));
                                     }
                                 }
                             }
@@ -330,7 +330,7 @@ impl ManageService for ManageServiceImpl {
                                     Err(_) => {
                                         return Err(Status::invalid_argument(
                                             "Invalid disk retention provided",
-                                        ))
+                                        ));
                                     }
                                 }
                             } else {
@@ -431,7 +431,7 @@ impl ManageService for ManageServiceImpl {
                                     Err(_) => {
                                         return Err(Status::invalid_argument(
                                             "Invalid disk retention provided",
-                                        ))
+                                        ));
                                     }
                                 }
                             } else {
@@ -549,7 +549,7 @@ impl ManageService for ManageServiceImpl {
                                     Err(_) => {
                                         return Err(Status::invalid_argument(
                                             "Invalid disk retention provided",
-                                        ))
+                                        ));
                                     }
                                 }
                             } else {
@@ -767,7 +767,7 @@ impl ManageService for ManageServiceImpl {
                                         Err(_) => {
                                             return Err(Status::invalid_argument(
                                                 "Invalid UUID provided",
-                                            ))
+                                            ));
                                         }
                                     })
                                 }
@@ -775,13 +775,13 @@ impl ManageService for ManageServiceImpl {
                                 _ => {
                                     return Err(Status::invalid_argument(
                                         "Invalid target type combination",
-                                    ))
+                                    ));
                                 }
                             },
                             Err(_) => {
                                 return Err(Status::invalid_argument(
                                     "Invalid target type provided",
-                                ))
+                                ));
                             }
                         },
                         None => return Err(Status::invalid_argument("Missing target")),

@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::{Result, eyre};
 use directories::ProjectDirs;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use tokio::fs;
 
 /* Profiles */

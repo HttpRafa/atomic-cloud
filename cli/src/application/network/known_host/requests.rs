@@ -1,13 +1,13 @@
 use std::{
     collections::VecDeque,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
     vec,
 };
 
-use tokio::sync::oneshot::{channel, Sender};
+use tokio::sync::oneshot::{Sender, channel};
 
 use super::KnownHost;
 
@@ -60,7 +60,7 @@ impl RequestTracker {
 
     pub fn cleanup(&self) {
         let mut cache = self.open.write().expect("Failed to lock open cache");
-        cache.retain(|request| !request.0 .0.load(Ordering::Relaxed));
+        cache.retain(|request| !request.0.0.load(Ordering::Relaxed));
         if cache.is_empty() {
             for sender in self
                 .watcher
@@ -83,11 +83,11 @@ impl TrustRequest {
     }
 
     pub fn complete(&self) {
-        self.0 .0.store(true, Ordering::Relaxed);
+        self.0.0.store(true, Ordering::Relaxed);
     }
 
     pub fn get_host(&self) -> &KnownHost {
-        &self.0 .1
+        &self.0.1
     }
 }
 

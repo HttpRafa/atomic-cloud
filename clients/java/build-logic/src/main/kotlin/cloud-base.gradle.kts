@@ -1,5 +1,3 @@
-import gradle.kotlin.dsl.accessors._9994178b0534ad6129be0f302527175d.java
-
 plugins {
     java
 }

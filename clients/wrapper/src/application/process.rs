@@ -1,4 +1,4 @@
-use std::process::{exit, ExitStatus, Stdio};
+use std::process::{ExitStatus, Stdio, exit};
 
 use anyhow::Result;
 use simplelog::{error, info};

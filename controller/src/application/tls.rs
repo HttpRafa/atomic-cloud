@@ -14,7 +14,9 @@ impl TlsSetting {
             info!("Loading TLS certificate...");
             Some(Tls::load_server_identity(config.tls_alt_names()).await?)
         } else {
-            warn!("TLS is disabled. NOTE: This is not recommended for production use if you dont have a reverse proxy in front of the controller.");
+            warn!(
+                "TLS is disabled. NOTE: This is not recommended for production use if you dont have a reverse proxy in front of the controller."
+            );
             None
         };
         Ok(Self { tls })

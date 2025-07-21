@@ -7,7 +7,7 @@ use url::Url;
 
 use super::{
     node::Capabilities,
-    server::{guard::Guard, manager::StartRequest, screen::BoxedScreen, Server},
+    server::{Server, guard::Guard, manager::StartRequest, screen::BoxedScreen},
 };
 
 pub mod manager;

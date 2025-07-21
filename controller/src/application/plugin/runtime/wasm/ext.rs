@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use crate::storage::Storage;
 
 use super::{
+    PluginState,
     generated::plugin::system::{
         self,
         types::{Directory, Reference},
     },
-    PluginState,
 };
 
 mod file;

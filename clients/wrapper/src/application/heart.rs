@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use simplelog::error;
-use tokio::time::{interval, Interval};
+use tokio::time::{Interval, interval};
 
 use super::network::CloudConnection;
 

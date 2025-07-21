@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use url::Url;
 
 use crate::plugin::config::Config;

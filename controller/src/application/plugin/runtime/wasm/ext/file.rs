@@ -1,13 +1,13 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tokio::fs::remove_dir_all;
 
 use crate::application::plugin::runtime::wasm::{
+    PluginState,
     config::Permissions,
     generated::plugin::system::{
         self,
         types::{Directory, ErrorMessage},
     },
-    PluginState,
 };
 
 impl system::file::Host for PluginState {

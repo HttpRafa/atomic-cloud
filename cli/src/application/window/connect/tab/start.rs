@@ -15,13 +15,13 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::connection::EstablishedConnection,
     util::{
-        list::ActionList, ERROR_SELECTED_COLOR, INFO_SELECTED_COLOR, OK_SELECTED_COLOR,
-        TEXT_FG_COLOR,
+        ERROR_SELECTED_COLOR, INFO_SELECTED_COLOR, OK_SELECTED_COLOR, TEXT_FG_COLOR,
+        list::ActionList,
     },
     window::{StackBatcher, Window},
-    State,
 };
 
 use super::{

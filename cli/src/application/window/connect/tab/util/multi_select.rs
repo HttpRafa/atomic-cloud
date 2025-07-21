@@ -11,9 +11,9 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    util::{center::CenterWarning, list::ActionList, OK_SELECTED_COLOR, TEXT_FG_COLOR},
-    window::{StackBatcher, Window, WindowUtils},
     State,
+    util::{OK_SELECTED_COLOR, TEXT_FG_COLOR, center::CenterWarning, list::ActionList},
+    window::{StackBatcher, Window, WindowUtils},
 };
 
 type Callback<T> =

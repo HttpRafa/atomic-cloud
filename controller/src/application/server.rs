@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::network::client::TransferMsg;
 
-use super::{node::Allocation, Shared};
+use super::{Shared, node::Allocation};
 
 pub mod guard;
 pub mod manager;

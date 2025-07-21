@@ -15,13 +15,12 @@ pub struct CloudInit;
 
 impl CloudInit {
     pub fn init_logging(debug: bool, minimal: bool, log_file: PathBuf) {
-        if let Some(parent) = log_file.parent() {
-            if !parent.exists() {
-                if let Err(error) = fs::create_dir_all(parent) {
-                    println!("Failed to create logs directory: {}", &error);
-                    exit(1);
-                }
-            }
+        if let Some(parent) = log_file.parent()
+            && !parent.exists()
+            && let Err(error) = fs::create_dir_all(parent)
+        {
+            println!("Failed to create logs directory: {}", &error);
+            exit(1);
         }
 
         Self::init_logging_with_writeable(

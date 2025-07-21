@@ -12,8 +12,9 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
-        connection::{task::EmptyTask, EstablishedConnection},
+        connection::{EstablishedConnection, task::EmptyTask},
         proto::{common::common_group, manage::group},
     },
     util::{
@@ -21,10 +22,9 @@ use crate::application::{
         status::{Status, StatusDisplay},
     },
     window::{
-        connect::tab::{global::delete::AUTO_CLOSE_AFTER, util::fetch::FetchWindow},
         StackBatcher, Window,
+        connect::tab::{global::delete::AUTO_CLOSE_AFTER, util::fetch::FetchWindow},
     },
-    State,
 };
 
 mod basic;

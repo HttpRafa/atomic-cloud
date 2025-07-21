@@ -12,13 +12,13 @@ use serde::Serialize;
 use tonic::async_trait;
 
 use crate::{
+    VERSION,
     application::{
+        State,
         network::connection::EstablishedConnection,
         util::fancy_toml::FancyToml,
-        window::{connect::tab::util::fetch::FetchWindow, StackBatcher, Window},
-        State,
+        window::{StackBatcher, Window, connect::tab::util::fetch::FetchWindow},
     },
-    VERSION,
 };
 
 pub struct VersionTab {

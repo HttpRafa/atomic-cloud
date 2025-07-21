@@ -10,10 +10,10 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::{task::EmptyTask, EstablishedConnection},
-    util::status::{Status, StatusDisplay},
-    window::{connect::tab::util::confirm::ConfirmWindow, StackBatcher, Window},
     State,
+    network::connection::{EstablishedConnection, task::EmptyTask},
+    util::status::{Status, StatusDisplay},
+    window::{StackBatcher, Window, connect::tab::util::confirm::ConfirmWindow},
 };
 
 use super::delete::AUTO_CLOSE_AFTER;

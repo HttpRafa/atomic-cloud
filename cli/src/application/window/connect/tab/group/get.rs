@@ -14,16 +14,16 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::{common::common_group, manage::group},
     },
     util::fancy_toml::FancyToml,
     window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
     },
-    State,
 };
 
 pub struct GetGroupTab {

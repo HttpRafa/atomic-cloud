@@ -1,14 +1,12 @@
 use std::{fs, path::Path};
 
 use anyhow::Result;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 pub trait SyncSaveToTomlFile: Serialize {
     fn save(&self, path: &Path, create_parent: bool) -> Result<()> {
-        if create_parent {
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
-            }
+        if create_parent && let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
         }
         fs::write(path, toml::to_string(self)?)?;
         Ok(())

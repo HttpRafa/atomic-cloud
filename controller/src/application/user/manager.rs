@@ -28,17 +28,17 @@ impl UserManager {
     pub fn remove_users_on_server(&mut self, server: &Uuid) -> u32 {
         let mut amount = 0;
         self.users.retain(|_, user| {
-            if let CurrentServer::Connected(current) = &user.server {
-                if current.uuid() == server {
-                    info!(
-                        "User {}[{}] disconnected from server {}",
-                        user.id,
-                        user.id.uuid().to_string(),
-                        current.name(),
-                    );
-                    amount += 1;
-                    return false;
-                }
+            if let CurrentServer::Connected(current) = &user.server
+                && current.uuid() == server
+            {
+                info!(
+                    "User {}[{}] disconnected from server {}",
+                    user.id,
+                    user.id.uuid().to_string(),
+                    current.name(),
+                );
+                amount += 1;
+                return false;
             }
             true
         });
@@ -92,20 +92,20 @@ impl UserManager {
         server.set_connected_users(server.connected_users() - 1);
 
         // Update internal user list
-        if let Some(user) = self.users.get(uuid) {
-            if let CurrentServer::Connected(current) = &user.server {
-                // Verify that the user is connected to the server
-                if current.uuid() == server.id().uuid() {
-                    info!(
-                        "User {}[{}] disconnected from server {}",
-                        user.id,
-                        user.id.uuid().to_string(),
-                        server.id(),
-                    );
-                    self.users.remove(uuid);
-                } else {
-                    return ActionResult::Denied;
-                }
+        if let Some(user) = self.users.get(uuid)
+            && let CurrentServer::Connected(current) = &user.server
+        {
+            // Verify that the user is connected to the server
+            if current.uuid() == server.id().uuid() {
+                info!(
+                    "User {}[{}] disconnected from server {}",
+                    user.id,
+                    user.id.uuid().to_string(),
+                    server.id(),
+                );
+                self.users.remove(uuid);
+            } else {
+                return ActionResult::Denied;
             }
         }
         ActionResult::Allowed
@@ -137,16 +137,16 @@ impl UserManager {
     #[allow(clippy::unnecessary_wraps)]
     pub fn tick(&mut self, config: &Config) -> Result<()> {
         self.users.retain(|_, user| {
-            if let CurrentServer::Transfering((timestamp, to)) = &user.server {
-                if timestamp.elapsed() >= *config.transfer_timeout() {
-                    warn!(
-                        "User {}[{}] transfer to server {} timed out",
-                        user.id,
-                        user.id.uuid(),
-                        to,
-                    );
-                    return false;
-                }
+            if let CurrentServer::Transfering((timestamp, to)) = &user.server
+                && timestamp.elapsed() >= *config.transfer_timeout()
+            {
+                warn!(
+                    "User {}[{}] transfer to server {} timed out",
+                    user.id,
+                    user.id.uuid(),
+                    to,
+                );
+                return false;
             }
             true
         });

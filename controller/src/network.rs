@@ -12,7 +12,7 @@ use proto::{
 use simplelog::info;
 use tokio::{
     spawn,
-    sync::watch::{channel, Receiver, Sender},
+    sync::watch::{Receiver, Sender, channel},
     task::JoinHandle,
 };
 use tonic::transport::{Identity, Server, ServerTlsConfig};

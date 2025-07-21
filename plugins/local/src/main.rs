@@ -11,7 +11,7 @@ use generated::{
     },
 };
 use listener::Listener;
-use node::{screen::Screen, Node};
+use node::{Node, screen::Screen};
 use plugin::Local;
 
 mod listener;

@@ -14,16 +14,16 @@ use tonic::async_trait;
 use url::Url;
 
 use crate::application::{
+    State,
     network::{connection::EstablishedConnection, proto::manage::plugin},
     util::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
     window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window, WindowUtils,
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
     },
-    State,
 };
 
 use super::capabilities::CapabilitiesWindow;
@@ -43,7 +43,23 @@ pub struct BasicWindow<'a> {
 
 impl BasicWindow<'_> {
     pub fn new(connection: Arc<EstablishedConnection>, nodes: Vec<String>) -> Self {
-        Self { connection, status: StatusDisplay::new(Status::Error, ""), current: true, name: SimpleTextArea::new_selected(nodes, "Name", "Please enter the name of the node", SimpleTextArea::already_exists_validation), url: SimpleTextArea::new((), "URL of Controller (From the servers perspective)", "Please enter the url of the controller from the perspective of a started server on the node", SimpleTextArea::type_validation::<Url>) }
+        Self {
+            connection,
+            status: StatusDisplay::new(Status::Error, ""),
+            current: true,
+            name: SimpleTextArea::new_selected(
+                nodes,
+                "Name",
+                "Please enter the name of the node",
+                SimpleTextArea::already_exists_validation,
+            ),
+            url: SimpleTextArea::new(
+                (),
+                "URL of Controller (From the servers perspective)",
+                "Please enter the url of the controller from the perspective of a started server on the node",
+                SimpleTextArea::type_validation::<Url>,
+            ),
+        }
     }
 }
 

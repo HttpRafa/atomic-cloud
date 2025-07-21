@@ -133,7 +133,7 @@ where
             .view
             .iter()
             .map(|index| {
-                let color = if index % 2 == 0 {
+                let color = if index.is_multiple_of(2) {
                     NORMAL_ROW_BG
                 } else {
                     ALT_ROW_BG_COLOR

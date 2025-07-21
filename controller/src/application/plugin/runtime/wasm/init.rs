@@ -5,15 +5,15 @@ use common::error::FancyError;
 use simplelog::{debug, error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
-    component::{Component, Linker},
-    Engine, Store,
+    Cache, Engine, Store,
+    component::{Component, HasSelf, Linker},
 };
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
+use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, p2::WasiCtxBuilder};
 
 use crate::{
     application::{
-        plugin::{runtime::source::Source, BoxedPlugin, Features, GenericPlugin},
         Shared,
+        plugin::{BoxedPlugin, Features, GenericPlugin, runtime::source::Source},
     },
     config::Config,
     storage::Storage,
@@ -21,9 +21,10 @@ use crate::{
 };
 
 use super::{
-    config::{verify_engine_config, Permissions, PluginsConfig},
+    Plugin, PluginState,
+    config::{Permissions, PluginsConfig, verify_engine_config},
     epoch::EpochInvoker,
-    generated, Plugin, PluginState,
+    generated,
 };
 
 #[allow(clippy::too_many_lines)]
@@ -183,16 +184,24 @@ impl Plugin {
             .wasm_component_model(true)
             .async_support(true)
             .epoch_interruption(true);
-        if let Err(error) = engine_config.cache_config_load(Storage::wasm_engine_config_file()) {
-            warn!("Failed to enable caching for wasmtime engine: {}", error);
+        match Cache::from_file(Some(&Storage::wasm_engine_config_file())) {
+            Ok(cache) => {
+                engine_config.cache(Some(cache));
+            }
+            Err(error) => {
+                warn!("Failed to enable caching for wasmtime engine: {}", error);
+            }
         }
 
         let engine = Engine::new(&engine_config)?;
         let component = Component::from_binary(&engine, source.get_source())?;
 
         let mut linker = Linker::new(&engine);
-        wasmtime_wasi::add_to_linker_async(&mut linker)?;
-        generated::Plugin::add_to_linker(&mut linker, |state: &mut PluginState| state)?;
+        wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+        generated::Plugin::add_to_linker::<_, HasSelf<_>>(
+            &mut linker,
+            |state: &mut PluginState| state,
+        )?;
 
         let mut wasi = WasiCtxBuilder::new();
         let mut permissions = Permissions::empty();

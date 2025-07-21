@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::error::FancyError;
 use config::Permissions;
 use generated::{exports::plugin::system::bridge, plugin::system::data_types};
@@ -9,14 +9,17 @@ use node::PluginNode;
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
-use wasmtime::{component::ResourceAny, AsContextMut, Engine, Store};
-use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
+use wasmtime::{AsContextMut, Engine, Store, component::ResourceAny};
+use wasmtime_wasi::{
+    ResourceTable,
+    p2::{IoView, WasiCtx, WasiView},
+};
 
 use crate::{
     application::{
+        Shared,
         node::Capabilities,
         plugin::{BoxedNode, Features, GenericPlugin, Information},
-        Shared,
     },
     task::manager::TaskSender,
 };
@@ -126,11 +129,16 @@ impl GenericPlugin for Plugin {
                 .await
             {
                 Ok(result) => result.map_err(|errors| {
-                    anyhow!(errors
-                        .iter()
-                        .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
-                        .collect::<Vec<_>>()
-                        .join("\n"))
+                    anyhow!(
+                        errors
+                            .iter()
+                            .map(|error| format!(
+                                "Scope: {}, Message: {}",
+                                error.scope, error.message
+                            ))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    )
                 }),
                 Err(error) => Err(error),
             }
@@ -158,11 +166,16 @@ impl GenericPlugin for Plugin {
                 .await
             {
                 Ok(result) => result.map_err(|errors| {
-                    anyhow!(errors
-                        .iter()
-                        .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
-                        .collect::<Vec<_>>()
-                        .join("\n"))
+                    anyhow!(
+                        errors
+                            .iter()
+                            .map(|error| format!(
+                                "Scope: {}, Message: {}",
+                                error.scope, error.message
+                            ))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    )
                 }),
                 Err(error) => Err(error),
             }
@@ -182,7 +195,7 @@ impl GenericPlugin for Plugin {
         }
 
         self.instance
-            .resource_drop_async(store.as_context_mut())
+            .resource_drop_async::<ResourceAny>(store.as_context_mut())
             .await?;
         self.dropped = true;
 

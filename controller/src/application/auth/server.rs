@@ -2,7 +2,7 @@ use getset::Getters;
 use uuid::Uuid;
 
 use super::{
-    permissions::Permissions, user::AdminUser, AuthType, GenericAuthorization, OwnedAuthorization,
+    AuthType, GenericAuthorization, OwnedAuthorization, permissions::Permissions, user::AdminUser,
 };
 
 #[derive(Getters)]

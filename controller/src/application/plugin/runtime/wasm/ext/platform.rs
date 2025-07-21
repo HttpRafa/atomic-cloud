@@ -1,8 +1,8 @@
 use anyhow::Result;
 
 use crate::application::plugin::runtime::wasm::{
-    generated::plugin::system::{self, platform::Os},
     PluginState,
+    generated::plugin::system::{self, platform::Os},
 };
 
 impl system::platform::Host for PluginState {

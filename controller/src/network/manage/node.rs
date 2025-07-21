@@ -1,14 +1,14 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 use url::Url;
 
 use crate::{
     application::{
-        node::{Capabilities, Node},
         Controller,
+        node::{Capabilities, Node},
     },
     network::proto::manage::node::{self, Detail, List, Short},
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct CreateNodeTask(pub String, pub String, pub Capabilities, pub Url);

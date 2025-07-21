@@ -11,13 +11,13 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    util::{list::ActionList, ERROR_SELECTED_COLOR, OK_SELECTED_COLOR, TEXT_FG_COLOR},
     State,
+    util::{ERROR_SELECTED_COLOR, OK_SELECTED_COLOR, TEXT_FG_COLOR, list::ActionList},
 };
 
 use super::{
-    connect::ConnectWindow, create::CreateWindow, delete::DeleteWindow, StackBatcher, Window,
-    WindowUtils,
+    StackBatcher, Window, WindowUtils, connect::ConnectWindow, create::CreateWindow,
+    delete::DeleteWindow,
 };
 
 pub struct StartWindow {

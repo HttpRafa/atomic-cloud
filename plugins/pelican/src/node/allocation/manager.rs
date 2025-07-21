@@ -7,7 +7,7 @@ use crate::{
         exports::plugin::system::bridge::{Address, ServerProposal},
         plugin::system::data_types::DiskRetention,
     },
-    node::{backend::allocation::data::BAllocation, InnerNode},
+    node::{InnerNode, backend::allocation::data::BAllocation},
     warn,
 };
 
@@ -39,7 +39,10 @@ impl AllocationManager {
                     .get_allocations_by_server(&backend_server.identifier);
 
                 if (allocations.1.len() + 1) != required {
-                    warn!("The server {} has a different amount of addresses than the panel has allocated. This may cause issues.", server.name);
+                    warn!(
+                        "The server {} has a different amount of addresses than the panel has allocated. This may cause issues.",
+                        server.name
+                    );
                     // TODO: Add a way to fix this
                 }
 
@@ -51,8 +54,7 @@ impl AllocationManager {
             }
         }
 
-        let allocations = node
-            .backend
+        node.backend
             .get_free_allocations(&self.allocations, required)
             .iter()
             .map(|allocation| {
@@ -62,8 +64,7 @@ impl AllocationManager {
                     port: allocation.port,
                 }
             })
-            .collect();
-        allocations
+            .collect()
     }
 
     pub fn free(&mut self, addresses: Vec<Address>) {

@@ -10,10 +10,10 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    network::connection::{task::NetworkTask, EstablishedConnection},
+    State,
+    network::connection::{EstablishedConnection, task::NetworkTask},
     util::status::{Status, StatusDisplay},
     window::{StackBatcher, Window},
-    State,
 };
 
 type Callback<T> = Box<

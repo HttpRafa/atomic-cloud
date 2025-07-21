@@ -3,7 +3,7 @@ use tonic::async_trait;
 
 use crate::{
     application::Controller,
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct RequestStopTask();

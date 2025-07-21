@@ -10,6 +10,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::manage::group::{Detail, Scaling},
@@ -19,7 +20,6 @@ use crate::application::{
         status::{Status, StatusDisplay},
     },
     window::{StackBatcher, Window, WindowUtils},
-    State,
 };
 
 use super::resources::ResourcesWindow;

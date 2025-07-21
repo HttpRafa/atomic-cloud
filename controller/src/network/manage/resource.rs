@@ -1,11 +1,11 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 use uuid::Uuid;
 
 use crate::{
-    application::{server::manager::StopRequest, Controller},
+    application::{Controller, server::manager::StopRequest},
     network::proto::manage::resource::Category,
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct SetResourceTask(pub Category, pub String, pub bool);

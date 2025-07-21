@@ -6,8 +6,8 @@ use stored::StoredKnownHosts;
 use crate::storage::{LoadFromTomlFile, SaveToTomlFile, Storage};
 
 use super::{
-    requests::{RequestTracker, TrustRequest, TrustResult},
     KnownHost,
+    requests::{RequestTracker, TrustRequest, TrustResult},
 };
 
 #[derive(Default, Debug)]

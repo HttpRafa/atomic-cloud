@@ -9,9 +9,9 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    util::{button::SimpleButton, ERROR_COLOR, ERROR_SELECTED_COLOR, OK_COLOR, OK_SELECTED_COLOR},
-    window::{StackBatcher, Window},
     State,
+    util::{ERROR_COLOR, ERROR_SELECTED_COLOR, OK_COLOR, OK_SELECTED_COLOR, button::SimpleButton},
+    window::{StackBatcher, Window},
 };
 
 type Callback = Box<dyn FnOnce(bool, &mut StackBatcher, &mut State) -> Result<()> + Send + 'static>;

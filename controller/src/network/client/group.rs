@@ -1,10 +1,10 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 
 use crate::{
-    application::{group::Group, Controller},
+    application::{Controller, group::Group},
     network::proto::common::common_group::{List, Short},
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct GetGroupTask(pub String);

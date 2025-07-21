@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::{Result, eyre};
 use tokio::fs;
 
 use crate::{
-    application::profile::{stored::StoredProfile, Profile},
+    application::profile::{Profile, stored::StoredProfile},
     storage::Storage,
 };
 

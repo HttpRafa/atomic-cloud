@@ -15,6 +15,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::{
@@ -30,7 +31,6 @@ use crate::application::{
         status::{Status, StatusDisplay},
     },
     window::{StackBatcher, Window, WindowUtils},
-    State,
 };
 
 use super::CreateGroupTab;
@@ -278,18 +278,26 @@ impl SpecificationWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [image_area, max_players_area, settings_area, environment_area, retention_area, fallback_area, _, status_area] =
-            Layout::vertical([
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(1), // Empty space
-                Constraint::Fill(1),
-            ])
-            .areas(area);
+        let [
+            image_area,
+            max_players_area,
+            settings_area,
+            environment_area,
+            retention_area,
+            fallback_area,
+            _,
+            status_area,
+        ] = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(1), // Empty space
+            Constraint::Fill(1),
+        ])
+        .areas(area);
 
         self.image.render(image_area, buffer);
         self.max_players.render(max_players_area, buffer);

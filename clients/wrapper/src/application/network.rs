@@ -11,20 +11,20 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use tonic::{
-    transport::{Certificate, Channel, ClientTlsConfig},
     Request, Response, Status, Streaming,
+    transport::{Certificate, Channel, ClientTlsConfig},
 };
 
 pub mod proto {
     pub mod manage {
-        #![allow(clippy::all, clippy::pedantic)]
+        #![allow(dead_code, clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("client");
     }
 
     pub mod common {
-        #![allow(clippy::all, clippy::pedantic)]
+        #![allow(dead_code, clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("common");
@@ -59,7 +59,9 @@ impl CloudConnection {
                 exit(1);
             }
         } else {
-            error!("Missing CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller");
+            error!(
+                "Missing CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller"
+            );
             exit(1);
         }
 

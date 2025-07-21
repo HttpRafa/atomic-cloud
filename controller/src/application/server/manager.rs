@@ -12,14 +12,14 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, user::manager::UserManager,
-        OptVoter, Shared, Voter,
+        OptVoter, Shared, Voter, group::manager::GroupManager, node::manager::NodeManager,
+        user::manager::UserManager,
     },
     config::Config,
 };
 
 use super::{
-    guard::WeakGuard, screen::BoxedScreen, NameAndUuid, Resources, Server, Specification, State,
+    NameAndUuid, Resources, Server, Specification, State, guard::WeakGuard, screen::BoxedScreen,
 };
 
 mod action;
@@ -137,10 +137,17 @@ impl ServerManager {
             if server.heart.is_dead() {
                 match server.state {
                     State::Starting | State::Restarting => {
-                        warn!("Unit {} failed to establish online status within the expected startup time of {:.2?}.", server.id, config.restart_timeout());
+                        warn!(
+                            "Unit {} failed to establish online status within the expected startup time of {:.2?}.",
+                            server.id,
+                            config.restart_timeout()
+                        );
                     }
                     State::Running => {
-                        warn!("Server {} has not checked in for {:.2?}, indicating a potential error.", server.id, server.heart.timeout);
+                        warn!(
+                            "Server {} has not checked in for {:.2?}, indicating a potential error.",
+                            server.id, server.heart.timeout
+                        );
                     }
                     State::Stopping => continue, // We ignore that the server has not checked in because he is stopping
                 }
@@ -202,10 +209,11 @@ impl ServerManager {
             self.start_requests.extend(requests);
         }
 
-        if let Some(voter) = &mut self.voter {
-            if self.servers.is_empty() && voter.vote() {
-                info!("All servers have been stopped. Ready to stop...");
-            }
+        if let Some(voter) = &mut self.voter
+            && self.servers.is_empty()
+            && voter.vote()
+        {
+            info!("All servers have been stopped. Ready to stop...");
         }
 
         Ok(())

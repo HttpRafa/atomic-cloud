@@ -1,14 +1,14 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use simplelog::warn;
 use tokio::task::spawn_blocking;
 
 use crate::application::plugin::runtime::wasm::{
+    PluginState,
     config::Permissions,
     generated::plugin::system::{
         self,
         http::{Header, Method, Response},
     },
-    PluginState,
 };
 
 impl system::http::Host for PluginState {

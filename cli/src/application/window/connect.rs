@@ -12,15 +12,15 @@ use tab::TabsWindow;
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::connection::task::ConnectTask,
     profile::Profile,
     util::{
+        TEXT_FG_COLOR,
         center::CenterWarning,
         list::ActionList,
         status::{Status, StatusDisplay},
-        TEXT_FG_COLOR,
     },
-    State,
 };
 
 use super::{StackBatcher, Window, WindowUtils};

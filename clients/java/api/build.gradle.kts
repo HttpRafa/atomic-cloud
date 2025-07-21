@@ -8,7 +8,7 @@ plugins {
     id("cloud-publish")
 
     // Shadow (Only for including the API files into the jar)
-    id("com.gradleup.shadow") version "9.0.0-beta11"
+    id("com.gradleup.shadow") version "9.0.0-rc1"
 }
 
 tasks {

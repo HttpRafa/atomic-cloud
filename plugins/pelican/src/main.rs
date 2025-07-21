@@ -1,13 +1,12 @@
 #![no_main]
 #![warn(clippy::all, clippy::pedantic)]
-#![feature(let_chains)]
 
 use generated::{
     export,
     exports::plugin::system::{bridge, event, screen},
 };
 use listener::Listener;
-use node::{screen::Screen, Node};
+use node::{Node, screen::Screen};
 use plugin::Pelican;
 
 mod listener;

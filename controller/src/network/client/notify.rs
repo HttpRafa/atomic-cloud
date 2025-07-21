@@ -1,6 +1,6 @@
 use crate::{
     application::server::{Server, State},
-    network::proto::common::notify::{power_event, PowerEvent, ReadyEvent},
+    network::proto::common::notify::{PowerEvent, ReadyEvent, power_event},
 };
 
 impl From<&Server> for PowerEvent {

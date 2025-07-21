@@ -5,7 +5,7 @@ use tonic::Streaming;
 use uuid::Uuid;
 
 use super::{
-    network::{proto::manage::transfer::TransferRes, CloudConnectionHandle},
+    network::{CloudConnectionHandle, proto::manage::transfer::TransferRes},
     process::stdin::ManagedStdin,
     user::Users,
 };
@@ -28,7 +28,9 @@ impl Transfers {
         if let Ok(value) = std::env::var("TRANSFER_COMMAND") {
             transfer_command = value;
         } else {
-            error!("Missing TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received");
+            error!(
+                "Missing TRANSFER_COMMAND environment variable. Please set it to the command to execute when a transfer is received"
+            );
             exit(1);
         }
 
@@ -55,10 +57,10 @@ impl Transfers {
     }
 
     pub async fn next_message(&mut self) -> Option<TransferRes> {
-        if let Some(stream) = &mut self.stream {
-            if let Ok(result) = stream.message().await {
-                return result;
-            }
+        if let Some(stream) = &mut self.stream
+            && let Ok(result) = stream.message().await
+        {
+            return result;
         }
         None
     }

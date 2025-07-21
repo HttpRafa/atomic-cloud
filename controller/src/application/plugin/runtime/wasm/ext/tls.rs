@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::application::plugin::runtime::wasm::{generated::plugin::system, PluginState};
+use crate::application::plugin::runtime::wasm::{PluginState, generated::plugin::system};
 
 impl system::tls::Host for PluginState {
     async fn get_certificate(&mut self) -> Result<Option<String>> {

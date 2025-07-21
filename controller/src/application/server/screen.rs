@@ -1,6 +1,6 @@
 use anyhow::Result;
 use tokio::task::JoinHandle;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 
 pub mod manager;
 

@@ -10,6 +10,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::manage::{group::Detail, server::Resources},
@@ -19,7 +20,6 @@ use crate::application::{
         status::{Status, StatusDisplay},
     },
     window::{StackBatcher, Window, WindowUtils},
-    State,
 };
 
 use super::specification::SpecificationWindow;
@@ -260,18 +260,26 @@ impl ResourcesWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [memory_area, swap_area, cpu_area, io_area, disk_area, ports_area, _, status_area] =
-            Layout::vertical([
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(1), // Empty space
-                Constraint::Fill(1),
-            ])
-            .areas(area);
+        let [
+            memory_area,
+            swap_area,
+            cpu_area,
+            io_area,
+            disk_area,
+            ports_area,
+            _,
+            status_area,
+        ] = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(1), // Empty space
+            Constraint::Fill(1),
+        ])
+        .areas(area);
 
         self.memory.render(memory_area, buffer);
         self.swap.render(swap_area, buffer);

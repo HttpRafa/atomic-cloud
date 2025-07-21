@@ -2,8 +2,8 @@ use anyhow::Result;
 use tonic::async_trait;
 
 use crate::{
-    application::{auth::Authorization, Controller},
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    application::{Controller, auth::Authorization},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct SetReadyTask(pub Authorization, pub bool);

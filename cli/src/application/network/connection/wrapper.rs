@@ -14,8 +14,8 @@ use crate::application::network::proto::{
 };
 
 use super::{
-    task::{spawn, EmptyTask, NetworkTask},
     EstablishedConnection,
+    task::{EmptyTask, NetworkTask, spawn},
 };
 
 impl EstablishedConnection {

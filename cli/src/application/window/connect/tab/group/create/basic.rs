@@ -10,16 +10,16 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{connection::EstablishedConnection, proto::manage::group::Detail},
     util::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
     window::{
-        connect::tab::util::{fetch::FetchWindow, multi_select::MultiSelectWindow},
         StackBatcher, Window, WindowUtils,
+        connect::tab::util::{fetch::FetchWindow, multi_select::MultiSelectWindow},
     },
-    State,
 };
 
 use super::constraints::ConstraintsWindow;

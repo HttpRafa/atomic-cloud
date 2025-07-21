@@ -38,8 +38,8 @@ clean:
 
 ## Fix target
 fix:
-	cargo fmt
 	cargo clippy --fix --allow-dirty --allow-staged --all-features
+	cargo fmt
 
 ## Build target
 build: build-controller build-cli build-wrapper build-plugins

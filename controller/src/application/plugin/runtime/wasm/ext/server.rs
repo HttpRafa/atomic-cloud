@@ -4,16 +4,16 @@ use uuid::Uuid;
 
 use crate::{
     application::{
+        Controller,
         plugin::runtime::wasm::{
+            PluginState,
             generated::{
                 exports::plugin::system::bridge,
                 plugin::system::{self, types::ErrorMessage},
             },
-            PluginState,
         },
-        Controller,
     },
-    task::{plugin::PluginTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, plugin::PluginTask},
 };
 
 impl system::server::Host for PluginState {

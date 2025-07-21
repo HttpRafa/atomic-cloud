@@ -3,7 +3,7 @@ cargo-features = ["per-package-target"]
 [package]
 name = "pelican"
 version = "0.0.0-nightly"
-edition = "2021"
+edition = "2024"
 forced-target = "wasm32-wasip2"
 
 [dependencies]

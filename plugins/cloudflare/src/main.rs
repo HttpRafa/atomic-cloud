@@ -1,6 +1,5 @@
 #![no_main]
 #![warn(clippy::all, clippy::pedantic)]
-#![feature(let_chains)]
 
 use dummy::{node::Node, screen::Screen};
 use generated::{

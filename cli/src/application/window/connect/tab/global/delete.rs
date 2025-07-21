@@ -15,18 +15,18 @@ use tokio::time::Instant;
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
-        connection::{task::EmptyTask, EstablishedConnection},
+        connection::{EstablishedConnection, task::EmptyTask},
         proto::manage::resource::{Category, DelReq},
     },
     util::status::{Status, StatusDisplay},
     window::{
+        StackBatcher, Window,
         connect::tab::util::{
             fetch::FetchWindow, multi_select::MultiSelectWindow, select::SelectWindow,
         },
-        StackBatcher, Window,
     },
-    State,
 };
 
 pub const AUTO_CLOSE_AFTER: Duration = Duration::from_secs(5);

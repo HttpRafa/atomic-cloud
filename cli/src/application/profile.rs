@@ -8,7 +8,7 @@ use url::Url;
 use crate::storage::{SaveToTomlFile, Storage};
 
 use super::network::{
-    connection::{task::ConnectTask, EstablishedConnection},
+    connection::{EstablishedConnection, task::ConnectTask},
     known_host::manager::KnownHosts,
 };
 

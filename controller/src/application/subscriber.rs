@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 

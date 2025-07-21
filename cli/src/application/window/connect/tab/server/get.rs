@@ -11,6 +11,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::{
@@ -20,10 +21,9 @@ use crate::application::{
     },
     util::fancy_toml::FancyToml,
     window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
     },
-    State,
 };
 
 pub struct GetServerTab {

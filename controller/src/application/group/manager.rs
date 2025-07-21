@@ -8,9 +8,9 @@ use tokio::fs;
 
 use crate::{
     application::{
-        node::manager::NodeManager,
-        server::{manager::ServerManager, Resources, Specification},
         OptVoter, Voter,
+        node::manager::NodeManager,
+        server::{Resources, Specification, manager::ServerManager},
     },
     config::Config,
     resource::{CreateResourceError, DeleteResourceError, UpdateResourceError},

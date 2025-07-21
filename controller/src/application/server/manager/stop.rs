@@ -6,8 +6,8 @@ use tokio::time::Instant;
 use uuid::Uuid;
 
 use crate::application::{
-    group::manager::GroupManager, node::manager::NodeManager, server::Server,
-    user::manager::UserManager, Shared,
+    Shared, group::manager::GroupManager, node::manager::NodeManager, server::Server,
+    user::manager::UserManager,
 };
 
 use super::{ServerManager, StopRequest, StopStage};
@@ -22,10 +22,10 @@ impl ServerManager {
         users: &mut UserManager,
         shared: &Arc<Shared>,
     ) -> Result<bool> {
-        if let Some(when) = request.when {
-            if when > Instant::now() {
-                return Ok(true);
-            }
+        if let Some(when) = request.when
+            && when > Instant::now()
+        {
+            return Ok(true);
         }
 
         // Cache old stage to compute the new stage based on the old stage
@@ -44,7 +44,10 @@ impl ServerManager {
             StopStage::Running(handle, guard) => {
                 if handle.is_finished() {
                     handle.await??;
-                    debug!("Server {} is now stopping in the background waiting for the plugin to finish", request.server);
+                    debug!(
+                        "Server {} is now stopping in the background waiting for the plugin to finish",
+                        request.server
+                    );
                     StopStage::Stopping(guard)
                 } else {
                     StopStage::Running(handle, guard)

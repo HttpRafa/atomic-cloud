@@ -7,7 +7,7 @@ use health::{RequestStopTask, SetRunningTask};
 use ready::SetReadyTask;
 use server::{GetServerFromNameTask, GetServerTask, GetServersTask};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{async_trait, Request, Response, Status};
+use tonic::{Request, Response, Status, async_trait};
 use user::{
     GetUserFromNameTask, GetUserTask, GetUsersTask, UserConnectedTask, UserCountTask,
     UserDisconnectedTask,
@@ -15,12 +15,12 @@ use user::{
 use uuid::Uuid;
 
 use crate::{
+    VERSION,
     application::{
-        auth::AuthType, server::NameAndUuid, subscriber::Subscriber,
-        user::transfer::TransferTarget, Shared,
+        Shared, auth::AuthType, server::NameAndUuid, subscriber::Subscriber,
+        user::transfer::TransferTarget,
     },
     task::{manager::TaskSender, network::TonicTask},
-    VERSION,
 };
 
 use super::{
@@ -29,7 +29,7 @@ use super::{
         client::{
             channel::Msg,
             client_service_server::ClientService,
-            transfer::{target::Type, TransferReq, TransferRes},
+            transfer::{TransferReq, TransferRes, target::Type},
             user::{ConnectedReq, DisconnectedReq},
         },
         common::{
@@ -211,7 +211,7 @@ impl ClientService for ClientServiceImpl {
                                     Err(_) => {
                                         return Err(Status::invalid_argument(
                                             "Invalid UUID provided",
-                                        ))
+                                        ));
                                     }
                                 })
                             }
@@ -219,11 +219,11 @@ impl ClientService for ClientServiceImpl {
                             _ => {
                                 return Err(Status::invalid_argument(
                                     "Invalid target type combination",
-                                ))
+                                ));
                             }
                         },
                         Err(_) => {
-                            return Err(Status::invalid_argument("Invalid target type provided"))
+                            return Err(Status::invalid_argument("Invalid target type provided"));
                         }
                     },
                     None => return Err(Status::invalid_argument("Missing target")),

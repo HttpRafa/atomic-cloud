@@ -10,7 +10,7 @@ use ratatui::{
 use start::StartTab;
 use tonic::async_trait;
 
-use crate::application::{network::connection::EstablishedConnection, tabs::Tabs, State};
+use crate::application::{State, network::connection::EstablishedConnection, tabs::Tabs};
 
 use super::{StackBatcher, Window};
 

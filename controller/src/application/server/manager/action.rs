@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::network::HostAndPort;
 use simplelog::{error, warn};
 use tokio::task::JoinHandle;
@@ -8,15 +8,15 @@ use uuid::Uuid;
 
 use crate::{
     application::{
+        Shared,
         group::manager::GroupManager,
-        node::{manager::NodeManager, Allocation},
+        node::{Allocation, manager::NodeManager},
         server::{
+            Flags, Heart, Server, State,
             guard::{Guard, WeakGuard},
             screen::BoxedScreen,
-            Flags, Heart, Server, State,
         },
         user::manager::UserManager,
-        Shared,
     },
     config::Config,
 };
@@ -96,7 +96,10 @@ impl ServerManager {
                     if let Some(group) = groups.get_group_mut(group) {
                         group.set_server_active(&server.id);
                     } else {
-                        warn!("Group {} not found while trying to start server {}. Removing group from server", group, request.id);
+                        warn!(
+                            "Group {} not found while trying to start server {}. Removing group from server",
+                            group, request.id
+                        );
                         server.group = None;
                     }
                 }

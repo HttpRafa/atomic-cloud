@@ -7,10 +7,10 @@ use profile::manager::Profiles;
 use ratatui::{DefaultTerminal, Frame};
 use tokio::{
     select,
-    time::{interval, MissedTickBehavior},
+    time::{MissedTickBehavior, interval},
 };
 use tokio_stream::StreamExt;
-use window::{start::StartWindow, tls::TrustTlsWindow, StackBatcher, WindowStack};
+use window::{StackBatcher, WindowStack, start::StartWindow, tls::TrustTlsWindow};
 
 mod network;
 mod profile;

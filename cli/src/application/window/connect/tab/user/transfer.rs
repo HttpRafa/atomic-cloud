@@ -13,22 +13,22 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
-        connection::{task::EmptyTask, EstablishedConnection},
+        connection::{EstablishedConnection, task::EmptyTask},
         proto::{
             common::common_user,
-            manage::transfer::{target::Type, Target, TransferReq},
+            manage::transfer::{Target, TransferReq, target::Type},
         },
     },
     util::status::{Status, StatusDisplay},
     window::{
+        StackBatcher, Window,
         connect::tab::{
             global::delete::AUTO_CLOSE_AFTER,
             util::{fetch::FetchWindow, multi_select::MultiSelectWindow, select::SelectWindow},
         },
-        StackBatcher, Window,
     },
-    State,
 };
 
 pub struct TransferUserTab {

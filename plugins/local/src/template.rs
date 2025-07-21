@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use getset::Getters;
 use serde::Deserialize;
 use walkdir::WalkDir;
@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use crate::{
     generated::plugin::system::{
         file::Directory,
-        platform::{get_os, Os},
+        platform::{Os, get_os},
         process::{Process, ProcessBuilder},
     },
     storage::Storage,
@@ -49,7 +49,9 @@ impl Template {
             Os::Unix => &self.prepare.unix,
             Os::Windows => &self.prepare.windows,
         }) else {
-            return Err(anyhow!("No prepare script found for current platform. This indicates that the template is not compatible with the current platform."));
+            return Err(anyhow!(
+                "No prepare script found for current platform. This indicates that the template is not compatible with the current platform."
+            ));
         };
 
         let builder = ProcessBuilder::new(&prepare.command);
@@ -68,7 +70,9 @@ impl Template {
             Os::Unix => &self.startup.unix,
             Os::Windows => &self.startup.windows,
         }) else {
-            return Err(anyhow!("No startup script found for current platform. This indicates that the template is not compatible with the current platform."));
+            return Err(anyhow!(
+                "No startup script found for current platform. This indicates that the template is not compatible with the current platform."
+            ));
         };
 
         let mut environment = self.environment.clone();

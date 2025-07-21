@@ -1,9 +1,9 @@
 use data::{BBody, BList, BObject};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
     debug, error,
-    generated::plugin::system::http::{send_http_request, Header, Method, Response},
+    generated::plugin::system::http::{Header, Method, Response, send_http_request},
 };
 
 use super::{Backend, Endpoint};
@@ -203,12 +203,12 @@ impl Backend {
         let response = response.unwrap();
         if response.status_code != expected_code {
             error!(
-                    "An unexpected error occurred while sending a request to the Pelican panel at {}: Received {} status code {} - {}",
-                    url,
-                    response.status_code,
-                    response.reason_phrase,
-                    String::from_utf8_lossy(&response.bytes)
-                );
+                "An unexpected error occurred while sending a request to the Pelican panel at {}: Received {} status code {} - {}",
+                url,
+                response.status_code,
+                response.reason_phrase,
+                String::from_utf8_lossy(&response.bytes)
+            );
             if let Some(body) = body {
                 debug!("Sended body: {}", String::from_utf8_lossy(body));
             }

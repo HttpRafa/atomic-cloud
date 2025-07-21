@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::error::FancyError;
 use futures::FutureExt;
-use tokio::sync::{mpsc::Receiver, MutexGuard};
-use wasmtime::{component::ResourceAny, AsContextMut, Store};
+use tokio::sync::{MutexGuard, mpsc::Receiver};
+use wasmtime::{AsContextMut, Store, component::ResourceAny};
 
 use crate::application::{
-    subscriber::{
-        manager::event::server::{ServerEvent, ServerReadyEvent},
-        Subscriber,
-    },
     Shared,
+    subscriber::{
+        Subscriber,
+        manager::event::server::{ServerEvent, ServerReadyEvent},
+    },
 };
 
 use super::{
+    PluginState,
     generated::{
         self, exports::plugin::system::event::Events, plugin::system::types::ErrorMessage,
     },
-    PluginState,
 };
 
 pub struct PluginListener {

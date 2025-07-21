@@ -5,12 +5,12 @@ use crate::{
     info,
     plugin::{
         backend::{
+            Backend,
             batch::{
                 data::{BBatch, BBatchResult},
                 delete::BDelete,
                 record::BRecord,
             },
-            Backend,
         },
         batcher::{Action, Batcher},
         config::{Config, Entry},

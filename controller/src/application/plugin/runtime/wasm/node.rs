@@ -1,24 +1,24 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::{error::FancyError, network::HostAndPort};
 use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
-use wasmtime::{component::ResourceAny, AsContextMut, Store};
+use wasmtime::{AsContextMut, Store, component::ResourceAny};
 
 use crate::application::{
     node::Allocation,
     plugin::{BoxedScreen, GenericNode},
     server::{
-        guard::Guard, manager::StartRequest, DiskRetention, Resources, Server, Specification,
+        DiskRetention, Resources, Server, Specification, guard::Guard, manager::StartRequest,
     },
     subscriber::manager::event::server::ServerEvent,
 };
 
 use super::{
+    PluginState,
     ext::screen::PluginScreen,
     generated::{self, exports::plugin::system::bridge, plugin::system::data_types},
-    PluginState,
 };
 
 pub struct PluginNode {
@@ -66,11 +66,16 @@ impl GenericNode for PluginNode {
                 .await
             {
                 Ok(result) => result.map_err(|errors| {
-                    anyhow!(errors
-                        .iter()
-                        .map(|error| format!("Scope: {}, Message: {}", error.scope, error.message))
-                        .collect::<Vec<_>>()
-                        .join("\n"))
+                    anyhow!(
+                        errors
+                            .iter()
+                            .map(|error| format!(
+                                "Scope: {}, Message: {}",
+                                error.scope, error.message
+                            ))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    )
                 }),
                 Err(error) => Err(error),
             }

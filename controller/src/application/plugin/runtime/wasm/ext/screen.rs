@@ -1,15 +1,15 @@
 use std::{mem::replace, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::error::FancyError;
 use tokio::{spawn, sync::Mutex};
 use tonic::async_trait;
-use wasmtime::{component::ResourceAny, AsContextMut, Store};
+use wasmtime::{AsContextMut, Store, component::ResourceAny};
 
 use crate::application::{
     plugin::runtime::wasm::{
-        generated::{self, exports::plugin::system::screen::ScreenType},
         PluginState,
+        generated::{self, exports::plugin::system::screen::ScreenType},
     },
     server::screen::{GenericScreen, ScreenError, ScreenPullJoinHandle, ScreenWriteJoinHandle},
 };

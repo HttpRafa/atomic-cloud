@@ -4,7 +4,7 @@ use tonic::async_trait;
 use crate::{
     application::Controller,
     network::proto::manage::plugin::{List, Short},
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct GetPluginsTask();

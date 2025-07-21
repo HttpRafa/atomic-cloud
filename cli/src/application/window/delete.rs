@@ -11,9 +11,9 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
-    profile::Profile,
-    util::{center::CenterWarning, list::ActionList, ERROR_SELECTED_COLOR, TEXT_FG_COLOR},
     State,
+    profile::Profile,
+    util::{ERROR_SELECTED_COLOR, TEXT_FG_COLOR, center::CenterWarning, list::ActionList},
 };
 
 use super::{StackBatcher, Window, WindowUtils};

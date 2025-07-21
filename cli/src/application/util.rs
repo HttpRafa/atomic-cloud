@@ -1,6 +1,6 @@
 use ratatui::style::{
-    palette::tailwind::{BLUE, GREEN, RED, SLATE, YELLOW},
     Color, Modifier, Style,
+    palette::tailwind::{BLUE, GREEN, RED, SLATE, YELLOW},
 };
 
 pub mod area;

@@ -45,7 +45,9 @@ impl RegexDetector {
                 exit(1);
             }
         } else {
-            error!("Missing STARTED_REGEX environment variable. Please set it to the regex that indicates the process has started");
+            error!(
+                "Missing STARTED_REGEX environment variable. Please set it to the regex that indicates the process has started"
+            );
             exit(1);
         }
 
@@ -109,34 +111,31 @@ impl RegexDetector {
             return Detection::Started;
         }
 
-        if let Some(stopping) = &self.stopping {
-            if stopping.is_match(line) {
-                return Detection::Stopping;
-            }
+        if let Some(stopping) = &self.stopping
+            && stopping.is_match(line)
+        {
+            return Detection::Stopping;
         }
 
-        if let Some(user_connected) = &self.user_connected {
-            if let Some(captures) = user_connected.captures(line) {
-                if let (Some(name), Some(uuid)) = (captures.get(1), captures.get(2)) {
-                    if let Ok(parsed_uuid) = Uuid::parse_str(uuid.as_str()) {
-                        return Detection::UserConnected(DetectedUser {
-                            name: Some(name.as_str().to_string()),
-                            uuid: Some(parsed_uuid),
-                        });
-                    }
-                }
-            }
+        if let Some(user_connected) = &self.user_connected
+            && let Some(captures) = user_connected.captures(line)
+            && let (Some(name), Some(uuid)) = (captures.get(1), captures.get(2))
+            && let Ok(parsed_uuid) = Uuid::parse_str(uuid.as_str())
+        {
+            return Detection::UserConnected(DetectedUser {
+                name: Some(name.as_str().to_string()),
+                uuid: Some(parsed_uuid),
+            });
         }
 
-        if let Some(user_disconnected) = &self.user_disconnected {
-            if let Some(captures) = user_disconnected.captures(line) {
-                if let Some(name) = captures.get(1) {
-                    return Detection::UserDisconnected(DetectedUser {
-                        name: Some(name.as_str().to_string()),
-                        uuid: None,
-                    });
-                }
-            }
+        if let Some(user_disconnected) = &self.user_disconnected
+            && let Some(captures) = user_disconnected.captures(line)
+            && let Some(name) = captures.get(1)
+        {
+            return Detection::UserDisconnected(DetectedUser {
+                name: Some(name.as_str().to_string()),
+                uuid: None,
+            });
         }
 
         Detection::None

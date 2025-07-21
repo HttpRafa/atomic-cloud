@@ -6,10 +6,10 @@ use tonic::Status;
 use uuid::Uuid;
 
 use crate::application::{
+    Shared,
     auth::Authorization,
     group::manager::GroupManager,
-    server::{manager::ServerManager, NameAndUuid, Server},
-    Shared,
+    server::{NameAndUuid, Server, manager::ServerManager},
 };
 
 use super::{CurrentServer, User};

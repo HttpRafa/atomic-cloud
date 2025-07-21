@@ -1,20 +1,20 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 
 use crate::{
     application::{
+        Controller,
         group::{Group, ScalingPolicy, StartConstraints},
         server::{FallbackPolicy, Resources, Specification},
-        Controller,
     },
     network::proto::{
-        common::{common_group::List, KeyValue},
+        common::{KeyValue, common_group::List},
         manage::{
             group::{Constraints, Detail, Scaling},
             server::{self, Fallback},
         },
     },
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct CreateGroupTask(

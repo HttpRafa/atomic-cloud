@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     application::{
-        group::manager::GroupManager, node::manager::NodeManager, server::Server, Shared,
+        Shared, group::manager::GroupManager, node::manager::NodeManager, server::Server,
     },
     config::Config,
 };
@@ -29,10 +29,10 @@ impl ServerManager {
             return Ok(false);
         }
 
-        if let Some(when) = request.when {
-            if when > Instant::now() {
-                return Ok(true);
-            }
+        if let Some(when) = request.when
+            && when > Instant::now()
+        {
+            return Ok(true);
         }
 
         // Cache old stage to compute the new stage based on the old stage

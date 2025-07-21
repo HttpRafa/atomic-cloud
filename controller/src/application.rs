@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        atomic::{AtomicU8, Ordering},
         Arc,
+        atomic::{AtomicU8, Ordering},
     },
     time::Duration,
 };
@@ -19,7 +19,7 @@ use tls::TlsSetting;
 use tokio::{
     select,
     sync::watch,
-    time::{interval, Instant, MissedTickBehavior},
+    time::{Instant, MissedTickBehavior, interval},
 };
 use user::manager::UserManager;
 

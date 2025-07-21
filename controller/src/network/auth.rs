@@ -1,6 +1,6 @@
 use futures::executor::block_on;
 use std::sync::Arc;
-use tonic::{service::Interceptor, Request, Status};
+use tonic::{Request, Status, service::Interceptor};
 
 use crate::application::Shared;
 

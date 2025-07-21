@@ -2,13 +2,13 @@ use std::borrow::Cow;
 
 use color_eyre::eyre::Result;
 use crossterm::event::Event;
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{
-        palette::tailwind::{Palette, WHITE},
         Style, Stylize,
+        palette::tailwind::{Palette, WHITE},
     },
     text::Line,
     widgets::{Block, Borders, Paragraph, Widget},
@@ -18,8 +18,8 @@ use tonic::async_trait;
 use crate::VERSION;
 
 use super::{
-    util::{HEADER_STYLE, NORMAL_ROW_BG},
     State,
+    util::{HEADER_STYLE, NORMAL_ROW_BG},
 };
 
 pub mod connect;

@@ -2,8 +2,8 @@ use anyhow::Result;
 use simplelog::{debug, error, info, warn};
 
 use crate::application::plugin::runtime::wasm::{
-    generated::plugin::system::{self, log::Level},
     PluginState,
+    generated::plugin::system::{self, log::Level},
 };
 
 impl system::log::Host for PluginState {

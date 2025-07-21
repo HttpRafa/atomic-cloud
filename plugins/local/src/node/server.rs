@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display, rc::Rc, time::Instant};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::name::TimedName;
 
 use crate::{
@@ -24,7 +24,7 @@ use crate::{
     warn,
 };
 
-use super::{screen::Screen, InnerNode};
+use super::{InnerNode, screen::Screen};
 
 pub mod manager;
 

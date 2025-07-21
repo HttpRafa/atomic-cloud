@@ -14,8 +14,12 @@ impl FancyError {
         };
 
         error!("{}", exit_message);
-        error!("If you believe this error was not caused by the runtime, for example: a missing network connection, please report this error to the developers.");
-        error!("Create a new issue on the GitHub repository at the following link: https://github.com/HttpRafa/atomic-cloud with the information below:");
+        error!(
+            "If you believe this error was not caused by the runtime, for example: a missing network connection, please report this error to the developers."
+        );
+        error!(
+            "Create a new issue on the GitHub repository at the following link: https://github.com/HttpRafa/atomic-cloud with the information below:"
+        );
 
         error!("Error: {}", error);
         error
@@ -31,7 +35,9 @@ impl FancyError {
                     .for_each(|line| error!("{}", line));
             }
             _ => {
-                error!("Backtrace is not available. Ensure you run the program with `RUST_BACKTRACE=1` to enable backtraces.");
+                error!(
+                    "Backtrace is not available. Ensure you run the program with `RUST_BACKTRACE=1` to enable backtraces."
+                );
             }
         }
     }

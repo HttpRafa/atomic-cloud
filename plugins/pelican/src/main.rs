@@ -6,7 +6,7 @@ use generated::{
     exports::plugin::system::{bridge, event, screen},
 };
 use listener::Listener;
-use node::{screen::Screen, Node};
+use node::{Node, screen::Screen};
 use plugin::Pelican;
 
 mod listener;

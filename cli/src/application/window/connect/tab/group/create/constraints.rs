@@ -13,6 +13,7 @@ use ratatui::{
 use tonic::async_trait;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::manage::group::{Constraints, Detail, Scaling},
@@ -21,8 +22,7 @@ use crate::application::{
         area::SimpleTextArea,
         status::{Status, StatusDisplay},
     },
-    window::{connect::tab::util::select::SelectWindow, StackBatcher, Window, WindowUtils},
-    State,
+    window::{StackBatcher, Window, WindowUtils, connect::tab::util::select::SelectWindow},
 };
 
 use super::{resources::ResourcesWindow, scaling::ScalingWindow};
@@ -225,7 +225,13 @@ impl ConstraintsWindow<'_> {
     }
 
     fn render_body(&mut self, area: Rect, buffer: &mut Buffer) {
-        let [memory_area, max_servers_area, child_node_area, _, status_area] = Layout::vertical([
+        let [
+            memory_area,
+            max_servers_area,
+            child_node_area,
+            _,
+            status_area,
+        ] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),

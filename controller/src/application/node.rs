@@ -16,7 +16,7 @@ use crate::{
 use super::{
     plugin::BoxedNode,
     server::{
-        guard::Guard, manager::StartRequest, screen::BoxedScreen, Resources, Server, Specification,
+        Resources, Server, Specification, guard::Guard, manager::StartRequest, screen::BoxedScreen,
     },
 };
 

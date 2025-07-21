@@ -1,10 +1,10 @@
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 
-use anyhow::{anyhow, Result};
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use anyhow::{Result, anyhow};
+use tokio::sync::mpsc::{Receiver, Sender, channel};
 
 use super::Task;
 
@@ -48,7 +48,9 @@ impl TaskSender {
         if self.0.load(Ordering::Relaxed) {
             Ok(&self.1)
         } else {
-            Err(anyhow!("Attempting to use the task system before it is ready or after it has been shut down. Was it used during the initialization or cleanup phase?"))
+            Err(anyhow!(
+                "Attempting to use the task system before it is ready or after it has been shut down. Was it used during the initialization or cleanup phase?"
+            ))
         }
     }
 }

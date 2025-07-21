@@ -5,15 +5,15 @@ use common::error::FancyError;
 use simplelog::{debug, error, info, warn};
 use tokio::{fs, sync::Mutex};
 use wasmtime::{
-    component::{Component, HasSelf, Linker},
     Cache, Engine, Store,
+    component::{Component, HasSelf, Linker},
 };
-use wasmtime_wasi::{p2::WasiCtxBuilder, DirPerms, FilePerms, ResourceTable};
+use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, p2::WasiCtxBuilder};
 
 use crate::{
     application::{
-        plugin::{runtime::source::Source, BoxedPlugin, Features, GenericPlugin},
         Shared,
+        plugin::{BoxedPlugin, Features, GenericPlugin, runtime::source::Source},
     },
     config::Config,
     storage::Storage,
@@ -21,9 +21,10 @@ use crate::{
 };
 
 use super::{
-    config::{verify_engine_config, Permissions, PluginsConfig},
+    Plugin, PluginState,
+    config::{Permissions, PluginsConfig, verify_engine_config},
     epoch::EpochInvoker,
-    generated, Plugin, PluginState,
+    generated,
 };
 
 #[allow(clippy::too_many_lines)]

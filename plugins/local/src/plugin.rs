@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::allocator::NumberAllocator;
 use config::Config;
 

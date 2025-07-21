@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::Result;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use simplelog::warn;
 use tokio::fs;
 
@@ -177,10 +177,8 @@ impl Storage {
 
 pub trait SaveToTomlFile: Serialize {
     async fn save(&self, path: &Path, create_parent: bool) -> Result<()> {
-        if create_parent {
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent).await?;
-            }
+        if create_parent && let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).await?;
         }
         fs::write(path, toml::to_string(self)?).await?;
         Ok(())

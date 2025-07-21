@@ -9,7 +9,7 @@ use url::Url;
 use crate::{
     application::{
         group::manager::GroupManager,
-        plugin::{manager::PluginManager, BoxedNode},
+        plugin::{BoxedNode, manager::PluginManager},
         server::manager::ServerManager,
     },
     resource::{CreateResourceError, DeleteResourceError, UpdateResourceError},

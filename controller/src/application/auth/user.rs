@@ -1,8 +1,8 @@
 use getset::Getters;
 
 use super::{
-    permissions::Permissions, server::AuthServer, AuthType, GenericAuthorization,
-    OwnedAuthorization,
+    AuthType, GenericAuthorization, OwnedAuthorization, permissions::Permissions,
+    server::AuthServer,
 };
 
 #[derive(Getters)]

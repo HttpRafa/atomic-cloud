@@ -2,18 +2,18 @@
 
 use std::{any::type_name, borrow::Cow};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::error::FancyError;
 use simplelog::debug;
 use tokio::sync::oneshot::channel;
 use tonic::{Request, Status};
 
 use crate::{
-    application::auth::{permissions::Permissions, AuthType, Authorization},
+    application::auth::{AuthType, Authorization, permissions::Permissions},
     task::Task,
 };
 
-use super::{manager::TaskSender, BoxedAny, BoxedTask};
+use super::{BoxedAny, BoxedTask, manager::TaskSender};
 
 pub const INSUFFICIENT_PERMISSIONS_MESSAGE: &str =
     "Insufficient permissions to perform this action";

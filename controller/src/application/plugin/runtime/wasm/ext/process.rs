@@ -3,25 +3,25 @@ use std::{
     process::{self, Stdio},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use simplelog::debug;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
     process::{Child, ChildStderr, ChildStdin, ChildStdout, Command},
     spawn,
-    sync::mpsc::{channel, Receiver},
+    sync::mpsc::{Receiver, channel},
     task::JoinHandle,
 };
 use wasmtime::component::Resource;
 
 use crate::application::plugin::runtime::wasm::{
+    PluginState,
     config::Permissions,
     generated::plugin::system::{
         self,
         process::ExitStatus,
         types::{Directory, ErrorMessage},
     },
-    PluginState,
 };
 
 #[cfg(unix)]

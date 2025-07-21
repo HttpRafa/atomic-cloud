@@ -16,7 +16,7 @@ use crate::{
         plugin::system::data_types::Features,
     },
     info,
-    node::{backend::Backend, InnerNode, Node},
+    node::{InnerNode, Node, backend::Backend},
 };
 
 pub mod config;

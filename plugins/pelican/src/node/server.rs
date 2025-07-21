@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use common::name::TimedName;
 use url::Url;
 
@@ -22,12 +22,12 @@ use crate::{
 };
 
 use super::{
+    InnerNode,
     backend::{
         allocation::data::BAllocation,
         server::data::{BServer, BServerEgg, BServerFeatureLimits, PanelState},
     },
     screen::Screen,
-    InnerNode,
 };
 
 pub mod manager;
@@ -72,7 +72,10 @@ impl Server {
             .borrow()
             .get_allocations(&request.allocation.ports);
         if allocations.len() != request.allocation.ports.len() {
-            warn!("The allocation manager failed to map some ports of the server {} to there backend variant. This may cause issues.", request.name);
+            warn!(
+                "The allocation manager failed to map some ports of the server {} to there backend variant. This may cause issues.",
+                request.name
+            );
         }
 
         // Build egg from request
@@ -136,7 +139,10 @@ impl Server {
             request.allocation.specification.disk_retention,
             DiskRetention::Temporary
         ) {
-            bail!("The server {} already exists on the panel, but the disk retention is set to temporary. How is that possible?", name.get_name());
+            bail!(
+                "The server {} already exists on the panel, but the disk retention is set to temporary. How is that possible?",
+                name.get_name()
+            );
         }
 
         node.backend

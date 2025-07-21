@@ -4,11 +4,11 @@ use uuid::Uuid;
 
 use crate::{
     application::{
+        Controller,
         auth::Authorization,
         user::transfer::{Transfer, TransferTarget},
-        Controller,
     },
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct TransferUsersTask(pub Authorization, pub Vec<Uuid>, pub TransferTarget);

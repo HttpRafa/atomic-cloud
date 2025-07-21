@@ -3,11 +3,11 @@ use tonic::async_trait;
 
 use crate::{
     application::{
-        auth::Authorization,
-        server::{manager::StopRequest, State},
         Controller,
+        auth::Authorization,
+        server::{State, manager::StopRequest},
     },
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct SetRunningTask(pub Authorization);

@@ -8,12 +8,12 @@ use uuid::Uuid;
 
 use crate::{
     application::auth::{
-        permissions::Permissions, DEFAULT_ADMIN_PERMISSIONS, DEFAULT_ADMIN_USERNAME,
+        DEFAULT_ADMIN_PERMISSIONS, DEFAULT_ADMIN_USERNAME, permissions::Permissions,
     },
     storage::{SaveToTomlFile, Storage},
 };
 
-use super::{server::AuthServer, AdminUser, AuthToken, Authorization, OwnedAuthorization};
+use super::{AdminUser, AuthToken, Authorization, OwnedAuthorization, server::AuthServer};
 
 pub struct AuthManager {
     tokens: RwLock<HashMap<AuthToken, OwnedAuthorization>>,

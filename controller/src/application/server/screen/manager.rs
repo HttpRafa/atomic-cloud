@@ -6,14 +6,14 @@ use futures::FutureExt;
 use simplelog::warn;
 use tokio::{
     sync::RwLock,
-    time::{interval, Interval, MissedTickBehavior},
+    time::{Interval, MissedTickBehavior, interval},
 };
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Status;
 use uuid::Uuid;
 
 use crate::{
-    application::{subscriber::Subscriber, TICK_RATE},
+    application::{TICK_RATE, subscriber::Subscriber},
     network::manage::ScreenLines,
 };
 

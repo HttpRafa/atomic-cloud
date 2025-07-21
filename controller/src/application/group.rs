@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use common::allocator::NumberAllocator;
 use getset::{Getters, Setters};
 use manager::stored::StoredGroup;
@@ -18,8 +18,8 @@ use crate::{
 use super::{
     node::LifecycleStatus,
     server::{
-        manager::{ServerManager, StartRequest},
         NameAndUuid, Resources, Server, Specification,
+        manager::{ServerManager, StartRequest},
     },
 };
 
@@ -84,14 +84,15 @@ impl Group {
             let current_count = self
                 .servers
                 .iter()
-                .filter(|server| matches!(server.1 .1, Stage::Active))
+                .filter(|server| matches!(server.1.1, Stage::Active))
                 .count();
 
             if self.scaling.stop_empty_servers && current_count as u32 > target_count {
                 let mut to_stop = current_count as u32 - target_count;
                 let mut requests = vec![];
                 self.servers
-                    .retain(|id, group_server| match &group_server.1 {
+                    .retain(|id, group_server| {
+                        match &group_server.1 {
                         Stage::Active => servers.get_server_mut(id.uuid()).is_some_and(|server| {
                             if server.connected_users() == &0 {
                                 if server.flags().should_stop() && to_stop > 0 {
@@ -123,6 +124,7 @@ impl Group {
                             true
                         }),
                         Stage::Queueing | Stage::Stopping => true,
+                    }
                     });
                 servers.schedule_stops(requests);
             }

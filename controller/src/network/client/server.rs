@@ -1,11 +1,11 @@
 use anyhow::Result;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 use uuid::Uuid;
 
 use crate::{
-    application::{server::Server, Controller},
+    application::{Controller, server::Server},
     network::proto::common::common_server::{List, Short},
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct GetServerTask(pub Uuid);

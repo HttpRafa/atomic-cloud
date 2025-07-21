@@ -24,19 +24,21 @@ impl EpochInvoker {
             "Starting epoch invoker to increment epoch every {:?}",
             INCRMENT_EPOCH_INTERVAL
         );
-        thread::spawn(move || loop {
-            thread::sleep(INCRMENT_EPOCH_INTERVAL);
-            self.engines.retain(|engine| {
-                if let Some(engine) = engine.upgrade() {
-                    engine.increment_epoch();
-                    true
-                } else {
-                    false
+        thread::spawn(move || {
+            loop {
+                thread::sleep(INCRMENT_EPOCH_INTERVAL);
+                self.engines.retain(|engine| {
+                    if let Some(engine) = engine.upgrade() {
+                        engine.increment_epoch();
+                        true
+                    } else {
+                        false
+                    }
+                });
+                if self.engines.is_empty() {
+                    debug!("All engines dropped, stopping epoch invoker");
+                    break;
                 }
-            });
-            if self.engines.is_empty() {
-                debug!("All engines dropped, stopping epoch invoker");
-                break;
             }
         });
     }

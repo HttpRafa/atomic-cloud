@@ -5,20 +5,20 @@ use std::{
 
 use color_eyre::eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{palette::tailwind::Palette, Color, Stylize},
+    style::{Color, Stylize, palette::tailwind::Palette},
     symbols::border::PROPORTIONAL_TALL,
     text::Line,
     widgets::{self, Block, Padding, Paragraph, Widget},
 };
 
 use super::{
+    State,
     util::TEXT_FG_COLOR,
     window::{BoxedWindow, StackAction, StackBatcher, WindowStack, WindowUtils},
-    State,
 };
 
 pub struct Tab {

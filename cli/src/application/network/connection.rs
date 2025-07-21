@@ -4,13 +4,13 @@ use color_eyre::eyre::Result;
 use hyper::Uri;
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use hyper_util::{
-    client::legacy::{connect::HttpConnector, Client},
+    client::legacy::{Client, connect::HttpConnector},
     rt::TokioExecutor,
 };
-use task::{spawn, ConnectTask};
+use task::{ConnectTask, spawn};
 use tokio::sync::RwLock;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
-use tonic::{body::Body, Request};
+use tonic::{Request, body::Body};
 use tower::ServiceBuilder;
 use url::Url;
 

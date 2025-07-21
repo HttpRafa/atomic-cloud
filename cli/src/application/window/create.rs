@@ -9,16 +9,16 @@ use tonic::async_trait;
 use url::Url;
 
 use crate::{
+    VERSION,
     application::{
+        State,
         network::connection::task::ConnectTask,
         profile::Profile,
         util::{
             area::SimpleTextArea,
             status::{Status, StatusDisplay},
         },
-        State,
     },
-    VERSION,
 };
 
 use super::{StackBatcher, Window, WindowUtils};

@@ -17,10 +17,11 @@ use ratatui::{
         Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, Wrap,
     },
 };
-use tonic::{async_trait, Streaming};
+use tonic::{Streaming, async_trait};
 use tui_textarea::TextArea;
 
 use crate::application::{
+    State,
     network::{
         connection::EstablishedConnection,
         proto::{
@@ -29,14 +30,13 @@ use crate::application::{
         },
     },
     util::{
-        status::{Status, StatusDisplay},
         TEXT_FG_COLOR,
+        status::{Status, StatusDisplay},
     },
     window::{
-        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
         StackBatcher, Window,
+        connect::tab::util::{fetch::FetchWindow, select::SelectWindow},
     },
-    State,
 };
 
 pub struct ScreenTab {

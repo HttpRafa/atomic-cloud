@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use stored::StoredTemplate;
 
 use crate::{error, info, storage::Storage};

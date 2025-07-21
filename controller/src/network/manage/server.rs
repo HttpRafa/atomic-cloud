@@ -1,19 +1,19 @@
 use anyhow::Result;
 use simplelog::debug;
-use tonic::{async_trait, Status};
+use tonic::{Status, async_trait};
 use uuid::Uuid;
 
 use crate::{
     application::{
-        node::Allocation,
-        server::{manager::StartRequest, Resources, Server, Specification},
         Controller,
+        node::Allocation,
+        server::{Resources, Server, Specification, manager::StartRequest},
     },
     network::proto::{
-        common::{common_server::List, Address},
+        common::{Address, common_server::List},
         manage::server::{self, Detail},
     },
-    task::{network::TonicTask, BoxedAny, GenericTask},
+    task::{BoxedAny, GenericTask, network::TonicTask},
 };
 
 pub struct ScheduleServerTask(

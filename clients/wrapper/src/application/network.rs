@@ -11,8 +11,8 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use tonic::{
-    transport::{Certificate, Channel, ClientTlsConfig},
     Request, Response, Status, Streaming,
+    transport::{Certificate, Channel, ClientTlsConfig},
 };
 
 pub mod proto {
@@ -59,7 +59,9 @@ impl CloudConnection {
                 exit(1);
             }
         } else {
-            error!("Missing CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller");
+            error!(
+                "Missing CONTROLLER_ADDRESS environment variable. Please set it to the address of the controller"
+            );
             exit(1);
         }
 

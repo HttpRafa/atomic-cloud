@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tokio::sync::oneshot::Sender;
 use tonic::async_trait;
 

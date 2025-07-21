@@ -2,7 +2,7 @@ use anyhow::Result;
 use wasmtime::component::Resource;
 
 use crate::application::{
-    plugin::runtime::wasm::{generated::plugin::system, PluginState},
+    plugin::runtime::wasm::{PluginState, generated::plugin::system},
     server::guard::Guard,
 };
 

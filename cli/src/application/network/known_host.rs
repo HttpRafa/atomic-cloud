@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use ::base64::{engine::general_purpose, Engine};
+use ::base64::{Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 
 pub mod manager;
@@ -32,8 +32,8 @@ impl Display for KnownHost {
 
 // Credits: https://users.rust-lang.org/t/serialize-a-vec-u8-to-json-as-base64/57781/2
 mod base64 {
-    use base64::engine::general_purpose;
     use base64::Engine;
+    use base64::engine::general_purpose;
     use serde::{Deserialize, Serialize};
     use serde::{Deserializer, Serializer};
 

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 use tokio_rustls::rustls::{
-    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
-    crypto::{verify_tls12_signature, verify_tls13_signature, CryptoProvider},
-    pki_types::{ServerName, UnixTime},
     DigitallySignedStruct, Error, SignatureScheme,
+    client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+    crypto::{CryptoProvider, verify_tls12_signature, verify_tls13_signature},
+    pki_types::{ServerName, UnixTime},
 };
 use tonic::transport::CertificateDer;
 

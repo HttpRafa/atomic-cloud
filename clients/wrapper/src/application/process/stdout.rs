@@ -4,7 +4,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::ChildStdout,
     spawn,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::mpsc::{Receiver, Sender, channel},
 };
 
 use super::STD_BUFFER_SIZE;

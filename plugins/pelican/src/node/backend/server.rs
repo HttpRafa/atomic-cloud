@@ -6,7 +6,7 @@ use data::{
 
 use crate::generated::{exports::plugin::system::bridge::Server, plugin::system::http::Method};
 
-use super::{allocation::data::BAllocation, Backend, Endpoint};
+use super::{Backend, Endpoint, allocation::data::BAllocation};
 
 pub mod data;
 

@@ -2,13 +2,13 @@
 
 use std::any::type_name;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use simplelog::debug;
 use tokio::sync::oneshot::channel;
 
 use crate::task::Task;
 
-use super::{manager::TaskSender, BoxedAny, BoxedTask, GenericTask};
+use super::{BoxedAny, BoxedTask, GenericTask, manager::TaskSender};
 
 pub struct PluginTask;
 

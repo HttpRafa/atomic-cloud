@@ -17,14 +17,14 @@ use tonic::{
 
 pub mod proto {
     pub mod manage {
-        #![allow(clippy::all, clippy::pedantic)]
+        #![allow(dead_code, clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("client");
     }
 
     pub mod common {
-        #![allow(clippy::all, clippy::pedantic)]
+        #![allow(dead_code, clippy::all, clippy::pedantic)]
         use tonic::include_proto;
 
         include_proto!("common");

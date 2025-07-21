@@ -90,9 +90,8 @@ impl Group {
             if self.scaling.stop_empty_servers && current_count as u32 > target_count {
                 let mut to_stop = current_count as u32 - target_count;
                 let mut requests = vec![];
-                self.servers
-                    .retain(|id, group_server| {
-                        match &group_server.1 {
+                self.servers.retain(|id, group_server| {
+                    match &group_server.1 {
                         Stage::Active => servers.get_server_mut(id.uuid()).is_some_and(|server| {
                             if server.connected_users() == &0 {
                                 if server.flags().should_stop() && to_stop > 0 {
@@ -125,7 +124,7 @@ impl Group {
                         }),
                         Stage::Queueing | Stage::Stopping => true,
                     }
-                    });
+                });
                 servers.schedule_stops(requests);
             }
         }

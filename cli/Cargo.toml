@@ -37,7 +37,7 @@ tower = "0.5.2"
 hyper = "1.6.0"
 hyper-util = "0.1.14"
 url = { version = "2.5.4", features = ["serde"] }
-tonic = { version = "0.13.1", features = ["tls-ring"] }
+tonic = { version = "0.14.0", features = ["tls-ring"] }
 tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring", "tls12"] }
 hyper-rustls = { version = "0.27.7", default-features = false, features = ["http2", "ring", "tls12"] }
 

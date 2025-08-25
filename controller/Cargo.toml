@@ -45,7 +45,7 @@ prost = "0.13.5"
 rcgen = "0.14.2"
 
 # Plugins
-wasmtime = { version = "35.0.0", default-features = false, features = ["addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime = { version = "36.0.1", default-features = false, features = ["addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
 wasmtime-wasi = { version = "36.0.1", optional = true }
 minreq = { version = "2.13.4", features = ["https-rustls"], optional = true }
 

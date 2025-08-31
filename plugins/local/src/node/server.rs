@@ -107,7 +107,7 @@ impl Server {
         Ok(Self {
             name,
             request,
-            template: template.name().to_string(),
+            template: template.name().clone(),
             builder,
             process: Rc::new(process),
             state: State::Running,

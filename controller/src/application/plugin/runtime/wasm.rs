@@ -11,8 +11,7 @@ use tonic::async_trait;
 use url::Url;
 use wasmtime::{AsContextMut, Engine, Store, component::ResourceAny};
 use wasmtime_wasi::{
-    ResourceTable,
-    p2::{IoView, WasiCtx, WasiView},
+    ResourceTable, WasiCtx, WasiCtxView, WasiView
 };
 
 use crate::{
@@ -38,8 +37,8 @@ pub mod generated {
     bindgen!({
         world: "plugin",
         path: "../protocol/wit/",
-        async: true,
-        trappable_imports: true,
+        imports: { default: async | trappable },
+        exports: { default: async },
         with: {
             "plugin:system/guard/guard": crate::application::server::guard::Guard,
             "plugin:system/process/process-builder": super::ext::process::ProcessBuilder,
@@ -249,15 +248,12 @@ impl Plugin {
     }
 }
 
-impl IoView for PluginState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.resources
-    }
-}
-
 impl WasiView for PluginState {
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.wasi
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.resources,
+        }
     }
 }
 

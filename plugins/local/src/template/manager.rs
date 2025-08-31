@@ -87,7 +87,7 @@ impl Template {
     pub fn new(name: &str, template: &StoredTemplate) -> Self {
         Self {
             name: name.to_owned(),
-            version: template.version().to_string(),
+            version: template.version().clone(),
             authors: template.authors().clone(),
             exclusions: template.exclusions().clone(),
             environment: template

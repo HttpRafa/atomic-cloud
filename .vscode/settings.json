@@ -2,7 +2,7 @@
     "nixEnvPicker.envFile": "${workspaceFolder}${/}flake.nix",
     "nixEnvPicker.terminalAutoActivate": true,
     "nixEnvPicker.terminalActivateCommand": "nix develop",
-    "frontMatter.framework.id": "hugo",
-    "frontMatter.content.publicFolder": "static",
-    "frontMatter.preview.host": "http://localhost:1313",
+    "rust-analyzer.cargo.features": [
+        "wasm-plugins"
+    ],
  }

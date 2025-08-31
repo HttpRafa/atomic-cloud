@@ -22,26 +22,26 @@ color-eyre = "0.6.5"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
-toml = "0.9.2"
+toml = "0.9.5"
 base64 = "0.22.1"
 
 # Async runtime
 tokio-stream = "0.1.17"
-tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
+tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
 futures = "0.3.31"
 
 # Network
 sha2 = "0.10.9"
-prost = "0.13.5"
+prost = "0.14.1"
 tower = "0.5.2"
-hyper = "1.6.0"
-hyper-util = "0.1.14"
-url = { version = "2.5.4", features = ["serde"] }
-tonic = { version = "0.14.0", features = ["tls-ring"] }
+hyper = "1.7.0"
+hyper-util = "0.1.16"
+url = { version = "2.5.7", features = ["serde"] }
+tonic = { version = "0.14.1", features = ["tls-ring"] }
 tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring", "tls12"] }
 hyper-rustls = { version = "0.27.7", default-features = false, features = ["http2", "ring", "tls12"] }
 
 [build-dependencies]
-toml = "0.9.2"
-tonic-build = "0.14.0"
-winresource = "0.1.22"
+toml = "0.9.5"
+tonic-prost-build = "0.14.1"
+winresource = "0.1.23"

@@ -8,7 +8,7 @@ use wasmtime::{
     Cache, Engine, Store,
     component::{Component, HasSelf, Linker},
 };
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, p2::WasiCtxBuilder};
+use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
 
 use crate::{
     application::{

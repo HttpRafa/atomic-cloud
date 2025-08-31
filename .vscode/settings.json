@@ -2,4 +2,7 @@
     "nixEnvPicker.envFile": "${workspaceFolder}${/}flake.nix",
     "nixEnvPicker.terminalAutoActivate": true,
     "nixEnvPicker.terminalActivateCommand": "nix develop",
+    "rust-analyzer.cargo.features": [
+        "wasm-plugins"
+    ],
  }

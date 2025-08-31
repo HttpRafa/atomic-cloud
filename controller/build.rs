@@ -77,14 +77,14 @@ fn get_protocol_version_info() -> Result<u32, Box<dyn core::error::Error>> {
 }
 
 fn generate_grpc_code() -> Result<(), Box<dyn core::error::Error>> {
-    tonic_build::configure()
+    tonic_prost_build::configure()
         .build_client(false)
         .compile_protos(
             &[
                 format!("{PROTO_PATH}/manage/service.proto"),
                 format!("{PROTO_PATH}/client/service.proto"),
             ],
-            &[PROTO_PATH],
+            &[PROTO_PATH.to_string()],
         )?;
     Ok(())
 }

@@ -1,24 +1,27 @@
 _comment: 'DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL'
 meta:
   version: PLCN_v2
-  update_url: null
-exported_at: '2025-09-01T22:39:30+00:00'
-name: 'Paper (Atomic Cloud)'
+  update_url: 'https://raw.githubusercontent.com/HttpRafa/atomic-cloud/refs/heads/main/eggs/egg-paper.yaml'
+exported_at: '2025-09-01T22:47:12+00:00'
+name: 'Paper for Atomic Cloud'
 author: 60099368+HttpRafa@users.noreply.github.com
-uuid: 7a78d8bb-eab3-4a49-8328-0ba8a4c2bf9f
-description: 'High performance Spigot fork that aims to fix gameplay and mechanics inconsistencies.'
+uuid: 520f43e2-ae5c-4638-a1b6-80910cd4bb42
+description: |-
+  High-performance Spigot fork designed to resolve gameplay and mechanics inconsistencies. This egg is
+  exclusively compatible with Atomic Cloud.
 tags:
-  - paper
   - minecraft
   - atomic-cloud
+  - java
+  - paper
 features:
   - eula
   - java_version
   - pid_limit
 docker_images:
-  'java 21': 'ghcr.io/parkervcp/yolks:java_21'
+  'Java 21': 'ghcr.io/pterodactyl/yolks:java_21'
 file_denylist: {  }
-startup: 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}'
+startup: 'java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}'
 config:
   files:
     server.properties:
@@ -87,7 +90,22 @@ scripts:
           echo -e "Downloading MC server.properties"
           curl -o server.properties https://raw.githubusercontent.com/parkervcp/eggs/master/minecraft/java/server.properties
       fi
-    container: 'ghcr.io/parkervcp/installers:alpine'
+
+      echo -e "[ATOMIC CLOUD] Installing required plugin..."
+      cd /tmp/
+      curl -o atomic-cloud.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-core.jar
+      curl -o atomic-cloud.jar -L https://github.com/HttpRafa/atomic-cloud/releases/latest/download/ac-send.jar
+      mkdir -p /mnt/server/plugins/
+      mv ac-core.jar /mnt/server/plugins/
+      mv ac-send.jar /mnt/server/plugins/
+      echo -e "[ATOMIC CLOUD] Installed required plugin"
+      echo -e "[ATOMIC CLOUD] Preparing server..."
+      echo "eula=true" >> /mnt/server/eula.txt
+      echo "accepts-transfers=true" >> /mnt/server/server.properties
+      echo "settings:" >> /mnt/server/bukkit.yml
+      echo "  connection-throttle: -1" >> /mnt/server/bukkit.yml
+      echo -e "[ATOMIC CLOUD] Ready to start!"
+    container: 'ghcr.io/pterodactyl/installers:alpine'
     entrypoint: ash
 variables:
   -
@@ -101,7 +119,29 @@ variables:
       - required
       - string
       - 'max:20'
-    sort: 1
+    sort: 4
+  -
+    name: 'Controller Address'
+    description: 'This is set automatically by the cloud.'
+    env_variable: CONTROLLER_ADDRESS
+    default_value: ''
+    user_viewable: true
+    user_editable: true
+    rules:
+      - string
+      - required
+    sort: 5
+  -
+    name: 'Controller Certificate'
+    description: 'This is set automatically by the cloud. If you use TLS'
+    env_variable: CONTROLLER_CERTIFICATE
+    default_value: ''
+    user_viewable: true
+    user_editable: true
+    rules:
+      - nullable
+      - string
+    sort: 7
   -
     name: 'Download Path'
     description: |-
@@ -114,7 +154,7 @@ variables:
     rules:
       - nullable
       - string
-    sort: 2
+    sort: 3
   -
     name: 'Minecraft Version'
     description: "The version of minecraft to download. \r\n\r\nLeave at latest to always get the latest version. Invalid versions will default to latest."
@@ -126,7 +166,7 @@ variables:
       - nullable
       - string
       - 'max:20'
-    sort: 3
+    sort: 1
   -
     name: 'Server Jar File'
     description: 'The name of the server jarfile to run the server with.'
@@ -137,4 +177,15 @@ variables:
     rules:
       - required
       - 'regex:/^([\w\d._-]+)(\.jar)$/'
-    sort: 4
+    sort: 2
+  -
+    name: 'Server Token'
+    description: 'This is set automatically by the cloud.'
+    env_variable: SERVER_TOKEN
+    default_value: ''
+    user_viewable: true
+    user_editable: true
+    rules:
+      - required
+      - string
+    sort: 6

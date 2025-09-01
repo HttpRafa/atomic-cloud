@@ -81,7 +81,7 @@ impl From<&Node> for Detail {
     fn from(value: &Node) -> Self {
         Self {
             name: value.name().clone(),
-            plugin: value.plugin().to_string(),
+            plugin: value.plugin().clone(),
             capabilities: Some(value.capabilities().into()),
             controller_address: value.controller().to_string(),
         }

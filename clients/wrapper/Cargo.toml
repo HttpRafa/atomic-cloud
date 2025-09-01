@@ -30,6 +30,7 @@ tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "pr
 
 # API
 tonic = { version = "0.14.1", features = ["tls-ring"] }
+tonic-prost = "0.14.1"
 url = "2.5.7"
 prost = "0.14.1"
 

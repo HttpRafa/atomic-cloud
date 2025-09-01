@@ -104,7 +104,7 @@ impl<'a, D> SimpleTextArea<'a, D> {
             .lines()
             .first()
             .expect("TextArea should always have at least one line")
-            .to_string()
+            .clone()
     }
 
     pub fn update(&mut self) {

@@ -171,7 +171,7 @@ impl NodeManager {
 impl Node {
     pub fn new(name: &str, node: &StoredNode, instance: BoxedNode) -> Self {
         Self {
-            plugin: node.plugin().to_string(),
+            plugin: node.plugin().clone(),
             instance,
             name: name.to_owned(),
             capabilities: node.capabilities().clone(),

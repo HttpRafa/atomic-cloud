@@ -10,9 +10,7 @@ use tokio::{spawn, sync::Mutex, task::JoinHandle};
 use tonic::async_trait;
 use url::Url;
 use wasmtime::{AsContextMut, Engine, Store, component::ResourceAny};
-use wasmtime_wasi::{
-    ResourceTable, WasiCtx, WasiCtxView, WasiView
-};
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxView, WasiView};
 
 use crate::{
     application::{

@@ -26,7 +26,7 @@ impl GenericTask for GetPluginsTask {
 impl From<&&String> for Short {
     fn from(plugin: &&String) -> Self {
         Self {
-            name: (*plugin).to_string(),
+            name: (*plugin).clone(),
         }
     }
 }

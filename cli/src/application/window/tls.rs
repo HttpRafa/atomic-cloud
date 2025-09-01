@@ -157,7 +157,7 @@ impl TrustTlsWindow {
         .areas(area);
 
         Paragraph::new("A new certificate has been detected. This certificate is currently untrusted. Would you like to trust it?").blue().bold().centered().render(title_area, buffer);
-        Paragraph::new(self.request.get_host().host.to_string())
+        Paragraph::new(self.request.get_host().host.clone())
             .cyan()
             .bold()
             .centered()

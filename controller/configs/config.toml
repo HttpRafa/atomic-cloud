@@ -4,7 +4,7 @@ identifier = "%RANDOM%"
 
 [network]
 # The controller will listen on this address.
-bind = "0.0.0.0:8080"
+bind = "[::]:8080"
 
 [network.tls]
 # Enable or disable TLS. If enabled and not cert and key are provided, the controller will generate a self-signed certificate.

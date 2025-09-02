@@ -2,7 +2,7 @@ _comment: 'DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL'
 meta:
   version: PLCN_v2
   update_url: 'https://raw.githubusercontent.com/HttpRafa/atomic-cloud/refs/heads/main/eggs/egg-paper.yaml'
-exported_at: '2025-09-01T22:47:12+00:00'
+exported_at: '2025-09-02T09:45:02+00:00'
 name: 'Paper for Atomic Cloud'
 author: 60099368+HttpRafa@users.noreply.github.com
 uuid: 520f43e2-ae5c-4638-a1b6-80910cd4bb42
@@ -19,7 +19,7 @@ features:
   - java_version
   - pid_limit
 docker_images:
-  'Java 21': 'ghcr.io/pterodactyl/yolks:java_21'
+  'Java 21': 'ghcr.io/pelican-eggs/yolks:java_21'
 file_denylist: {  }
 startup: 'java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}'
 config:
@@ -105,7 +105,7 @@ scripts:
       echo "settings:" >> /mnt/server/bukkit.yml
       echo "  connection-throttle: -1" >> /mnt/server/bukkit.yml
       echo -e "[ATOMIC CLOUD] Ready to start!"
-    container: 'ghcr.io/pterodactyl/installers:alpine'
+    container: 'ghcr.io/pelican-eggs/installers:alpine'
     entrypoint: ash
 variables:
   -

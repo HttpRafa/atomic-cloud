@@ -1,6 +1,6 @@
 [package]
 name = "cli"
-version = "0.0.0-nightly"
+version = "0.13.0-beta"
 edition = "2024"
 
 [dependencies]

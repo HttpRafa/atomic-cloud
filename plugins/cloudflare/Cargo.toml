@@ -2,7 +2,7 @@ cargo-features = ["per-package-target"]
 
 [package]
 name = "cloudflare"
-version = "0.0.0-nightly"
+version = "0.13.0-beta"
 edition = "2024"
 forced-target = "wasm32-wasip2"
 

@@ -1,8 +1,0 @@
-hero:
-  enable: false
-
-featureGrid:
-  enable: false
-
-imageCompare:
-  enable: false

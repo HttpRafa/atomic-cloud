@@ -1,20 +1,8 @@
-baseURL = "/"
+baseURL = "https://httprafa.github.io/atomic-cloud"
 languageCode = "en-us"
-title = "Atomic Cloud"
+title = "Atomic Cloud | Docs"
 enableEmoji = true
 enableGitInfo = true
-
-defaultContentLanguage = "en"
-[languages]
-  [languages.en]
-    title = "Atomic Cloud"
-    languageName = "English"
-    weight = 10
-  [languages.de]
-    title = "Atomic Cloud"
-    languageName = "Deutsch"
-    contentDir = "content/de"
-    weight = 20
 
 [module]
     [[module.imports]]
@@ -24,84 +12,35 @@ defaultContentLanguage = "en"
         path = "github.com/gohugoio/hugo-mod-bootstrap-scss/v5"
         disable = false
 
-[caches]
-  [caches.images]
-    dir = ':cacheDir/images'
-
-[markup]
-  defaultMarkdownHandler = "goldmark"
-  [markup.tableOfContents]
-      endLevel = 3
-      startLevel = 1
-  [markup.goldmark]
-    [markup.goldmark.renderer]
-      unsafe = true
-
 [params]
-  google_fonts = [
-    ["Inter", "300, 400, 600, 700"],
-    ["Fira Code", "500, 700"]
-  ]
+    google_fonts = [
+        ["Inter", "300, 400, 600, 700"],
+        ["Fira Code", "500, 700"]
+    ]
 
-  sans_serif_font = "Inter"     # Default is System font
-  secondary_font  = "Inter"     # Default is System font
-  mono_font       = "Fira Code" # Default is System font
+    sans_serif_font = "Inter"
+    secondary_font = "Inter"
+    mono_font = "Fira Code"
 
     [params.footer]
-      copyright = "© :YEAR: Atomic Cloud"
-      version = true
+        copyright = "© :YEAR: Atomic Cloud"
+        version = true
 
     [params.social]
-      github = "HttpRafa/atomic-cloud"
+        github = "HttpRafa/atomic-cloud"
 
     [params.docs]
-      title           = "Atomic Cloud"              
+        title = "Atomic Cloud"
+        darkMode = true
 
-      darkMode        = true
+        # Github
+        repoURL = "https://github.com/HttpRafa/atomic-cloud"
+        repoBranch = "main"
+        editPage = false
+        lastMod = true
+        lastModRelative = true
 
-      prism           = true
-
-      prismTheme      = "solarized-light"
-
-      # gitinfo
-      repoURL         = "https://github.com/HttpRafa/atomic-cloud"
-      repoBranch      = "main"
-      editPage        = true
-      lastMod         = true
-      lastModRelative = true
-
-      sidebarIcons    = true
-      breadcrumbs     = true
-      backToTop       = true
-
-      # ToC
-      toc             = true
-      tocMobile       = true
-      scrollSpy       = true
-
-      # front matter
-      descriptions    = true
-      titleIcon       = true
-
-      # content navigation
-      navDesc         = true
-      navDescTrunc    = 30
-
-      listDescTrunc   = 100
-
-      # Link behaviour
-      intLinkTooltip  = true
-      # extLinkNewTab   = false
-      # logoLinkURL = ".."
-
-    [params.flexsearch] # Parameters for FlexSearch
-      enabled             = true
-      # tokenize            = "full"
-      # optimize            = true
-      # cache               = 100
-      # minQueryChar        = 3 # default is 0 (disabled)
-      # maxResult           = 5 # default is 5
-      # searchSectionsIndex = []
+    [params.flexsearch]
 
 [menu]
 [[menu.primary]]

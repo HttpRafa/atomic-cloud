@@ -1,0 +1,40 @@
+[hero]
+    enable = true
+    weight = 10
+    template = "hero"
+    title = "Atomic Cloud"
+    subtitle = "Atomic Cloud is a cloud that was primarily developed for the game Minecraft, but it is possible to integrate other games with Atomic Cloud."
+    info = "**Open Source** GPL-3.0 Licensed."
+
+    [hero.image]
+        path = "images/controller"
+        filename = "startup.png"
+        boxShadow = true
+        rounded = true
+
+    [hero.titleLogo]
+        path = "images/logos"
+        filename = "logo.png"
+        height = "80px"
+
+    [hero.backgroundImage]
+        path = "images/templates/hero"
+
+        [hero.backgroundImage.filename]
+            desktop = "gradient-desktop.webp"
+            mobile = "gradient-mobile.webp"
+
+    [hero.ctaButton]
+        icon = "rocket_launch"
+        btnText = "Get Started"
+
+    [hero.cta2Button]
+        icon = "code"
+        btnText = "View on Github"
+        url = "https://github.com/HttpRafa/atomic-cloud"
+
+[featureGrid]
+    enable = false
+
+[imageCompare]
+    enable = false

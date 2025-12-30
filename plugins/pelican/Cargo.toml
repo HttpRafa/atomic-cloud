@@ -11,7 +11,7 @@ forced-target = "wasm32-wasip2"
 common = { path = "../../common" }
 
 # Wasm plugin
-wit-bindgen = "0.49.0"
+wit-bindgen = "0.50.0"
 
 # Error handling
 anyhow = "1.0.99"

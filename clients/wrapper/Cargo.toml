@@ -35,5 +35,5 @@ url = "2.5.7"
 prost = "0.14.1"
 
 [build-dependencies]
-toml = "0.9.5"
+toml = "1.0.1"
 tonic-prost-build = "0.14.1"

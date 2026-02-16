@@ -21,7 +21,7 @@ getset = "0.1.6"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
-toml = "0.9.5"
+toml = "1.0.1"
 
 # Servers
 regex = "1.11.2"
@@ -30,4 +30,4 @@ regex = "1.11.2"
 serde_json = "1.0.143"
 
 [build-dependencies]
-toml = "0.9.5"
+toml = "1.0.1"

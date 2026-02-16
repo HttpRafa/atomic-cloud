@@ -22,7 +22,7 @@ color-eyre = "0.6.5"
 
 # Configuration
 serde = { version = "1.0.219", features = ["derive"] }
-toml = "0.9.5"
+toml = "1.0.1"
 base64 = "0.22.1"
 
 # Async runtime
@@ -43,6 +43,6 @@ tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring
 hyper-rustls = { version = "0.27.7", default-features = false, features = ["http2", "ring", "tls12"] }
 
 [build-dependencies]
-toml = "0.9.5"
+toml = "1.0.1"
 tonic-prost-build = "0.14.1"
 winresource = "0.1.23"

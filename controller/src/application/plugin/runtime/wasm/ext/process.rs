@@ -12,7 +12,7 @@ use tokio::{
     sync::mpsc::{Receiver, channel},
     task::JoinHandle,
 };
-use wasmtime::component::Resource;
+use wasmtime::{ToWasmtimeResult, component::Resource};
 
 use crate::application::plugin::runtime::wasm::{
     PluginState,
@@ -105,7 +105,7 @@ impl Streams {
 impl system::process::Host for PluginState {}
 
 impl system::process::HostProcessBuilder for PluginState {
-    async fn new(&mut self, command: String) -> Result<Resource<ProcessBuilder>> {
+    async fn new(&mut self, command: String) -> wasmtime::Result<Resource<ProcessBuilder>> {
         Ok(self.resources.push(ProcessBuilder {
             command,
             args: Vec::new(),
@@ -113,7 +113,7 @@ impl system::process::HostProcessBuilder for PluginState {
             directory: None,
         })?)
     }
-    async fn args(&mut self, instance: Resource<ProcessBuilder>, args: Vec<String>) -> Result<()> {
+    async fn args(&mut self, instance: Resource<ProcessBuilder>, args: Vec<String>) -> wasmtime::Result<()> {
         self.resources.get_mut(&instance)?.args.extend(args);
         Ok(())
     }
@@ -121,7 +121,7 @@ impl system::process::HostProcessBuilder for PluginState {
         &mut self,
         instance: Resource<ProcessBuilder>,
         environment: Vec<(String, String)>,
-    ) -> Result<()> {
+    ) -> wasmtime::Result<()> {
         self.resources
             .get_mut(&instance)?
             .environment
@@ -132,19 +132,19 @@ impl system::process::HostProcessBuilder for PluginState {
         &mut self,
         instance: Resource<ProcessBuilder>,
         directory: Directory,
-    ) -> Result<()> {
+    ) -> wasmtime::Result<()> {
         self.resources.get_mut(&instance)?.directory = Some(directory);
         Ok(())
     }
     async fn spawn(
         &mut self,
         instance: Resource<ProcessBuilder>,
-    ) -> Result<Result<Resource<Process>, ErrorMessage>> {
+    ) -> wasmtime::Result<Result<Resource<Process>, ErrorMessage>> {
         // Check if the plugin has permissions
         if !self.permissions.contains(Permissions::ALLOW_PROCESS) {
             return Err(anyhow!(
                 "Plugin tried to spawn a process without the required permissions"
-            ));
+            )).to_wasmtime_result();
         }
 
         let builder = self.resources.get(&instance)?;
@@ -168,14 +168,14 @@ impl system::process::HostProcessBuilder for PluginState {
         let streams = Streams::new(child.stdin.take(), child.stdout.take(), child.stderr.take());
         Ok(Ok(self.resources.push(Process { child, streams })?))
     }
-    async fn drop(&mut self, instance: Resource<ProcessBuilder>) -> Result<()> {
+    async fn drop(&mut self, instance: Resource<ProcessBuilder>) -> wasmtime::Result<()> {
         self.resources.delete(instance)?;
         Ok(())
     }
 }
 
 impl system::process::HostProcess for PluginState {
-    async fn kill(&mut self, instance: Resource<Process>) -> Result<Result<(), ErrorMessage>> {
+    async fn kill(&mut self, instance: Resource<Process>) -> wasmtime::Result<Result<(), ErrorMessage>> {
         Ok(self
             .resources
             .get_mut(&instance)?
@@ -187,7 +187,7 @@ impl system::process::HostProcess for PluginState {
     async fn try_wait(
         &mut self,
         instance: Resource<Process>,
-    ) -> Result<Result<Option<ExitStatus>, ErrorMessage>> {
+    ) -> wasmtime::Result<Result<Option<ExitStatus>, ErrorMessage>> {
         Ok(self
             .resources
             .get_mut(&instance)?
@@ -196,7 +196,7 @@ impl system::process::HostProcess for PluginState {
             .map(|status| status.map(create_exit_status))
             .map_err(|error| format!("Failed to try waiting for process: {error}")))
     }
-    async fn read_lines(&mut self, instance: Resource<Process>) -> Result<Vec<String>> {
+    async fn read_lines(&mut self, instance: Resource<Process>) -> wasmtime::Result<Vec<String>> {
         let process = self.resources.get_mut(&instance)?;
         let mut lines = vec![];
         while let Ok(line) = process.streams.receiver.try_recv() {
@@ -208,7 +208,7 @@ impl system::process::HostProcess for PluginState {
         &mut self,
         instance: Resource<Process>,
         data: Vec<u8>,
-    ) -> Result<Result<(), ErrorMessage>> {
+    ) -> wasmtime::Result<Result<(), ErrorMessage>> {
         if let Some(stdin) = &mut self.resources.get_mut(&instance)?.streams.stdin {
             return Ok(stdin
                 .write_all(&data)
@@ -217,7 +217,7 @@ impl system::process::HostProcess for PluginState {
         }
         Ok(Err("Process stdin is not available".to_string()))
     }
-    async fn flush(&mut self, instance: Resource<Process>) -> Result<Result<(), ErrorMessage>> {
+    async fn flush(&mut self, instance: Resource<Process>) -> wasmtime::Result<Result<(), ErrorMessage>> {
         if let Some(stdin) = &mut self.resources.get_mut(&instance)?.streams.stdin {
             return Ok(stdin
                 .flush()
@@ -226,7 +226,7 @@ impl system::process::HostProcess for PluginState {
         }
         Ok(Err("Process stdin is not available".to_string()))
     }
-    async fn drop(&mut self, instance: Resource<Process>) -> Result<()> {
+    async fn drop(&mut self, instance: Resource<Process>) -> wasmtime::Result<()> {
         let process = self.resources.delete(instance)?;
         process.streams.abort();
         Ok(())

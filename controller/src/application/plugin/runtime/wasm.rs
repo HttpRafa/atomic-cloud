@@ -38,9 +38,9 @@ pub mod generated {
         imports: { default: async | trappable },
         exports: { default: async },
         with: {
-            "plugin:system/guard/guard": crate::application::server::guard::Guard,
-            "plugin:system/process/process-builder": super::ext::process::ProcessBuilder,
-            "plugin:system/process/process": super::ext::process::Process,
+            "plugin:system/guard.guard": crate::application::server::guard::Guard,
+            "plugin:system/process.process-builder": super::ext::process::ProcessBuilder,
+            "plugin:system/process.process": super::ext::process::Process,
         }
     });
 }
@@ -88,7 +88,7 @@ impl GenericPlugin for Plugin {
             .await
         {
             Ok(information) => Ok(information.into()),
-            Err(error) => Err(error),
+            Err(error) => Err(error.into()),
         }
     }
 
@@ -137,7 +137,7 @@ impl GenericPlugin for Plugin {
                             .join("\n")
                     )
                 }),
-                Err(error) => Err(error),
+                Err(error) => Err(error.into()),
             }
         })
     }
@@ -174,7 +174,7 @@ impl GenericPlugin for Plugin {
                             .join("\n")
                     )
                 }),
-                Err(error) => Err(error),
+                Err(error) => Err(error.into()),
             }
         })
     }
@@ -192,7 +192,7 @@ impl GenericPlugin for Plugin {
         }
 
         self.instance
-            .resource_drop_async::<ResourceAny>(store.as_context_mut())
+            .resource_drop_async(store.as_context_mut())
             .await?;
         self.dropped = true;
 
@@ -211,7 +211,7 @@ impl Plugin {
             .await
         {
             Ok(instance) => Ok(PluginListener::new(instance)),
-            Err(error) => Err(error),
+            Err(error) => Err(error.into()),
         }
     }
 }

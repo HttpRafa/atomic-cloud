@@ -11,48 +11,48 @@ common = { path = "../common" }
 simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
-anyhow = "1.0.99"
+anyhow = "1.0.102"
 
 # Getters and bitflags
 getset = "0.1.6"
-bitflags = { version = "2.9.3", features = ["serde"] }
+bitflags = { version = "2.11.0", features = ["serde"] }
 
 # Signal handling
-ctrlc = "3.4.7"
+ctrlc = "3.5.2"
 
 # Server system
-uuid = { version = "1.18.0", features = ["v4"] }
+uuid = { version = "1.22.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.46", features = ["derive"] }
+clap = { version = "4.5.60", features = ["derive"] }
 
 # Regex parsing
-regex = "1.11.2"
+regex = "1.12.3"
 
 # Configuration
-serde = { version = "1.0.219", features = ["derive"] }
-toml = "1.0.1"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "0.9.8"
 
 # Async runtime
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "fs", "process", "macros"] }
-tokio-stream = "0.1.17"
-futures = "0.3.31"
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "fs", "process", "macros"] }
+tokio-stream = "0.1.18"
+futures = "0.3.32"
 
 # Network
-tonic = { version = "0.14.1", features = ["tls-ring"] }
-tonic-prost = "0.14.1"
-url = { version = "2.5.7", features = ["serde"] }
-prost = "0.14.1"
-rcgen = "0.14.3"
+tonic = { version = "0.14.5", features = ["tls-ring"] }
+tonic-prost = "0.14.5"
+url = { version = "2.5.8", features = ["serde"] }
+prost = "0.14.3"
+rcgen = "0.14.7"
 
 # Plugins
-wasmtime = { version = "42.0.1", default-features = false, features = ["addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
+wasmtime = { version = "42.0.1", default-features = false, features = ["anyhow", "addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
 wasmtime-wasi = { version = "42.0.1", optional = true }
-minreq = { version = "2.14.0", features = ["https-rustls"], optional = true }
+minreq = { version = "2.14.1", features = ["https-rustls"], optional = true }
 
 [build-dependencies]
-toml = "1.0.1"
-tonic-prost-build = "0.14.1"
+toml = "0.9.8"
+tonic-prost-build = "0.14.5"
 
 [features]
 wasm-plugins = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]

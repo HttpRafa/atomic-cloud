@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use tokio::fs::remove_dir_all;
+use wasmtime::ToWasmtimeResult;
 
 use crate::application::plugin::runtime::wasm::{
     PluginState,
@@ -11,12 +12,12 @@ use crate::application::plugin::runtime::wasm::{
 };
 
 impl system::file::Host for PluginState {
-    async fn remove_dir_all(&mut self, directory: Directory) -> Result<Result<(), ErrorMessage>> {
+    async fn remove_dir_all(&mut self, directory: Directory) -> wasmtime::Result<Result<(), ErrorMessage>> {
         // Check if the plugin has permissions
         if !self.permissions.contains(Permissions::ALLOW_REMOVE_DIR_ALL) {
             return Err(anyhow!(
                 "Plugin tried to call remove_dir_all without the required permissions"
-            ));
+            )).to_wasmtime_result();
         }
 
         Ok(remove_dir_all(Self::get_directory(&self.name, &directory))

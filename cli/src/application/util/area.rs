@@ -2,10 +2,7 @@ use std::{error::Error, str::FromStr};
 
 use color_eyre::eyre::{Result, eyre};
 use ratatui::{
-    buffer::Buffer,
-    layout::{Constraint, Flex, Layout, Rect},
-    style::{Style, Stylize},
-    widgets::{Block, Borders, Paragraph, Widget},
+    buffer::Buffer, layout::{Constraint, Flex, Layout, Rect}, style::Style, widgets::{Block, Borders, Paragraph, Widget}
 };
 use tui_textarea::{Input, TextArea};
 

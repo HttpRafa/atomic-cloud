@@ -77,7 +77,7 @@ impl GenericNode for PluginNode {
                             .join("\n")
                     )
                 }),
-                Err(error) => Err(error),
+                Err(error) => Err(error.into()),
             }
         })
     }
@@ -101,7 +101,7 @@ impl GenericNode for PluginNode {
                             .collect()
                     })
                     .map_err(|error| anyhow!(error)),
-                Err(error) => Err(error),
+                Err(error) => Err(error.into()),
             }
         })
     }
@@ -118,7 +118,7 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_free(store.lock().await.as_context_mut(), instance, &ports)
-                .await
+                .await.map_err(|error| error.into())
         })
     }
 
@@ -138,7 +138,7 @@ impl GenericNode for PluginNode {
                     store.clone(),
                     screen,
                 )) as BoxedScreen),
-                Err(error) => Err(error),
+                Err(error) => Err(error.into()),
             }
         })
     }
@@ -152,7 +152,7 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_restart(store.lock().await.as_context_mut(), instance, &server)
-                .await
+                .await.map_err(|error| error.into())
         })
     }
 
@@ -168,13 +168,13 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_stop(store.as_context_mut(), instance, &server, guard)
-                .await
+                .await.map_err(|error| error.into())
         })
     }
 
     async fn cleanup(&mut self) -> Result<()> {
         self.instance
-            .resource_drop_async::<ResourceAny>(self.store.lock().await.as_context_mut())
+            .resource_drop_async(self.store.lock().await.as_context_mut())
             .await?;
         self.dropped = true;
 

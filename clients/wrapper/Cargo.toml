@@ -11,29 +11,29 @@ common = { path = "../../common" }
 simplelog = { version = "0.12.2", features = ["paris"] }
 
 # Error handling
-anyhow = "1.0.99"
+anyhow = "1.0.102"
 
 # Signal handling
-ctrlc = "3.4.7"
+ctrlc = "3.5.2"
 
 # User system
-uuid = { version = "1.18.0", features = ["v4"] }
+uuid = { version = "1.22.0", features = ["v4"] }
 
 # Command line arguments
-clap = { version = "4.5.46", features = ["derive"] }
+clap = { version = "4.5.60", features = ["derive"] }
 
 # Regex parsing
-regex = "1.11.2"
+regex = "1.12.3"
 
 # Async runtime
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "macros", "process"] }
 
 # API
-tonic = { version = "0.14.1", features = ["tls-ring"] }
-tonic-prost = "0.14.1"
-url = "2.5.7"
-prost = "0.14.1"
+tonic = { version = "0.14.5", features = ["tls-ring"] }
+tonic-prost = "0.14.5"
+url = "2.5.8"
+prost = "0.14.3"
 
 [build-dependencies]
-toml = "1.0.1"
-tonic-prost-build = "0.14.1"
+toml = "0.9.8"
+tonic-prost-build = "0.14.5"

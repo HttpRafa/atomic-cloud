@@ -7,7 +7,7 @@ use crate::application::plugin::runtime::wasm::{
 };
 
 impl system::log::Host for PluginState {
-    async fn log_string(&mut self, level: Level, message: String) -> Result<()> {
+    async fn log_string(&mut self, level: Level, message: String) -> wasmtime::Result<()> {
         match level {
             Level::Info => info!("[{}] {}", self.name.to_uppercase(), message),
             Level::Warn => warn!("[{}] {}", self.name.to_uppercase(), message),

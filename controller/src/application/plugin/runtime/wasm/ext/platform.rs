@@ -6,7 +6,7 @@ use crate::application::plugin::runtime::wasm::{
 };
 
 impl system::platform::Host for PluginState {
-    async fn get_os(&mut self) -> Result<Os> {
+    async fn get_os(&mut self) -> wasmtime::Result<Os> {
         if cfg!(target_os = "windows") {
             Ok(Os::Windows)
         } else {

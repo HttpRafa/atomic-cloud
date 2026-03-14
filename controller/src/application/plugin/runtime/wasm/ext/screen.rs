@@ -74,7 +74,7 @@ impl GenericScreen for PluginScreen {
                 .screen()
                 .call_pull(store.lock().await.as_context_mut(), instance)
                 .await
-                .map_err(ScreenError::Error)?
+                .map_err(|error| ScreenError::Error(error.into()))?
             {
                 Ok(result) => Ok(result),
                 Err(error) => Err(ScreenError::Error(anyhow!(error))),
@@ -94,7 +94,7 @@ impl GenericScreen for PluginScreen {
                 .screen()
                 .call_write(store.lock().await.as_context_mut(), instance, &data)
                 .await
-                .map_err(ScreenError::Error)?
+                .map_err(|error| ScreenError::Error(error.into()))?
             {
                 Ok(result) => Ok(result),
                 Err(error) => Err(ScreenError::Error(anyhow!(error))),
@@ -107,7 +107,7 @@ impl GenericScreen for PluginScreen {
             replace(&mut self.instance, ScreenType::Unsupported)
         {
             instance
-                .resource_drop_async::<ResourceAny>(self.store.lock().await.as_context_mut())
+                .resource_drop_async(self.store.lock().await.as_context_mut())
                 .await?;
         }
         self.dropped = true;

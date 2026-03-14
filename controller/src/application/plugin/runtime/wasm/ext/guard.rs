@@ -9,7 +9,7 @@ use crate::application::{
 impl system::guard::Host for PluginState {}
 
 impl system::guard::HostGuard for PluginState {
-    async fn drop(&mut self, instance: Resource<Guard>) -> Result<()> {
+    async fn drop(&mut self, instance: Resource<Guard>) -> wasmtime::Result<()> {
         self.resources.delete(instance)?;
         Ok(())
     }

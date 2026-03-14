@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style, Stylize, palette::tailwind::AMBER},
+    style::{Color, Style, palette::tailwind::AMBER},
     text::{Line, Span},
 };
 

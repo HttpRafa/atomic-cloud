@@ -12,7 +12,7 @@ crossterm = { version = "0.28.1", features = ["event-stream"] }
 ratatui = { version = "0.30.0", features = ["unstable-rendered-line-info"] }
 tui-textarea = "0.7.0"
 ansi-parser = "0.9.1"
-ansi-to-tui = "8.0.0"
+ansi-to-tui = "8.0.1"
 
 # File management
 directories = "6.0.0"
@@ -21,28 +21,28 @@ directories = "6.0.0"
 color-eyre = "0.6.5"
 
 # Configuration
-serde = { version = "1.0.219", features = ["derive"] }
-toml = "1.0.1"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "0.9.8"
 base64 = "0.22.1"
 
 # Async runtime
-tokio-stream = "0.1.17"
-tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "fs", "macros"] }
-futures = "0.3.31"
+tokio-stream = "0.1.18"
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "fs", "macros"] }
+futures = "0.3.32"
 
 # Network
 sha2 = "0.10.9"
-prost = "0.14.1"
-tower = "0.5.2"
-hyper = "1.7.0"
-hyper-util = "0.1.16"
-url = { version = "2.5.7", features = ["serde"] }
-tonic = { version = "0.14.1", features = ["tls-ring"] }
-tonic-prost = "0.14.1"
-tokio-rustls = { version = "0.26.2", default-features = false, features = ["ring", "tls12"] }
+prost = "0.14.3"
+tower = "0.5.3"
+hyper = "1.8.1"
+hyper-util = "0.1.20"
+url = { version = "2.5.8", features = ["serde"] }
+tonic = { version = "0.14.5", features = ["tls-ring"] }
+tonic-prost = "0.14.5"
+tokio-rustls = { version = "0.26.4", default-features = false, features = ["ring", "tls12"] }
 hyper-rustls = { version = "0.27.7", default-features = false, features = ["http2", "ring", "tls12"] }
 
 [build-dependencies]
-toml = "1.0.1"
-tonic-prost-build = "0.14.1"
-winresource = "0.1.23"
+toml = "0.9.8"
+tonic-prost-build = "0.14.5"
+winresource = "0.1.30"

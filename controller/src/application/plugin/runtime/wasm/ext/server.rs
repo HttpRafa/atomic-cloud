@@ -1,6 +1,7 @@
 use anyhow::Result;
 use tonic::async_trait;
 use uuid::Uuid;
+use wasmtime::ToWasmtimeResult;
 
 use crate::{
     application::{
@@ -20,7 +21,7 @@ impl system::server::Host for PluginState {
     async fn get_server(
         &mut self,
         uuid: String,
-    ) -> Result<Result<Option<bridge::Server>, ErrorMessage>> {
+    ) -> wasmtime::Result<Result<Option<bridge::Server>, ErrorMessage>> {
         let Ok(uuid) = Uuid::parse_str(&uuid) else {
             return Ok(Err("Failed to parse provided uuid".to_string()));
         };
@@ -29,7 +30,7 @@ impl system::server::Host for PluginState {
             &self.tasks,
             GetServerTask(uuid),
         )
-        .await?))
+        .await.to_wasmtime_result()?))
     }
 }
 

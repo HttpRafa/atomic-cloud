@@ -14,20 +14,20 @@ common = { path = "../../common" }
 wit-bindgen = "0.53.1"
 
 # Error handling
-anyhow = "1.0.99"
+anyhow = "1.0.102"
 
 # Getters
 getset = "0.1.6"
 
 # Configuration
-serde = { version = "1.0.219", features = ["derive"] }
-toml = "1.0.1"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "0.9.8"
 
 # Servers
-regex = "1.11.2"
+regex = "1.12.3"
 
 # Cloudflare API
-serde_json = "1.0.143"
+serde_json = "1.0.149"
 
 [build-dependencies]
-toml = "1.0.1"
+toml = "0.9.8"

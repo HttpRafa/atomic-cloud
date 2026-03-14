@@ -121,7 +121,7 @@ impl PluginListener {
                     .plugin_system_event()
                     .listener()
                     .call_server_start(store.as_context_mut(), self.instance, &event)
-                    .await,
+                    .await.map_err(|error| error.into()),
             );
         }
         for event in Self::collect_events(&mut self.server_stop) {
@@ -131,7 +131,7 @@ impl PluginListener {
                     .plugin_system_event()
                     .listener()
                     .call_server_stop(store.as_context_mut(), self.instance, &event)
-                    .await,
+                    .await.map_err(|error| error.into()),
             );
         }
         for event in Self::collect_events(&mut self.server_change_ready) {
@@ -146,14 +146,14 @@ impl PluginListener {
                         &server,
                         event.1,
                     )
-                    .await,
+                    .await.map_err(|error| error.into()),
             );
         }
     }
 
     pub async fn cleanup(&mut self, store: impl AsContextMut<Data = PluginState>) -> Result<()> {
         self.instance
-            .resource_drop_async::<ResourceAny>(store)
+            .resource_drop_async(store)
             .await?;
         self.dropped = true;
 

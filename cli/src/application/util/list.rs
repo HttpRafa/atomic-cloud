@@ -6,7 +6,7 @@ use ratatui::{
     style::{Style, Stylize},
     widgets::{HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget},
 };
-use tui_textarea::{Input, Key, TextArea};
+use ratatui_textarea::{Input, Key, TextArea};
 
 use super::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG, SELECTED_STYLE};
 

@@ -1,4 +1,3 @@
-use anyhow::Result;
 use simplelog::{debug, error, info, warn};
 
 use crate::application::plugin::runtime::wasm::{

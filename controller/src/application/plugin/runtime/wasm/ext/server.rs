@@ -30,7 +30,8 @@ impl system::server::Host for PluginState {
             &self.tasks,
             GetServerTask(uuid),
         )
-        .await.to_wasmtime_result()?))
+        .await
+        .to_wasmtime_result()?))
     }
 }
 

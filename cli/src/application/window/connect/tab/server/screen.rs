@@ -17,8 +17,8 @@ use ratatui::{
         Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, Wrap,
     },
 };
+use ratatui_textarea::TextArea;
 use tonic::{Streaming, async_trait};
-use tui_textarea::TextArea;
 
 use crate::application::{
     State,

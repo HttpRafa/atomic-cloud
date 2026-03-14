@@ -113,7 +113,11 @@ impl system::process::HostProcessBuilder for PluginState {
             directory: None,
         })?)
     }
-    async fn args(&mut self, instance: Resource<ProcessBuilder>, args: Vec<String>) -> wasmtime::Result<()> {
+    async fn args(
+        &mut self,
+        instance: Resource<ProcessBuilder>,
+        args: Vec<String>,
+    ) -> wasmtime::Result<()> {
         self.resources.get_mut(&instance)?.args.extend(args);
         Ok(())
     }
@@ -144,7 +148,8 @@ impl system::process::HostProcessBuilder for PluginState {
         if !self.permissions.contains(Permissions::ALLOW_PROCESS) {
             return Err(anyhow!(
                 "Plugin tried to spawn a process without the required permissions"
-            )).to_wasmtime_result();
+            ))
+            .to_wasmtime_result();
         }
 
         let builder = self.resources.get(&instance)?;
@@ -175,7 +180,10 @@ impl system::process::HostProcessBuilder for PluginState {
 }
 
 impl system::process::HostProcess for PluginState {
-    async fn kill(&mut self, instance: Resource<Process>) -> wasmtime::Result<Result<(), ErrorMessage>> {
+    async fn kill(
+        &mut self,
+        instance: Resource<Process>,
+    ) -> wasmtime::Result<Result<(), ErrorMessage>> {
         Ok(self
             .resources
             .get_mut(&instance)?
@@ -217,7 +225,10 @@ impl system::process::HostProcess for PluginState {
         }
         Ok(Err("Process stdin is not available".to_string()))
     }
-    async fn flush(&mut self, instance: Resource<Process>) -> wasmtime::Result<Result<(), ErrorMessage>> {
+    async fn flush(
+        &mut self,
+        instance: Resource<Process>,
+    ) -> wasmtime::Result<Result<(), ErrorMessage>> {
         if let Some(stdin) = &mut self.resources.get_mut(&instance)?.streams.stdin {
             return Ok(stdin
                 .flush()

@@ -118,7 +118,8 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_free(store.lock().await.as_context_mut(), instance, &ports)
-                .await.map_err(|error| error.into())
+                .await
+                .map_err(std::convert::Into::into)
         })
     }
 
@@ -152,7 +153,8 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_restart(store.lock().await.as_context_mut(), instance, &server)
-                .await.map_err(|error| error.into())
+                .await
+                .map_err(std::convert::Into::into)
         })
     }
 
@@ -168,7 +170,8 @@ impl GenericNode for PluginNode {
                 .plugin_system_bridge()
                 .node()
                 .call_stop(store.as_context_mut(), instance, &server, guard)
-                .await.map_err(|error| error.into())
+                .await
+                .map_err(std::convert::Into::into)
         })
     }
 

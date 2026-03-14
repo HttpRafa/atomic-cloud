@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::anyhow;
 use simplelog::warn;
 use tokio::task::spawn_blocking;
 use wasmtime::ToWasmtimeResult;
@@ -25,7 +25,8 @@ impl system::http::Host for PluginState {
         if !self.permissions.contains(Permissions::ALLOW_HTTP) {
             return Err(anyhow!(
                 "Plugin tried to send a http request without the required permissions"
-            )).to_wasmtime_result();
+            ))
+            .to_wasmtime_result();
         }
 
         let name = self.name.clone();

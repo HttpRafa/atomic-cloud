@@ -182,7 +182,6 @@ impl Plugin {
         let mut engine_config = wasmtime::Config::new();
         engine_config
             .wasm_component_model(true)
-            .async_support(true)
             .epoch_interruption(true);
         match Cache::from_file(Some(&Storage::wasm_engine_config_file())) {
             Ok(cache) => {

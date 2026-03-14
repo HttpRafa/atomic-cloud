@@ -89,17 +89,15 @@ impl Template {
         match &self.shutdown {
             Some(command) => process
                 .write_all(format!("{command}\n").as_bytes())
-                .map_err(|error| {
-                    anyhow!("Failed to send shutdown command to process: {}", error)
-                })?,
+                .map_err(|error| anyhow!("Failed to send shutdown command to process: {error}"))?,
             None => process
                 .write_all(b"^C\n")
-                .map_err(|error| anyhow!("Failed to send Ctl+C command to process: {}", error))?,
+                .map_err(|error| anyhow!("Failed to send Ctl+C command to process: {error}"))?,
         }
 
         process
             .flush()
-            .map_err(|error| anyhow!("Failed to flush processes stdin: {}", error))?;
+            .map_err(|error| anyhow!("Failed to flush processes stdin: {error}"))?;
         Ok(())
     }
 

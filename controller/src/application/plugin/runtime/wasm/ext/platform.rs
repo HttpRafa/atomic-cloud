@@ -1,5 +1,3 @@
-use anyhow::Result;
-
 use crate::application::plugin::runtime::wasm::{
     PluginState,
     generated::plugin::system::{self, platform::Os},

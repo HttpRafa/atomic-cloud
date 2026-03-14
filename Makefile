@@ -1,4 +1,4 @@
-.PHONY: run run-controller build build-controller build-wrapper build-plugins clean fix
+.PHONY: run run-controller build build-host build-plugins clean fix
 
 # Configuration
 WASM_RUSTFLAGS = -Z wasi-exec-model=reactor
@@ -15,17 +15,15 @@ CLI_ARGS = "--debug"
 
 # OS detection
 ifeq ($(OS),Windows_NT)
-    RM = cmd /C del /S /Q
-    MKDIR = mkdir
-    CP = xcopy /E /I /Y
-    SEP = &
-	SETENV = set
+	RM = cmd /C del /S /Q
+	MKDIR = mkdir
+	CP = xcopy /E /I /Y
+	SEP = &
 else
-    RM = rm -rf
-    MKDIR = mkdir -p
-    CP = cp -r
-    SEP = ;
-	SETENV = export
+	RM = rm -rf
+	MKDIR = mkdir -p
+	CP = cp -r
+	SEP = ;
 endif
 
 # Targets
@@ -41,8 +39,9 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged --all-features
 	cargo fmt
 
-## Build target
-build: build-controller build-cli build-wrapper build-plugins
+## Build target (Uses -j2 to run host and wasm builds simultaneously)
+build: 
+	$(MAKE) -j2 build-host build-plugins
 
 ## Run target
 run: run-controller
@@ -55,24 +54,17 @@ run-controller:
 run-cli:
 	$(MKDIR) $(RUN_DIR) $(SEP) cd $(RUN_DIR) $(SEP) cargo run -p cli --all-features -- $(CLI_ARGS)
 
-## Build controller target
-build-controller:
-	cargo build -p controller --all-features --release
+## Build host binaries (controller, cli, wrapper) together
+build-host:
+	cargo build -p controller -p cli -p wrapper --all-features --release
 
-## Build cli target
-build-cli:
-	cargo build -p cli --all-features --release
-
-## Build wrapper target
-build-wrapper:
-	cargo build -p wrapper --all-features --release
-
-## Build plugins target
+## Build plugins together
 build-plugins:
-	$(SETENV) RUSTFLAGS="$(WASM_RUSTFLAGS)"
-	cargo build -p pelican --target $(WASM_TARGET) --release
-	cargo build -p local --target $(WASM_TARGET) --release
-	cargo build -p cloudflare --target $(WASM_TARGET) --release
+ifeq ($(OS),Windows_NT)
+	set "RUSTFLAGS=$(WASM_RUSTFLAGS)" && cargo build -p pelican -p local -p cloudflare --target $(WASM_TARGET) --release
+else
+	RUSTFLAGS="$(WASM_RUSTFLAGS)" cargo build -p pelican -p local -p cloudflare --target $(WASM_TARGET) --release
+endif
 
 # Create plugin directory if it doesn't exist
 $(PLUGIN_DIR):

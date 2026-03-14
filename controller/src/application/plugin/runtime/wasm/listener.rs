@@ -87,7 +87,7 @@ impl PluginListener {
                     Ok(event) => events.push(event),
                     Err(error) => {
                         FancyError::print_fancy(
-                            &anyhow!("Failed to receive event: {}", error),
+                            &anyhow!("Failed to receive event: {error}"),
                             false,
                         );
                     }
@@ -101,10 +101,10 @@ impl PluginListener {
         match result {
             Ok(Ok(())) => {}
             Ok(Err(error)) => {
-                FancyError::print_fancy(&anyhow!("Failed to fire event: {}", error), false);
+                FancyError::print_fancy(&anyhow!("Failed to fire event: {error}"), false);
             }
             Err(error) => {
-                FancyError::print_fancy(&anyhow!("Failed to fire event: {}", error), false);
+                FancyError::print_fancy(&anyhow!("Failed to fire event: {error}"), false);
             }
         }
     }
@@ -121,7 +121,8 @@ impl PluginListener {
                     .plugin_system_event()
                     .listener()
                     .call_server_start(store.as_context_mut(), self.instance, &event)
-                    .await.map_err(|error| error.into()),
+                    .await
+                    .map_err(std::convert::Into::into),
             );
         }
         for event in Self::collect_events(&mut self.server_stop) {
@@ -131,7 +132,8 @@ impl PluginListener {
                     .plugin_system_event()
                     .listener()
                     .call_server_stop(store.as_context_mut(), self.instance, &event)
-                    .await.map_err(|error| error.into()),
+                    .await
+                    .map_err(std::convert::Into::into),
             );
         }
         for event in Self::collect_events(&mut self.server_change_ready) {
@@ -146,15 +148,14 @@ impl PluginListener {
                         &server,
                         event.1,
                     )
-                    .await.map_err(|error| error.into()),
+                    .await
+                    .map_err(std::convert::Into::into),
             );
         }
     }
 
     pub async fn cleanup(&mut self, store: impl AsContextMut<Data = PluginState>) -> Result<()> {
-        self.instance
-            .resource_drop_async(store)
-            .await?;
+        self.instance.resource_drop_async(store).await?;
         self.dropped = true;
 
         Ok(())

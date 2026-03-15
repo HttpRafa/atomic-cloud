@@ -27,7 +27,7 @@ pub mod generated {
 
     generate!({
         world: "plugin",
-        path: "../../protocol/wit/",
+        path: "../../protocol/wasm/",
     });
 }
 

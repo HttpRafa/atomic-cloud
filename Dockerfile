@@ -12,7 +12,7 @@ COPY . .
 RUN apk add --no-cache musl-dev openssl-dev protobuf-dev
 
 # Compile the controller with the wasm-plugins feature
-RUN cargo build -p controller --features wasm-plugins --release
+RUN cargo build -p controller --all-features --release
 
 # Runtime stage: Use a minimal Alpine image
 FROM alpine:latest

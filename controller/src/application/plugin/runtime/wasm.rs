@@ -34,7 +34,7 @@ pub mod generated {
 
     bindgen!({
         world: "plugin",
-        path: "../protocol/wit/",
+        path: "../protocol/wasm/",
         imports: { default: async | trappable },
         exports: { default: async },
         with: {

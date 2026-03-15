@@ -1,7 +1,10 @@
 #[cfg(feature = "wasm-plugins")]
 pub(crate) mod wasm;
 
-#[cfg(feature = "wasm-plugins")]
+#[cfg(feature = "wasmite-plugins")]
+pub(crate) mod wasmite;
+
+#[cfg(any(feature = "wasm-plugins", feature = "wasmite-plugins"))]
 pub(crate) mod source {
     use std::{
         fmt::{self, Display, Formatter},

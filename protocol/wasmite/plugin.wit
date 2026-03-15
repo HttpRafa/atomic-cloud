@@ -1,0 +1,65 @@
+package atomic:plugin-system@0.1.0;
+
+/// ----------------------------------------------------------------------
+/// ERROR TYPE
+/// ----------------------------------------------------------------------
+
+interface errors {
+    variant error {
+        not-ready(string),
+        not-found(string),
+        already-exists(string),
+        invalid-argument(string),
+        unauthorized(string),
+        io(string),
+        network(string),
+        key-value(string),
+        internal(string),
+    }
+}
+
+/// ----------------------------------------------------------------------
+/// DATA TYPES
+/// ----------------------------------------------------------------------
+
+interface data-types {
+    flags features {
+        node,
+    }
+
+    record information {
+        authors: list<string>,
+        version: string,
+        features: features,
+    }
+}
+
+/// ----------------------------------------------------------------------
+/// PLUGIN IMPORTS (Called by the Guest/Plugin)
+/// ----------------------------------------------------------------------
+
+/// ----------------------------------------------------------------------
+/// PLUGIN EXPORTS (Called by the Host)
+/// ----------------------------------------------------------------------
+
+interface lifecycle {
+    use errors.{error};
+    use data-types.{information};
+
+    /// Called ephemerally. The plugin fetches state via kv-store 
+    init: func(cloud-identifier: string) -> result<information, error>;
+    tick: func(cloud-identifier: string) -> result<_, error>;
+    shutdown: func(cloud-identifier: string) -> result<_, error>;
+}
+
+/// ----------------------------------------------------------------------
+/// WASM WORLD
+/// ----------------------------------------------------------------------
+
+world plugin {
+    // Host-Provided Functionality (State Keepers & Utilities)
+    import errors;
+
+    // Guest-Provided Functionality (Stateless/Ephemeral Execution logic)
+    export lifecycle;
+}

@@ -56,3 +56,4 @@ tonic-prost-build = "0.14.5"
 
 [features]
 wasm-plugins = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]
+wasmite-plugins = ["dep:wasmtime", "dep:wasmtime-wasi"]

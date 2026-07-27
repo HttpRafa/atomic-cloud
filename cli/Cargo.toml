@@ -23,7 +23,7 @@ color-eyre = "0.6.5"
 # Configuration
 serde = { version = "1.0.228", features = ["derive"] }
 toml = "1.0.6"
-base64 = "0.22.1"
+base64 = "0.23.0"
 
 # Async runtime
 tokio-stream = "0.1.18"

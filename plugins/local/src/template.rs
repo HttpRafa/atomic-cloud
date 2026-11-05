@@ -161,10 +161,12 @@ impl Template {
             }
 
             let relative = path.strip_prefix(&from)?;
+            // Only files are visited, so a directory exclusion like
+            // "prepare/" has to match as a path prefix
             if self
                 .exclusions
                 .iter()
-                .any(|exclusion| exclusion == relative)
+                .any(|exclusion| relative.starts_with(exclusion))
             {
                 continue;
             }

@@ -525,3 +525,35 @@ async fn stopping_an_unknown_server_completes_immediately() {
     let guard = harness.stop(&server("gone", "echo", 40004)).await;
     assert!(guard.is_dropped());
 }
+
+#[tokio::test]
+async fn directory_exclusions_are_not_copied() {
+    let template = TemplateSpec {
+        exclusions: &["template.toml", "prepare/"],
+        ..TemplateSpec::default()
+    };
+    let Some(harness) = Harness::new(&[template]).await else {
+        return;
+    };
+    harness.wait_template("echo", "ready").await;
+    let server = server("e", "echo", 40006);
+    let screen = harness.start(&server).await.unwrap();
+    expect_line(&screen, "started on 40006 with hello").await;
+
+    let directory = harness.data().join("servers/temporary").join(NODE);
+    let server_directory = std::fs::read_dir(&directory)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    assert!(server_directory.join("prepared.txt").exists());
+    assert!(!server_directory.join("template.toml").exists());
+    assert!(
+        !server_directory.join("prepare").exists(),
+        "excluded directory was copied"
+    );
+
+    let guard = harness.stop(&server).await;
+    harness.wait_stopped(&guard).await;
+}

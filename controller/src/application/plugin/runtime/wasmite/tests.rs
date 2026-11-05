@@ -631,3 +631,44 @@ async fn servers_without_a_shutdown_command_get_terminated() {
     // The stop timeout is 2s; a graceful exit must not have to wait for it
     assert!(took < Duration::from_millis(1500), "stop took {took:?}");
 }
+
+#[tokio::test]
+async fn crashed_servers_are_cleaned_up() {
+    let template = TemplateSpec {
+        name: "crashing",
+        startup: "echo crashing; sleep 0.2; exit 1",
+        ..TemplateSpec::default()
+    };
+    let Some(harness) = Harness::new(&[template]).await else {
+        return;
+    };
+    harness.wait_template("crashing", "ready").await;
+    let server = server("c", "crashing", 40008);
+    harness.start(&server).await.unwrap();
+    assert!(harness.server_record("c").is_some());
+
+    harness
+        .tick_until("the crashed server to be cleaned up", |harness| {
+            harness.server_record("c").is_none()
+        })
+        .await;
+    assert!(
+        harness
+            .runtime()
+            .context()
+            .processes
+            .list_ids("server/")
+            .is_empty()
+    );
+    assert!(
+        std::fs::read_dir(harness.data().join("servers/temporary").join(NODE))
+            .unwrap()
+            .next()
+            .is_none(),
+        "temporary directory of the crashed server was kept"
+    );
+
+    // The controller stops it later; that must complete right away
+    let guard = harness.stop(&server).await;
+    assert!(guard.is_dropped());
+}

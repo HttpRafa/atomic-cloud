@@ -205,7 +205,21 @@ fn tick_server(config: &Config, record: &Versioned<ServerRecord>) -> Result<()> 
     let elapsed = Duration::from_secs(state::now().saturating_sub(server.since));
 
     match server.state {
-        ServerState::Running => Ok(()),
+        ServerState::Running => {
+            let ProcessStatus::Exited(status) =
+                process::status(&id).map_err(|error| anyhow!(error))?
+            else {
+                return Ok(());
+            };
+            // Without this the dead server would only be noticed once the
+            // controller's heartbeat timeout ran out, keeping its ports and
+            // directory in the meantime.
+            warn!(
+                "Server {} exited unexpectedly ({:?}), cleaning up",
+                server.name, status
+            );
+            cleanup(record)
+        }
         ServerState::Restarting => {
             let exited = matches!(
                 process::status(&id).map_err(|error| anyhow!(error))?,

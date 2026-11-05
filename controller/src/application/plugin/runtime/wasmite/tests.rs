@@ -312,8 +312,7 @@ fn write_template(data: &Path, template: &TemplateSpec<'_>) {
     std::fs::write(directory.join("prepare").join("note.txt"), "prepare only").unwrap();
     let shutdown = template
         .shutdown
-        .map(|command| format!("shutdown = {command:?}\n"))
-        .unwrap_or_default();
+        .map_or_default(|command| format!("shutdown = {command:?}\n"));
     let exclusions = template
         .exclusions
         .iter()
@@ -449,13 +448,9 @@ async fn server_lifecycle() {
     assert!(took < Duration::from_secs(2), "stop took {took:?}");
     assert!(harness.server_record("a").is_none());
     assert!(!directory.exists(), "temporary directory was not removed");
-    assert!(
-        harness
-            .runtime()
-            .context()
-            .processes
-            .list_ids("")
-            .is_empty()
+    assert_eq!(
+        harness.runtime().context().processes.list_ids(""),
+        [] as [std::string::String; 0]
     );
 
     harness.free(&addresses).await;
@@ -652,13 +647,9 @@ async fn crashed_servers_are_cleaned_up() {
             harness.server_record("c").is_none()
         })
         .await;
-    assert!(
-        harness
-            .runtime()
-            .context()
-            .processes
-            .list_ids("server/")
-            .is_empty()
+    assert_eq!(
+        harness.runtime().context().processes.list_ids("server/"),
+        [] as [std::string::String; 0]
     );
     assert!(
         std::fs::read_dir(harness.data().join("servers/temporary").join(NODE))

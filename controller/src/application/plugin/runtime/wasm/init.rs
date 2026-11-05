@@ -8,7 +8,7 @@ use wasmtime::{
     Cache, Engine, Store,
     component::{Component, HasSelf, Linker},
 };
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
+use wasmtime_wasi::{FsPerms, ResourceTable, WasiCtxBuilder};
 
 use crate::{
     application::{
@@ -230,23 +230,13 @@ impl Plugin {
                 wasi.allow_ip_name_lookup(true);
             }
             for mount in config.get_mounts() {
-                wasi.preopened_dir(
-                    mount.get_host(),
-                    mount.get_guest(),
-                    DirPerms::all(),
-                    FilePerms::all(),
-                )?;
+                wasi.preopened_dir(mount.get_host(), mount.get_guest(), FsPerms::ReadWrite)?;
             }
             permissions = config.get_permissions().clone();
         }
         let wasi = wasi
-            .preopened_dir(
-                config_directory,
-                "/configs",
-                DirPerms::all(),
-                FilePerms::all(),
-            )?
-            .preopened_dir(data_directory, "/data", DirPerms::all(), FilePerms::all())?
+            .preopened_dir(config_directory, "/configs", FsPerms::ReadWrite)?
+            .preopened_dir(data_directory, "/data", FsPerms::ReadWrite)?
             .build();
 
         let resources = ResourceTable::new();

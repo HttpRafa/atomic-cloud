@@ -608,3 +608,26 @@ async fn concurrent_allocations_never_share_ports() {
     assert_eq!(ports.len(), 8, "a port was handed out twice: {ports:?}");
     assert!(!ports.contains(&40005));
 }
+
+#[tokio::test]
+async fn servers_without_a_shutdown_command_get_terminated() {
+    let template = TemplateSpec {
+        name: "signals",
+        shutdown: None,
+        startup: "trap 'echo terminated; exit 0' TERM; echo waiting; while :; do sleep 0.1; done",
+        ..TemplateSpec::default()
+    };
+    let Some(harness) = Harness::new(&[template]).await else {
+        return;
+    };
+    harness.wait_template("signals", "ready").await;
+    let server = server("t", "signals", 40007);
+    let screen = harness.start(&server).await.unwrap();
+    expect_line(&screen, "waiting").await;
+
+    let guard = harness.stop(&server).await;
+    expect_line(&screen, "terminated").await;
+    let took = harness.wait_stopped(&guard).await;
+    // The stop timeout is 2s; a graceful exit must not have to wait for it
+    assert!(took < Duration::from_millis(1500), "stop took {took:?}");
+}

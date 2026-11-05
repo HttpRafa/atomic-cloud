@@ -152,13 +152,16 @@ fn transition(key: &str, next: ServerState) -> Result<Template> {
     Template::load(&record.template)
 }
 
-/// Asks the server process to shut down. A failure is only logged: the
-/// tick kills the process once the timeout for the transition runs out.
+/// Asks the server process to shut down: with the template's shutdown
+/// command if it has one, otherwise with a termination signal. A failure is
+/// only logged: the tick kills the process once the timeout runs out.
 fn send_shutdown(template: &Template, uuid: &str) {
-    let command = template
-        .shutdown()
-        .map_or_else(|| "^C".to_string(), ToString::to_string);
-    if let Err(error) = process::write(&process_id(uuid), format!("{command}\n").as_bytes()) {
+    let id = process_id(uuid);
+    let result = match template.shutdown() {
+        Some(command) => process::write(&id, format!("{command}\n").as_bytes()),
+        None => process::terminate(&id),
+    };
+    if let Err(error) = result {
         warn!(
             "Failed to send shutdown command to server {}: {}",
             uuid, error

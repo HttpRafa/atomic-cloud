@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use super::config::Permissions;
 use anyhow::{Result, anyhow};
 use common::error::FancyError;
-use config::Permissions;
 use generated::{exports::plugin::system::bridge, plugin::system::data_types};
 use listener::PluginListener;
 use node::PluginNode;
@@ -21,8 +21,6 @@ use crate::{
     task::manager::TaskSender,
 };
 
-pub(crate) mod config;
-mod epoch;
 pub mod ext;
 pub mod init;
 mod listener;

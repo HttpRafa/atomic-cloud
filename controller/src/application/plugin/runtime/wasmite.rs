@@ -3,7 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use wasmtime::Engine;
 
-use crate::{application::{Shared, plugin::{Features, runtime::wasm::config::Permissions}}, task::manager::TaskSender};
+use crate::{
+    application::{
+        Shared,
+        plugin::{Features, runtime::config::Permissions},
+    },
+    task::manager::TaskSender,
+};
 
 pub mod plugin;
 
@@ -31,7 +37,12 @@ pub struct Context {
     permissions: Permissions,
 
     /* State */
-    store: (StoreMap<String>, StoreMap<i32>, StoreMap<f32>, StoreMap<Vec<u8>>),
+    store: (
+        StoreMap<String>,
+        StoreMap<i32>,
+        StoreMap<f32>,
+        StoreMap<Vec<u8>>,
+    ),
 }
 
 pub struct Plugin {

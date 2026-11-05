@@ -1,3 +1,7 @@
+use crate::application::plugin::runtime::{
+    config::{Permissions, PluginsConfig, verify_engine_config},
+    epoch::EpochInvoker,
+};
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::Result;
@@ -20,12 +24,7 @@ use crate::{
     task::manager::TaskSender,
 };
 
-use super::{
-    Plugin, PluginState,
-    config::{Permissions, PluginsConfig, verify_engine_config},
-    epoch::EpochInvoker,
-    generated,
-};
+use super::{Plugin, PluginState, generated};
 
 #[allow(clippy::too_many_lines)]
 pub async fn init_wasm_plugins(

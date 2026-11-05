@@ -3,7 +3,9 @@ use tokio::task::JoinHandle;
 use tonic::async_trait;
 use url::Url;
 
-use crate::application::plugin::{BoxedNode, GenericPlugin, Information, Capabilities, runtime::wasmite::Plugin};
+use crate::application::plugin::{
+    BoxedNode, Capabilities, GenericPlugin, Information, runtime::wasmite::Plugin,
+};
 
 #[async_trait]
 impl GenericPlugin for Plugin {

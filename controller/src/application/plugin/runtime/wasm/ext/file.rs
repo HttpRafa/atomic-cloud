@@ -1,10 +1,10 @@
+use crate::application::plugin::runtime::config::Permissions;
 use anyhow::{Result, anyhow};
 use tokio::fs::remove_dir_all;
 use wasmtime::ToWasmtimeResult;
 
 use crate::application::plugin::runtime::wasm::{
     PluginState,
-    config::Permissions,
     generated::plugin::system::{
         self,
         types::{Directory, ErrorMessage},

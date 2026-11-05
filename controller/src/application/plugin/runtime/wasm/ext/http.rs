@@ -1,3 +1,4 @@
+use crate::application::plugin::runtime::config::Permissions;
 use anyhow::anyhow;
 use simplelog::warn;
 use tokio::task::spawn_blocking;
@@ -5,7 +6,6 @@ use wasmtime::ToWasmtimeResult;
 
 use crate::application::plugin::runtime::wasm::{
     PluginState,
-    config::Permissions,
     generated::plugin::system::{
         self,
         http::{Header, Method, Response},

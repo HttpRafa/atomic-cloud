@@ -44,6 +44,8 @@ tonic-prost = "0.14.5"
 url = { version = "2.5.8", features = ["serde"] }
 prost = "0.14.3"
 rcgen = "0.14.7"
+# Pick the crypto provider explicitly: minreq enables aws-lc-rs, tonic uses ring
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std"] }
 
 # Plugins
 wasmtime = { version = "50.0.0", default-features = false, features = ["anyhow", "addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }

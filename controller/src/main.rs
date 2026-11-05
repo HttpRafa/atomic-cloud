@@ -28,6 +28,10 @@ pub const AUTHORS: [&str; 1] = ["HttpRafa"];
 #[tokio::main]
 async fn main() {
     async fn run() -> Result<()> {
+        // With both rustls providers linked (tonic: ring, minreq: aws-lc-rs)
+        // rustls cannot pick one and panics when the TLS server starts.
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
         let arguments = Arguments::parse();
         CloudInit::init_logging(arguments.debug, false, Storage::latest_log_file());
         CloudInit::print_ascii_art("Atomic Cloud", &VERSION, &AUTHORS);

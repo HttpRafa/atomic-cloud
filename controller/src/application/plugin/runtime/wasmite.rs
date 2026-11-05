@@ -11,6 +11,7 @@ use crate::{
     task::manager::TaskSender,
 };
 
+pub mod kv;
 pub mod plugin;
 
 #[allow(clippy::all)]

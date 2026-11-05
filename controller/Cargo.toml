@@ -34,7 +34,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 toml = "1.0.6"
 
 # Async runtime
-tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "fs", "process", "macros"] }
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "fs", "process", "macros", "io-util", "sync", "time"] }
 tokio-stream = "0.1.18"
 futures = "0.3.32"
 
@@ -49,6 +49,13 @@ rcgen = "0.14.7"
 wasmtime = { version = "50.0.0", default-features = false, features = ["anyhow", "addr2line", "threads", "std", "runtime", "demangle", "component-model", "cranelift", "parallel-compilation", "cache"], optional = true }
 wasmtime-wasi = { version = "50.0.0", optional = true }
 minreq = { version = "3.0.0", features = ["https-rustls"], optional = true }
+base64 = { version = "0.23.0", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2.177", optional = true }
+
+[dev-dependencies]
+tempfile = "3.23.0"
 
 [build-dependencies]
 toml = "1.0.6"
@@ -56,4 +63,4 @@ tonic-prost-build = "0.14.5"
 
 [features]
 wasm-plugins = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:minreq"]
-wasmite-plugins = ["dep:wasmtime", "dep:wasmtime-wasi"]
+wasmite-plugins = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:base64", "dep:libc"]

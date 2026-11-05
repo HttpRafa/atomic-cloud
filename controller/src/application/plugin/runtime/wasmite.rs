@@ -13,6 +13,7 @@ use crate::{
 
 pub mod kv;
 pub mod plugin;
+pub mod process;
 
 #[allow(clippy::all)]
 pub mod generated {

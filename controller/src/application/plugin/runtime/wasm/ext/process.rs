@@ -1,3 +1,4 @@
+use crate::application::plugin::runtime::config::Permissions;
 use std::{
     collections::HashMap,
     process::{self, Stdio},
@@ -16,7 +17,6 @@ use wasmtime::{ToWasmtimeResult, component::Resource};
 
 use crate::application::plugin::runtime::wasm::{
     PluginState,
-    config::Permissions,
     generated::plugin::system::{
         self,
         process::ExitStatus,

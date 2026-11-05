@@ -132,17 +132,15 @@ impl Window for CreateGroupTab {
                     }
                     stack.close_tab();
                 }
-                KeyCode::Enter => {
-                    if self.request.is_none() {
-                        // Create group on controller
-                        self.request = Some((
-                            self.connection.create_group(self.group.clone()),
-                            StatusDisplay::new_with_startpoint(
-                                Status::Loading,
-                                "Creating group on controller",
-                            ),
-                        ));
-                    }
+                KeyCode::Enter if self.request.is_none() => {
+                    // Create group on controller
+                    self.request = Some((
+                        self.connection.create_group(self.group.clone()),
+                        StatusDisplay::new_with_startpoint(
+                            Status::Loading,
+                            "Creating group on controller",
+                        ),
+                    ));
                 }
                 _ => {}
             }

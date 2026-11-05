@@ -49,7 +49,7 @@ impl Backend {
         self.send_to_api(
             Method::Put,
             &Endpoint::Client,
-            &format!("servers/{}/startup/variable", &identifier),
+            &format!("servers/{identifier}/startup/variable"),
             200,
             value.as_deref(),
             None,
@@ -61,7 +61,7 @@ impl Backend {
         self.send_to_api(
             Method::Patch,
             &Endpoint::Application,
-            &format!("servers/{}/build", &id),
+            &format!("servers/{id}/build"),
             200,
             value.as_deref(),
             None,
@@ -82,7 +82,7 @@ impl Backend {
     fn get_server_resources(&self, identifier: &str) -> Option<BResources> {
         self.get_object_from_api::<(), BResources>(
             &Endpoint::Client,
-            &format!("servers/{}/resources", &identifier),
+            &format!("servers/{identifier}/resources"),
             &(),
         )
         .map(|data| data.attributes)
@@ -112,7 +112,7 @@ impl Backend {
         self.send_to_api(
             Method::Post,
             &Endpoint::Client,
-            &format!("servers/{}/power", &identifier),
+            &format!("servers/{identifier}/power"),
             204,
             state.as_deref(),
             None,

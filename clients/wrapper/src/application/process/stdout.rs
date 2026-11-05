@@ -36,10 +36,9 @@ impl ManagedStdout {
                     }
                 }
                 Err(error) => {
-                    let _ = sender
-                        .send(Err(error.into()))
-                        .await
-                        .map_err(|_| debug!("Failed to send error: Channel closed"));
+                    if sender.send(Err(error.into())).await.is_err() {
+                        debug!("Failed to send error: Channel closed");
+                    }
                     break;
                 }
             }

@@ -56,7 +56,9 @@ impl NodeManager {
                 Ok(instance) => {
                     nodes.insert(name.clone(), Node::new(&name, &value, instance));
                 }
-                Err(error) => error!("Failed to initialize node {}: {}", name, error),
+                Err(error) => {
+                    error!("Failed to initialize node {}: {}", name, error);
+                }
             }
         }
 

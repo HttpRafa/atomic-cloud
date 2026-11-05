@@ -74,8 +74,19 @@ jobs:
           CURRENT_COMMIT: ${{ steps.vars.outputs.sha_short }}
           CURRENT_BUILD: ${{ github.run_number }}
 
+      - name: Check Wasmite Runtime On Its Own
+        run: cargo check -p controller --features wasmite-plugins
+
+      - name: Build Local Plugin For Integration Tests
+        run: cargo build -p local --target wasm32-wasip2
+        env:
+          RUSTFLAGS: -Z wasi-exec-model=reactor
+
       - name: Run Tests
         run: cargo test --workspace --exclude pelican --exclude local --exclude cloudflare --all-features
+        env:
+          # Fail instead of skipping the wasmite tests if local.wasm is missing
+          ATOMIC_REQUIRE_PLUGIN_TESTS: 1
 
       - name: Build & Test Java Client
         working-directory: clients/java

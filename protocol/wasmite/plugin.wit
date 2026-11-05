@@ -1,0 +1,276 @@
+package atomic:plugin-system@0.1.0;
+
+/// ----------------------------------------------------------------------
+/// EXECUTION MODEL
+/// ----------------------------------------------------------------------
+///
+/// Every exported function is called on a fresh, short-lived instance of
+/// the plugin. Nothing kept in guest memory survives between two calls,
+/// and calls may run concurrently. Everything that must outlive a call is
+/// owned by the host:
+///
+///  * state       -> `kv` (persistent, per plugin, compare-and-swap)
+///  * processes   -> `process` (addressed by ids the plugin chooses)
+///  * stop guards -> `server.stopped`
+///
+/// Guests should treat every read-modify-write of a `kv` key as a
+/// compare-and-swap loop, because another call may change the key at the
+/// same time.
+
+/// ----------------------------------------------------------------------
+/// ERROR TYPES
+/// ----------------------------------------------------------------------
+
+interface errors {
+    variant error {
+        not-ready(string),
+        not-found(string),
+        already-exists(string),
+        invalid-argument(string),
+        unauthorized(string),
+        io(string),
+        network(string),
+        key-value(string),
+        internal(string),
+    }
+
+    /// An error that belongs to one item (a server, a template, ...) of a
+    /// call that processes many items, such as `tick`.
+    record scoped-error {
+        scope: string,
+        message: string,
+    }
+}
+
+/// ----------------------------------------------------------------------
+/// DATA TYPES
+/// ----------------------------------------------------------------------
+
+interface types {
+    type uuid = string;
+
+    flags features {
+        node,
+    }
+
+    record information {
+        authors: list<string>,
+        version: string,
+        features: features,
+    }
+
+    record capabilities {
+        memory: option<u32>,
+        max-servers: option<u32>,
+        child: option<string>,
+    }
+
+    record address {
+        host: string,
+        port: u16,
+    }
+
+    record resources {
+        memory: u32,
+        swap: u32,
+        cpu: u32,
+        io: u32,
+        disk: u32,
+        ports: u32,
+    }
+
+    enum disk-retention {
+        permanent,
+        temporary,
+    }
+
+    record specification {
+        settings: list<tuple<string, string>>,
+        environment: list<tuple<string, string>>,
+        disk-retention: disk-retention,
+        image: string,
+    }
+
+    record allocation {
+        ports: list<address>,
+        resources: resources,
+        specification: specification,
+    }
+
+    record server-proposal {
+        name: string,
+        group: option<string>,
+        resources: resources,
+        specification: specification,
+    }
+
+    record server {
+        name: string,
+        uuid: uuid,
+        group: option<string>,
+        allocation: allocation,
+        token: string,
+        connected-users: u32,
+    }
+}
+
+/// ----------------------------------------------------------------------
+/// PLUGIN IMPORTS (Called by the Guest/Plugin)
+/// ----------------------------------------------------------------------
+
+interface log {
+    enum level {
+        debug,
+        info,
+        warn,
+        error,
+    }
+
+    log: func(level: level, message: string);
+}
+
+interface platform {
+    enum os {
+        unix,
+        windows,
+    }
+
+    get-os: func() -> os;
+
+    /// The PEM certificate of the controller, if TLS is enabled.
+    get-certificate: func() -> option<string>;
+}
+
+/// A persistent key-value store scoped to the calling plugin.
+interface kv {
+    use errors.{error};
+
+    get: func(key: string) -> result<option<list<u8>>, error>;
+    set: func(key: string, value: list<u8>) -> result<_, error>;
+    delete: func(key: string) -> result<_, error>;
+
+    /// Atomically replaces the value of `key` with `new` if its current
+    /// value equals `expected`. `none` stands for "key does not exist",
+    /// so `new: none` deletes the key. Returns whether the swap happened.
+    compare-and-swap: func(key: string, expected: option<list<u8>>, new: option<list<u8>>) -> result<bool, error>;
+
+    /// All keys that start with `prefix`, sorted.
+    keys: func(prefix: string) -> result<list<string>, error>;
+}
+
+/// Child processes owned by the host. They outlive the plugin instance
+/// that started them and are addressed by an id chosen by the plugin.
+/// Requires the ALLOW_PROCESS permission.
+interface process {
+    use errors.{error};
+
+    variant exit-status {
+        code(s32),
+        signal(s32),
+        unknown,
+    }
+
+    variant process-status {
+        running,
+        exited(exit-status),
+    }
+
+    record command {
+        program: string,
+        args: list<string>,
+        environment: list<tuple<string, string>>,
+        /// Working directory, relative to the plugin's data directory.
+        directory: string,
+    }
+
+    /// Starts a new process. Fails with `already-exists` if `id` is taken.
+    spawn: func(id: string, command: command) -> result<_, error>;
+    /// Kills the process if it is still running and starts it again with
+    /// the command it was originally spawned with.
+    respawn: func(id: string) -> result<_, error>;
+    status: func(id: string) -> result<process-status, error>;
+
+    /// Writes to the process' stdin and flushes it.
+    write: func(id: string, data: list<u8>) -> result<_, error>;
+    /// Drains the stdout/stderr lines buffered since the last call.
+    read-lines: func(id: string) -> result<list<string>, error>;
+
+    /// Asks the process to exit (SIGTERM on unix, a hard kill on windows).
+    terminate: func(id: string) -> result<_, error>;
+    kill: func(id: string) -> result<_, error>;
+    /// Kills the process if it is still running and forgets the id.
+    remove: func(id: string) -> result<_, error>;
+
+    /// Ids of all known processes that start with `prefix`.
+    list-ids: func(prefix: string) -> list<string>;
+}
+
+/// Requires the ALLOW_REMOVE_DIR_ALL permission.
+interface fs {
+    use errors.{error};
+
+    /// Recursively removes a directory relative to the plugin's data
+    /// directory. Missing directories are not an error.
+    remove-dir-all: func(path: string) -> result<_, error>;
+}
+
+interface server {
+    use types.{uuid};
+
+    /// Tells the controller that a stop requested through `node.stop`
+    /// has completed. Calling it for an unknown server is a no-op.
+    stopped: func(server: uuid);
+}
+
+/// ----------------------------------------------------------------------
+/// PLUGIN EXPORTS (Called by the Host)
+/// ----------------------------------------------------------------------
+
+interface lifecycle {
+    use errors.{error, scoped-error};
+    use types.{information};
+
+    /// Called ephemerally. The plugin fetches state via kv
+    init: func(cloud-identifier: string) -> result<information, error>;
+    tick: func(cloud-identifier: string) -> result<_, list<scoped-error>>;
+    shutdown: func(cloud-identifier: string) -> result<_, list<scoped-error>>;
+}
+
+/// Exported by plugins that declare the `node` feature. Every function
+/// receives the name of the node it operates on.
+interface node {
+    use errors.{error, scoped-error};
+    use types.{capabilities, address, server-proposal, server};
+
+    init: func(node: string, capabilities: capabilities, controller: string) -> result<_, error>;
+    tick: func(node: string) -> result<_, list<scoped-error>>;
+
+    allocate: func(node: string, server: server-proposal) -> result<list<address>, error>;
+    free: func(node: string, addresses: list<address>) -> result<_, error>;
+
+    /// Starts the server. Returns the id of the `process` whose output is
+    /// the server's screen, if it has one.
+    start: func(node: string, server: server) -> result<option<string>, error>;
+    restart: func(node: string, server: server) -> result<_, error>;
+    /// Begins stopping the server. The plugin must call `server.stopped`
+    /// once it is down, or return an error.
+    stop: func(node: string, server: server) -> result<_, error>;
+}
+
+/// ----------------------------------------------------------------------
+/// WASM WORLD
+/// ----------------------------------------------------------------------
+
+world plugin {
+    // Host-Provided Functionality (State Keepers & Utilities)
+    import log;
+    import platform;
+    import kv;
+    import process;
+    import fs;
+    import server;
+
+    // Guest-Provided Functionality (Stateless/Ephemeral Execution logic)
+    export lifecycle;
+    export node;
+}

@@ -127,17 +127,15 @@ impl Window for CreateNodeTab {
                     }
                     stack.close_tab();
                 }
-                KeyCode::Enter => {
-                    if self.request.is_none() {
-                        // Create node on controller
-                        self.request = Some((
-                            self.connection.create_node(self.node.clone()),
-                            StatusDisplay::new_with_startpoint(
-                                Status::Loading,
-                                "Creating node on controller",
-                            ),
-                        ));
-                    }
+                KeyCode::Enter if self.request.is_none() => {
+                    // Create node on controller
+                    self.request = Some((
+                        self.connection.create_node(self.node.clone()),
+                        StatusDisplay::new_with_startpoint(
+                            Status::Loading,
+                            "Creating node on controller",
+                        ),
+                    ));
                 }
                 _ => {}
             }

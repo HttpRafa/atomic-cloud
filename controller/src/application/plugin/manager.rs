@@ -11,6 +11,8 @@ use super::BoxedPlugin;
 
 #[cfg(feature = "wasm-plugins")]
 use crate::application::plugin::runtime::wasm::init::init_wasm_plugins;
+#[cfg(feature = "wasmite-plugins")]
+use crate::application::plugin::runtime::wasmite::init::init_wasmite_plugins;
 
 mod tick;
 
@@ -21,6 +23,7 @@ pub struct PluginManager {
 }
 
 impl PluginManager {
+    #[cfg_attr(not(feature = "wasm-plugins"), allow(unused_variables))]
     pub async fn init(config: &Config, tasks: &TaskSender, shared: &Arc<Shared>) -> Result<Self> {
         info!("Loading plugins...");
 
@@ -28,6 +31,9 @@ impl PluginManager {
 
         #[cfg(feature = "wasm-plugins")]
         init_wasm_plugins(config, tasks, shared, &mut plugins).await?;
+
+        #[cfg(feature = "wasmite-plugins")]
+        init_wasmite_plugins(config, shared, &mut plugins).await?;
 
         info!("Loaded {} plugin(s)", plugins.len());
         Ok(Self {

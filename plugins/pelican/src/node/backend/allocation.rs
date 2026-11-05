@@ -15,7 +15,7 @@ impl Backend {
         self.for_each_on_pages::<BCAllocation>(
             Method::Get,
             &Endpoint::Client,
-            format!("servers/{}/network/allocations", &identifier).as_str(),
+            format!("servers/{identifier}/network/allocations").as_str(),
             |response| {
                 for allocation in &response.data {
                     if allocation.attributes.is_default {

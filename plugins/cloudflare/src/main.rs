@@ -19,13 +19,13 @@ mod log;
 mod plugin;
 mod storage;
 
-#[allow(clippy::all)]
+#[allow(clippy::all, clippy::pedantic)]
 pub mod generated {
     use wit_bindgen::generate;
 
     generate!({
         world: "plugin",
-        path: "../../protocol/wit/",
+        path: "../../protocol/wasm/",
     });
 }
 

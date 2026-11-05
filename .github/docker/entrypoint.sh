@@ -36,9 +36,17 @@ if [ "$PTERODACTYL" = "true" ]; then
 fi
 
 # Check if the environment variable LOCAL is set to true
+# The local plugin is a wasmite plugin and lives in plugins/wasmite/
 if [ "$LOCAL" = "true" ]; then
+    mkdir -p "$DEST_FOLDER/wasmite"
+    # A local.wasm from an older release in plugins/ would be loaded by the
+    # wasm runtime first and shadow the wasmite one
+    if [ -f "$DEST_FOLDER/local.wasm" ]; then
+        echo "Moving outdated $DEST_FOLDER/local.wasm to $DEST_FOLDER/local.wasm.old"
+        mv "$DEST_FOLDER/local.wasm" "$DEST_FOLDER/local.wasm.old"
+    fi
     WASM_URL="https://github.com/HttpRafa/atomic-cloud/releases/latest/download/local.wasm"
-    WASM_FILE="$DEST_FOLDER/local.wasm"
+    WASM_FILE="$DEST_FOLDER/wasmite/local.wasm"
     download_wasm $WASM_URL $WASM_FILE
 fi
 

@@ -11,8 +11,9 @@ COPY . .
 # Install necessary build dependencies, including protobuf compiler
 RUN apk add --no-cache musl-dev openssl-dev protobuf-dev
 
-# Compile the controller with the wasm-plugins feature
-RUN cargo build -p controller --features wasm-plugins --release
+# Compile the controller with both plugin runtimes: pelican and cloudflare
+# use the wasm runtime, the local plugin uses wasmite
+RUN cargo build -p controller --features wasm-plugins,wasmite-plugins --release
 
 # Runtime stage: Use a minimal Alpine image
 FROM alpine:latest

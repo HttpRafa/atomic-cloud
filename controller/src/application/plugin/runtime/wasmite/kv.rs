@@ -272,7 +272,7 @@ mod tests {
             all.sort_unstable();
             all
         });
-        assert!(store.keys("zzz").is_empty());
+        assert_eq!(store.keys("zzz"), [] as [std::string::String; 0]);
     }
 
     #[tokio::test]

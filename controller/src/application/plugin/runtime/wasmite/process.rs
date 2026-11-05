@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context as _, Result, anyhow, bail};
+use anyhow::{Context as _, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use simplelog::{debug, info, warn};
 use tokio::{
@@ -433,6 +433,7 @@ async fn terminate_hard(process: &mut Managed) {
 }
 
 #[cfg(unix)]
+#[allow(clippy::unnecessary_wraps)] // Must match the fallible non-unix version
 fn terminate_gracefully(child: &mut Child) -> std::io::Result<()> {
     match child.id() {
         Some(pid) => {
@@ -607,7 +608,7 @@ mod tests {
             Err(ProcessError::NotFound(_))
         ));
         registry.remove("p").await.unwrap();
-        assert!(registry.list_ids("").is_empty());
+        assert_eq!(registry.list_ids(""), [] as [std::string::String; 0]);
     }
 
     #[tokio::test]

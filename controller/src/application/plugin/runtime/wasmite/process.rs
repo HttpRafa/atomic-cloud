@@ -100,6 +100,14 @@ struct PidFile {
 struct PidEntry {
     pid: u32,
     program: String,
+    /// Start time of the process (clock ticks since boot on Linux). Unlike
+    /// the command line it survives `exec` (startup scripts `exec java`),
+    /// and it differs when the kernel reuses the pid for another process.
+    #[serde(default)]
+    start_time: Option<u64>,
+    /// Boot the start time refers to.
+    #[serde(default)]
+    boot_id: Option<String>,
 }
 
 pub struct ProcessRegistry {
@@ -332,6 +340,8 @@ impl ProcessRegistry {
                     PidEntry {
                         pid,
                         program: process.spec.program.clone(),
+                        start_time: start_time(pid),
+                        boot_id: boot_id(),
                     },
                 );
             }
@@ -463,27 +473,34 @@ fn signal_group(pid: u32, signal: libc::c_int) {
     }
 }
 
-/// Kills a process recorded by a previous run, but only if it still looks
-/// like the process we started: pids get reused, and killing an unrelated
-/// process would be far worse than leaving an orphan.
+/// Kills the process group of a process recorded by a previous run, but
+/// only if it provably is the process we started: pids get reused, and
+/// killing an unrelated process would be far worse than leaving an orphan.
 #[cfg(target_os = "linux")]
 fn kill_orphan(entry: &PidEntry) -> bool {
-    let Ok(cmdline) = std::fs::read(format!("/proc/{}/cmdline", entry.pid)) else {
-        return false; // Not running anymore
-    };
-    let Some(program) = cmdline.split(|byte| *byte == 0).next() else {
+    let (Some(recorded), Some(recorded_boot)) = (entry.start_time, entry.boot_id.as_ref()) else {
+        warn!(
+            "Process {} ({}) may have been left behind by a previous run, but it cannot be verified; stop it manually",
+            entry.pid, entry.program
+        );
         return false;
     };
-    let name = |path: &[u8]| {
-        Path::new(&*String::from_utf8_lossy(path))
-            .file_name()
-            .map(std::ffi::OsStr::to_os_string)
-    };
-    if name(program) != name(entry.program.as_bytes()) {
+    if boot_id().as_ref() != Some(recorded_boot) {
+        // The machine rebooted, so nothing from the previous run is alive
         return false;
     }
-    signal_group(entry.pid, libc::SIGKILL);
-    true
+    let is_ours = match start_time(entry.pid) {
+        Some(current) => current == recorded,
+        // The group leader is gone, but members of its group (e.g. a server
+        // started in the background by a script) may still run. A process
+        // group id cannot be handed out again while the group has members,
+        // so any process still in it belongs to us.
+        None => group_has_members(entry.pid),
+    };
+    if is_ours {
+        signal_group(entry.pid, libc::SIGKILL);
+    }
+    is_ours
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -493,6 +510,54 @@ fn kill_orphan(entry: &PidEntry) -> bool {
         entry.pid, entry.program
     );
     false
+}
+
+/// Process group and start time from `/proc/<pid>/stat`.
+#[cfg(target_os = "linux")]
+fn proc_stat(pid: &str) -> Option<(u32, u64)> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    // The command name in parentheses may contain spaces, so split after it.
+    // fields[0] is field 3 of proc_pid_stat(5), so field n is fields[n - 3].
+    let fields: Vec<&str> = stat
+        .get(stat.rfind(')')? + 1..)?
+        .split_whitespace()
+        .collect();
+    Some((fields.get(2)?.parse().ok()?, fields.get(19)?.parse().ok()?))
+}
+
+#[cfg(target_os = "linux")]
+fn start_time(pid: u32) -> Option<u64> {
+    proc_stat(&pid.to_string()).map(|(_, start)| start)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn start_time(_pid: u32) -> Option<u64> {
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn boot_id() -> Option<String> {
+    std::fs::read_to_string("/proc/sys/kernel/random/boot_id")
+        .ok()
+        .map(|id| id.trim().to_string())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn boot_id() -> Option<String> {
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn group_has_members(group: u32) -> bool {
+    let Ok(entries) = std::fs::read_dir("/proc") else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        name.bytes().all(|byte| byte.is_ascii_digit())
+            && proc_stat(&name).is_some_and(|(pgrp, _)| pgrp == group)
+    })
 }
 
 #[cfg(unix)]
@@ -696,7 +761,8 @@ mod tests {
             let registry = ProcessRegistry::open(directory.path().to_path_buf(), pid_file.clone())
                 .await
                 .unwrap();
-            registry.spawn("p", sh("sleep 30")).await.unwrap();
+            // `exec` replaces the shell, like startup scripts that `exec java`
+            registry.spawn("p", sh("exec sleep 30")).await.unwrap();
             let pid = registry.get("p").unwrap().lock().await.child.id().unwrap();
             // Simulate a crash: the registry disappears without cleanup and
             // kill_on_drop never runs.
@@ -720,14 +786,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn orphaned_group_members_are_killed_when_the_leader_is_gone() {
+        let directory = tempfile::tempdir().unwrap();
+        let pid_file = directory.path().join("processes.toml");
+        let leader = {
+            let registry = ProcessRegistry::open(directory.path().to_path_buf(), pid_file.clone())
+                .await
+                .unwrap();
+            // The shell starts sleep in the background and exits right away
+            registry
+                .spawn("p", sh("sleep 30 & echo started"))
+                .await
+                .unwrap();
+            collect_until(&registry, "p", "started").await;
+            let leader = registry.get("p").unwrap().lock().await.child.id().unwrap();
+            assert_eq!(wait_exit(&registry, "p").await, Exit::Code(0));
+            std::mem::forget(registry);
+            leader
+        };
+        let alive_members = || {
+            std::fs::read_dir("/proc")
+                .unwrap()
+                .flatten()
+                .filter_map(|entry| std::fs::read_to_string(entry.path().join("stat")).ok())
+                .filter(|stat| !stat.contains(") Z "))
+                .filter_map(|stat| proc_stat_of(&stat))
+                .filter(|pgrp| *pgrp == leader)
+                .count()
+        };
+        assert_eq!(alive_members(), 1, "sleep should still run in the group");
+
+        let _registry = ProcessRegistry::open(directory.path().to_path_buf(), pid_file)
+            .await
+            .unwrap();
+        wait_for(|| alive_members() == 0).await;
+    }
+
+    fn proc_stat_of(stat: &str) -> Option<u32> {
+        let fields: Vec<&str> = stat
+            .get(stat.rfind(')')? + 1..)?
+            .split_whitespace()
+            .collect();
+        fields.get(2)?.parse().ok()
+    }
+
+    #[tokio::test]
     async fn unrelated_pids_are_not_killed() {
         let directory = tempfile::tempdir().unwrap();
         let pid_file = directory.path().join("processes.toml");
         let mut innocent = Command::new("sleep").arg("30").spawn().unwrap();
         let pid = innocent.id().unwrap();
+        let boot = boot_id().unwrap();
+        // Same pid, but a different start time (the pid was reused), and an
+        // entry from an older release without a start time
         std::fs::write(
             &pid_file,
-            format!("[processes.p]\npid = {pid}\nprogram = \"java\"\n"),
+            format!(
+                "[processes.reused]\npid = {pid}\nprogram = \"sleep\"\nstart_time = 1\nboot_id = \"{boot}\"\n\n[processes.legacy]\npid = {pid}\nprogram = \"sleep\"\n"
+            ),
         )
         .unwrap();
         let _registry = ProcessRegistry::open(directory.path().to_path_buf(), pid_file)

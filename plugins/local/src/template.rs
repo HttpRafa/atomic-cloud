@@ -22,7 +22,7 @@ use crate::{
     generated::atomic::plugin_system::{
         errors::{Error, ScopedError},
         platform::{Os, get_os},
-        process::{self, Command, ProcessStatus},
+        process::{self, Command, ExitStatus, ProcessStatus},
     },
     info,
     state::{self, TEMPLATE_PREFIX, TemplateRecord, TemplateStatus},
@@ -288,7 +288,8 @@ fn tick_prepare(name: &str, record: &state::Versioned<TemplateRecord>) -> Result
     for line in process::read_lines(&id).map_err(|error| anyhow!(error))? {
         info!("[{}] {}", name, line.trim());
     }
-    let ProcessStatus::Exited(_) = process::status(&id).map_err(|error| anyhow!(error))? else {
+    let ProcessStatus::Exited(status) = process::status(&id).map_err(|error| anyhow!(error))?
+    else {
         return Ok(());
     };
 
@@ -297,13 +298,23 @@ fn tick_prepare(name: &str, record: &state::Versioned<TemplateRecord>) -> Result
         info!("[{}] {}", name, line.trim());
     }
     process::remove(&id).map_err(|error| anyhow!(error))?;
-    info!("Prepare script of template {} has finished", name);
-    state::swap(
-        record,
-        Some(&TemplateRecord {
+
+    let finished = if matches!(status, ExitStatus::Code(0)) {
+        info!("Prepare script of template {} has finished", name);
+        TemplateRecord {
             status: TemplateStatus::Ready,
             message: None,
-        }),
-    )?;
+        }
+    } else {
+        // Starting servers from a half-prepared template (e.g. without the
+        // server jar) would only fail later with a less helpful error
+        let message = format!("Prepare script exited with {status:?}");
+        error!("{} for template {}; it will not be used", message, name);
+        TemplateRecord {
+            status: TemplateStatus::Failed,
+            message: Some(message),
+        }
+    };
+    state::swap(record, Some(&finished))?;
     Ok(())
 }

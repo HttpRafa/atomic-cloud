@@ -672,3 +672,23 @@ async fn crashed_servers_are_cleaned_up() {
     let guard = harness.stop(&server).await;
     assert!(guard.is_dropped());
 }
+
+#[tokio::test]
+async fn templates_whose_prepare_fails_are_not_used() {
+    let template = TemplateSpec {
+        name: "broken",
+        prepare: "echo downloading; exit 3",
+        ..TemplateSpec::default()
+    };
+    let Some(harness) = Harness::new(&[template]).await else {
+        return;
+    };
+    harness.wait_template("broken", "failed").await;
+    assert!(harness.kv("template/broken").unwrap().contains("Code(3)"));
+    let result = harness.start(&server("b", "broken", 40009)).await;
+    assert!(
+        matches!(&result, Err(Error::NotReady(message)) if message.contains("failed to prepare")),
+        "unexpected result: {:?}",
+        result.err()
+    );
+}

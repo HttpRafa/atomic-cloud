@@ -21,7 +21,7 @@ mod plugin;
 mod storage;
 mod template;
 
-#[allow(clippy::all)]
+#[allow(clippy::all, clippy::pedantic)]
 pub mod generated {
     use wit_bindgen::generate;
 

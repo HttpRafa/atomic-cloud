@@ -108,7 +108,7 @@ impl Backend {
             target
         );
         if let Some(page) = page {
-            url = format!("{}?page={}", &url, &page);
+            url = format!("{url}?page={page}");
         }
         debug!(
             "Sending request to the pelican panel: {:?} {}",
@@ -135,10 +135,7 @@ impl Backend {
             ],
             body,
         );
-        if Self::check_response(&url, body, response, expected_code).is_some() {
-            return true;
-        }
-        false
+        Self::check_response(&url, body, response, expected_code).is_some()
     }
 
     fn send_to_api_parse<T: DeserializeOwned>(
@@ -160,7 +157,7 @@ impl Backend {
             target
         );
         if let Some(page) = page {
-            url = format!("{}?page={}", &url, &page);
+            url = format!("{url}?page={page}");
         }
         debug!(
             "Sending request to the pelican panel: {:?} {}",

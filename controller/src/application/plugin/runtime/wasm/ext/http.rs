@@ -53,7 +53,7 @@ impl system::http::Host for PluginState {
             };
             Some(Response {
                 #[allow(clippy::cast_sign_loss)]
-                status_code: response.status_code as u32,
+                status_code: u32::from(response.status_code),
                 reason_phrase: response.reason_phrase.clone(),
                 headers: response
                     .headers

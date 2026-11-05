@@ -22,17 +22,16 @@ impl FancyError {
         );
 
         error!("Error: {}", error);
-        error
-            .chain()
-            .skip(1)
-            .for_each(|error| error!("    Caused by: {}", error));
+        error.chain().skip(1).for_each(|error| {
+            error!("    Caused by: {}", error);
+        });
 
         match error.backtrace().status() {
             BacktraceStatus::Captured => {
                 error!("Backtrace:");
-                format!("{}", error.backtrace())
-                    .lines()
-                    .for_each(|line| error!("{}", line));
+                format!("{}", error.backtrace()).lines().for_each(|line| {
+                    error!("{}", line);
+                });
             }
             _ => {
                 error!(

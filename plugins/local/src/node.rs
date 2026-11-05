@@ -70,19 +70,16 @@ impl GuestNode for Node {
         let host = config.host();
         let mappings = config.mappings();
 
-        let mut ports: Vec<Address> = mappings
-            .get(&server.name)
-            .map(|ports| {
-                ports
-                    .iter()
-                    .take(required)
-                    .map(|port| Address {
-                        host: host.to_owned(),
-                        port: *port,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+        let mut ports: Vec<Address> = mappings.get(&server.name).map_or_default(|ports| {
+            ports
+                .iter()
+                .take(required)
+                .map(|port| Address {
+                    host: host.to_owned(),
+                    port: *port,
+                })
+                .collect()
+        });
 
         let mut allocator = self.0.allocator.borrow_mut();
         for _ in ports.len()..required {

@@ -19,7 +19,7 @@ impl CloudInit {
             && !parent.exists()
             && let Err(error) = fs::create_dir_all(parent)
         {
-            println!("Failed to create logs directory: {}", &error);
+            println!("Failed to create logs directory: {error}");
             exit(1);
         }
 

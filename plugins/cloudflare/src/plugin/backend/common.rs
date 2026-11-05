@@ -33,7 +33,7 @@ impl Backend {
     ) -> Option<T> {
         let mut url = format!("{CLOUDFLARE_API_URL}/{target}");
         if let Some(page) = page {
-            url = format!("{}?page={}", &url, &page);
+            url = format!("{url}?page={page}");
         }
         debug!(
             "Sending request to the cloudflare api: {:?} {}",

@@ -36,6 +36,9 @@ pub mod plugin;
 pub mod process;
 pub mod screen;
 
+#[cfg(all(test, unix))]
+mod tests;
+
 #[allow(clippy::all, clippy::pedantic)]
 pub mod generated {
     use wasmtime::component::bindgen;

@@ -28,6 +28,11 @@ impl Plugin {
     pub fn set_features(&mut self, features: Features) {
         self.features = features;
     }
+
+    #[cfg(test)]
+    pub fn runtime(&self) -> &Arc<Runtime> {
+        &self.runtime
+    }
 }
 
 #[async_trait]

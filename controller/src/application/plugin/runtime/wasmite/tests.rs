@@ -557,3 +557,54 @@ async fn directory_exclusions_are_not_copied() {
     let guard = harness.stop(&server).await;
     harness.wait_stopped(&guard).await;
 }
+
+#[tokio::test]
+async fn mapped_ports_are_reserved_and_claimed() {
+    let Some(harness) = Harness::new(&[TemplateSpec::default()]).await else {
+        return;
+    };
+    let ports = |addresses: &[Address]| addresses.iter().map(|a| a.port).collect::<Vec<_>>();
+
+    // Take the first five ports of the range
+    let first = harness.allocate("x", 5).await.unwrap();
+    assert_eq!(ports(&first), vec![40000, 40001, 40002, 40003, 40004]);
+    // 40005 is mapped to "lobby", so other servers skip it
+    let other = harness.allocate("y", 1).await.unwrap();
+    assert_eq!(ports(&other), vec![40006]);
+
+    let lobby = harness.allocate("lobby", 1).await.unwrap();
+    assert_eq!(ports(&lobby), vec![40005]);
+    // A second lobby cannot get the same port while the first holds it
+    assert!(matches!(
+        harness.allocate("lobby", 1).await,
+        Err(Error::AlreadyExists(_))
+    ));
+    harness.free(&lobby).await;
+    assert_eq!(
+        ports(&harness.allocate("lobby", 1).await.unwrap()),
+        vec![40005]
+    );
+}
+
+#[tokio::test]
+async fn concurrent_allocations_never_share_ports() {
+    let Some(harness) = Harness::new(&[TemplateSpec::default()]).await else {
+        return;
+    };
+    let harness = Arc::new(harness);
+    let mut tasks = vec![];
+    for index in 0..8 {
+        let harness = harness.clone();
+        tasks.push(tokio::spawn(async move {
+            harness.allocate(&format!("s{index}"), 1).await.unwrap()[0].port
+        }));
+    }
+    let mut ports = vec![];
+    for task in tasks {
+        ports.push(task.await.unwrap());
+    }
+    ports.sort_unstable();
+    ports.dedup();
+    assert_eq!(ports.len(), 8, "a port was handed out twice: {ports:?}");
+    assert!(!ports.contains(&40005));
+}

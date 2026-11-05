@@ -22,12 +22,26 @@ pub fn allocate(config: &Config, server: &str, required: u32) -> Result<Vec<Addr
             ports.iter().take(required).copied().collect()
         });
 
+    // Mapped ports are reserved for their server, even when they fall into
+    // the range, so no other server can take them
+    let reserved: Vec<u16> = config.mappings().values().flatten().copied().collect();
+
     let ports = state::update(PORTS_KEY, |record: Option<PortsRecord>| {
         let mut record = record.unwrap_or_default();
+        for port in &mapped {
+            if record.allocated.contains(port) {
+                bail!(Error::AlreadyExists(format!(
+                    "Port {port} mapped to {server} is still in use"
+                )));
+            }
+            record.allocated.push(*port);
+        }
         let mut ports = mapped.clone();
         let mut candidates = config.range().clone();
         while ports.len() < required {
-            let Some(port) = candidates.find(|port| !record.allocated.contains(port)) else {
+            let Some(port) = candidates
+                .find(|port| !record.allocated.contains(port) && !reserved.contains(port))
+            else {
                 bail!(Error::NotReady(format!(
                     "No free port left in range {:?}",
                     config.range()

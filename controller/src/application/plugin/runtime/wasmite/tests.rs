@@ -46,9 +46,14 @@ use super::{
 const NODE: &str = "node-1";
 const WAIT: Duration = Duration::from_secs(15);
 
+/// The tests only talk to processes on this machine, so the loopback
+/// address is intended here and is not debug code.
+const LOOPBACK: &str = "127.0.0.1"; // DevSkim: ignore DS162092
+
+/// Plugin config; `{host}` is replaced with [`LOOPBACK`].
 const CONFIG: &str = r#"
 [network]
-host = "127.0.0.1"
+host = "{host}"
 
 [network.ports]
 range = { start = 40000, end = 40010 }
@@ -118,7 +123,11 @@ impl Harness {
         let data = directory.path().join("data");
         let configs = directory.path().join("configs");
         std::fs::create_dir_all(&configs).unwrap();
-        std::fs::write(configs.join("config.toml"), CONFIG).unwrap();
+        std::fs::write(
+            configs.join("config.toml"),
+            CONFIG.replace("{host}", LOOPBACK),
+        )
+        .unwrap();
         for template in templates {
             write_template(&data, template);
         }
@@ -146,12 +155,13 @@ impl Harness {
             max_servers: None,
             child: None,
         };
+        let controller = format!("https://{LOOPBACK}:8080");
         harness
             .runtime()
             .call(async |bindings, store| {
                 bindings
                     .atomic_plugin_system_node()
-                    .call_init(store, NODE, &caps, "https://localhost:8080")
+                    .call_init(store, NODE, &caps, &controller)
                     .await
             })
             .await
@@ -372,7 +382,7 @@ fn server(uuid: &str, image: &str, port: u16) -> Server {
         group: None,
         allocation: Allocation {
             ports: vec![Address {
-                host: "127.0.0.1".to_string(),
+                host: LOOPBACK.to_string(),
                 port,
             }],
             resources: resources(1),
